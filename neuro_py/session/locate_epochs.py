@@ -5,7 +5,7 @@ __all__ = [
     "find_epoch_pattern",
 ]
 import numpy as np
-
+import pandas as pd
 
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
