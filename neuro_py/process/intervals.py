@@ -1,6 +1,4 @@
 __all__ = [
-    "IntervalArray",
-    "EpochArray",
     "find_intersecting_intervals",
     "find_interval",
     "in_intervals",
