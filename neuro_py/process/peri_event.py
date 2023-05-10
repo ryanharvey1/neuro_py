@@ -313,6 +313,45 @@ def event_triggered_average(
     >>> plt.plot(time_lags,peth_avg)
     >>> plt.show()
     """
+
+    # check inputs
+    if len(window) != 2:
+        raise ValueError(
+            "'window' must be a tuple of 2 elements, not {}".format(len(window))
+        )
+    
+    if window[0] > window[1]:
+        raise ValueError(
+            "'window' first value must be less than second value, not {}".format(len(window))
+        )
+    
+    if not isinstance(timestamps, np.ndarray):
+        raise ValueError(
+            "'timestamps' must be a numpy ndarray, not {}".format(type(timestamps))
+        )
+    
+    if not isinstance(signal, np.ndarray):
+        raise ValueError(
+            "'signal' must be a numpy ndarray, not {}".format(type(signal))
+        )
+    
+    if not isinstance(events, (list, np.ndarray)):
+        raise ValueError(
+            "'events' must be a numpy ndarray or list, not {}".format(type(events))
+        )
+    
+    if signal.shape[0] != timestamps.shape[0]:
+        raise ValueError(
+            "'signal' and 'timestamps' must have the same number of rows"
+        )
+    
+    if len(timestamps.shape) > 1:
+        raise ValueError(
+            "'timestamps' must be a 1D array, not {}".format(len(timestamps.shape))
+        )
+    
+        
+
     window_starttime, window_stoptime = window
 
     if len(signal.shape) == 1:
@@ -363,6 +402,51 @@ def event_triggered_average(
         )
 
     return result_sta, time_lags
+
+
+def event_triggered_average_fast(
+    signal: np.ndarray,
+    events: np.ndarray,
+    sampling_rate: int,
+    window=[-0.5, 0.5],
+):
+    """
+    event_triggered_average: Calculate the event triggered average of a signal
+
+    Args:
+        signal (np.ndarray): 2D array of signal data (channels x timepoints)
+        events (np.ndarray): 1D array of event times
+        sampling_rate (int, optional): Sampling rate of signal.
+        window (list, optional): Time window to average signal around event. Defaults to [-0.5, 0.5].
+
+    Returns:
+        np.ndarray: Event triggered average of signal
+        np.ndarray: Time lags of event triggered average
+
+    note: This version assumes a constant sampling rate with no missing data (time gaps)
+    """
+
+    window_starttime, window_stoptime = window
+    window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
+    time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
+
+    events = events[
+        (events * sampling_rate > len(time_lags) / 2 + 1)
+        & (events * sampling_rate < signal.shape[1] - len(time_lags) / 2 + 1)
+    ]
+
+    avg_signal = np.zeros(
+        [signal.shape[0], len(time_lags), len(events)], dtype=np.int16
+    )
+
+    for i, event in enumerate(events):
+        ts_idx = np.arange(
+            np.round(event * sampling_rate) - len(time_lags) / 2,
+            np.round(event * sampling_rate) + len(time_lags) / 2,
+        ).astype(int)
+        avg_signal[:, :, i] = signal[:, ts_idx]
+
+    return avg_signal.mean(axis=2), time_lags
 
 
 def get_participation(st, event_starts, event_stops, par_type="binary"):
