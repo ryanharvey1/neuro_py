@@ -29,6 +29,7 @@ __all__ = [
     "load_manipulation",
     "load_channel_tags",
     "load_extracellular_metadata",
+    "load_emg"
 ]
 
 
@@ -39,7 +40,7 @@ import numpy as np
 import glob
 import nelpy as nel
 import warnings
-from neuro_py.process.intervals import in_intervals
+from neuro_py.process.intervals import in_intervals, find_interval
 from neuro_py.behavior.utils import get_speed
 from warnings import simplefilter
 from typing import Union
@@ -1665,3 +1666,43 @@ def load_extracellular_metadata(basepath):
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
+
+
+def load_emg(basepath:str,threshold:float=0.9):
+    """
+    load_emg loads EMG data from basename.EMGFromLFP.LFP.mat
+
+    Input:
+        basepath: str
+            path to session folder
+        threshold: float
+            threshold for high epochs (low will be < threshold)
+    Output:
+        emg: nel.AnalogSignalArray
+            EMG data
+        high_emg_epoch: nel.EpochArray
+            high emg epochs
+        low_emg_epoch: nel.EpochArray
+            low emg epochs
+
+    """
+    # locate .mat file
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".EMGFromLFP.LFP.mat")
+
+    # load matfile
+    data = sio.loadmat(filename, simplify_cells=True)
+
+    # put emg data into AnalogSignalArray
+    emg = nel.AnalogSignalArray(
+        data=data['EMGFromLFP']['data'],
+        timestamps=data['EMGFromLFP']['timestamps']
+    )
+
+    # get high and low emg epochs
+    high_emg_epoch = find_interval(emg.data.flatten() > threshold)
+    high_emg_epoch = nel.EpochArray(emg.abscissa_vals[high_emg_epoch])
+
+    low_emg_epoch = find_interval(emg.data.flatten() < threshold)
+    low_emg_epoch = nel.EpochArray(emg.abscissa_vals[low_emg_epoch])
+
+    return emg, high_emg_epoch, low_emg_epoch
