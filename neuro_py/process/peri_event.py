@@ -408,6 +408,7 @@ def event_triggered_average_fast(
     events: np.ndarray,
     sampling_rate: int,
     window=[-0.5, 0.5],
+    return_average: bool = True,
 ):
     """
     event_triggered_average: Calculate the event triggered average of a signal
@@ -417,6 +418,8 @@ def event_triggered_average_fast(
         events (np.ndarray): 1D array of event times
         sampling_rate (int, optional): Sampling rate of signal.
         window (list, optional): Time window (seconds) to average signal around event. Defaults to [-0.5, 0.5].
+        return_average (bool, optional): Whether to return the average of the event triggered average. Defaults to True.
+            if False, returns the full event triggered average matrix (channels x timepoints x events)
 
     Returns:
         np.ndarray: Event triggered average of signal
@@ -445,7 +448,10 @@ def event_triggered_average_fast(
         ).astype(int)
         avg_signal[:, :, i] = signal[:, ts_idx]
 
-    return avg_signal.mean(axis=2), time_lags
+    if return_average:
+        return avg_signal.mean(axis=2), time_lags
+    else:
+        return avg_signal, time_lags
 
 
 def get_participation(st, event_starts, event_stops, par_type="binary"):
