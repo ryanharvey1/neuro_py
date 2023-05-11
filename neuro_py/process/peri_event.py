@@ -18,6 +18,7 @@ from scipy import stats
 import itertools
 import warnings
 
+
 @jit(nopython=True)
 def crossCorr(t1, t2, binsize, nbins):
     """
@@ -319,38 +320,36 @@ def event_triggered_average(
         raise ValueError(
             "'window' must be a tuple of 2 elements, not {}".format(len(window))
         )
-    
+
     if window[0] > window[1]:
         raise ValueError(
-            "'window' first value must be less than second value, not {}".format(len(window))
+            "'window' first value must be less than second value, not {}".format(
+                len(window)
+            )
         )
-    
+
     if not isinstance(timestamps, np.ndarray):
         raise ValueError(
             "'timestamps' must be a numpy ndarray, not {}".format(type(timestamps))
         )
-    
+
     if not isinstance(signal, np.ndarray):
         raise ValueError(
             "'signal' must be a numpy ndarray, not {}".format(type(signal))
         )
-    
+
     if not isinstance(events, (list, np.ndarray)):
         raise ValueError(
             "'events' must be a numpy ndarray or list, not {}".format(type(events))
         )
-    
+
     if signal.shape[0] != timestamps.shape[0]:
-        raise ValueError(
-            "'signal' and 'timestamps' must have the same number of rows"
-        )
-    
+        raise ValueError("'signal' and 'timestamps' must have the same number of rows")
+
     if len(timestamps.shape) > 1:
         raise ValueError(
             "'timestamps' must be a 1D array, not {}".format(len(timestamps.shape))
         )
-    
-        
 
     window_starttime, window_stoptime = window
 
@@ -417,13 +416,13 @@ def event_triggered_average_fast(
         signal (np.ndarray): 2D array of signal data (channels x timepoints)
         events (np.ndarray): 1D array of event times
         sampling_rate (int, optional): Sampling rate of signal.
-        window (list, optional): Time window to average signal around event. Defaults to [-0.5, 0.5].
+        window (list, optional): Time window (seconds) to average signal around event. Defaults to [-0.5, 0.5].
 
     Returns:
         np.ndarray: Event triggered average of signal
         np.ndarray: Time lags of event triggered average
 
-    note: This version assumes a constant sampling rate with no missing data (time gaps)
+    note: This version assumes constant sampling rate, no missing data (time gaps), signal start time at 0
     """
 
     window_starttime, window_stoptime = window
@@ -658,6 +657,7 @@ def count_events(events, time_ref, time_range):
         counts[i] = len(events[idx])
 
     return counts
+
 
 @jit(nopython=True)
 def relative_times(t, intervals, values=np.array([0, 1])):
