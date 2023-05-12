@@ -29,7 +29,7 @@ __all__ = [
     "load_manipulation",
     "load_channel_tags",
     "load_extracellular_metadata",
-    "load_emg"
+    "load_emg",
 ]
 
 
@@ -872,7 +872,9 @@ def load_barrage_events(
     return df
 
 
-def load_ied_events(basepath: str, return_epoch_array: bool = False):
+def load_ied_events(
+    basepath: str, manual_events: bool = True, return_epoch_array: bool = False
+):
     """
     load info from ripples.events.mat and store within df
 
@@ -902,6 +904,25 @@ def load_ied_events(basepath: str, return_epoch_array: bool = False):
     df["start"] = data[struct_name]["timestamps"][:, 0]
     df["stop"] = data[struct_name]["timestamps"][:, 1]
     df["center"] = data[struct_name]["peaks"]
+    df["peaks"] = data[struct_name]["peaks"]
+
+    # remove flagged ripples, if exist
+    try:
+        df.drop(
+            labels=np.array(data[struct_name]["flagged"]).T - 1,
+            axis=0,
+            inplace=True,
+        )
+        df.reset_index(inplace=True)
+    except:
+        pass
+
+    # adding manual events
+    if manual_events:
+        try:
+            df = add_manual_events(df, data[struct_name]["added"])
+        except:
+            pass
 
     if return_epoch_array:
         return nel.EpochArray([np.array([df.start, df.stop]).T], label="ied")
@@ -909,7 +930,7 @@ def load_ied_events(basepath: str, return_epoch_array: bool = False):
     return df
 
 
-def load_dentate_spike(basepath):
+def load_dentate_spike(basepath:str, manual_events:bool=True):
     """
     load info from DS*.events.mat and store within df
     basepath: path to your session where DS*.events.mat is
@@ -928,7 +949,7 @@ def load_dentate_spike(basepath):
         structure and may be incorrect for some data structures
     """
 
-    def extract_data(s_type, data):
+    def extract_data(s_type, data, manual_events):
         # make data frame of known fields
         df = pd.DataFrame()
         df["start"] = data[s_type]["timestamps"][:, 0]
@@ -941,6 +962,24 @@ def load_dentate_spike(basepath):
         df["detectorName"] = data[s_type]["detectorinfo"]["detectorname"]
         df["ml_channel"] = data[s_type]["detectorinfo"]["ml_channel"]
         df["h_channel"] = data[s_type]["detectorinfo"]["h_channel"]
+
+        # remove flagged ripples, if exist
+        try:
+            df.drop(
+                labels=np.array(data[s_type]["flagged"]).T - 1,
+                axis=0,
+                inplace=True,
+            )
+            df.reset_index(inplace=True)
+        except:
+            pass
+
+        # adding manual events
+        if manual_events:
+            try:
+                df = add_manual_events(df, data[s_type]["added"])
+            except:
+                pass
         return df
 
     # locate .mat file
@@ -953,7 +992,7 @@ def load_dentate_spike(basepath):
         filename = filename[0]
         data = sio.loadmat(filename, simplify_cells=True)
         # pull out data
-        df = pd.concat([df, extract_data(s_type, data)], ignore_index=True)
+        df = pd.concat([df, extract_data(s_type, data, manual_events)], ignore_index=True)
 
     if df.shape[0] == 0:
         return df
@@ -1256,16 +1295,13 @@ def get_animal_id(basepath):
     data = sio.loadmat(filename)
     return data["session"][0][0]["animal"][0][0]["name"][0]
 
+
 def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
     df["animal_id"] = df.basepath.map(
-        dict(
-            [
-                (basepath, get_animal_id(basepath))
-                for basepath in df.basepath.unique()
-            ]
-        )
+        dict([(basepath, get_animal_id(basepath)) for basepath in df.basepath.unique()])
     )
     return df
+
 
 def load_basic_data(basepath):
 
@@ -1668,7 +1704,7 @@ def load_extracellular_metadata(basepath):
     return data["session"]["extracellular"]
 
 
-def load_emg(basepath:str,threshold:float=0.9):
+def load_emg(basepath: str, threshold: float = 0.9):
     """
     load_emg loads EMG data from basename.EMGFromLFP.LFP.mat
 
@@ -1687,15 +1723,16 @@ def load_emg(basepath:str,threshold:float=0.9):
 
     """
     # locate .mat file
-    filename = os.path.join(basepath, os.path.basename(basepath) + ".EMGFromLFP.LFP.mat")
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".EMGFromLFP.LFP.mat"
+    )
 
     # load matfile
     data = sio.loadmat(filename, simplify_cells=True)
 
     # put emg data into AnalogSignalArray
     emg = nel.AnalogSignalArray(
-        data=data['EMGFromLFP']['data'],
-        timestamps=data['EMGFromLFP']['timestamps']
+        data=data["EMGFromLFP"]["data"], timestamps=data["EMGFromLFP"]["timestamps"]
     )
 
     # get high and low emg epochs
