@@ -894,8 +894,11 @@ def load_ied_events(
     try:
         filename = glob.glob(basepath + os.sep + "*IED.events.mat")[0]
     except:
-        # warnings.warn("file does not exist")
-        return pd.DataFrame()
+        try:
+            filename = glob.glob(basepath + os.sep + "*interictal_spikes.events.mat")[0]
+        except:
+            # warnings.warn("file does not exist")
+            return pd.DataFrame()
 
     df = pd.DataFrame()
 
