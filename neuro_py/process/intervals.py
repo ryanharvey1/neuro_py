@@ -7,9 +7,10 @@ __all__ = [
     "randomize_epochs",
 ]
 
+from typing import List, Union
 import numpy as np
 import random
-from numba import jit,njit
+from numba import jit, njit
 import numba
 from nelpy import core
 
@@ -108,28 +109,36 @@ def find_intersecting_intervals_(set1, set2):
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
         # Check if any of the intervals in set2 intersect with the current interval in set1
-        intersects = False
         for start2, end2 in set2:
             if start2 <= end1 and end2 >= start1:
-                intersects = True
+                # Calculate the amount of intersection between the two intervals
+                intersection = min(end1, end2) - max(start1, start2)
+                intersecting_intervals.append(intersection)
                 break
-        intersecting_intervals.append(intersects)
+        else:
+            intersecting_intervals.append(0)  # No intersection found
+
     return intersecting_intervals
 
 
-def find_intersecting_intervals(set1, set2):
+def find_intersecting_intervals(
+    set1, set2, return_indices: bool = True
+) -> Union[np.ndarray, List[bool]]:
     """
-    Find whether each interval in set1 intersects with any interval in set2.
+    Find the amount of time two sets of intervals are intersecting each other for each intersection.
 
     Parameters
     ----------
     set1 : nelpy EpochArray
     set2 : nelpy EpochArray
+    return_indices : bool, optional (default=True)
+        if True, return the indices of the intervals in set2 that intersect with each interval in set1.
+        If False, return the amount of time each interval in set1 intersects with any interval in set2.
 
     Returns
     -------
     list
-        A list of bools, where each bool indicates whether the corresponding interval in set1 intersects with any interval in set2.
+        A list of floats, where each float represents the amount of time the corresponding interval in set1 intersects with any interval in set2.
 
     Examples
     --------
@@ -137,11 +146,16 @@ def find_intersecting_intervals(set1, set2):
     >>> set2 = nel.EpochArray([(2, 4), (6, 8)])
     >>> find_intersecting_intervals(set1, set2)
     [True, True, False]
+    >>> find_intersecting_intervals(set1, set2, return_indices=False)
+    [1, 2, 0]
     """
     if not isinstance(set1, core.IntervalArray) & isinstance(set2, core.IntervalArray):
         raise ValueError("only EpochArrays are supported")
 
-    return np.array(find_intersecting_intervals_(set1.data, set2.data))
+    intersection = np.array(find_intersecting_intervals_(set1.data, set2.data))
+    if return_indices:
+        return intersection > 0
+    return intersection
 
 
 def find_interval(logical):
@@ -198,12 +212,12 @@ def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
     in_interval = np.zeros(timestamps.shape, dtype=np.bool_)
     for start, end in intervals:
         # Find the leftmost index of a timestamp that is >= start
-        left = np.searchsorted(timestamps, start, side='left')
+        left = np.searchsorted(timestamps, start, side="left")
         if left == len(timestamps):
             # If start is greater than all timestamps, skip this interval
             continue
         # Find the rightmost index of a timestamp that is <= end
-        right = np.searchsorted(timestamps, end, side='right')
+        right = np.searchsorted(timestamps, end, side="right")
         if right == left:
             # If there are no timestamps in the interval, skip it
             continue
