@@ -43,7 +43,7 @@ import warnings
 from neuro_py.process.intervals import in_intervals, find_interval
 from neuro_py.behavior.utils import get_speed
 from warnings import simplefilter
-from typing import Union
+from typing import List, Union
 import multiprocessing
 from joblib import Parallel, delayed
 from xml.dom import minidom
@@ -933,10 +933,19 @@ def load_ied_events(
     return df
 
 
-def load_dentate_spike(basepath:str, manual_events:bool=True):
+def load_dentate_spike(
+    basepath: str,
+    dentate_spike_type: List[str] = ["DS1", "DS2"],
+    manual_events: bool = True,
+    return_epoch_array: bool = False,
+):
     """
     load info from DS*.events.mat and store within df
     basepath: path to your session where DS*.events.mat is
+    dentate_spike_type: list of DS types to load
+    manual_events: add manually added events from Neuroscope2
+        (interval will be calculated from mean event duration)
+    return_epoch_array: if you want the output in an EpochArray
 
     returns pandas dataframe with the following fields
         start: start time of DS
@@ -987,7 +996,7 @@ def load_dentate_spike(basepath:str, manual_events:bool=True):
 
     # locate .mat file
     df = pd.DataFrame()
-    for s_type in ["DS1", "DS2"]:
+    for s_type in dentate_spike_type:
         filename = glob.glob(basepath + os.sep + "*" + s_type + ".events.mat")
         if len(filename) == 0:
             continue
@@ -995,10 +1004,15 @@ def load_dentate_spike(basepath:str, manual_events:bool=True):
         filename = filename[0]
         data = sio.loadmat(filename, simplify_cells=True)
         # pull out data
-        df = pd.concat([df, extract_data(s_type, data, manual_events)], ignore_index=True)
+        df = pd.concat(
+            [df, extract_data(s_type, data, manual_events)], ignore_index=True
+        )
 
     if df.shape[0] == 0:
         return df
+
+    if return_epoch_array:
+        return nel.EpochArray([np.array([df.start, df.stop]).T], label="dentate_spike")
 
     # get basename and animal
     normalized_path = os.path.normpath(filename)
