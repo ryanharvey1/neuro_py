@@ -268,12 +268,21 @@ class LoadLfp(object):
 
         idx = in_intervals(timestep, intervals)
 
-        self.lfp = nel.AnalogSignalArray(
-            data=lfp[idx, None].T,
-            timestamps=timestep[idx],
-            fs=self.fs,
-            support=nel.EpochArray(np.array([min(timestep[idx]), max(timestep[idx])])),
-        )
+        # if loading all, don't index as to preserve memmap
+        if idx.all():
+            self.lfp = nel.AnalogSignalArray(
+                data=lfp.T,
+                timestamps=timestep,
+                fs=self.fs,
+                support=nel.EpochArray(np.array([min(timestep), max(timestep)])),
+            )
+        else:
+            self.lfp = nel.AnalogSignalArray(
+                data=lfp[idx, None].T,
+                timestamps=timestep[idx],
+                fs=self.fs,
+                support=nel.EpochArray(np.array([min(timestep[idx]), max(timestep[idx])])),
+            )
 
     def __repr__(self) -> None:
         return self.lfp.__repr__()
