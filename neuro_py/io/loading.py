@@ -807,12 +807,16 @@ def load_theta_cycles(basepath, return_epoch_array=False):
 
 
 def load_barrage_events(
-    basepath, return_epoch_array=False, restrict_to_nrem=True, file_name=None
+    basepath, return_epoch_array=False, restrict_to_nrem=True, file_name=None, ver2=True
 ):
     """
     load info from barrage.events.mat and store within df
-
-    basepath: path to your session where ripples.events.mat is
+    Inputs:
+        basepath: path to your session where ripples.events.mat is
+        return_epoch_array: if you want the output in an EpochArray
+        restrict_to_nrem: if you want to restrict to nrem
+        file_name: if you want to specify a specific file name
+        ver2: if you want to use the new file structure (Barrage_Files_B)
 
     returns pandas dataframe with the following fields
         start: start time of ripple
@@ -829,39 +833,81 @@ def load_barrage_events(
     """
 
     # locate .mat file
-    try:
-        if file_name is not None:
-            filename = glob.glob(
-                basepath + os.sep + "Barrage_Files" + os.sep + file_name + "*.mat"
-            )[0]
+    keep_looking_for_file = True
+    Barrage_Files_B = False
+    if ver2:
+        filename = os.path.join(basepath,"Barrages_Files_B","HSE.mat")
+        if os.path.exists(filename):
+            keep_looking_for_file = False
+            Barrage_Files_B = True
         else:
-            filename = glob.glob(
-                os.path.join(
-                    basepath, "Barrage_Files", os.path.basename(basepath) + ".HSE.mat"
-                )
-            )[0]
-    except:
-        warnings.warn("file does not exist")
-        if return_epoch_array:
-            return nel.EpochArray()
-        return pd.DataFrame()
+            Barrage_Files_B = False
+
+    if keep_looking_for_file:
+        try:
+            if file_name is not None:
+                filename = glob.glob(
+                    basepath + os.sep + "Barrage_Files" + os.sep + file_name + "*.mat"
+                )[0]
+            else:
+                filename = glob.glob(
+                    os.path.join(
+                        basepath, "Barrage_Files", os.path.basename(basepath) + ".HSE.mat"
+                    )
+                )[0]
+        except:
+            warnings.warn("file does not exist")
+            if return_epoch_array:
+                return nel.EpochArray()
+            return pd.DataFrame()
 
     # load matfile
     data = sio.loadmat(filename, simplify_cells=True)
 
-    # make data frame of known fields
-    df = pd.DataFrame()
-    df["start"] = data["HSE"]["timestamps"][:, 0]
-    df["stop"] = data["HSE"]["timestamps"][:, 1]
-    df["peaks"] = data["HSE"]["peaks"]
-    try:
-        df["amplitude"] = data["HSE"]["amplitudes"]
-    except:
-        df["amplitude"] = np.nan
-    try:
-        df["duration"] = data["HSE"]["duration"]
-    except:
+    if ver2 and Barrage_Files_B:
+        df_pre = pd.DataFrame()
+        df_pre["start"] = data["HSE"]["pre"]["timestamps"][:, 0]
+        df_pre["stop"] = data["HSE"]["pre"]["timestamps"][:, 1]
+        df_pre["peaks"] = data["HSE"]["pre"]["peaks"]
+        df_post = pd.DataFrame()
+        df_post["start"] = data["HSE"]["post"]["timestamps"][:, 0]
+        df_post["stop"] = data["HSE"]["post"]["timestamps"][:, 1]
+        df_post["peaks"] = data["HSE"]["post"]["peaks"]
+        df = pd.concat([df_pre, df_post], ignore_index=True)
         df["duration"] = df["stop"] - df["start"]
+
+        
+    elif not Barrage_Files_B:
+        # make data frame of known fields
+        df = pd.DataFrame()
+
+        df["start"] = data["HSE"]["timestamps"][:, 0]
+        df["stop"] = data["HSE"]["timestamps"][:, 1]
+        df["peaks"] = data["HSE"]["peaks"]
+        try:
+            df["amplitude"] = data["HSE"]["amplitudes"]
+        except:
+            df["amplitude"] = np.nan
+        try:
+            df["duration"] = data["HSE"]["duration"]
+        except:
+            df["duration"] = df["stop"] - df["start"]
+        # restrict to keep index
+        df = df.loc[np.array(data["HSE"]["keep"]).T - 1].reset_index(drop=True)
+
+    # restrict to nrem
+    # load nrem epochs for restriction (expand to include 2 seconds before and after)
+    if restrict_to_nrem:
+        state_dict = load_SleepState_states(basepath)
+        nrem_epochs = nel.EpochArray(state_dict["NREMstate"]).expand(2)
+        idx = in_intervals(df["start"].values, nrem_epochs.data)
+        df = df[idx].reset_index(drop=True)
+
+    # only keep barrages over 300ms
+    df = df[df.duration > 0.3].reset_index(drop=True)
+
+    if return_epoch_array:
+        return nel.EpochArray([np.array([df.start, df.stop]).T], label="barrage")
 
     # get basename and animal
     normalized_path = os.path.normpath(filename)
@@ -869,14 +915,6 @@ def load_barrage_events(
     df["basepath"] = basepath
     df["basename"] = path_components[-2]
     df["animal"] = path_components[-3]
-
-    df = df.loc[np.array(data["HSE"]["keep"]).T - 1].reset_index(drop=True)
-
-    if restrict_to_nrem:
-        df = df.loc[np.array(data["HSE"]["NREM"]).T - 1].reset_index(drop=True)
-
-    if return_epoch_array:
-        return nel.EpochArray([np.array([df.start, df.stop]).T], label="barrage")
 
     return df
 
