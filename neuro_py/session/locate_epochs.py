@@ -41,32 +41,51 @@ def find_pre_task_post(env, pre_post_label="sleep"):
                 return dummy, [0, 1, 2] + i
 
 
-def compress_repeated_epochs(epoch_df):
+def compress_repeated_epochs(epoch_df, epoch_name=None):
     """
     compress_repeated_epochs: Compresses epoch_df loaded by loading.load_epoch()
     If there are back to back epochs of the same name, it will combine them
 
-    Input: epoch_df (uses: loading.load_epoch(basepath))
+    Input: epoch_df (uses: loading.load_epoch(basepath)), epoch_name (optional: string of epoch environment to compress)
     Output: Compressed epoch_df
 
-    Ryan H
+    Ryan H, Laura B 
     """
-    match = np.zeros([epoch_df.environment.shape[0]])
-    match[match == 0] = np.nan
-    for i, ep in enumerate(epoch_df.environment[:-1]):
-        if np.isnan(match[i]):
-            # find match in current and next epoch
-            if ep == epoch_df.environment.iloc[i + 1]:
-                match[i : i + 2] = i
-                # given match, see if there are more matches
-                for match_i in np.arange(1, epoch_df.environment[:-1].shape[0]):
-                    if i + 1 + match_i == epoch_df.environment.shape[0]:
-                        break
-                    if ep == epoch_df.environment.iloc[i + 1 + match_i]:
+    if epoch_name is None:
+        match = np.zeros([epoch_df.environment.shape[0]])
+        match[match == 0] = np.nan
+        for i, ep in enumerate(epoch_df.environment[:-1]):
+            if np.isnan(match[i]):
+                # find match in current and next epoch
+                if ep == epoch_df.environment.iloc[i + 1]:
+                    match[i : i + 2] = i
+                    # given match, see if there are more matches
+                    for match_i in np.arange(1, epoch_df.environment[:-1].shape[0]):
+                        if i + 1 + match_i == epoch_df.environment.shape[0]:
+                            break
+                        if ep == epoch_df.environment.iloc[i + 1 + match_i]:
 
-                        match[i : i + 1 + match_i + 1] = i
-                    else:
-                        break
+                            match[i : i + 1 + match_i + 1] = i
+                        else:
+                            break
+    else:
+        match = np.zeros([epoch_df.environment.shape[0]])
+        match[match == 0] = np.nan
+        for i, ep in enumerate(epoch_df.environment[:-1]):
+            if np.isnan(match[i]):
+                # find match in current and next epoch
+                if (ep == epoch_df.environment.iloc[i + 1]) & (ep == epoch_name):
+                    match[i : i + 2] = i
+                    # given match, see if there are more matches
+                    for match_i in np.arange(1, epoch_df.environment[:-1].shape[0]):
+                        if i + 1 + match_i == epoch_df.environment.shape[0]:
+                            break
+                        if ep == epoch_df.environment.iloc[i + 1 + match_i]:
+
+                            match[i : i + 1 + match_i + 1] = i
+                        else:
+                            break
+
 
     for i in range(len(match)):
         if np.isnan(match[i]):
