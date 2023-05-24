@@ -109,25 +109,18 @@ def loadXML(basepath: str):
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
-    channel: int = 64,
+    channel: Union[int,None] = None,
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
 ):
     path = ""
     if ext == "lfp":
-        try:
-            path = glob.glob(
-                os.path.join(basepath, os.path.basename(basepath) + "*.lfp")
-            )[0]
-        except:
-            path = glob.glob(
-                os.path.join(basepath, os.path.basename(basepath) + "*.eeg")
-            )[0]
+        path = os.path.join(basepath, os.path.basename(basepath) + ".lfp")
+        if not os.path.exists(path):
+            path = os.path.join(basepath, os.path.basename(basepath) + ".eeg")
     if ext == "dat":
-        path = glob.glob(os.path.join(basepath, os.path.basename(basepath) + "*.dat"))[
-            0
-        ]
+        path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
 
     # check if saved file exists
     if not os.path.exists(path):
