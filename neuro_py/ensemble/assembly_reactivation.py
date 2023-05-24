@@ -151,7 +151,7 @@ class AssemblyReact(object):
         loads epochs from the session folder
         """
         epoch_df = loading.load_epoch(self.basepath)
-        epoch_df = compress_repeated_epochs.main(epoch_df, epoch_name="sleep")
+        epoch_df = compress_repeated_epochs(epoch_df)
         self.epochs = nel.EpochArray(
             [np.array([epoch_df.startTime, epoch_df.stopTime]).T]
         )
@@ -172,7 +172,7 @@ class AssemblyReact(object):
         # fetch data
         epoch_df = loading.load_epoch(self.basepath)
         # compress back to back sleep epochs (an issue further up the pipeline)
-        epoch_df = compress_repeated_epochs.main(epoch_df)
+        epoch_df = compress_repeated_epochs(epoch_df)
         # restrict to pre task post epochs
         idx = find_pre_task_post(epoch_df.environment)
         self.epoch_df = epoch_df[idx[0]]
