@@ -185,7 +185,7 @@ def find_interval(logical):
     return intervals
 
 
-@njit(parallel=True)
+# @njit(parallel=True)
 def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
     """
     Find which timestamps fall within the given intervals.
