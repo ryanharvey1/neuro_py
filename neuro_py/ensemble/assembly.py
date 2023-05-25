@@ -9,7 +9,6 @@ from sklearn.decomposition import FastICA
 from sklearn.decomposition import PCA
 from scipy import stats
 import numpy as np
-import numpy.matlib
 from numba import jit
 import warnings
 
@@ -147,7 +146,7 @@ def extractPatterns(
 
         # sets norm of assembly vectors to 1
         norms = np.linalg.norm(patterns, axis=1)
-        patterns /= np.matlib.repmat(norms, np.size(patterns, 1), 1).T
+        patterns /= np.tile(norms, [np.size(patterns, 1), 1]).T
 
     return patterns
 
