@@ -1,7 +1,13 @@
-__all__ = ["get_significant_events", "confidence_intervals","reindex_df"]
+__all__ = [
+    "get_significant_events",
+    "confidence_intervals",
+    "reindex_df",
+    "regress_out",
+]
 import numpy as np
 import scipy.stats as stats
 import pandas as pd
+
 
 def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
     """
@@ -98,3 +104,52 @@ def reindex_df(df: pd.core.frame.DataFrame, weight_col: str) -> pd.core.frame.Da
     df.reset_index(drop=True, inplace=True)
 
     return df
+
+
+def regress_out(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """
+    Regress b from a keeping a's original mean.
+
+
+    a_prime = regress_out(a, b) performs regression of variable b from variable a
+    while preserving the original mean of a. The function calculates the residual
+    component of a that remains after removing the effect of b. The regression is
+    performed using the ordinary least squares method.
+
+    adapted from the seaborn function of the same name
+        https://github.com/mwaskom/seaborn/blob/824c102525e6a29cde9bca1ce0096d50588fda6b/seaborn/regression.py#L337
+
+    Parameters
+    ----------
+    a : array-like
+        The variable to be regressed. Must be 1-dimensional.
+    b : array-like
+        The variable to regress on a. Must be 1-dimensional.
+
+    Returns
+    -------
+    a_prime : array-like
+        The residual of a after regressing out b. Has the same shape as a.
+    """
+    # remove nans and infs from a and b, and make a_result vector for output
+    a_result = np.full_like(a, np.nan)
+    
+    valid_mask = np.isfinite(a) & np.isfinite(b)
+    a = np.asarray(a)[valid_mask]
+    b = np.asarray(b)[valid_mask]
+
+    # remove mean from a and b
+    a_mean = a.mean()
+    a = a - a_mean
+    b = b - b.mean()
+
+    # calculate regression and subtract from a to get a_prime
+    b = np.c_[b]
+    a_prime = a - b @ np.linalg.pinv(b) @ a
+
+    # add mean back to a_prime
+    a_prime = np.asarray(a_prime + a_mean).reshape(a.shape)
+
+    # put a_prime back into a_result vector to preserve nans
+    a_result[valid_mask] = a_prime
+    return a_result
