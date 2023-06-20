@@ -13,6 +13,7 @@ import random
 from numba import jit, njit
 import numba
 from nelpy import core
+import nelpy as nel
 
 
 def randomize_epochs(epoch, randomize_each=True, start_stop=None):
@@ -73,6 +74,30 @@ def randomize_epochs(epoch, randomize_each=True, start_stop=None):
     return new_epochs
 
 
+def split_epoch_equal_parts(
+    epoch: np.ndarray, n_parts: int, return_epoch_array: bool = True
+) -> Union[np.ndarray, nel.EpochArray]:
+    """
+    Split epoch into equal parts.
+    Input:
+        epoch: array-like (2,)
+            The epoch to split
+        n_parts: int
+            The number of parts to split the epoch into
+        return_epoch_array: bool
+            If True, returns the epoch as a nelpy.EpochArray object
+    Output:
+        epoch_parts: array-like (n_parts, 2)
+            The split epoch
+    """
+    epoch_parts = np.linspace(epoch[0], epoch[1], n_parts + 1)
+    epoch_parts = np.vstack((epoch_parts[:-1], epoch_parts[1:])).T
+
+    if return_epoch_array:
+        return nel.EpochArray(epoch_parts.T)
+    return epoch_parts
+
+
 def overlap_intersect(epoch, interval, return_indices=True):
     """
     Returns the epochs with overlap with interval
@@ -105,7 +130,6 @@ def overlap_intersect(epoch, interval, return_indices=True):
 
 @jit(nopython=True)
 def find_intersecting_intervals_(set1, set2):
-
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
         # Check if any of the intervals in set2 intersect with the current interval in set1
