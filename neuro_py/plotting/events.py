@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from neuro_py.stats.stats import confidence_intervals
 
 
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
@@ -115,3 +116,60 @@ def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
     ax.set_xlabel("Time (s)")
     sns.despine(ax=ax)
     return lineplot_ax
+
+
+def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
+    """
+    Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
+
+    Less flexible, but faster version of plot_peth
+
+    Parameters
+    ----------
+    peth : pd.DataFrame
+        Peth to plot
+    ax : plt.Axes, optional
+        Axis to plot on, by default None
+    **kwargs
+        Keyword arguments to pass to ax.plot
+
+    Returns
+    -------
+    plt.Axes
+        Axis with plot
+
+    Raises
+    ------
+    TypeError
+        If peth is not a pandas dataframe
+
+    Example
+    -------
+    >>> from neuro_py.plotting.events import plot_peth
+    >>> from neuro_py.process import peri_event
+    >>> from neuro_py.io import loading
+
+    >>> st, cm = loading.load_spikes(basepath)
+    >>> rippple_epochs = loading.load_ripples_events(basepath, return_epoch_array=True)
+
+    >>> ripple_peth = peri_event.compute_psth(st.data, rippple_epochs.starts)
+    >>> plot_peth_fast(ripple_peth)
+
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    # verify peth is a dataframe
+    if not isinstance(peth, pd.DataFrame):
+        raise TypeError("peth must be a pandas dataframe")
+
+    # plot the peth as a lineplot with matplotlib
+    ax.plot(peth.index, peth.mean(axis=1), **kwargs)
+    
+    lower, upper = confidence_intervals(peth.values.T, conf=ci)
+    ax.fill_between(peth.index, lower, upper, alpha=.5, **kwargs)
+
+    ax.set_xlabel("Time (s)")
+    sns.despine(ax=ax)
+
+    return ax
