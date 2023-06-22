@@ -1,0 +1,58 @@
+""" Loading functions for cell explorer format"""
+
+__all__ = [
+    "epoch_to_mat",
+]
+
+from scipy.io import savemat
+import os
+import numpy as np
+import nelpy as nel
+from typing import Union
+
+
+def epoch_to_mat(
+    epoch: nel.EpochArray,
+    basepath: str,
+    epoch_name: str,
+    detection_name: Union[None, str] = None,
+) -> None:
+    """
+    Save an EpochArray to a .mat file in the cell explorer format.
+
+    Parameters
+    ----------
+    epoch : nel.EpochArray
+        EpochArray to save.
+    basepath : str
+        Basepath to save the file to.
+    epoch_name : str
+        Name of the epoch.
+    detection_name : Union[None, str], optional
+        Name of the detection, by default None
+    """
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + "." + epoch_name + ".events.mat"
+    )
+    data = {}
+    data[epoch_name] = {}
+
+    data[epoch_name]["timestamps"] = epoch.data
+    data[epoch_name]["peaks"] = np.median(epoch.data, axis=1).T
+    data[epoch_name]["amplitudes"] = []
+    data[epoch_name]["amplitudeUnits"] = []
+    data[epoch_name]["eventID"] = []
+    data[epoch_name]["eventIDlabels"] = []
+    data[epoch_name]["eventIDbinary"] = []
+    data[epoch_name]["duration"] = epoch.durations.T
+    data[epoch_name]["center"] = np.median(epoch.data, axis=1).T
+
+    data[epoch_name]["detectorinfo"] = {}
+    if detection_name is None:
+        data[epoch_name]["detectorinfo"]["detectorname"] = []
+    else:
+        data[epoch_name]["detectorinfo"]["detectorname"] = detection_name
+    data[epoch_name]["detectorinfo"]["detectionparms"] = []
+    data[epoch_name]["detectorinfo"]["detectionintervals"] = []
+
+    savemat(filename, data, long_field_names=True)
