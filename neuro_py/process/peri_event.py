@@ -379,6 +379,7 @@ def event_triggered_average(
             idx = (timestamps >= event + window_starttime) & (
                 timestamps <= event + window_stoptime
             )
+
             # for speed, instead of checking if we have enough time each iteration, just skip if we don't
             try:
                 result_sta[:, i] += signal[idx, i]
@@ -409,6 +410,7 @@ def event_triggered_average_fast(
     sampling_rate: int,
     window=[-0.5, 0.5],
     return_average: bool = True,
+    return_pandas: bool = False,
 ):
     """
     event_triggered_average: Calculate the event triggered average of a signal
@@ -416,7 +418,7 @@ def event_triggered_average_fast(
     Args:
         signal (np.ndarray): 2D array of signal data (channels x timepoints)
         events (np.ndarray): 1D array of event times
-        sampling_rate (int, optional): Sampling rate of signal.
+        sampling_rate (int): Sampling rate of signal.
         window (list, optional): Time window (seconds) to average signal around event. Defaults to [-0.5, 0.5].
         return_average (bool, optional): Whether to return the average of the event triggered average. Defaults to True.
             if False, returns the full event triggered average matrix (channels x timepoints x events)
@@ -448,6 +450,10 @@ def event_triggered_average_fast(
         ).astype(int)
         avg_signal[:, :, i] = signal[:, ts_idx]
 
+    if return_pandas and return_average:
+        return pd.DataFrame(
+            index=time_lags, columns=np.arange(signal.shape[0]), data=avg_signal.mean(axis=2).T
+        )
     if return_average:
         return avg_signal.mean(axis=2), time_lags
     else:
