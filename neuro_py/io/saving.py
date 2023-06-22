@@ -38,15 +38,26 @@ def epoch_to_mat(
     data[epoch_name] = {}
 
     data[epoch_name]["timestamps"] = epoch.data
-    data[epoch_name]["peaks"] = np.median(epoch.data, axis=1).T
+
+    # check if only single epoch
+    if epoch.data.ndim == 1:
+        data[epoch_name]["peaks"] = np.median(epoch.data, axis=0)
+    else:
+        data[epoch_name]["peaks"] = np.median(epoch.data, axis=1)
+        
     data[epoch_name]["amplitudes"] = []
     data[epoch_name]["amplitudeUnits"] = []
     data[epoch_name]["eventID"] = []
     data[epoch_name]["eventIDlabels"] = []
     data[epoch_name]["eventIDbinary"] = []
-    data[epoch_name]["duration"] = epoch.durations.T
-    data[epoch_name]["center"] = np.median(epoch.data, axis=1).T
 
+    # check if only single epoch
+    if epoch.data.ndim == 1:
+        data[epoch_name]["duration"] = epoch.data[1] - epoch.data[0]
+    else:
+        data[epoch_name]["duration"] = epoch.durations
+
+    data[epoch_name]["center"] = data[epoch_name]["peaks"] 
     data[epoch_name]["detectorinfo"] = {}
     if detection_name is None:
         data[epoch_name]["detectorinfo"]["detectorname"] = []
