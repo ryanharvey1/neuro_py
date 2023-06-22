@@ -1800,3 +1800,28 @@ def load_emg(basepath: str, threshold: float = 0.9):
     low_emg_epoch = nel.EpochArray(emg.abscissa_vals[low_emg_epoch])
 
     return emg, high_emg_epoch, low_emg_epoch
+
+
+def load_events(basepath: str, epoch_name: str) -> nel.EpochArray:
+    """
+    load_events loads events from basename.epoch_name.events.mat
+
+    Input:
+        basepath: str
+            path to session folder
+        epoch_name: str
+            name of epoch to load
+    Output:
+        events: nel.EpochArray
+            events
+
+    """
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + "." + epoch_name + ".events.mat"
+    )
+    # check if filename exist
+    if not os.path.exists(filename):
+        return None
+        
+    data = sio.loadmat(filename, simplify_cells=True)
+    return nel.EpochArray(data[epoch_name]["timestamps"])
