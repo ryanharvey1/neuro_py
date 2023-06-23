@@ -9,7 +9,6 @@ from sklearn.decomposition import FastICA
 from sklearn.decomposition import PCA
 from scipy import stats
 import numpy as np
-from numba import jit
 import warnings
 
 __author__ = "Vítor Lopes dos Santos"
@@ -17,13 +16,11 @@ __version__ = "2019.1"
 
 
 def toyExample(assemblies, nneurons=10, nbins=1000, rate=1.0):
-
     np.random.seed(42)
 
     actmat = np.random.poisson(rate, nneurons * nbins).reshape(nneurons, nbins)
     assemblies.actbins = [None] * len(assemblies.membership)
-    for (ai, members) in enumerate(assemblies.membership):
-
+    for ai, members in enumerate(assemblies.membership):
         members = np.array(members)
         nact = int(nbins * assemblies.actrate[ai])
         actstrength_ = rate * assemblies.actstrength[ai]
@@ -41,14 +38,12 @@ def toyExample(assemblies, nneurons=10, nbins=1000, rate=1.0):
 
 class toyassemblies:
     def __init__(self, membership, actrate, actstrength):
-
         self.membership = membership
         self.actrate = actrate
         self.actstrength = actstrength
 
 
 def marcenkopastur(significance: object):
-
     nbins = significance.nbins
     nneurons = significance.nneurons
     tracywidom = significance.tracywidom
@@ -62,7 +57,6 @@ def marcenkopastur(significance: object):
 
 
 def getlambdacontrol(zactmat_: np.ndarray):
-
     significance_ = PCA()
     significance_.fit(zactmat_.T)
     lambdamax_ = np.max(significance_.explained_variance_)
@@ -71,13 +65,12 @@ def getlambdacontrol(zactmat_: np.ndarray):
 
 
 def binshuffling(zactmat: np.ndarray, significance: object):
-
     np.random.seed()
 
     lambdamax_ = np.zeros(significance.nshu)
     for shui in range(significance.nshu):
         zactmat_ = np.copy(zactmat)
-        for (neuroni, activity) in enumerate(zactmat_):
+        for neuroni, activity in enumerate(zactmat_):
             randomorder = np.argsort(np.random.rand(significance.nbins))
             zactmat_[neuroni, :] = activity[randomorder]
         lambdamax_[shui] = getlambdacontrol(zactmat_)
@@ -88,13 +81,12 @@ def binshuffling(zactmat: np.ndarray, significance: object):
 
 
 def circshuffling(zactmat: np.ndarray, significance: object):
-
     np.random.seed()
 
     lambdamax_ = np.zeros(significance.nshu)
     for shui in range(significance.nshu):
         zactmat_ = np.copy(zactmat)
-        for (neuroni, activity) in enumerate(zactmat_):
+        for neuroni, activity in enumerate(zactmat_):
             cut = int(np.random.randint(significance.nbins * 2))
             zactmat_[neuroni, :] = np.roll(activity, cut)
         lambdamax_[shui] = getlambdacontrol(zactmat_)
@@ -105,7 +97,6 @@ def circshuffling(zactmat: np.ndarray, significance: object):
 
 
 def runSignificance(zactmat: np.ndarray, significance: object):
-
     if significance.nullhyp == "mp":
         lambdaMax = marcenkopastur(significance)
     elif significance.nullhyp == "bin":
@@ -141,7 +132,6 @@ def extractPatterns(
         )
 
     if patterns is not np.nan:
-
         patterns = patterns.reshape(nassemblies, -1)
 
         # sets norm of assembly vectors to 1
@@ -158,8 +148,7 @@ def runPatterns(
     nshu: int = 1000,
     percentile: int = 99,
     tracywidom: bool = False,
-) -> Union[Tuple[Union[np.ndarray,None], object, Union[np.ndarray,None]], None]:
-
+) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     INPUTS
 
@@ -197,7 +186,7 @@ def runPatterns(
     if actmat_.shape[0] == 0:
         warnings.warn("no active neurons")
         return None, None, None
-    
+
     # z-scoring activity matrix
     zactmat_ = stats.zscore(actmat_, axis=1)
 
@@ -215,7 +204,6 @@ def runPatterns(
         return None, significance, None
 
     if significance.nassemblies < 1:
-
         warnings.warn("no assembly detected")
 
         patterns = None
@@ -235,24 +223,44 @@ def runPatterns(
     return patterns, significance, zactmat
 
 
-@jit(nopython=True)
 def computeAssemblyActivity(
     patterns: np.ndarray, zactmat: np.ndarray, zerodiag: bool = True
 ) -> np.ndarray:
+    """
+    INPUTS
+        patterns:   co-activation patterns - numpy array (assemblies, neurons)
+        zactmat:    z-scored activity matrix - numpy array (neurons, time bins)
+        zerodiag:   if True, diagonal of projection matrix is set to zero
 
+    OUTPUTS
+        assemblyAct: assembly activity matrix - numpy array (assemblies, time bins)
+    """
+
+    # check if patterns is empty (no assembly detected) and return None if so
     if len(patterns) == 0:
         return None
-
+    
+    # number of assemblies and time bins
     nassemblies = len(patterns)
-    nbins = zactmat.shape[1]
+    nbins = np.size(zactmat, 1)
 
+    # transpose for later matrix multiplication
+    zactmat = zactmat.T
+
+    # preallocate assembly activity matrix (nassemblies, nbins)
     assemblyAct = np.zeros((nassemblies, nbins))
-    for (assemblyi, pattern) in enumerate(patterns):
+
+    # loop over assemblies
+    for assemblyi, pattern in enumerate(patterns):
+
+        # compute projection matrix (neurons, neurons)
         projMat = np.outer(pattern, pattern)
-        projMat -= zerodiag * np.diag(np.diag(projMat))
-        for bini in range(nbins):
-            assemblyAct[assemblyi, bini] = (zactmat[:, bini] @ projMat) @ zactmat[
-                :, bini
-            ]
+
+        # set the diagonal to zero to not count coactivation of i and j when i=j
+        if zerodiag:
+            np.fill_diagonal(projMat, 0)
+
+        # project assembly pattern onto z-scored activity matrix
+        assemblyAct[assemblyi, :] = np.nansum(zactmat @ projMat * zactmat, axis=1)
 
     return assemblyAct
