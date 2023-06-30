@@ -7,6 +7,7 @@ __all__ = [
 import numpy as np
 import pandas as pd
 
+
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
     given list of environment, finds first contigous epochs that meet pre/task/post
@@ -49,7 +50,7 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
     Input: epoch_df (uses: loading.load_epoch(basepath)), epoch_name (optional: string of epoch environment to compress)
     Output: Compressed epoch_df
 
-    Ryan H, Laura B 
+    Ryan H, Laura B
     """
     if epoch_name is None:
         match = np.zeros([epoch_df.environment.shape[0]])
@@ -64,7 +65,6 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
                         if i + 1 + match_i == epoch_df.environment.shape[0]:
                             break
                         if ep == epoch_df.environment.iloc[i + 1 + match_i]:
-
                             match[i : i + 1 + match_i + 1] = i
                         else:
                             break
@@ -81,11 +81,9 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
                         if i + 1 + match_i == epoch_df.environment.shape[0]:
                             break
                         if ep == epoch_df.environment.iloc[i + 1 + match_i]:
-
                             match[i : i + 1 + match_i + 1] = i
                         else:
                             break
-
 
     for i in range(len(match)):
         if np.isnan(match[i]):
@@ -231,3 +229,48 @@ def find_env_paradigm_pre_task_post(epoch_df, env="sleep", paradigm="memory"):
         .astype(bool)
     ).values
     return idx
+
+
+def find_pre_task_post_optimize_novel(
+    epoch_df: pd.DataFrame(), novel_indicators: list = [1, "novel", "1"]
+) -> pd.DataFrame():
+    """
+    find_pre_task_post_optimize_novel: find pre task post epochs in epoch_df
+
+    Input:
+        epoch_df: epoch_df
+        novel_indicators: list of indicators for novel epochs
+    Output:
+        epoch_df: epoch_df with pre task post epochs
+
+    ex.
+    epoch_df = loading.load_epoch(basepath)
+    epoch_df = find_pre_task_post_optimize_novel(epoch_df)
+    """
+    # set sleep to nan
+    epoch_df.loc[epoch_df.environment == "sleep", "behavioralParadigm"] = np.nan
+    # Search for novel epochs
+    novel_mask = epoch_df.behavioralParadigm.isin(novel_indicators)
+    if novel_mask.any():
+        # Find the first novel epoch
+        idx = np.where(novel_mask)[0][0]
+        # Select the first novel epoch and the epochs before and after it
+        mask = np.hstack([idx - 1, idx, idx + 1])
+        # If any of the epochs are negative, skip (this means the novel epoch was the first epoch)
+        if any(mask < 0):
+            pass
+        else:
+            epoch_df_temp = epoch_df.loc[mask]
+            # Find pre task post epochs in this subset
+            idx = find_pre_task_post(epoch_df_temp.environment)
+            # If no pre task post epochs are found, skip
+            if idx is None or idx[0] is None:
+                pass
+            else:
+                epoch_df = epoch_df_temp.reset_index(drop=True)
+    # Find the first pre task post epoch in epoch_df, if the df was modified that will be used
+    idx, _ = find_pre_task_post(epoch_df.environment)
+    if idx is None:
+        return None
+    epoch_df = epoch_df.loc[idx].reset_index(drop=True)
+    return epoch_df
