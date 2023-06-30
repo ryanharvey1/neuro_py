@@ -145,7 +145,6 @@ def get_w_maze_trials(
         timestamps=position_df_no_nan.timestamps.values,
     )
     wmaze_idx = np.where(epoch_df.environment == "wmaze")[0]
-    trials_temp = []
     for idx in wmaze_idx:
         # get key locations
         right_x = data["behavior"]["epochs"][idx]["right_x"]
@@ -309,12 +308,14 @@ def get_openfield_trials(
         "bigSquarePlus",
         "plus",
     ],
+    minimum_correlation=0.6,
+    method="correlation",
 ) -> Tuple[nel.PositionArray, nel.EpochArray]:
     """
     get_openfield_trials: get epochs of openfield trials
 
-    The logic here is to find trials that have a minimum and even amount of 
-        spatial sampling (prop_trial_sampled) in order to assess spatial 
+    The logic here is to find trials that have a minimum and even amount of
+        spatial sampling (prop_trial_sampled) in order to assess spatial
         stability, population correlations, and other things.
 
     Input:
@@ -323,12 +324,18 @@ def get_openfield_trials(
         trial_time_bin_size: size of time bins to use for occupancy
         prop_trial_sampled: proportion of trials to sample
         environments: list of environments to include as openfield
+        minimum_correlation: minimum correlation between trials to be considered a trial
+        method: method to use (correlation,proportion)
+            correlation - use correlation between the trial map and the overall map to determine if it is a trial
+            proportion - use the proportion of the trial map that is sampled to determine if it is a trial
     Output:
         pos: position array
         trials: epochs of trials
     """
 
-    def compute_occupancy_2d(pos_run: object, x_edges:list, y_edges:list) -> np.ndarray:
+    def compute_occupancy_2d(
+        pos_run: object, x_edges: list, y_edges: list
+    ) -> np.ndarray:
         """
         compute_occupancy_2d: compute occupancy of 2d position
         Input:
@@ -364,6 +371,10 @@ def get_openfield_trials(
     for idx in openfield_idx:
         # get position during epoch
         current_position = pos[epoch[int(idx)]]
+
+        if current_position.isempty:
+            continue
+
         # get the edges of the position
         ext_xmin, ext_xmax = (
             np.floor(np.nanmin(current_position.data[0, :])),
@@ -401,21 +412,42 @@ def get_openfield_trials(
                 x_edges,
                 y_edges,
             )
-            trial_prop_sampled = sum(trial_occupancy.flatten() > 0) / (
-                (len(x_edges) - 1) * (len(y_edges) - 1)
-            )
-            # if sampled enough, add to trials 
-            if trial_prop_sampled > prop_trial_sampled * overall_prop_sampled:
-                trials.append(
-                    [
-                        trials_temp[trial_i : i_interval + 1].start,
-                        trials_temp[trial_i : i_interval + 1].stop,
-                    ]
-                )
-                # update trial_i to next interval to start from
-                trial_i = i_interval + 1
 
-    # concatenate trials and place in EpochArray 
+            if method == "correlation":
+                # correlate trial_occupancy with overall occupancy
+                r = np.corrcoef(
+                    occupancy.flatten() > 0,
+                    trial_occupancy.flatten() > 0,
+                )[0, 1]
+
+                # if sampled enough, add to trials
+                if r > minimum_correlation:
+                    trials.append(
+                        [
+                            trials_temp[trial_i : i_interval + 1].start,
+                            trials_temp[trial_i : i_interval + 1].stop,
+                        ]
+                    )
+                    # update trial_i to next interval to start from
+                    trial_i = i_interval + 1
+
+            elif method == "proportion":
+                trial_prop_sampled = sum(trial_occupancy.flatten() > 0) / (
+                    (len(x_edges) - 1) * (len(y_edges) - 1)
+                )
+                if trial_prop_sampled > prop_trial_sampled * overall_prop_sampled:
+                    trials.append(
+                        [
+                            trials_temp[trial_i : i_interval + 1].start,
+                            trials_temp[trial_i : i_interval + 1].stop,
+                        ]
+                    )
+                    # update trial_i to next interval to start from
+                    trial_i = i_interval + 1
+            else:
+                raise ValueError("method must be correlation or proportion")
+
+    # concatenate trials and place in EpochArray
     trials = nel.EpochArray(np.vstack(trials))
 
     return pos, trials
