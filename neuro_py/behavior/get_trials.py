@@ -9,6 +9,7 @@ import os
 import scipy.io as sio
 from scipy.signal import medfilt
 from neuro_py.process.intervals import find_interval
+from typing import Tuple, List, Union
 
 
 # linear track
@@ -107,102 +108,89 @@ def get_t_maze_trials(basepath, epoch):
 
 
 # wmaze
-def get_w_maze_trials(basepath, max_distance_from_well=20, min_distance_traveled=50):
-    def flip_pos_within_epoch(pos, dir_epoch):
-        """
-        flip_pos_within_epoch: flips x coordinate within epoch
-            Made to reverse x coordinate within nelpy array for replay analysis
-        Input:
-            pos: nelpy analog array with single dim
-            dir_epoch: epoch to flip
-        Output:
-            pos: original pos, but fliped by epoch
-        """
+def get_w_maze_trials(
+    basepath: str, max_distance_from_well: int = 20, min_distance_traveled: int = 50
+):
+    """
+    Get trials for w maze
+    :param basepath: basepath to session
+    :param max_distance_from_well: maximum distance from well to be considered a trial
+    :param min_distance_traveled: minimum distance traveled to be considered a trial
+    :return: pos, trials, right_trials, left_trials
 
-        def flip_x(x):
-            return (x * -1) - np.nanmin(x * -1)
+    metadata dependencies:
+    animal.behavior.mat
+        center, left, right x y coordinates *
 
-        # make pos df
-        pos_df = pd.DataFrame()
-        pos_df["ts"] = pos.abscissa_vals
-        pos_df["x"] = pos.data.T
-        pos_df["dir"] = False
+    * can label these with label_key_locations_wmaze.m or manually
+    """
 
-        # make index within df of epoch
-        for ep in dir_epoch:
-            pos_df.loc[pos_df["ts"].between(ep.starts[0], ep.stops[0]), "dir"] = True
+    # load position and key location metadata
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".animal.behavior.mat"
+    )
+    data = sio.loadmat(filename, simplify_cells=True)
 
-        # flip x within epoch
-        pos_df.loc[pos_df.dir == True, "x"] = flip_x(pos_df[pos_df.dir == True].x)
+    # load epochs and place in array
+    epoch_df = loading.load_epoch(basepath)
+    epoch = nel.EpochArray(
+        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label="session_epochs"
+    )
 
-        # add position back to input pos
-        pos._data = np.expand_dims(pos_df.x.values, axis=0)
-
-        return pos
-
+    # load position and place in array
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
-
-    well_locations = np.array(
-        [
-            [
-                position_df.query("states == 0").projected_x.mean(),
-                position_df.query("states == 0").projected_y.max(),
-            ],
-            [
-                position_df.query("states == 2").projected_x.mean(),
-                position_df.query("states == 2").projected_y.max(),
-            ],
-            [
-                position_df.query("states == 1").projected_x.mean(),
-                position_df.query("states == 1").projected_y.max(),
-            ],
-        ]
+    pos = nel.PositionArray(
+        data=position_df_no_nan[["x", "y"]].values.T,
+        timestamps=position_df_no_nan.timestamps.values,
     )
+    wmaze_idx = np.where(epoch_df.environment == "wmaze")[0]
+    trials_temp = []
+    for idx in wmaze_idx:
+        # get key locations
+        right_x = data["behavior"]["epochs"][idx]["right_x"]
+        right_y = data["behavior"]["epochs"][idx]["right_y"]
 
-    # temp_df = position_df[~np.isnan(position_df.x)]
-    segments_df, _ = well_traversal_classification.segment_path(
-        position_df_no_nan["timestamps"].values,
-        position_df_no_nan[["projected_x", "projected_y"]].values,
-        well_locations,
-        max_distance_from_well=max_distance_from_well,
-    )
+        center_x = data["behavior"]["epochs"][idx]["center_x"]
+        center_y = data["behavior"]["epochs"][idx]["center_y"]
 
-    segments_df = well_traversal_classification.score_inbound_outbound(
-        segments_df, min_distance_traveled=min_distance_traveled
-    )
-    conditions = [
-        "from_well == 'Center' & to_well == 'Left'",
-        "from_well == 'Left' & to_well == 'Center'",
-        "from_well == 'Center' & to_well == 'Right'",
-        "from_well == 'Right' & to_well == 'Center'",
-    ]
-    condition_labels = [
-        "center_left",
-        "left_center",
-        "center_right",
-        "right_center",
-    ]
-    trajectories = {}
-    for con, con_label in zip(conditions, condition_labels):
-        trajectories[con_label] = nel.EpochArray(
-            np.array(
-                [segments_df.query(con).start_time, segments_df.query(con).end_time]
-            ).T
+        left_x = data["behavior"]["epochs"][idx]["left_x"]
+        left_y = data["behavior"]["epochs"][idx]["left_y"]
+
+        well_locations = np.array(
+            [[center_x, center_y], [left_x, left_y], [right_x, right_y]]
         )
 
-    # flip the x coordinate so it is always increasing
-    for con in trajectories.keys():
-        x_slope = []
-        for pos_seg in pos[trajectories[con]]:
-            # use regression to find slope of x coordinate
-            b1, _, _, _, _ = stats.linregress(
-                np.arange(len(pos_seg.data[0])), pos_seg.data[0]
+        # temp_df = position_df[~np.isnan(position_df.x)]
+        segments_df, _ = well_traversal_classification.segment_path(
+            position_df_no_nan["timestamps"].values,
+            position_df_no_nan[["projected_x", "projected_y"]].values,
+            well_locations,
+            max_distance_from_well=max_distance_from_well,
+        )
+
+        segments_df = well_traversal_classification.score_inbound_outbound(
+            segments_df, min_distance_traveled=min_distance_traveled
+        )
+        conditions = [
+            "from_well == 'Center' & to_well == 'Left'",
+            "from_well == 'Left' & to_well == 'Center'",
+            "from_well == 'Center' & to_well == 'Right'",
+            "from_well == 'Right' & to_well == 'Center'",
+        ]
+        condition_labels = [
+            "center_left",
+            "left_center",
+            "center_right",
+            "right_center",
+        ]
+        trajectories = {}
+        for con, con_label in zip(conditions, condition_labels):
+            trajectories[con_label] = nel.EpochArray(
+                np.array(
+                    [segments_df.query(con).start_time, segments_df.query(con).end_time]
+                ).T
             )
-            x_slope.append(b1)
-        # if the majority (>.5) of laps have x coords that decrease
-        if np.mean(np.array(x_slope) < 0) > 0.5:
-            pos = flip_pos_within_epoch(pos, trajectories[con])
 
     return pos, trajectories
 
@@ -211,11 +199,11 @@ def get_w_maze_trials(basepath, max_distance_from_well=20, min_distance_traveled
 def get_cheeseboard_trials(
     basepath: str,
     min_distance_from_home: int = 15,
-    max_trial_time: int = 60*10,
+    max_trial_time: int = 60 * 10,
     min_trial_time: int = 5,
     kernel_size: int = 2,
     min_std_away_from_home: int = 6,
-) -> nel.EpochArray():
+):
     """
     get_cheeseboard_trials: get epochs of cheeseboard trials
     Input:
@@ -233,7 +221,7 @@ def get_cheeseboard_trials(
             homebox_x within epochs *
             homebox_y within epochs *
 
-        * can label these with label_key_locations.m or manually
+        * can label these with label_key_locations_cheeseboard.m or manually
     """
 
     # load position and key location metadata
@@ -305,21 +293,129 @@ def get_cheeseboard_trials(
         & (np.array(stddev) > min_std_away_from_home)
     ]
 
-    return trials, pos
-
-    # trials variable is not reliable, so calculate based on position
-    # trials = data["behavior"]["trials"]
-
-    # trials = nel.EpochArray(trials,domain=epoch.domain)
-
-    # position_df = loading.load_animal_behavior(basepath)
-    # position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
-    # pos = nel.PositionArray(
-    #     data=position_df_no_nan[["x", "y"]].values.T,
-    #     timestamps=position_df_no_nan.timestamps.values,
-    #     support=epoch.domain
-    # )
-    # return pos[epoch], trials[epoch]
+    return pos, trials
 
 
-# open field (8 min bins)
+# open field
+def get_openfield_trials(
+    basepath,
+    spatial_binsize: int = 3,
+    trial_time_bin_size: Union[int, float] = 1 * 60,
+    prop_trial_sampled: float = 0.5,
+    environments: List[str] = [
+        "box",
+        "bigSquare",
+        "midSquare",
+        "bigSquarePlus",
+        "plus",
+    ],
+) -> Tuple[nel.PositionArray, nel.EpochArray]:
+    """
+    get_openfield_trials: get epochs of openfield trials
+
+    The logic here is to find trials that have a minimum and even amount of 
+        spatial sampling (prop_trial_sampled) in order to assess spatial 
+        stability, population correlations, and other things.
+
+    Input:
+        basepath: basepath of session
+        spatial_binsize: size of spatial bins to use for occupancy
+        trial_time_bin_size: size of time bins to use for occupancy
+        prop_trial_sampled: proportion of trials to sample
+        environments: list of environments to include as openfield
+    Output:
+        pos: position array
+        trials: epochs of trials
+    """
+
+    def compute_occupancy_2d(pos_run: object, x_edges:list, y_edges:list) -> np.ndarray:
+        """
+        compute_occupancy_2d: compute occupancy of 2d position
+        Input:
+            pos_run: position array
+            x_edges: x edges of bins
+            y_edges: y edges of bins
+        Output:
+            occupancy: occupancy of 2d position
+        """
+        occupancy, _, _ = np.histogram2d(
+            pos_run.data[0, :], pos_run.data[1, :], bins=(x_edges, y_edges)
+        )
+        return occupancy / pos_run.fs
+
+    # load position and place in array
+    position_df = loading.load_animal_behavior(basepath)
+    position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
+    pos = nel.PositionArray(
+        data=position_df_no_nan[["x", "y"]].values.T,
+        timestamps=position_df_no_nan.timestamps.values,
+    )
+
+    # load epochs and place in array
+    epoch_df = loading.load_epoch(basepath)
+    epoch = nel.EpochArray(
+        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label="session_epochs"
+    )
+
+    # find epochs that are these environments
+    openfield_idx = np.where(np.isin(epoch_df.environment, environments))[0]
+    trials = []
+    # loop through epochs
+    for idx in openfield_idx:
+        # get position during epoch
+        current_position = pos[epoch[int(idx)]]
+        # get the edges of the position
+        ext_xmin, ext_xmax = (
+            np.floor(np.nanmin(current_position.data[0, :])),
+            np.ceil(np.nanmax(current_position.data[0, :])),
+        )
+        ext_ymin, ext_ymax = (
+            np.floor(np.nanmin(current_position.data[1, :])),
+            np.ceil(np.nanmax(current_position.data[1, :])),
+        )
+        # create bin edges for occupancy map at spatial_binsize
+        x_edges = np.arange(ext_xmin, ext_xmax + spatial_binsize, spatial_binsize)
+        y_edges = np.arange(ext_ymin, ext_ymax + spatial_binsize, spatial_binsize)
+
+        # compute occupancy map and get proportion of environment sampled
+        occupancy = compute_occupancy_2d(current_position, x_edges, y_edges)
+        overall_prop_sampled = sum(occupancy.flatten() > 0) / (
+            (len(x_edges) - 1) * (len(y_edges) - 1)
+        )
+        # create possible trials based on trial_time_bin_size
+        # these will be iterated over to find trials that are sampled enough
+        duration = epoch_df.iloc[idx].stopTime - epoch_df.iloc[idx].startTime
+        bins = np.linspace(
+            epoch_df.iloc[idx].startTime,
+            epoch_df.iloc[idx].stopTime,
+            int(np.ceil(duration / (trial_time_bin_size))),
+        )
+        trials_temp = nel.EpochArray(np.array([bins[:-1], bins[1:]]).T)
+
+        trial_i = 0
+        # loop through possible trials and find when sampled enough
+        for i_interval in range(trials_temp.n_intervals):
+            # compute occupancy map and get proportion of environment sampled for trial
+            trial_occupancy = compute_occupancy_2d(
+                current_position[trials_temp[trial_i : i_interval + 1]],
+                x_edges,
+                y_edges,
+            )
+            trial_prop_sampled = sum(trial_occupancy.flatten() > 0) / (
+                (len(x_edges) - 1) * (len(y_edges) - 1)
+            )
+            # if sampled enough, add to trials 
+            if trial_prop_sampled > prop_trial_sampled * overall_prop_sampled:
+                trials.append(
+                    [
+                        trials_temp[trial_i : i_interval + 1].start,
+                        trials_temp[trial_i : i_interval + 1].stop,
+                    ]
+                )
+                # update trial_i to next interval to start from
+                trial_i = i_interval + 1
+
+    # concatenate trials and place in EpochArray 
+    trials = nel.EpochArray(np.vstack(trials))
+
+    return pos, trials
