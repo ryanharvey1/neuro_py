@@ -58,13 +58,13 @@ def get_t_maze_trials(basepath, epoch):
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
 
     if position_df_no_nan.shape[0] == 0:
-        return None, None, None, None
+        return None, None, None
 
     if "linearized" not in position_df_no_nan.columns:
-        return None, None, None, None
+        return None, None, None
 
     if "states" not in position_df_no_nan.columns:
-        return None, None, None, None
+        return None, None, None
 
     pos = nel.PositionArray(
         data=position_df_no_nan["linearized"].values.T,
@@ -72,7 +72,9 @@ def get_t_maze_trials(basepath, epoch):
     )
 
     pos = pos[epoch]
-
+    if pos.isempty:
+        return None, None, None
+    
     states = nel.AnalogSignalArray(
         data=position_df_no_nan["states"].values.T,
         timestamps=position_df_no_nan.timestamps.values,
@@ -93,7 +95,7 @@ def get_t_maze_trials(basepath, epoch):
         raise TypeError("inbound_laps should be empty for tmaze")
 
     if outbound_laps.isempty:
-        return None, None, None, None, None
+        return None, None, None
 
     # locate laps with the majority in state 1 or 2
     lap_id = dissociate_laps_by_states(states, outbound_laps, states_of_interest=[1, 2])
