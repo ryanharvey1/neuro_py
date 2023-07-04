@@ -359,7 +359,10 @@ def get_openfield_trials(
         data=position_df_no_nan[["x", "y"]].values.T,
         timestamps=position_df_no_nan.timestamps.values,
     )
-
+    
+    if pos.isempty:
+        return pos, nel.EpochArray([], label="session_epochs")
+    
     # load epochs and place in array
     epoch_df = loading.load_epoch(basepath)
     epoch = nel.EpochArray(
