@@ -2,10 +2,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 from scipy.interpolate import interp1d
-from skimage.morphology import reconstruction
-from skimage import measure
 from math import sqrt
-from skimage.feature import blob_dog, blob_log, blob_doh
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
 from scipy.ndimage import label, gaussian_filter1d
@@ -19,6 +16,8 @@ def detect_firing_fields(
     dog_thres=0.1,
     doh_thres=0.01,
 ):
+    from skimage.feature import blob_dog, blob_log, blob_doh
+
     plt.imshow(image_gray, origin="lower")
 
     blobs_log = blob_log(
@@ -205,6 +204,7 @@ def separate_fields_by_dilation(rate_map, seed=2.5, sigma=2.5, minimum_field_are
     ----------
     see https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_regional_maxima.html
     """
+    from skimage.morphology import reconstruction
 
     rate_map_norm = (rate_map - rate_map.mean()) / rate_map.std()
     dilated = reconstruction(rate_map_norm - seed, rate_map_norm, method="dilation")
@@ -334,6 +334,7 @@ def distance_to_edge_function(x_c, y_c, field, box_size, interpolation="linear")
         field: numpy 2d array
             ones at field bins, zero elsewhere
     """
+    from skimage import measure
 
     contours = measure.find_contours(field, 0.8)
 

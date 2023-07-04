@@ -4,7 +4,6 @@ import copy
 import scipy
 from neuro_py.tuning import fields
 from neuro_py.stats.stats import get_significant_events
-from skimage import measure
 from scipy.spatial.distance import pdist
 import logging
 import multiprocessing
@@ -340,6 +339,8 @@ class SpatialMap(object):
             field_width: width of the place fields (list of floats).
             field_peak_rate: peak firing rate of the place fields (list of floats).
         """
+        from skimage import measure
+
         field_width = []
         peak_rate = []
         mask = []
