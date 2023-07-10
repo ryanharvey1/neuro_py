@@ -17,7 +17,7 @@ def get_linear_maze_trials(basepath, epoch):
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
     if position_df_no_nan.shape[0] == 0:
-        return None, None, None, None
+        return None, None, None
 
     if "linearized" not in position_df_no_nan.columns:
         return None, None, None
