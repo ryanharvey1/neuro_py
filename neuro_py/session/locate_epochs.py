@@ -6,7 +6,7 @@ __all__ = [
 ]
 import numpy as np
 import pandas as pd
-
+import logging
 
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
@@ -135,9 +135,9 @@ def find_multitask_pre_post(env, task_tag="open_field|linear_track|box|tmaze|wma
         post_task = sleep_idx[temp > 0]
 
         if len(post_task) == 0:
-            print("no post_task sleep for task epoch " + str(task))
+            logging.warning("no post_task sleep for task epoch " + str(task))
         elif len(pre_task) == 0:
-            print("no pre_task sleep for task epoch " + str(task))
+            logging.warning("no pre_task sleep for task epoch " + str(task))
         else:
             pre_task_post.append([pre_task[-1], task, post_task[0]])
 
