@@ -164,7 +164,7 @@ def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
         raise TypeError("peth must be a pandas dataframe")
 
     # plot the peth as a lineplot with matplotlib
-    ax.plot(peth.index, peth.mean(axis=1), **kwargs)
+    ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
     
     lower, upper = confidence_intervals(peth.values.T, conf=ci)
     ax.fill_between(peth.index, lower, upper, alpha=.5, **kwargs)
