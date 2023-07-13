@@ -7,7 +7,7 @@ __all__ = [
 import numpy as np
 import scipy.stats as stats
 import pandas as pd
-
+import warnings
 
 def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
     """
@@ -72,10 +72,12 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
         conf - float, confidence level value (default: .95)
     """
     # compute interval for each column
-    interval = [
-        stats.t.interval(conf, len(a) - 1, loc=np.nanmean(a), scale=stats.sem(a, nan_policy='omit'))
-        for a in X.T
-    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        interval = [
+            stats.t.interval(conf, len(a) - 1, loc=np.nanmean(a), scale=stats.sem(a, nan_policy='omit'))
+            for a in X.T
+        ]
     interval = np.vstack(interval)
     lower = interval[:, 0]
     upper = interval[:, 1]

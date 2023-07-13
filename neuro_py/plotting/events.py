@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from neuro_py.stats.stats import confidence_intervals
-
+import warnings
 
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
     """
@@ -164,7 +164,9 @@ def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
         raise TypeError("peth must be a pandas dataframe")
 
     # plot the peth as a lineplot with matplotlib
-    ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
     
     lower, upper = confidence_intervals(peth.values.T, conf=ci)
     ax.fill_between(peth.index, lower, upper, alpha=.5, **kwargs)
