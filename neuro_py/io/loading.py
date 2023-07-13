@@ -41,6 +41,7 @@ import glob
 import nelpy as nel
 import warnings
 from neuro_py.process.intervals import in_intervals, find_interval
+from neuro_py.process.peri_event import get_participation
 from neuro_py.behavior.utils import get_speed
 from warnings import simplefilter
 from typing import List, Union
@@ -800,104 +801,71 @@ def load_theta_cycles(basepath, return_epoch_array=False):
 
 
 def load_barrage_events(
-    basepath, return_epoch_array=False, restrict_to_nrem=True, file_name=None, ver2=True
+    basepath:str, return_epoch_array:bool=False, restrict_to_nrem:bool=True, min_duration:float=0.0
 ):
     """
-    load info from barrage.events.mat and store within df
-    Inputs:
-        basepath: path to your session where ripples.events.mat is
-        return_epoch_array: if you want the output in an EpochArray
-        restrict_to_nrem: if you want to restrict to nrem
-        file_name: if you want to specify a specific file name
-        ver2: if you want to use the new file structure (Barrage_Files_B)
+    Load barrage events from the .HSEn2.events.mat file.
 
-    returns pandas dataframe with the following fields
-        start: start time of ripple
-        stop: end time of ripple
-        peaks: peak time of ripple
-        amplitude: envlope value at peak time
-        duration: ripple duration
-        basepath: path name
-        basename: session id
-        animal: animal id *
+    Parameters
+    ----------
+    basepath : str
+        Basepath to the session folder.
+    return_epoch_array : bool, optional
+        If True, return an EpochArray instead of a DataFrame, by default False
+    restrict_to_nrem : bool, optional
+        If True, restrict to NREM sleep, by default True
+    min_duration : float, optional
+        Minimum duration of a barrage, by default 0.0
 
-        * Note that basepath/basename/animal relies on specific folder
-        structure and may be incorrect for some data structures
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with barrage events.
+
+    Examples
+    --------
+    >>> basepath = r"X:\data\Barrage\NN16\day13"
+    >>> df = load_barrage_events(basepath)
+
     """
+    # locate barrage file
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".HSEn2.events.mat")
 
-    # locate .mat file
-    keep_looking_for_file = True
-    Barrage_Files_B = False
-    if ver2:
-        filename = os.path.join(basepath,"Barrages_Files_B","HSE.mat")
-        if os.path.exists(filename):
-            keep_looking_for_file = False
-            Barrage_Files_B = True
-        else:
-            Barrage_Files_B = False
+    # check if file exists
+    if os.path.exists(filename) is False:
+        warnings.warn("No barrage file found for {}".format(basepath))
+        if return_epoch_array:
+            return nel.EpochArray()
+        return pd.DataFrame()
 
-    if keep_looking_for_file:
-        try:
-            if file_name is not None:
-                filename = glob.glob(
-                    basepath + os.sep + "Barrage_Files" + os.sep + file_name + "*.mat"
-                )[0]
-            else:
-                filename = glob.glob(
-                    os.path.join(
-                        basepath, "Barrage_Files", os.path.basename(basepath) + ".HSE.mat"
-                    )
-                )[0]
-        except:
-            warnings.warn("file does not exist")
-            if return_epoch_array:
-                return nel.EpochArray()
-            return pd.DataFrame()
-
-    # load matfile
+    # load data from file and extract relevant data
     data = sio.loadmat(filename, simplify_cells=True)
+    data = data["HSEn2"]
 
-    if ver2 and Barrage_Files_B:
-        df_pre = pd.DataFrame()
-        df_pre["start"] = data["HSE"]["pre"]["timestamps"][:, 0]
-        df_pre["stop"] = data["HSE"]["pre"]["timestamps"][:, 1]
-        df_pre["peaks"] = data["HSE"]["pre"]["peaks"]
-        df_post = pd.DataFrame()
-        df_post["start"] = data["HSE"]["post"]["timestamps"][:, 0]
-        df_post["stop"] = data["HSE"]["post"]["timestamps"][:, 1]
-        df_post["peaks"] = data["HSE"]["post"]["peaks"]
-        df = pd.concat([df_pre, df_post], ignore_index=True)
-        df["duration"] = df["stop"] - df["start"]
+    # convert to DataFrame
+    df = pd.DataFrame()
+    df["start"] = data["timestamps"][:, 0]
+    df["stop"] = data["timestamps"][:, 1]
+    df["peaks"] = data["peaks"]
+    df["duration"] = data["timestamps"][:, 1] - data["timestamps"][:, 0]
 
-        
-    elif not Barrage_Files_B:
-        # make data frame of known fields
-        df = pd.DataFrame()
-
-        df["start"] = data["HSE"]["timestamps"][:, 0]
-        df["stop"] = data["HSE"]["timestamps"][:, 1]
-        df["peaks"] = data["HSE"]["peaks"]
-        try:
-            df["amplitude"] = data["HSE"]["amplitudes"]
-        except:
-            df["amplitude"] = np.nan
-        try:
-            df["duration"] = data["HSE"]["duration"]
-        except:
-            df["duration"] = df["stop"] - df["start"]
-        # restrict to keep index
-        df = df.loc[np.array(data["HSE"]["keep"]).T - 1].reset_index(drop=True)
-
-    # restrict to nrem
-    # load nrem epochs for restriction (expand to include 2 seconds before and after)
+    # restrict to NREM sleep
     if restrict_to_nrem:
         state_dict = load_SleepState_states(basepath)
         nrem_epochs = nel.EpochArray(state_dict["NREMstate"]).expand(2)
         idx = in_intervals(df["start"].values, nrem_epochs.data)
         df = df[idx].reset_index(drop=True)
 
-    # only keep barrages over 300ms
-    df = df[df.duration > 0.3].reset_index(drop=True)
+    # restrict to barrages with a minimum duration
+    df = df[df.duration > min_duration].reset_index(drop=True)
+
+    # make sure each barrage has some ca2 activity
+    # load ca2 pyr cells
+    st, _ = load_spikes(basepath, putativeCellType="Pyr", brainRegion="CA2")
+    # bin spikes into barrages
+    bst = get_participation(st.data, df["start"].values, df["stop"].values)
+    # keep only barrages with some activity
+    df = df[np.sum(bst > 0, axis=0) > 0].reset_index(drop=True)
 
     if return_epoch_array:
         return nel.EpochArray([np.array([df.start, df.stop]).T], label="barrage")
