@@ -66,7 +66,6 @@ def crossCorr(t1, t2, binsize, nbins):
 
 
 def compute_psth(spikes, event, bin_width=0.002, n_bins=100):
-
     # times = np.arange(0, bin_width * (n_bins + 1), bin_width) - (n_bins * bin_width) / 2
     times = np.linspace(-(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1)
     ccg = pd.DataFrame(index=times, columns=np.arange(len(spikes)))
@@ -167,7 +166,6 @@ def get_raster_points(data, time_ref, bin_width=0.002, n_bins=100, window=None):
 
 
 def peth_matrix(data, time_ref, bin_width=0.002, n_bins=100, window=None):
-
     x, y, t = get_raster_points(
         data, time_ref, bin_width=bin_width, n_bins=n_bins, window=window
     )
@@ -452,7 +450,9 @@ def event_triggered_average_fast(
 
     if return_pandas and return_average:
         return pd.DataFrame(
-            index=time_lags, columns=np.arange(signal.shape[0]), data=avg_signal.mean(axis=2).T
+            index=time_lags,
+            columns=np.arange(signal.shape[0]),
+            data=avg_signal.mean(axis=2).T,
         )
     if return_average:
         return avg_signal.mean(axis=2), time_lags
@@ -460,15 +460,15 @@ def event_triggered_average_fast(
         return avg_signal, time_lags
 
 
-def get_participation(st, event_starts, event_stops, par_type="binary"):
+def count_in_interval(st, event_starts, event_stops, par_type="binary"):
     """
-    get participation prob.
+    count_in_interval: count timestamps in intervals
     make matrix n rows (units) by n cols (ripple epochs)
     Input:
         st: spike train list
         event_starts: event starts
         event_stops: event stops
-        par_type: participation type (counts, binary, firing_rate)
+        par_type: count type (counts, binary (default), firing_rate)
 
         quick binning solution using searchsorted from:
         https://stackoverflow.com/questions/57631469/extending-histogram-function-to-overlapping-bins-and-bins-with-arbitrary-gap
@@ -494,6 +494,10 @@ def get_participation(st, event_starts, event_stops, par_type="binary"):
     unit_mat = calc_func(unit_mat)
 
     return unit_mat
+
+
+# the function name "get_participation" is depreciated, but kept for backwards compatibility
+get_participation = count_in_interval
 
 
 def get_rank_order(
@@ -554,7 +558,6 @@ def get_rank_order(
 
         # iter over every event
         for event_i, st_temp in enumerate(st_epoch):
-
             if ref == "cells":
                 # get firing order
                 idx = np.array(st_temp.get_event_firing_order()) - 1
@@ -598,7 +601,6 @@ def get_rank_order(
             z_t_temp.smooth(sigma=sigma, inplace=True)
 
             if ref == "cells":
-
                 # find loc of each peak and get sorted idx of active units
                 idx = np.argsort(np.argmax(z_t_temp.data, axis=1))
                 # reorder unit ids by order and remove non-active
