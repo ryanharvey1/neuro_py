@@ -110,7 +110,7 @@ def loadXML(basepath: str):
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
-    channel: Union[int,None] = None,
+    channel: Union[int, None] = None,
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
@@ -275,7 +275,9 @@ class LoadLfp(object):
                 data=lfp[idx, None].T,
                 timestamps=timestep[idx],
                 fs=self.fs,
-                support=nel.EpochArray(np.array([min(timestep[idx]), max(timestep[idx])])),
+                support=nel.EpochArray(
+                    np.array([min(timestep[idx]), max(timestep[idx])])
+                ),
             )
 
     def __repr__(self) -> None:
@@ -498,7 +500,6 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             if (data["cell_metrics"][dn][0][0][0][0].size == 1) & (
                 data["cell_metrics"][dn][0][0][0].size == n_cells
             ):
-
                 df[dn] = data["cell_metrics"][dn][0][0][0]
         except:
             continue
@@ -605,7 +606,6 @@ def load_SWRunitMetrics(basepath):
     # loop through each available epoch and pull out contents
     for epoch in data["SWRunitMetrics"].dtype.names:
         if data["SWRunitMetrics"][epoch][0][0].size > 0:  # not empty
-
             # call content extractor
             df_ = extract_swr_epoch_data(data, epoch)
 
@@ -801,7 +801,10 @@ def load_theta_cycles(basepath, return_epoch_array=False):
 
 
 def load_barrage_events(
-    basepath:str, return_epoch_array:bool=False, restrict_to_nrem:bool=True, min_duration:float=0.0
+    basepath: str,
+    return_epoch_array: bool = False,
+    restrict_to_nrem: bool = True,
+    min_duration: float = 0.0,
 ):
     """
     Load barrage events from the .HSEn2.events.mat file.
@@ -821,13 +824,8 @@ def load_barrage_events(
     -------
     pd.DataFrame
         DataFrame with barrage events.
-
-    Examples
-    --------
-    >>> basepath = r"X:\data\Barrage\NN16\day13"
-    >>> df = load_barrage_events(basepath)
-
     """
+
     # locate barrage file
     filename = os.path.join(basepath, os.path.basename(basepath) + ".HSEn2.events.mat")
 
@@ -1329,7 +1327,6 @@ def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
 
 
 def load_basic_data(basepath):
-
     try:
         nChannels, fs, fs_dat, shank_to_channel = loadXML(basepath)
     except:
@@ -1790,6 +1787,6 @@ def load_events(basepath: str, epoch_name: str) -> nel.EpochArray:
     # check if filename exist
     if not os.path.exists(filename):
         return None
-        
+
     data = sio.loadmat(filename, simplify_cells=True)
     return nel.EpochArray(data[epoch_name]["timestamps"])
