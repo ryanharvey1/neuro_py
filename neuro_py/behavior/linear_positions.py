@@ -138,7 +138,7 @@ def find_laps(
 
     # % fix direction of first lap which was unknown above
     # % make first lap direction opposite of second lap's direction (laps alternate!)
-    laps.iloc[0].direction = -laps.iloc[1].direction
+    laps.loc[0, 'direction'] = -laps.iloc[1].direction
 
     # % make sure laps cross the halfway point
     middle = np.nanmedian(np.arange(np.nanmin(Vdata), np.nanmax(Vdata)))
