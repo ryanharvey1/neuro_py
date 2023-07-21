@@ -175,7 +175,7 @@ def load_results(
 
     sessions = glob.glob(os.path.join(save_path, "*.pkl"))
 
-    results = pd.DataFrame()
+    results = []
 
     for session in sessions:
         if verbose:
@@ -187,7 +187,9 @@ def load_results(
 
         if add_save_file_name:
             results_["save_file_name"] = os.path.basename(session)
-
-        results = pd.concat([results, results_], ignore_index=True)
+        
+        results.append(results_)
+        
+    results = pd.concat(results, ignore_index=True, axis=0)
 
     return results
