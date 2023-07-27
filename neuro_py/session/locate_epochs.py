@@ -109,13 +109,20 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
     return results
 
 
-def find_multitask_pre_post(env: pd.Series, task_tag: Union[None, str] = None) -> list:
+def find_multitask_pre_post(
+    env: pd.Series,
+    task_tag: Union[None, str] = None,
+    post_sleep_flank: bool = False,
+    pre_sleep_common: bool = False,
+) -> list:
     """
     Find the row index for pre_task/post_task sleep for a given enviornment from cell explorer session.epochs dataframe
     Returns list of pre/task_post epochs for each task.
     input:
         env: column from data frame consisting of cell explorer session.epochs data
         task_tag: string that indicates a task/s ("linear" or "linear|box"), or None for all tasks
+        post_sleep_flank: True/False to make post sleep directly follows task
+        pre_sleep_common: True/False to make first pre sleep is common to all tasks
     output:
         list of epoch indicies [pre_task, task, post_task] of size n = # of task epochs
 
@@ -147,6 +154,21 @@ def find_multitask_pre_post(env: pd.Series, task_tag: Union[None, str] = None) -
 
     if len(pre_task_post) == 0:
         pre_task_post = None
+
+    # search for epochs where the last epoch is 1 more than the first epoch
+    if post_sleep_flank and pre_task_post is not None:
+        pre_task_post_ = []
+        for seq in pre_task_post:
+            if seq[-1] - seq[1] == 1:
+                pre_task_post_.append(seq)
+        pre_task_post = pre_task_post_
+
+    # make the first pre task sleep the same pre task in subsequent tasks
+    if pre_sleep_common and pre_task_post is not None:
+        pre_task_post_ = []
+        for seq in pre_task_post:
+            pre_task_post_.append([pre_task_post[0][0], seq[1], seq[2]])
+        pre_task_post = pre_task_post_
 
     return pre_task_post
 
