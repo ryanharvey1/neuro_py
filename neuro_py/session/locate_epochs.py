@@ -7,6 +7,8 @@ __all__ = [
 import numpy as np
 import pandas as pd
 import logging
+from typing import Union
+
 
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
@@ -107,21 +109,23 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
     return results
 
 
-def find_multitask_pre_post(env, task_tag="open_field|linear_track|box|tmaze|wmaze"):
+def find_multitask_pre_post(env: pd.Series, task_tag: Union[None, str] = None) -> list:
     """
     Find the row index for pre_task/post_task sleep for a given enviornment from cell explorer session.epochs dataframe
     Returns list of pre/task_post epochs for each task.
     input:
-        df: data frame consisting of cell explorer session.epochs data
-        col_name: name of column to query task tag. Default is environemnt
-        task_tag: string within col_name that indicates a task.
+        env: column from data frame consisting of cell explorer session.epochs data
+        task_tag: string that indicates a task/s ("linear" or "linear|box"), or None for all tasks
     output:
         list of epoch indicies [pre_task, task, post_task] of size n = # of task epochs
 
     LB/RH 1/5/2022
     """
     # Find the row indices that contain the search string in the specified column
-    task_bool = env.str.contains(task_tag, case=False)
+    if task_tag is None:
+        task_bool = ~env.str.contains("sleep", case=False)
+    else:
+        task_bool = env.str.contains(task_tag, case=False)
     sleep_bool = env.str.contains("sleep", case=False)
 
     task_idx = np.where(task_bool)[0]
