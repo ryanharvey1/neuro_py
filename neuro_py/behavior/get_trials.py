@@ -10,12 +10,28 @@ import scipy.io as sio
 from scipy.signal import medfilt
 from neuro_py.process.intervals import find_interval
 from typing import Tuple, List, Union
-
+import logging
 
 # linear track
-def get_linear_maze_trials(basepath, epoch):
+def get_linear_maze_trials(basepath, epoch_input=None):
+    """
+    Get trials for linear maze
+    Locates inbound and outbound laps for each linear track in session
+    Input:
+        basepath: str
+        epoch_input: None, deprecated
+    Output:
+        pos: PositionArray
+        inbound_laps: EpochArray
+        outbound_laps: EpochArray
+
+    """
+    if epoch_input is not None:
+        logging.warning("epoch_input is no longer supported")
+
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
+    
     if position_df_no_nan.shape[0] == 0:
         return None, None, None
 
@@ -27,17 +43,31 @@ def get_linear_maze_trials(basepath, epoch):
         timestamps=position_df_no_nan.timestamps.values,
     )
 
-    pos = pos[epoch]
-
-    # get outbound and inbound epochs
-    outbound_laps, inbound_laps = linear_positions.get_linear_track_lap_epochs(
-        pos.abscissa_vals, pos.data[0], newLapThreshold=20
+    epoch_df = loading.load_epoch(basepath)
+    epoch = nel.EpochArray(
+        [np.array([epoch_df.startTime, epoch_df.stopTime]).T]
     )
+    
+    inbound_laps_temp = []
+    outbound_laps_temp = []
+    maze_idx = np.where(epoch_df.environment == "linear")[0]
+    for idx in maze_idx:
+        current_position = pos[epoch[int(idx)]]
 
-    inbound_laps = linear_positions.find_good_lap_epochs(pos, inbound_laps, min_laps=5)
-    outbound_laps = linear_positions.find_good_lap_epochs(
-        pos, outbound_laps, min_laps=5
-    )
+        # get outbound and inbound epochs
+        outbound_laps, inbound_laps = linear_positions.get_linear_track_lap_epochs(
+            current_position.abscissa_vals, current_position.data[0], newLapThreshold=20
+        )
+
+        inbound_laps = linear_positions.find_good_lap_epochs(current_position, inbound_laps, min_laps=5)
+        outbound_laps = linear_positions.find_good_lap_epochs(
+            current_position, outbound_laps, min_laps=5
+        )
+        inbound_laps_temp.append(inbound_laps.data)
+        outbound_laps_temp.append(outbound_laps.data)
+
+    inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp))
+    outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp))
 
     return pos, inbound_laps, outbound_laps
 
