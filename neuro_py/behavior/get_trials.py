@@ -63,8 +63,10 @@ def get_linear_maze_trials(basepath, epoch_input=None):
         outbound_laps = linear_positions.find_good_lap_epochs(
             current_position, outbound_laps, min_laps=5
         )
-        inbound_laps_temp.append(inbound_laps.data)
-        outbound_laps_temp.append(outbound_laps.data)
+        if not inbound_laps.isempty:
+            inbound_laps_temp.append(inbound_laps.data)
+        if not outbound_laps.isempty:
+            outbound_laps_temp.append(outbound_laps.data)
 
     inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp))
     outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp))
