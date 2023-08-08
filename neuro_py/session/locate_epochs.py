@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import logging
 from typing import Union
-
+import re
 
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
@@ -300,3 +300,31 @@ def find_pre_task_post_optimize_novel(
         return None
     epoch_df = epoch_df.loc[idx].reset_index(drop=True)
     return epoch_df
+
+
+def get_experience_level(behavioralParadigm: pd.Series) -> int:
+    """
+    Extract experience level from behavioralParadigm column
+
+    Experience level is the number of times the animal has run the task and is
+        located within behavioralParadigm column
+
+    Input:
+        behavioralParadigm: pd.Series indexed by a single epoch
+    Output:
+        experience: int
+
+    Example:
+        experience = get_experience_level(current_epoch_df.iloc[1].behavioralParadigm)
+
+    """
+    if behavioralParadigm == "novel":
+        experience = 1
+    else:
+        try:
+            # extract first number from string
+            experience = int(re.findall(r'\d+', behavioralParadigm)[0])
+        except:
+            # extract experience level from behavioralParadigm column if it is a number
+            experience = int(behavioralParadigm)
+    return experience
