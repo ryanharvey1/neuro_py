@@ -336,7 +336,7 @@ def truncate_epoch(
     interval_i = 0
     while truncated_intervals.duration < time or interval_i > len(epoch):
         # Add the last interval
-        next_interval = int(np.where(cumulative_lengths >= time)[0][0])
+        next_interval = int(np.where(cumulative_lengths >= time)[0][interval_i])
         remainder = (
             nel.EpochArray(
                 [
