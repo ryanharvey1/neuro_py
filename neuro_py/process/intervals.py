@@ -281,3 +281,72 @@ def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.n
         in_interval[mask] = i
 
     return in_interval
+
+
+def truncate_epoch(
+    epoch: nel.EpochArray, time: Union[int, float] = 3600
+) -> nel.EpochArray:
+    """
+    Truncates an EpochArray to achieve a specified cumulative time duration.
+
+    This function takes an input EpochArray 'epoch' and a 'time' value representing
+    the desired cumulative time duration in seconds. It returns a new EpochArray
+    containing intervals that cumulatively match the specified time.
+
+    Parameters:
+        epoch (nel.EpochArray): The input EpochArray containing intervals to be truncated.
+        time (float, optional): The desired cumulative time in seconds (default is 3600).
+
+    Returns:
+        nel.EpochArray: A new EpochArray containing intervals that cumulatively match
+        the specified time.
+
+    Algorithm:
+        1. Calculate the cumulative lengths of intervals in the 'epoch'.
+        2. If the cumulative time of the 'epoch' is already less than or equal to 'time',
+            return the original 'epoch'.
+        3. Find the last interval that fits within the specified 'time' and create a new EpochArray
+            'truncated_intervals' with intervals up to that point.
+        4. To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.
+        5. Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached
+            or all intervals are used.
+
+    Example:
+        # Create an EpochArray with intervals
+        epoch_data = [(0, 2), (3, 6), (8, 10)]
+        epoch = nel.EpochArray(epoch_data)
+
+        # Truncate the epoch to achieve a cumulative time of 7 seconds
+        truncated_epoch = truncate_epoch(epoch, time=7)
+
+    """
+    # calcuate cumulative lengths
+    cumulative_lengths = epoch.lengths.cumsum()
+
+    # No truncation needed
+    if cumulative_lengths[-1] <= time:
+        return epoch
+
+    # Find the last interval that fits within the time and make new epoch
+    idx = cumulative_lengths <= time
+    truncated_intervals = nel.EpochArray(epoch.data[idx])
+
+    # It's unlikely that the last interval will fit perfectly, so add the remainder from the next interval
+    #   until the epoch is the desired length
+    interval_i = 0
+    while truncated_intervals.duration < time or interval_i > len(epoch):
+        # Add the last interval
+        next_interval = int(np.where(cumulative_lengths >= time)[0][0])
+        remainder = (
+            nel.EpochArray(
+                [
+                    epoch[next_interval].start,
+                    epoch[next_interval].start + (time - truncated_intervals.duration),
+                ]
+            )
+            & epoch[next_interval]
+        )
+        truncated_intervals = truncated_intervals | remainder
+        interval_i += 1
+
+    return truncated_intervals
