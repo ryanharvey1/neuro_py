@@ -210,7 +210,7 @@ def find_interval(logical):
 
 
 # @njit(parallel=True)
-def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
+def in_intervals(timestamps: np.ndarray, intervals: np.ndarray, return_interval=False, shift=False) -> np.ndarray:
     """
     Find which timestamps fall within the given intervals.
 
@@ -220,11 +220,19 @@ def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
         An array of timestamp values. Assumes sorted.
     intervals : ndarray
         An array of time intervals, represented as pairs of start and end times.
+    return_interval : bool, optional (default=False)
+        If True, return the index of the interval to which each timestamp belongs.
+    shift : bool, optional (default=False)
+        If True, return the shifted timestamps
 
     Returns
     -------
-    ndarray
+    in_interval : ndarray
         A logical index indicating which timestamps fall within the intervals.
+    interval : ndarray, optional
+        A ndarray indicating for each timestamps which interval it was within.
+    shifted_timestamps : ndarray, optional
+        The shifted timestamps
 
     Examples
     --------
@@ -232,9 +240,24 @@ def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
     >>> intervals = np.array([[2, 4], [5, 7]])
     >>> in_intervals(timestamps, intervals)
     array([False,  True,  True,  True,  True,  True,  True, False])
+
+    >>> in_intervals(timestamps, intervals, return_interval=True)
+    (array([False,  True,  True,  True,  True,  True,  True, False]),
+    array([nan,  0.,  0.,  0.,  1.,  1.,  1., nan]))
+
+    >>> in_intervals(timestamps, intervals, shift=True)
+    (array([False,  True,  True,  True,  True,  True,  True, False]),
+    array([0, 1, 2, 2, 3, 4]))
+
+    >>> in_intervals(timestamps, intervals, return_interval=True, shift=True)
+    (array([False,  True,  True,  True,  True,  True,  True, False]),
+    array([0, 0, 0, 1, 1, 1]),
+    array([0, 1, 2, 2, 3, 4]))
     """
     in_interval = np.zeros(timestamps.shape, dtype=np.bool_)
-    for start, end in intervals:
+    interval = np.full(timestamps.shape, np.nan)
+
+    for i, (start, end) in enumerate(intervals):
         # Find the leftmost index of a timestamp that is >= start
         left = np.searchsorted(timestamps, start, side="left")
         if left == len(timestamps):
@@ -247,6 +270,27 @@ def in_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
             continue
         # Mark the timestamps in the interval
         in_interval[left:right] = True
+        interval[left:right] = i
+
+    if shift:
+        # Restrict to the timestamps that fall within the intervals
+        interval = interval[in_interval].astype(int)
+        
+        # Calculate shifts based on intervals
+        shifts = np.insert(np.cumsum(intervals[1:, 0] - intervals[:-1, 1]), 0, 0)[interval]
+        
+        # Apply shifts to timestamps
+        shifted_timestamps = timestamps[in_interval] - shifts - intervals[0, 0]
+    
+    if return_interval and shift:
+        return in_interval, interval, shifted_timestamps 
+
+    if return_interval:
+        return in_interval, interval
+
+    if shift:
+        return in_interval, shifted_timestamps
+
     return in_interval
 
 
@@ -266,6 +310,8 @@ def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.n
     -------
     ndarray
         A ndarray indicating for each timestamps which interval it was within.
+
+    Note: produces same result as in_intervals with return_interval=True
 
     Examples
     --------
