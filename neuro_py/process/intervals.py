@@ -380,7 +380,7 @@ def truncate_epoch(
     # It's unlikely that the last interval will fit perfectly, so add the remainder from the next interval
     #   until the epoch is the desired length
     interval_i = 0
-    while truncated_intervals.duration < time or interval_i > len(epoch):
+    while (time - truncated_intervals.duration) > 1e-10 or interval_i > len(epoch):
         # Add the last interval
         next_interval = int(np.where(cumulative_lengths >= time)[0][interval_i])
         remainder = (
