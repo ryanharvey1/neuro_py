@@ -366,6 +366,10 @@ def truncate_epoch(
         truncated_epoch = truncate_epoch(epoch, time=7)
 
     """
+    
+    if epoch.isempty:
+        return epoch
+    
     # calcuate cumulative lengths
     cumulative_lengths = epoch.lengths.cumsum()
 
