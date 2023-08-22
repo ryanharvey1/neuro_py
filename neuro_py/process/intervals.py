@@ -210,7 +210,9 @@ def find_interval(logical):
 
 
 # @njit(parallel=True)
-def in_intervals(timestamps: np.ndarray, intervals: np.ndarray, return_interval=False, shift=False) -> np.ndarray:
+def in_intervals(
+    timestamps: np.ndarray, intervals: np.ndarray, return_interval=False, shift=False
+) -> np.ndarray:
     """
     Find which timestamps fall within the given intervals.
 
@@ -275,15 +277,17 @@ def in_intervals(timestamps: np.ndarray, intervals: np.ndarray, return_interval=
     if shift:
         # Restrict to the timestamps that fall within the intervals
         interval = interval[in_interval].astype(int)
-        
+
         # Calculate shifts based on intervals
-        shifts = np.insert(np.cumsum(intervals[1:, 0] - intervals[:-1, 1]), 0, 0)[interval]
-        
+        shifts = np.insert(np.cumsum(intervals[1:, 0] - intervals[:-1, 1]), 0, 0)[
+            interval
+        ]
+
         # Apply shifts to timestamps
         shifted_timestamps = timestamps[in_interval] - shifts - intervals[0, 0]
-    
+
     if return_interval and shift:
-        return in_interval, interval, shifted_timestamps 
+        return in_interval, interval, shifted_timestamps
 
     if return_interval:
         return in_interval, interval
@@ -366,10 +370,10 @@ def truncate_epoch(
         truncated_epoch = truncate_epoch(epoch, time=7)
 
     """
-    
+
     if epoch.isempty:
         return epoch
-    
+
     # calcuate cumulative lengths
     cumulative_lengths = epoch.lengths.cumsum()
 
@@ -400,3 +404,62 @@ def truncate_epoch(
         interval_i += 1
 
     return truncated_intervals
+
+
+def shift_epoch_array(
+    epoch: nel.EpochArray, epoch_shift: nel.EpochArray
+) -> nel.EpochArray:
+    """
+    shift an epoch array by another epoch array
+
+    Shifting means that intervals in epoch will be relative to
+        intervals in epoch_shift as if epoch_shift intervals were without gaps
+
+    Inputs:
+        epoch: nelpy EpochArray, intervals to shift
+        epoch_shift: nelpy EpochArray, intervals to shift by
+
+    Returns:
+        epoch_shifted: nelpy EpochArray
+
+    Note: this function restricts epoch to those within epoch_shift as
+            epochs between epoch_shift intervals would result in a duration of 0.
+
+    Visual representation:
+    inputs:
+        epoch       =   [  ]   [  ] [  ]  []
+        epoch_shift =   [    ] [    ]   [    ]
+    becomes:
+        epoch       =   [  ]  [  ]    []
+        epoch_shift =   [    ][    ][    ]
+    """
+    # input validation
+    if not isinstance(epoch, nel.EpochArray):
+        raise TypeError("epoch must be a nelpy EpochArray")
+    if not isinstance(epoch_shift, nel.EpochArray):
+        raise TypeError("epoch_shift must be a nelpy EpochArray")
+
+    # restrict epoch to epoch_shift and extract starts and stops
+    epoch_starts, epoch_stops = epoch[epoch_shift].data.T
+
+    # shift starts and stops by epoch_shift
+    _, epoch_starts_shifted = in_intervals(epoch_starts, epoch_shift.data, shift=True)
+    _, epoch_stops_shifted = in_intervals(epoch_stops, epoch_shift.data, shift=True)
+
+    # shift time support as well, if one exists
+    support_starts_shifted, support_stops_shifted = -np.inf, np.inf
+    if epoch.domain.start != -np.inf:
+        _, support_starts_shifted = in_intervals(
+            epoch.domain.start, epoch_shift.data, shift=True
+        )
+    if epoch.domain.stop != np.inf:
+        _, support_stops_shifted = in_intervals(
+            epoch.domain.stop, epoch_shift.data, shift=True
+        )
+
+    session_domain = nel.EpochArray([support_starts_shifted, support_stops_shifted])
+
+    # package shifted intervals into epoch array with shifted time support
+    return nel.EpochArray(
+        np.array([epoch_starts_shifted, epoch_stops_shifted]).T, domain=session_domain
+    )
