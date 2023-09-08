@@ -70,6 +70,10 @@ def BurstIndex_Royer_2012(autocorrs):
 
     burst_idx = []
     for p, b in zip(peak, baseline):
+
+        if (p is None) | (b is None):
+            burst_idx.append(np.nan)
+            continue
         if p > b:
             burst_idx.append((p - b) / p)
         elif p < b:
