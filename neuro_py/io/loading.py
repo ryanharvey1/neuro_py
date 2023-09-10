@@ -684,9 +684,8 @@ def load_ripples_events(
     """
 
     # locate .mat file
-    try:
-        filename = glob.glob(basepath + os.sep + "*ripples.events.mat")[0]
-    except:
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".ripples.events.mat")
+    if not os.path.exists(filename):
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
