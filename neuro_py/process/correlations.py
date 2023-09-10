@@ -12,6 +12,7 @@ from scipy import stats
 from neuro_py.process.peri_event import crossCorr
 from scipy import signal
 
+
 def compute_AutoCorrs(spks, binsize=0.001, nbins=100):
     # First let's prepare a pandas dataframe to receive the data
     times = np.arange(0, binsize * (nbins + 1), binsize) - (nbins * binsize) / 2
@@ -27,6 +28,7 @@ def compute_AutoCorrs(spks, binsize=0.001, nbins=100):
     # And don't forget to replace the 0 ms for 0
     autocorrs.loc[0] = 0.0
     return autocorrs
+
 
 def pairwise_corr(X, method="pearson", pairs=None):
     """
@@ -79,12 +81,18 @@ def pairwise_cross_corr(spks, binsize=0.001, nbins=100, return_index=False, pair
     # prepare a pandas dataframe to receive the data
     times = np.linspace(-(nbins * binsize) / 2, (nbins * binsize) / 2, nbins + 1)
 
-    crosscorrs = pd.DataFrame(index=times, columns=np.arange(len(pairs)))
+    def compute_crosscorr(pair):
+        i, j = pair
+        crosscorr = crossCorr(spks[i], spks[j], binsize, nbins)
+        return crosscorr
 
-    # Now we can iterate over spikes
-    for i, s in enumerate(pairs):
-        # Calling the crossCorr function
-        crosscorrs[i] = crossCorr(spks[s[0]], spks[s[1]], binsize, nbins)
+    crosscorrs = [compute_crosscorr(pair) for pair in pairs]
+
+    crosscorrs = pd.DataFrame(
+        index=times,
+        data=np.array(crosscorrs).T,
+        columns=np.arange(len(pairs)),
+    )
 
     if return_index:
         return crosscorrs, pairs
