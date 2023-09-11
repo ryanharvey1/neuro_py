@@ -9,7 +9,7 @@ import numpy as np
 import itertools
 import pandas as pd
 from scipy import stats
-from neuro_py.process.peri_event import crossCorr
+from neuro_py.process.peri_event import crossCorr, deconvolve_peth
 from scipy import signal
 
 
@@ -60,7 +60,7 @@ def pairwise_corr(X, method="pearson", pairs=None):
     return rho, pval, pairs
 
 
-def pairwise_cross_corr(spks, binsize=0.001, nbins=100, return_index=False, pairs=None):
+def pairwise_cross_corr(spks, binsize=0.001, nbins=100, return_index=False, pairs=None, deconvolve=False):
     """
     Compute pairwise time-lagged correlations between cells
     Input:
@@ -85,8 +85,16 @@ def pairwise_cross_corr(spks, binsize=0.001, nbins=100, return_index=False, pair
         i, j = pair
         crosscorr = crossCorr(spks[i], spks[j], binsize, nbins)
         return crosscorr
-
-    crosscorrs = [compute_crosscorr(pair) for pair in pairs]
+    
+    def compute_crosscorr_deconvolve(pair):
+        i, j = pair
+        crosscorr, _ = deconvolve_peth(spks[i], spks[j], binsize, nbins)
+        return crosscorr
+    
+    if deconvolve:
+        crosscorrs = [compute_crosscorr_deconvolve(pair) for pair in pairs]
+    else:
+        crosscorrs = [compute_crosscorr(pair) for pair in pairs]
 
     crosscorrs = pd.DataFrame(
         index=times,
