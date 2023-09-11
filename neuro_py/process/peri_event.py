@@ -20,46 +20,79 @@ import warnings
 
 
 @jit(nopython=True)
-def crossCorr(t1, t2, binsize, nbins):
+def crossCorr(
+    t1: np.ndarray,
+    t2: np.ndarray,
+    binsize: float,
+    nbins: int,
+) -> np.ndarray:
     """
-    Fast crossCorr
-    # crossCorr functions from Guillaume Viejo of Peyrache Lab
-    # https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py
+    Performs the discrete cross-correlogram of two time series.
+    The units should be in s for all arguments.
+    Return the firing rate of the series t2 relative to the timings of t1.
+
+    crossCorr functions from Guillaume Viejo of Peyrache Lab
+    https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py
+    https://github.com/pynapple-org/pynapple/blob/main/pynapple/process/correlograms.py
+
+    Parameters
+    ----------
+    t1 : array
+        First time series.
+    t2 : array
+        Second time series.
+    binsize : float
+        Size of the bin in seconds.
+    nbins : int
+        Number of bins.
+
+    Returns
+    -------
+    C : array
+        Cross-correlogram of the two time series.
+
     """
+    # Calculate the length of the input time series
     nt1 = len(t1)
     nt2 = len(t2)
+
+    # Ensure that 'nbins' is an odd number
     if np.floor(nbins / 2) * 2 == nbins:
         nbins = nbins + 1
 
-    m = -binsize * ((nbins + 1) / 2)
-    B = np.zeros(nbins)
-    for j in range(nbins):
-        B[j] = m + j * binsize
-
+    # Calculate the half-width of the cross-correlogram window
     w = (nbins / 2) * binsize
     C = np.zeros(nbins)
     i2 = 1
 
+    # Iterate through the first time series
     for i1 in range(nt1):
         lbound = t1[i1] - w
+
+        # Find the index of the first element in 't2' that is within 'lbound'
         while i2 < nt2 and t2[i2] < lbound:
             i2 = i2 + 1
+
+        # Find the index of the last element in 't2' that is within 'lbound'
         while i2 > 1 and t2[i2 - 1] > lbound:
             i2 = i2 - 1
 
         rbound = lbound
         l = i2
+
+        # Calculate the cross-correlogram values for each bin
         for j in range(nbins):
             k = 0
             rbound = rbound + binsize
+
+            # Count the number of elements in 't2' that fall within the bin
             while l < nt2 and t2[l] < rbound:
                 l = l + 1
                 k = k + 1
 
             C[j] += k
 
-    # for j in range(nbins):
-    # C[j] = C[j] / (nt1 * binsize)
+    # Normalize the cross-correlogram by dividing by the total observation time and bin size
     C = C / (nt1 * binsize)
 
     return C
@@ -99,6 +132,10 @@ def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
     autocorrelogram = crossCorr(signal, signal, bin_width, n_bins * 2)
     raw_peth = crossCorr(events, signal, bin_width, n_bins * 2)
 
+    # If raw_peth all zeros, return zeros
+    if not raw_peth.any():
+        return np.zeros(len(times)), times
+
     # Subtract the mean value from the raw_peth
     const = np.mean(raw_peth)
     raw_peth = raw_peth - const
@@ -115,6 +152,7 @@ def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
     deconvolved = np.linalg.solve(
         T, raw_peth[int(n_bins / 2) : int(n_bins / 2 * 3 + 1)].T + const / len(events)
     )
+
     return deconvolved, times
 
 
