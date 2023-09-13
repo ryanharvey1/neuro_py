@@ -404,6 +404,15 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         epochs["stopTime"] = stopTime
         return epochs
 
+    def extract_events(data):
+        psth = {}
+        for dt in data["cell_metrics"]["events"][0][0].dtype.names:
+            psth[dt] = pd.DataFrame(
+                index=data["cell_metrics"]["general"][0][0][0]["events"][0][dt][0][0]["x_bins"][0][0].T[0] / 1000,
+                data=np.hstack(data["cell_metrics"]["events"][0][0][dt][0][0][0]),
+            )
+        return psth
+    
     def extract_general(data):
         # extract fr per unit with lag zero to ripple
         try:
@@ -422,6 +431,13 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             epochs = extract_epochs(data)
         except:
             epochs = []
+
+        # extract events
+        try:
+            events_psth = extract_events(data)
+        except:
+            events_psth = []
+
         # extract avg waveforms
         try:
             waveforms = np.vstack(
@@ -457,6 +473,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             "epochs": epochs,
             "spikes": spikes,
             "waveforms": waveforms,
+            "events_psth": events_psth,
         }
         return data_
 
@@ -684,7 +701,9 @@ def load_ripples_events(
     """
 
     # locate .mat file
-    filename = os.path.join(basepath, os.path.basename(basepath) + ".ripples.events.mat")
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".ripples.events.mat"
+    )
     if not os.path.exists(filename):
         warnings.warn("file does not exist")
         return pd.DataFrame()
