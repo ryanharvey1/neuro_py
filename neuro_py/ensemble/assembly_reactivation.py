@@ -137,6 +137,7 @@ class AssemblyReact(object):
             self.basepath,
             brainRegion=self.brainRegion,
             putativeCellType=self.putativeCellType,
+            support=self.time_support,
         )
 
     def load_ripples(self):
@@ -144,7 +145,9 @@ class AssemblyReact(object):
         loads ripples from the session folder
         """
         ripples = loading.load_ripples_events(self.basepath)
-        self.ripples = nel.EpochArray([np.array([ripples.start, ripples.stop]).T])
+        self.ripples = nel.EpochArray(
+            [np.array([ripples.start, ripples.stop]).T], domain=self.time_support
+        )
 
     def load_epoch(self):
         """
@@ -152,8 +155,12 @@ class AssemblyReact(object):
         """
         epoch_df = loading.load_epoch(self.basepath)
         epoch_df = compress_repeated_epochs(epoch_df)
+        self.time_support = nel.EpochArray(
+            [epoch_df.iloc[0].startTime, epoch_df.iloc[-1].stopTime]
+        )
         self.epochs = nel.EpochArray(
-            [np.array([epoch_df.startTime, epoch_df.stopTime]).T]
+            [np.array([epoch_df.startTime, epoch_df.stopTime]).T],
+            domain=self.time_support,
         )
         self.epoch_df = epoch_df
 
@@ -161,9 +168,9 @@ class AssemblyReact(object):
         """
         loads data (spikes,ripples,epochs) from the session folder
         """
+        self.load_epoch()
         self.load_spikes()
         self.load_ripples()
-        self.load_epoch()
 
     def restrict_epochs_to_pre_task_post(self) -> None:
         """
@@ -180,6 +187,7 @@ class AssemblyReact(object):
         self.epochs = nel.EpochArray(
             [np.array([self.epoch_df.startTime, self.epoch_df.stopTime]).T],
             label="session_epochs",
+            domain=self.time_support,
         )
 
     def restrict_to_epoch(self, epoch):
@@ -235,7 +243,6 @@ class AssemblyReact(object):
             )
 
     def get_assembly_act(self, epoch=None):
-
         # check for num of assemblies first
         if self.n_assemblies() == 0:
             return nel.AnalogSignalArray(empty=True)
@@ -263,7 +270,6 @@ class AssemblyReact(object):
         x_padding: float = 0.2,
         figsize: Union[tuple, None] = None,
     ):
-
         """
         plots basic stem plot to display assembly weights
         """
@@ -343,7 +349,6 @@ class AssemblyReact(object):
         return newcopy
 
     def __repr__(self) -> str:
-
         if self.isempty:
             return f"<{self.type_name}: empty>"
 
@@ -430,90 +435,89 @@ class AssemblyReact(object):
         return self.assembly_members
 
 
-def get_peak_activity(assembly_act, epochs):
-    """
-    Gets the peak activity of the assembly activity
-    """
-    strengths = []
-    assembly_id = []
-    centers = []
-    for assembly_act, ep in zip(assembly_act[epochs], epochs):
-        strengths.append(assembly_act.max())
-        assembly_id.append(np.arange(assembly_act.n_signals))
-        centers.append(np.tile(ep.centers, assembly_act.n_signals))
+# def get_peak_activity(assembly_act, epochs):
+#     """
+#     Gets the peak activity of the assembly activity
+#     """
+#     strengths = []
+#     assembly_id = []
+#     centers = []
+#     for assembly_act, ep in zip(assembly_act[epochs], epochs):
+#         strengths.append(assembly_act.max())
+#         assembly_id.append(np.arange(assembly_act.n_signals))
+#         centers.append(np.tile(ep.centers, assembly_act.n_signals))
 
-    return np.hstack(assembly_id), np.hstack(strengths), np.hstack(centers)
-
-
-def get_pre_post_assembly_strengths(basepath):
-    """
-    Gets the pre and post assembly strengths
-    """
-    # initialize session
-    m1 = AssemblyReact(basepath, weight_dt=0.025)
-    # load data
-    m1.load_data()
-    # check if no cells were found
-    if m1.cell_metrics.shape[0] == 0:
-        return None
-    # restrict to pre/task/post epochs
-    m1.restrict_epochs_to_pre_task_post()
-    # get weights for task outside ripples
-    # % (TODO: use more robust method to locate epochs than index)
-    m1.get_weights(m1.epochs[1][~m1.ripples])
-
-    # get assembly activity
-    assembly_act_pre = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[0]])
-    assembly_act_task = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[1]])
-    assembly_act_post = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[2]])
-    results = {
-        "assembly_act_pre": assembly_act_pre,
-        "assembly_act_task": assembly_act_task,
-        "assembly_act_post": assembly_act_post,
-        "react": m1,
-    }
-
-    return results
+#     return np.hstack(assembly_id), np.hstack(strengths), np.hstack(centers)
 
 
-def session_loop(basepath, save_path):
+# def get_pre_post_assembly_strengths(basepath):
+#     """
+#     Gets the pre and post assembly strengths
+#     """
+#     # initialize session
+#     m1 = AssemblyReact(basepath, weight_dt=0.025)
+#     # load data
+#     m1.load_data()
+#     # check if no cells were found
+#     if m1.cell_metrics.shape[0] == 0:
+#         return None
+#     # restrict to pre/task/post epochs
+#     m1.restrict_epochs_to_pre_task_post()
+#     # get weights for task outside ripples
+#     # % (TODO: use more robust method to locate epochs than index)
+#     m1.get_weights(m1.epochs[1][~m1.ripples])
 
-    save_file = os.path.join(
-        save_path, basepath.replace(os.sep, "_").replace(":", "_") + ".pkl"
-    )
-    if os.path.exists(save_file):
-        return
-    results = get_pre_post_assembly_strengths(basepath)
-    # save file
-    with open(save_file, "wb") as f:
-        pickle.dump(results, f)
+#     # get assembly activity
+#     assembly_act_pre = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[0]])
+#     assembly_act_task = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[1]])
+#     assembly_act_post = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[2]])
+#     results = {
+#         "assembly_act_pre": assembly_act_pre,
+#         "assembly_act_task": assembly_act_task,
+#         "assembly_act_post": assembly_act_post,
+#         "react": m1,
+#     }
+
+#     return results
 
 
-def run(df, save_path, parallel=True):
-    # find sessions to run
-    basepaths = pd.unique(df.basepath)
-
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-
-    if parallel:
-        num_cores = multiprocessing.cpu_count()
-        processed_list = Parallel(n_jobs=num_cores)(
-            delayed(session_loop)(basepath, save_path) for basepath in basepaths
-        )
-    else:
-        for basepath in basepaths:
-            print(basepath)
-            session_loop(basepath, save_path)
+# def session_loop(basepath, save_path):
+#     save_file = os.path.join(
+#         save_path, basepath.replace(os.sep, "_").replace(":", "_") + ".pkl"
+#     )
+#     if os.path.exists(save_file):
+#         return
+#     results = get_pre_post_assembly_strengths(basepath)
+#     # save file
+#     with open(save_file, "wb") as f:
+#         pickle.dump(results, f)
 
 
-def load_results(save_path):
-    sessions = glob.glob(save_path + os.sep + "*.pkl")
-    all_results = {}
-    for session in sessions:
-        with open(session, "rb") as f:
-            results = pickle.load(f)
-            if results is None:
-                continue
-        all_results[results["react"].basepath] = results
-    return all_results
+# def run(df, save_path, parallel=True):
+#     # find sessions to run
+#     basepaths = pd.unique(df.basepath)
+
+#     if not os.path.exists(save_path):
+#         os.mkdir(save_path)
+
+#     if parallel:
+#         num_cores = multiprocessing.cpu_count()
+#         processed_list = Parallel(n_jobs=num_cores)(
+#             delayed(session_loop)(basepath, save_path) for basepath in basepaths
+#         )
+#     else:
+#         for basepath in basepaths:
+#             print(basepath)
+#             session_loop(basepath, save_path)
+
+
+# def load_results(save_path):
+#     sessions = glob.glob(save_path + os.sep + "*.pkl")
+#     all_results = {}
+#     for session in sessions:
+#         with open(session, "rb") as f:
+#             results = pickle.load(f)
+#             if results is None:
+#                 continue
+#         all_results[results["react"].basepath] = results
+#     return all_results
