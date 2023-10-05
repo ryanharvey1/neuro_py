@@ -15,8 +15,6 @@ setup(
                     'pandas>=1.5.0',
                     'numba>=0.56.0',
                     'pillow>=9.3.0',
-                    'track_linearization',
-                    'matplotlib',
                     'tqdm>=4.64.0',
                     'joblib>=1.2.0',
                     ],
