@@ -123,11 +123,14 @@ def get_t_maze_trials(basepath, epoch):
         pos, outbound_laps, min_laps=5
     )
 
-    if not inbound_laps.isempty:
-        raise TypeError("inbound_laps should be empty for tmaze")
-
     if outbound_laps.isempty:
         return None, None, None
+    
+    if not inbound_laps.isempty:
+        logging.warning("inbound_laps should be empty for tmaze")
+
+    if inbound_laps.n_intervals > outbound_laps.n_intervals:
+        raise TypeError("inbound_laps should be less than outbound_laps for tmaze")
 
     # locate laps with the majority in state 1 or 2
     lap_id = dissociate_laps_by_states(states, outbound_laps, states_of_interest=[1, 2])
