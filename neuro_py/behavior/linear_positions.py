@@ -4,6 +4,7 @@ import pandas as pd
 import sys
 import nelpy as nel
 
+
 def linearize_position(x, y):
     """
     use PCA (a dimensionality reduction technique) to find
@@ -138,7 +139,7 @@ def find_laps(
 
     # % fix direction of first lap which was unknown above
     # % make first lap direction opposite of second lap's direction (laps alternate!)
-    laps.loc[0, 'direction'] = -laps.iloc[1].direction
+    laps.loc[0, "direction"] = -laps.iloc[1].direction
 
     # % make sure laps cross the halfway point
     middle = np.nanmedian(np.arange(np.nanmin(Vdata), np.nanmax(Vdata)))
@@ -515,10 +516,19 @@ def find_good_lap_epochs(pos, dir_epoch, thres=0.5, binsize=6, min_laps=10):
     x_edges = np.arange(np.nanmin(pos.data[0]), np.nanmax(pos.data[0]), binsize)
     # initialize occupancy matrix (position x time)
     occ = np.zeros([len(x_edges) - 1, dir_epoch.n_intervals])
+
+    # much faster to not use nelpy objects here, so pull out needed data
+    x_coord = pos.data[0]
+    time = pos.abscissa_vals
+    epochs = dir_epoch.data
+    
     # iterate through laps
-    for i, ep in enumerate(dir_epoch):
+    for i, ep in enumerate(epochs):
         # bin position per lap
-        occ[:, i], _ = np.histogram(pos[ep].data[0], bins=x_edges)
+        occ[:, i], _ = np.histogram(
+            x_coord[(time >= ep[0]) & (time <= ep[1])], bins=x_edges
+        )
+
     # calc percent occupancy over position bins per lap and find good laps
     good_laps = np.where(~((np.sum(occ == 0, axis=0) / occ.shape[0]) > thres))[0]
     # if no good laps, return empty epoch
