@@ -12,6 +12,7 @@ from neuro_py.process.intervals import find_interval
 from typing import Tuple, List, Union
 import logging
 
+
 # linear track
 def get_linear_maze_trials(basepath, epoch_input=None):
     """
@@ -31,7 +32,7 @@ def get_linear_maze_trials(basepath, epoch_input=None):
 
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
-    
+
     if position_df_no_nan.shape[0] == 0:
         return None, None, None
 
@@ -44,10 +45,8 @@ def get_linear_maze_trials(basepath, epoch_input=None):
     )
 
     epoch_df = loading.load_epoch(basepath)
-    epoch = nel.EpochArray(
-        [np.array([epoch_df.startTime, epoch_df.stopTime]).T]
-    )
-    
+    epoch = nel.EpochArray([np.array([epoch_df.startTime, epoch_df.stopTime]).T])
+
     inbound_laps_temp = []
     outbound_laps_temp = []
     maze_idx = np.where(epoch_df.environment == "linear")[0]
@@ -58,11 +57,16 @@ def get_linear_maze_trials(basepath, epoch_input=None):
         outbound_laps, inbound_laps = linear_positions.get_linear_track_lap_epochs(
             current_position.abscissa_vals, current_position.data[0], newLapThreshold=20
         )
+        if not inbound_laps.isempty:
+            inbound_laps = linear_positions.find_good_lap_epochs(
+                current_position, inbound_laps, min_laps=5
+            )
 
-        inbound_laps = linear_positions.find_good_lap_epochs(current_position, inbound_laps, min_laps=5)
-        outbound_laps = linear_positions.find_good_lap_epochs(
-            current_position, outbound_laps, min_laps=5
-        )
+        if not outbound_laps.isempty:
+            outbound_laps = linear_positions.find_good_lap_epochs(
+                current_position, outbound_laps, min_laps=5
+            )
+
         if not inbound_laps.isempty:
             inbound_laps_temp.append(inbound_laps.data)
         if not outbound_laps.isempty:
@@ -106,7 +110,7 @@ def get_t_maze_trials(basepath, epoch):
     pos = pos[epoch]
     if pos.isempty:
         return None, None, None
-    
+
     states = nel.AnalogSignalArray(
         data=position_df_no_nan["states"].values.T,
         timestamps=position_df_no_nan.timestamps.values,
@@ -125,7 +129,7 @@ def get_t_maze_trials(basepath, epoch):
 
     if outbound_laps.isempty:
         return None, None, None
-    
+
     if not inbound_laps.isempty:
         logging.warning("inbound_laps should be empty for tmaze")
 
@@ -177,8 +181,12 @@ def get_w_maze_trials(
     # load position and place in array
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
+    # pos = nel.PositionArray(
+    #     data=position_df_no_nan[["x", "y"]].values.T,
+    #     timestamps=position_df_no_nan.timestamps.values,
+    # )
     pos = nel.PositionArray(
-        data=position_df_no_nan[["x", "y"]].values.T,
+        data=position_df_no_nan["linearized"].values.T,
         timestamps=position_df_no_nan.timestamps.values,
     )
     wmaze_idx = np.where(epoch_df.environment == "wmaze")[0]
@@ -394,10 +402,10 @@ def get_openfield_trials(
         data=position_df_no_nan[["x", "y"]].values.T,
         timestamps=position_df_no_nan.timestamps.values,
     )
-    
+
     if pos.isempty:
         return pos, nel.EpochArray([], label="session_epochs")
-    
+
     # load epochs and place in array
     epoch_df = loading.load_epoch(basepath)
     epoch = nel.EpochArray(
