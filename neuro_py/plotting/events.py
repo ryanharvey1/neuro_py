@@ -6,6 +6,7 @@ import seaborn as sns
 from neuro_py.stats.stats import confidence_intervals
 import warnings
 
+
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
     """
     events: nested list of nelpy EpochArrays
@@ -45,7 +46,6 @@ def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=Non
 
     # iter over each event
     for i, evt in enumerate(events):
-
         # add horizontal line underneath
         if gridlines:
             ax.axhline(y[i] + np.diff(y)[0] / 2, color="k", zorder=-100, alpha=0.1)
@@ -118,7 +118,16 @@ def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
     return lineplot_ax
 
 
-def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
+def plot_peth_fast(
+    peth: pd.DataFrame,
+    ax=None,
+    ci: float = 0.95,
+    smooth: bool = False,
+    smooth_window: float = 0.30,
+    smooth_std: int = 5,
+    smooth_win_type: str = "gaussian",
+    **kwargs
+) -> plt.Axes:
     """
     Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
 
@@ -130,6 +139,17 @@ def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
         Peth to plot
     ax : plt.Axes, optional
         Axis to plot on, by default None
+    ci : float, optional
+        Confidence interval to plot, by default 0.95
+    smooth : bool, optional
+        Whether to smooth the peth, by default False
+    smooth_window : float, optional
+        Window to smooth the peth, by default 0.30
+    smooth_std : int, optional
+        Standard deviation of the smoothing window, by default 5
+    smooth_win_type : str, optional
+        Type of smoothing window, by default "gaussian"
+
     **kwargs
         Keyword arguments to pass to ax.plot
 
@@ -163,13 +183,28 @@ def plot_peth_fast(peth: pd.DataFrame, ax=None,ci=.95, **kwargs) -> plt.Axes:
     if not isinstance(peth, pd.DataFrame):
         raise TypeError("peth must be a pandas dataframe")
 
+    if smooth:
+        # convert window to samples
+        smooth_window = int(smooth_window / np.diff(peth.index)[0])
+        # smooth the peth
+        peth = (
+            peth.rolling(
+                window=smooth_window,
+                win_type=smooth_win_type,
+                center=True,
+                min_periods=1,
+            )
+            .mean(std=smooth_std)
+            .copy()
+        )
+
     # plot the peth as a lineplot with matplotlib
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
-    
+
     lower, upper = confidence_intervals(peth.values.T, conf=ci)
-    ax.fill_between(peth.index, lower, upper, alpha=.5, **kwargs)
+    ax.fill_between(peth.index, lower, upper, alpha=0.5, **kwargs)
 
     ax.set_xlabel("Time (s)")
     sns.despine(ax=ax)
