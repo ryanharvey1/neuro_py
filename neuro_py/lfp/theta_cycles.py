@@ -3,13 +3,13 @@ import pandas as pd
 import os
 from neuro_py.io import loading
 from scipy.io import savemat
-
+from typing import Union
 
 from neurodsp.filt import filter_signal
 from bycycle import Bycycle
 
 
-def get_theta_channel(basepath, tag="CA1so"):
+def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
     brain_region = loading.load_brain_regions(basepath)
 
     channel_tags = loading.load_channel_tags(basepath)
@@ -22,7 +22,7 @@ def get_theta_channel(basepath, tag="CA1so"):
     return ch - 1  # return in base 0
 
 
-def process_lfp(basepath):
+def process_lfp(basepath: str) -> tuple:
     nChannels, fs, _, _ = loading.loadXML(basepath)
 
     lfp, ts = loading.loadLFP(
@@ -33,12 +33,12 @@ def process_lfp(basepath):
 
 def save_theta_cycles(
     df: pd.DataFrame,
-    ts,
+    ts: np.ndarray,
     basepath: str,
     detection_params: dict,
     ch: int,
-    event_name="thetacycles",
-    detection_name="bycycle",
+    event_name: str = "thetacycles",
+    detection_name: str = "bycycle",
 ) -> None:
     """
     Save theta cycles detected using bycycle to a .mat file in the cell explorer format.
@@ -110,13 +110,18 @@ def save_theta_cycles(
 
 
 def get_theta_cycles(
-    basepath, theta_freq=(6, 10), lowpass=48, detection_params=None, ch=None
+    basepath: str,
+    theta_freq: tuple[int] = (6, 10),
+    lowpass: int = 48,
+    detection_params: Union[dict, None] = None,
+    ch: Union[int, None] = None,
 ):
     # load lfp as memmap
     lfp, ts, fs = process_lfp(basepath)
 
     # get theta channel - default chooses CA1so
-    ch = get_theta_channel(basepath)
+    if ch is not None:
+        ch = get_theta_channel(basepath)
 
     # per bycycle documentation, low-pass filter signal before running bycycle 4x the frequency of interest
     filt_sig = filter_signal(lfp[:, ch], fs, "lowpass", lowpass, remove_edges=False)
