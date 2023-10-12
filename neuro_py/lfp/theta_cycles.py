@@ -120,7 +120,7 @@ def get_theta_cycles(
     lfp, ts, fs = process_lfp(basepath)
 
     # get theta channel - default chooses CA1so
-    if ch is not None:
+    if ch is None:
         ch = get_theta_channel(basepath)
 
     # per bycycle documentation, low-pass filter signal before running bycycle 4x the frequency of interest
