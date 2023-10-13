@@ -115,7 +115,7 @@ def runSignificance(zactmat: np.ndarray, significance: object):
 
 
 def extractPatterns(
-    actmat: np.ndarray, significance: object, method: str
+    actmat: np.ndarray, significance: object, method: str, whiten: str = "unit-variance"
 ) -> np.ndarray:
     nassemblies = significance.nassemblies
 
@@ -123,7 +123,7 @@ def extractPatterns(
         idxs = np.argsort(-significance.explained_variance_)[0:nassemblies]
         patterns = significance.components_[idxs, :]
     elif method == "ica":
-        ica = FastICA(n_components=nassemblies, random_state=0, whiten="unit-variance")
+        ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
         ica.fit(actmat.T)
         patterns = ica.components_
     else:
@@ -148,6 +148,7 @@ def runPatterns(
     nshu: int = 1000,
     percentile: int = 99,
     tracywidom: bool = False,
+    whiten: str = "unit-variance",
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     INPUTS
@@ -210,7 +211,7 @@ def runPatterns(
         zactmat = None
     else:
         # extracting co-activation patterns
-        patterns_ = extractPatterns(zactmat_, significance, method)
+        patterns_ = extractPatterns(zactmat_, significance, method, whiten=whiten)
         if patterns_ is np.nan:
             return None
 
@@ -224,7 +225,9 @@ def runPatterns(
 
 
 def computeAssemblyActivity(
-    patterns: np.ndarray, zactmat: np.ndarray, zerodiag: bool = True
+    patterns: np.ndarray,
+    zactmat: np.ndarray,
+    zerodiag: bool = True,
 ) -> np.ndarray:
     """
     INPUTS
@@ -239,7 +242,7 @@ def computeAssemblyActivity(
     # check if patterns is empty (no assembly detected) and return None if so
     if len(patterns) == 0:
         return None
-    
+
     # number of assemblies and time bins
     nassemblies = len(patterns)
     nbins = np.size(zactmat, 1)
@@ -252,7 +255,6 @@ def computeAssemblyActivity(
 
     # loop over assemblies
     for assemblyi, pattern in enumerate(patterns):
-
         # compute projection matrix (neurons, neurons)
         projMat = np.outer(pattern, pattern)
 

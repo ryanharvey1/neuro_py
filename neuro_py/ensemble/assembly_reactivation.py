@@ -107,6 +107,7 @@ class AssemblyReact(object):
         nshu: int = 1000,
         percentile: int = 99,
         tracywidom: bool = False,
+        whiten: str = "unit-variance",
     ):
         self.basepath = basepath
         self.brainRegion = brainRegion
@@ -118,6 +119,7 @@ class AssemblyReact(object):
         self.nshu = nshu
         self.percentile = percentile
         self.tracywidom = tracywidom
+        self.whiten = whiten
         self.type_name = self.__class__.__name__
 
     def add_st(self, st):
@@ -240,6 +242,7 @@ class AssemblyReact(object):
                 nshu=self.nshu,
                 percentile=self.percentile,
                 tracywidom=self.tracywidom,
+                whiten=self.whiten,
             )
 
     def get_assembly_act(self, epoch=None):
