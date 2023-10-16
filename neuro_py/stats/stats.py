@@ -9,6 +9,7 @@ import scipy.stats as stats
 import pandas as pd
 import warnings
 
+
 def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
     """
     Return the significant events based on percentiles,
@@ -75,7 +76,12 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         interval = [
-            stats.t.interval(conf, len(a) - 1, loc=np.nanmean(a), scale=stats.sem(a, nan_policy='omit'))
+            stats.t.interval(
+                conf,
+                len(a) - 1,
+                loc=np.nanmean(a),
+                scale=stats.sem(a, nan_policy="omit"),
+            )
             for a in X.T
         ]
     interval = np.vstack(interval)
@@ -133,7 +139,7 @@ def regress_out(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     # remove nans and infs from a and b, and make a_result vector for output
     a_result = np.full_like(a, np.nan)
-    
+
     valid_mask = np.isfinite(a) & np.isfinite(b)
     a = np.asarray(a)[valid_mask]
     b = np.asarray(b)[valid_mask]
