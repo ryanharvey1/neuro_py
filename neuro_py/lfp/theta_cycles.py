@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
+import sys
+import nelpy as nel
+from neuro_py.process.intervals import find_interval
 from neuro_py.io import loading
 from scipy.io import savemat
 from typing import Union
@@ -30,6 +33,28 @@ def process_lfp(basepath: str) -> tuple:
     )
     return lfp, ts, fs
 
+def get_ep_from_df(df: pd.DataFrame,ts: np.ndarray):
+# inputs a dataframe from bycycle and ts from lfp and returns a nelpy array of theta epochs 
+
+    index_for_oscilation_epoch = find_interval(df.is_burst)
+    start = []
+    stop = []
+    for idx in index_for_oscilation_epoch:
+        start.append(df.sample_peak[idx[0]])
+        stop.append(df.sample_peak[idx[1]])
+
+    # convert list to array
+    start = np.array(start)
+    stop = np.array(stop)
+
+    # index ts get get start and end ts for each oscillation epoch
+
+    start_ts = ts[start]
+    stop_ts = ts[stop]
+
+    theta_epoch = nel.EpochArray([np.array([start_ts, stop_ts]).T])
+
+    return theta_epoch
 
 def save_theta_cycles(
     df: pd.DataFrame,
@@ -143,3 +168,11 @@ def get_theta_cycles(
     bm.fit(filt_sig, fs, theta_freq)
 
     save_theta_cycles(bm.df_features, ts, basepath, detection_params=thresholds, ch=ch)
+
+# to run on cmd
+if __name__ == "__main__":
+    print(len(sys.argv))
+    if len(sys.argv) == 2:
+        run(sys.argv[1])
+    elif len(sys.argv) == 3:
+        run(sys.argv[1], epoch=int(sys.argv[2]))
