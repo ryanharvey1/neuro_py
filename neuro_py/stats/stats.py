@@ -71,6 +71,9 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
     Input:
         X - numpy ndarray, (n signals, n samples)
         conf - float, confidence level value (default: .95)
+    Output:
+        lower - numpy ndarray, (n signals, 1)
+        upper - numpy ndarray, (n signals, 1)
     """
     # compute interval for each column
     with warnings.catch_warnings():
@@ -84,9 +87,12 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
             )
             for a in X.T
         ]
+    # stack intervals into array
     interval = np.vstack(interval)
+    # split into lower and upper
     lower = interval[:, 0]
     upper = interval[:, 1]
+    
     return lower, upper
 
 
