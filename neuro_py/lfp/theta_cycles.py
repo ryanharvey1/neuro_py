@@ -9,7 +9,7 @@ from scipy.io import savemat
 from typing import Union
 
 from neurodsp.filt import filter_signal
-from bycycle import Bycycle
+
 
 
 def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
@@ -141,6 +141,7 @@ def get_theta_cycles(
     detection_params: Union[dict, None] = None,
     ch: Union[int, None] = None,
 ):
+    from bycycle import Bycycle
     # load lfp as memmap
     lfp, ts, fs = process_lfp(basepath)
 
