@@ -13,7 +13,8 @@ import os
 from typing import Union, List
 
 logging.getLogger().setLevel(logging.ERROR)
-np.seterr(divide='ignore', invalid='ignore')
+np.seterr(divide="ignore", invalid="ignore")
+
 
 class SpatialMap(object):
     """
@@ -79,19 +80,24 @@ class SpatialMap(object):
         place_field_sigma: Union[int, float] = 2,
         n_shuff: int = 500,
         parallel_shuff: bool = True,
+        speed: object = None,
     ) -> None:
         # add all the inputs to self
         self.__dict__.update(locals())
         del self.__dict__["self"]
 
         # make sure pos and st are nelpy objects
-        if not isinstance(pos, nel.core._analogsignalarray.AnalogSignalArray):
-            raise TypeError("pos must be nelpy.AnalogSignal")
+        if not isinstance(
+            pos, (nel.core._analogsignalarray.AnalogSignalArray, nel.core.PositionArray)
+        ):
+            raise TypeError("pos must be nelpy.AnalogSignal or nelpy.PositionArray")
         if not isinstance(st, nel.core._eventarray.SpikeTrainArray):
             raise TypeError("st must be nelpy.SpikeTrain")
 
         # get speed and running epochs
-        self.speed = nel.utils.ddt_asa(self.pos, smooth=True, sigma=0.1, norm=True)
+        if self.speed is None:
+            self.speed = nel.utils.ddt_asa(self.pos, smooth=True, sigma=0.1, norm=True)
+
         self.run_epochs = nel.utils.get_run_epochs(
             self.speed, v1=self.speed_thres, v2=self.speed_thres
         ).merge()
@@ -107,7 +113,6 @@ class SpatialMap(object):
         # self.find_fields()
 
     def map_1d(self, pos: object = None):
-
         if self.dir_epoch is None:
             raise ValueError("dir_epoch must be specified")
 
@@ -153,22 +158,25 @@ class SpatialMap(object):
 
         if self.tuning_curve_sigma is not None:
             if self.tuning_curve_sigma > 0:
-                tc.smooth(sigma=self.tuning_curve_sigma, inplace=True, mode=self.smooth_mode)
+                tc.smooth(
+                    sigma=self.tuning_curve_sigma, inplace=True, mode=self.smooth_mode
+                )
 
         return tc, st_run
 
     def compute_occupancy_1d(self, pos_run: object):
-
         occupancy, _ = np.histogram(pos_run.data[0, :], bins=self.x_edges)
         return occupancy / pos_run.fs
 
     def compute_ratemap_1d(
         self, st_run: object, pos_run: object, occupancy: np.ndarray
     ):
-
         ratemap = np.zeros((st_run.data.shape[0], occupancy.shape[0]))
         for i in range(st_run.data.shape[0]):
-            ratemap[i, : len(self.x_edges)], _, = np.histogram(
+            (
+                ratemap[i, : len(self.x_edges)],
+                _,
+            ) = np.histogram(
                 np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]),
                 bins=self.x_edges,
             )
@@ -179,7 +187,6 @@ class SpatialMap(object):
         return ratemap
 
     def map_2d(self, pos: object = None):
-
         # restrict spike trains to those epochs during which the animal was running
         st_run = self.st[self.run_epochs]
 
@@ -240,12 +247,13 @@ class SpatialMap(object):
 
         if self.tuning_curve_sigma is not None:
             if self.tuning_curve_sigma > 0:
-                tc.smooth(sigma=self.tuning_curve_sigma, inplace=True, mode=self.smooth_mode)
+                tc.smooth(
+                    sigma=self.tuning_curve_sigma, inplace=True, mode=self.smooth_mode
+                )
 
         return tc, st_run
 
     def compute_occupancy_2d(self, pos_run: object) -> np.ndarray:
-
         occupancy, _, _ = np.histogram2d(
             pos_run.data[0, :], pos_run.data[1, :], bins=(self.x_edges, self.y_edges)
         )
@@ -254,7 +262,6 @@ class SpatialMap(object):
     def compute_ratemap_2d(
         self, st_run: object, pos_run: object, occupancy: np.ndarray
     ) -> np.ndarray:
-
         ratemap = np.zeros(
             (st_run.data.shape[0], occupancy.shape[0], occupancy.shape[1])
         )
@@ -411,7 +418,6 @@ class SpatialMap(object):
         )
 
     def save_mat_file(self, basepath: str, UID=None):
-
         """
         Save firing rate map data to a .mat file in MATLAB format.
 
