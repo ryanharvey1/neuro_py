@@ -408,11 +408,14 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         psth = {}
         for dt in data["cell_metrics"]["events"][0][0].dtype.names:
             psth[dt] = pd.DataFrame(
-                index=data["cell_metrics"]["general"][0][0][0]["events"][0][dt][0][0]["x_bins"][0][0].T[0] / 1000,
+                index=data["cell_metrics"]["general"][0][0][0]["events"][0][dt][0][0][
+                    "x_bins"
+                ][0][0].T[0]
+                / 1000,
                 data=np.hstack(data["cell_metrics"]["events"][0][0][dt][0][0][0]),
             )
         return psth
-    
+
     def extract_general(data):
         # extract fr per unit with lag zero to ripple
         try:
@@ -809,7 +812,9 @@ def load_theta_cycles(basepath, return_epoch_array=False):
     """
     load theta cycles calculated from auto_theta_cycles.m
     """
-    filename = glob.glob(os.path.join(basepath, "*.thetacycles.events.mat"))[0]
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".thetacycles.events.mat"
+    )
     data = sio.loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["start"] = data["thetacycles"]["timestamps"][:, 0]
