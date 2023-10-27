@@ -79,7 +79,15 @@ def get_linear_maze_trials(basepath, epoch_input=None):
 
 
 # tmaze
-def get_t_maze_trials(basepath, epoch):
+def get_t_maze_trials(basepath: str, epoch, bypass_standard_behavior: bool = False):
+    """
+    Get trials for t maze
+    :param basepath: basepath to session
+    :param epoch: epoch to get trials for
+    :param bypass_standard_behavior: more outbound than inbound trials (True to disregard)
+    :return: pos, right_epochs, left_epochs
+    """
+
     def dissociate_laps_by_states(states, dir_epoch, states_of_interest=[1, 2]):
         # unique_states = np.unique(states.data[~np.isnan(states.data)])
         lap_id = []
@@ -133,7 +141,9 @@ def get_t_maze_trials(basepath, epoch):
     if not inbound_laps.isempty:
         logging.warning("inbound_laps should be empty for tmaze")
 
-    if inbound_laps.n_intervals > outbound_laps.n_intervals:
+    if (
+        inbound_laps.n_intervals > outbound_laps.n_intervals
+    ) and not bypass_standard_behavior:
         raise TypeError("inbound_laps should be less than outbound_laps for tmaze")
 
     # locate laps with the majority in state 1 or 2
@@ -205,10 +215,14 @@ def get_w_maze_trials(
             [[center_x, center_y], [left_x, left_y], [right_x, right_y]]
         )
 
+        current_ts_idx = position_df_no_nan["timestamps"].between(
+            epoch_df.iloc[idx].startTime, epoch_df.iloc[idx].stopTime
+        )
+
         # temp_df = position_df[~np.isnan(position_df.x)]
         segments_df, _ = well_traversal_classification.segment_path(
-            position_df_no_nan["timestamps"].values,
-            position_df_no_nan[["projected_x", "projected_y"]].values,
+            position_df_no_nan["timestamps"].values[current_ts_idx],
+            position_df_no_nan[["x", "y"]].values[current_ts_idx],
             well_locations,
             max_distance_from_well=max_distance_from_well,
         )
