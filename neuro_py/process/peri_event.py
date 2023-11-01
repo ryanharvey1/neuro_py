@@ -476,7 +476,7 @@ def event_triggered_average_fast(
     ]
 
     avg_signal = np.zeros(
-        [signal.shape[0], len(time_lags), len(events)], dtype=np.int16
+        [signal.shape[0], len(time_lags), len(events)], dtype=signal.dtype
     )
 
     for i, event in enumerate(events):
