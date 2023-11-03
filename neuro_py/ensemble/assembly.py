@@ -149,6 +149,7 @@ def runPatterns(
     percentile: int = 99,
     tracywidom: bool = False,
     whiten: str = "unit-variance",
+    nassemblies: int = None,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     INPUTS
@@ -201,9 +202,13 @@ def runPatterns(
     significance.tracywidom = tracywidom
     significance.nullhyp = nullhyp
     significance = runSignificance(zactmat_, significance)
+
+    if nassemblies is not None:
+        significance.nassemblies = nassemblies
+
     if np.isnan(significance.nassemblies):
         return None, significance, None
-
+    
     if significance.nassemblies < 1:
         warnings.warn("no assembly detected")
 
