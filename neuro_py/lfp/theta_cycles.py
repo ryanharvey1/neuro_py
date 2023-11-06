@@ -16,7 +16,12 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
     brain_region = loading.load_brain_regions(basepath)
 
     channel_tags = loading.load_channel_tags(basepath)
-    theta_chan = brain_region[tag]["channels"]
+
+    if tag in brain_region.keys():
+        theta_chan = brain_region[tag]["channels"]
+    else:       
+        return None
+    
     bad_ch = channel_tags["Bad"]["channels"]
     for ch in theta_chan:
         if np.any(ch != bad_ch):
@@ -147,8 +152,15 @@ def get_theta_cycles(
 
     # get theta channel - default chooses CA1so
     if ch is None:
-        ch = get_theta_channel(basepath)
+        ch = get_theta_channel(basepath,tag="CA1so")
 
+    if ch is None:
+        ch = get_theta_channel(basepath,tag="CA1sp")
+
+    if ch is None:
+        Warning("No theta channel found")
+        return None
+    
     # per bycycle documentation, low-pass filter signal before running bycycle 4x the frequency of interest
     filt_sig = filter_signal(lfp[:, ch], fs, "lowpass", lowpass, remove_edges=False)
 
