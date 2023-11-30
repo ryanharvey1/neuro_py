@@ -272,7 +272,7 @@ class SpatialMap(object):
         ratemap[ratemap < self.minbgrate] = self.minbgrate
 
         # enforce minimum background occupancy
-        for uu in range(st_run.n_units):
+        for uu in range(st_run.data.shape[0]):
             ratemap[uu][occupancy < self.min_duration] = 0
 
         tc = nel.TuningCurve2D(
@@ -306,13 +306,29 @@ class SpatialMap(object):
         ratemap = np.zeros(
             (st_run.data.shape[0], occupancy.shape[0], occupancy.shape[1])
         )
-        for i in range(st_run.data.shape[0]):
-            ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = np.histogram2d(
-                np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]),
-                np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]),
-                bins=(self.x_edges, self.y_edges),
+        if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
+            for i in range(st_run.data.shape[0]):
+                ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = np.histogram2d(
+                    np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]),
+                    np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]),
+                    bins=(self.x_edges, self.y_edges),
+                )
+            ratemap = ratemap / occupancy
+
+        elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
+            x = np.interp(
+                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[0, :]
             )
-        ratemap = ratemap / occupancy
+            y = np.interp(
+                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[1, :]
+            )
+            ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
+            ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
+            for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
+                ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
+            ratemap = ratemap * st_run.fs
+            ratemap = ratemap / (occupancy * pos_run.fs)
+
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
         ratemap[bad_idx] = 0
 
