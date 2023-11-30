@@ -22,7 +22,7 @@ class SpatialMap(object):
     args:
         pos: position data (nelpy.AnalogSignal or nel.PositionArray)
         st: spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal)
-        dim: dimension of the map (1 or 2)
+        dim: dimension of the map (1 or 2) *deprecated*
         dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
         speed_thres: speed threshold for running (float)
         ds_bst: bin size for the spike train (float)
@@ -62,7 +62,7 @@ class SpatialMap(object):
         self,
         pos: object,
         st: object,
-        dim: int = None,
+        dim: int = None,  # deprecated
         dir_epoch: object = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         ds_bst: float = 0.05,
@@ -110,12 +110,13 @@ class SpatialMap(object):
             self.speed, v1=self.speed_thres, v2=self.speed_thres
         ).merge()
         # calculate maps, 1d or 2d
-        if dim == 2:
+        if pos.n_signals == 2:
             self.tc, self.st_run = self.map_2d()
-        elif dim == 1:
+        elif pos.n_signals == 1:
             self.tc, self.st_run = self.map_1d()
         else:
-            raise ValueError("dim must be 1 or 2")
+            raise ValueError("pos dims must be 1 or 2")
+        self.dim = pos.n_signals
 
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()
