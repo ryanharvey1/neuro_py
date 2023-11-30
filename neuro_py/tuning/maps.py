@@ -21,7 +21,7 @@ class SpatialMap(object):
     SpatialMap: make a spatial map tuning curve
     args:
         pos: position data (nelpy.AnalogSignal or nel.PositionArray)
-        st: spike train data (nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray)
+        st: spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal)
         dim: dimension of the map (1 or 2)
         dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
         speed_thres: speed threshold for running (float)
@@ -63,7 +63,7 @@ class SpatialMap(object):
         pos: object,
         st: object,
         dim: int = None,
-        dir_epoch: object = None, # deprecated
+        dir_epoch: object = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         ds_bst: float = 0.05,
         s_binsize: Union[int, float] = 3,
@@ -91,8 +91,16 @@ class SpatialMap(object):
             pos, (nel.core._analogsignalarray.AnalogSignalArray, nel.core.PositionArray)
         ):
             raise TypeError("pos must be nelpy.AnalogSignal or nelpy.PositionArray")
-        if not isinstance(st, (nel.core._eventarray.SpikeTrainArray, nel.core._eventarray.BinnedSpikeTrainArray)):
-            raise TypeError("st must be nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray")
+        if not isinstance(
+            st,
+            (
+                nel.core._eventarray.SpikeTrainArray,
+                nel.core._analogsignalarray.AnalogSignalArray,
+            ),
+        ):
+            raise TypeError(
+                "st must be nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray"
+            )
 
         # get speed and running epochs
         if self.speed is None:
@@ -122,7 +130,6 @@ class SpatialMap(object):
             self.st = self.st[self.dir_epoch]
             self.pos = self.pos[self.dir_epoch]
 
-
         # restrict spike trains to those epochs during which the animal was running
         st_run = self.st[self.run_epochs]
 
@@ -151,7 +158,7 @@ class SpatialMap(object):
         ratemap[ratemap < self.minbgrate] = self.minbgrate
 
         # enforce minimum background occupancy
-        for uu in range(st_run.n_units):
+        for uu in range(st_run.data.shape[0]):
             ratemap[uu][occupancy < self.min_duration] = 0
 
         # add to nelpy tuning curve class
@@ -178,16 +185,42 @@ class SpatialMap(object):
     def compute_ratemap_1d(
         self, st_run: object, pos_run: object, occupancy: np.ndarray
     ):
+        # initialize ratemap
         ratemap = np.zeros((st_run.data.shape[0], occupancy.shape[0]))
-        for i in range(st_run.data.shape[0]):
-            (
-                ratemap[i, : len(self.x_edges)],
-                _,
-            ) = np.histogram(
-                np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]),
-                bins=self.x_edges,
+
+        # if data to map is spike train (point process)
+        if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
+            for i in range(st_run.data.shape[0]):
+                # get spike counts in each bin
+                (
+                    ratemap[i, : len(self.x_edges)],
+                    _,
+                ) = np.histogram(
+                    np.interp(
+                        st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]
+                    ),
+                    bins=self.x_edges,
+                )
+            # divide by occupancy
+            ratemap = ratemap / occupancy
+
+        # if data to map is analog signal (continous)
+        elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
+            # get x location for every bin center
+            x = np.interp(
+                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[0, :]
             )
-        ratemap = ratemap / occupancy
+            # get indices location within bin edges
+            ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
+            # iterate over each time step and add data values to ratemap
+            for tt, bidx in enumerate(ext_bin_idx):
+                ratemap[:, bidx - 1] += st_run.data[:, tt]
+            # divide by sampling rate
+            ratemap = ratemap * st_run.fs
+            # divide by occupancy
+            ratemap = ratemap / (occupancy * pos_run.fs)
+
+        # remove nans and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
         ratemap[bad_idx] = 0
 
