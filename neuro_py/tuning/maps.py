@@ -19,30 +19,38 @@ np.seterr(divide="ignore", invalid="ignore")
 class SpatialMap(object):
     """
     SpatialMap: make a spatial map tuning curve
+        maps timestamps or continuous signals onto positions
+
     args:
         pos: position data (nelpy.AnalogSignal or nel.PositionArray)
         st: spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal)
-        dim: dimension of the map (1 or 2) *deprecated*
-        dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
-        speed_thres: speed threshold for running (float)
-        ds_bst: bin size for the spike train (float)
-        s_binsize: bin size for the spatial map (float)
-        x_minmax: min and max x values for the spatial map (list)
-        y_minmax: min and max y values for the spatial map (list)
-        tuning_curve_sigma: sigma for the tuning curve (float)
-        smooth_mode: mode for smoothing curve (str) reflect,constant,nearest,mirror,wrap
-        min_duration: minimum duration for a tuning curve (float)
-        minbgrate: min firing rate for tuning curve, will set to this if lower (float)
-        place_field_thres: percent of continuous region of peak firing rate (float)
-        place_field_min_size: min size of place field (cm) (float)
-        place_field_min_peak: min peak rate of place field (float)
-        place_field_sigma: extra smoothing sigma to apply before field detection (float)
-        n_shuff: number of positon shuffles for spatial information (int)
+        
+        optional:
+            speed: speed data (nelpy.AnalogSignal), recommended input: from non-epoched data
+            dim: dimension of the map (1 or 2) *deprecated*
+            dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
+            speed_thres: speed threshold for running (float)
+            s_binsize: bin size for the spatial map (float)
+            x_minmax: min and max x values for the spatial map (list)
+            y_minmax: min and max y values for the spatial map (list)
+            tuning_curve_sigma: sigma for the tuning curve (float)
+            smooth_mode: mode for smoothing curve (str) reflect,constant,nearest,mirror,wrap
+            min_duration: minimum duration for a tuning curve (float)
+            minbgrate: min firing rate for tuning curve, will set to this if lower (float)
+            n_shuff: number of positon shuffles for spatial information (int)
+            parallel_shuff: parallelize shuffling (bool)
+
+            Place field detector parameters:
+                place_field_thres: percent of continuous region of peak firing rate (float)
+                place_field_min_size: min size of place field (cm) (float)
+                place_field_min_peak: min peak rate of place field (float)
+                place_field_sigma: extra smoothing sigma to apply before field detection (float)
+
     attributes:
         tc: tuning curves (nelpy.TuningCurve)
         st_run: spike train restricted to running epochs (nelpy.SpikeTrain)
         bst_run: binned spike train restricted to running epochs (nelpy.binnedSpikeTrain)
-        speed: speed data (nelpy.AnalogSignal).
+        speed: speed data (nelpy.AnalogSignal)
         run_epochs: running epochs (nelpy.EpochArray)
     Note:
         Place field detector (.find_fields()) is sensitive to many parameters.
@@ -62,10 +70,10 @@ class SpatialMap(object):
         self,
         pos: object,
         st: object,
+        speed: object = None,
         dim: int = None,  # deprecated
         dir_epoch: object = None,  # deprecated
         speed_thres: Union[int, float] = 4,
-        ds_bst: float = 0.05,
         s_binsize: Union[int, float] = 3,
         x_minmax: List[Union[int, float]] = None,
         y_minmax: List[Union[int, float]] = None,
@@ -73,20 +81,19 @@ class SpatialMap(object):
         smooth_mode: str = "reflect",
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
+        n_shuff: int = 500,
+        parallel_shuff: bool = True,
         place_field_thres: Union[int, float] = 0.2,
         place_field_min_size: Union[int, float] = None,
         place_field_max_size: Union[int, float] = None,
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
-        n_shuff: int = 500,
-        parallel_shuff: bool = True,
-        speed: object = None,
     ) -> None:
         # add all the inputs to self
         self.__dict__.update(locals())
         del self.__dict__["self"]
 
-        # make sure pos and st are nelpy objects
+        # Verify inputs: make sure pos and st are nelpy objects
         if not isinstance(
             pos, (nel.core._analogsignalarray.AnalogSignalArray, nel.core.PositionArray)
         ):
@@ -102,21 +109,24 @@ class SpatialMap(object):
                 "st must be nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray"
             )
 
-        # get speed and running epochs
+        # get speed and running epochs (highly recommended you calculate 
+        #   speed before hand on non epoched data)
         if self.speed is None:
             self.speed = nel.utils.ddt_asa(self.pos, smooth=True, sigma=0.1, norm=True)
 
         self.run_epochs = nel.utils.get_run_epochs(
             self.speed, v1=self.speed_thres, v2=self.speed_thres
         ).merge()
+
         # calculate maps, 1d or 2d
+        self.dim = pos.n_signals
         if pos.n_signals == 2:
             self.tc, self.st_run = self.map_2d()
         elif pos.n_signals == 1:
             self.tc, self.st_run = self.map_1d()
         else:
             raise ValueError("pos dims must be 1 or 2")
-        self.dim = pos.n_signals
+        
 
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()
@@ -713,254 +723,254 @@ class SpatialMap(object):
         return self.tc.reorder_units()
 
 
-class TuningCurve2DContinuous:
-    """
-    Tuning curves (2-dimensional) of multiple continous variables
-    """
+# class TuningCurve2DContinuous:
+#     """
+#     Tuning curves (2-dimensional) of multiple continous variables
+#     """
 
-    __attributes__ = ["_ratemap", "_occupancy"]
+#     __attributes__ = ["_ratemap", "_occupancy"]
 
-    def __init__(
-        self,
-        *,
-        asa=None,  # nelpy analog signal array of n signals
-        pos=None,  # nelpy positions. Needs time,x,y
-        ext_nx=None,  # number of x bins
-        ext_ny=None,  # number of y bins
-        ext_xmin=None,  # xmin
-        ext_ymin=None,  # ymin
-        ext_xmax=None,  # xmax
-        ext_ymax=None,  # ymax
-        min_duration=0.1,  # duration under this will be nan
-        bin_size=3,  # spatial bin size
-        sigma=None,
-        truncate=None,
-        mask=None
-    ):
-        if mask is None:
-            self._mask = None
+#     def __init__(
+#         self,
+#         *,
+#         asa=None,  # nelpy analog signal array of n signals
+#         pos=None,  # nelpy positions. Needs time,x,y
+#         ext_nx=None,  # number of x bins
+#         ext_ny=None,  # number of y bins
+#         ext_xmin=None,  # xmin
+#         ext_ymin=None,  # ymin
+#         ext_xmax=None,  # xmax
+#         ext_ymax=None,  # ymax
+#         min_duration=0.1,  # duration under this will be nan
+#         bin_size=3,  # spatial bin size
+#         sigma=None,
+#         truncate=None,
+#         mask=None
+#     ):
+#         if mask is None:
+#             self._mask = None
 
-        x = np.interp(
-            asa.abscissa_vals,
-            pos.abscissa_vals,
-            pos.data[0],
-        )
-        y = np.interp(
-            asa.abscissa_vals,
-            pos.abscissa_vals,
-            pos.data[1],
-        )
-        if ext_xmin is None:
-            ext_xmin, ext_xmax = np.floor(x.min() / 10) * 10, np.ceil(x.max() / 10) * 10
-            ext_ymin, ext_ymax = np.floor(y.min() / 10) * 10, np.ceil(y.max() / 10) * 10
+#         x = np.interp(
+#             asa.abscissa_vals,
+#             pos.abscissa_vals,
+#             pos.data[0],
+#         )
+#         y = np.interp(
+#             asa.abscissa_vals,
+#             pos.abscissa_vals,
+#             pos.data[1],
+#         )
+#         if ext_xmin is None:
+#             ext_xmin, ext_xmax = np.floor(x.min() / 10) * 10, np.ceil(x.max() / 10) * 10
+#             ext_ymin, ext_ymax = np.floor(y.min() / 10) * 10, np.ceil(y.max() / 10) * 10
 
-        if ext_nx is None:
-            ext_nx = len(np.arange(ext_xmin, ext_xmax + bin_size, bin_size))
-            ext_ny = len(np.arange(ext_ymin, ext_ymax + bin_size, bin_size))
+#         if ext_nx is None:
+#             ext_nx = len(np.arange(ext_xmin, ext_xmax + bin_size, bin_size))
+#             ext_ny = len(np.arange(ext_ymin, ext_ymax + bin_size, bin_size))
 
-        self._xbins = np.linspace(ext_xmin, ext_xmax, ext_nx + 1)
-        self._ybins = np.linspace(ext_ymin, ext_ymax, ext_ny + 1)
+#         self._xbins = np.linspace(ext_xmin, ext_xmax, ext_nx + 1)
+#         self._ybins = np.linspace(ext_ymin, ext_ymax, ext_ny + 1)
 
-        ext_bin_idx_x = np.squeeze(np.digitize(x, self._xbins, right=True))
-        ext_bin_idx_y = np.squeeze(np.digitize(y, self._ybins, right=True))
+#         ext_bin_idx_x = np.squeeze(np.digitize(x, self._xbins, right=True))
+#         ext_bin_idx_y = np.squeeze(np.digitize(y, self._ybins, right=True))
 
-        # n_xbins = len(self._xbins) - 1
-        # n_ybins = len(self._ybins) - 1
+#         # n_xbins = len(self._xbins) - 1
+#         # n_ybins = len(self._ybins) - 1
 
-        if ext_bin_idx_x.max() > self.n_xbins:
-            raise ValueError("ext values greater than 'ext_xmax'")
-        if ext_bin_idx_x.min() == 0:
-            raise ValueError("ext values less than 'ext_xmin'")
-        if ext_bin_idx_y.max() > self.n_ybins:
-            raise ValueError("ext values greater than 'ext_ymax'")
-        if ext_bin_idx_y.min() == 0:
-            raise ValueError("ext values less than 'ext_ymin'")
+#         if ext_bin_idx_x.max() > self.n_xbins:
+#             raise ValueError("ext values greater than 'ext_xmax'")
+#         if ext_bin_idx_x.min() == 0:
+#             raise ValueError("ext values less than 'ext_xmin'")
+#         if ext_bin_idx_y.max() > self.n_ybins:
+#             raise ValueError("ext values greater than 'ext_ymax'")
+#         if ext_bin_idx_y.min() == 0:
+#             raise ValueError("ext values less than 'ext_ymin'")
 
-        self._occupancy, _, _ = np.histogram2d(
-            x,
-            y,
-            bins=[self._xbins, self._ybins],
-            range=([[ext_xmin, ext_xmax], [ext_ymin, ext_ymax]]),
-        )
-        # occupancy = occupancy / asa.fs
-        self._n_signals = asa.n_signals
+#         self._occupancy, _, _ = np.histogram2d(
+#             x,
+#             y,
+#             bins=[self._xbins, self._ybins],
+#             range=([[ext_xmin, ext_xmax], [ext_ymin, ext_ymax]]),
+#         )
+#         # occupancy = occupancy / asa.fs
+#         self._n_signals = asa.n_signals
 
-        ratemap = np.zeros((self.n_signals, self.n_xbins, self.n_ybins))
+#         ratemap = np.zeros((self.n_signals, self.n_xbins, self.n_ybins))
 
-        for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
-            ratemap[:, bidxx - 1, bidxy - 1] += asa.data[:, tt]
+#         for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
+#             ratemap[:, bidxx - 1, bidxy - 1] += asa.data[:, tt]
 
-        for uu in range(self.n_signals):
-            ratemap[uu][self._occupancy / asa.fs < min_duration] = 0
+#         for uu in range(self.n_signals):
+#             ratemap[uu][self._occupancy / asa.fs < min_duration] = 0
 
-        # ratemap = ratemap * asa.fs
+#         # ratemap = ratemap * asa.fs
 
-        denom = np.tile(self._occupancy, (self.n_signals, 1, 1))
-        denom[denom == 0] = 1
-        self._ratemap = ratemap / denom
+#         denom = np.tile(self._occupancy, (self.n_signals, 1, 1))
+#         denom[denom == 0] = 1
+#         self._ratemap = ratemap / denom
 
-        if sigma is not None:
-            if sigma > 0:
-                self.smooth(sigma=sigma, truncate=truncate, inplace=True)
+#         if sigma is not None:
+#             if sigma > 0:
+#                 self.smooth(sigma=sigma, truncate=truncate, inplace=True)
 
-        for uu in range(self.n_signals):
-            self._ratemap[uu][self._occupancy / asa.fs < min_duration] = np.nan
+#         for uu in range(self.n_signals):
+#             self._ratemap[uu][self._occupancy / asa.fs < min_duration] = np.nan
 
-    @property
-    def n_bins(self):
-        """(int) Number of external correlates (bins)."""
-        return self.n_xbins * self.n_ybins
+#     @property
+#     def n_bins(self):
+#         """(int) Number of external correlates (bins)."""
+#         return self.n_xbins * self.n_ybins
 
-    @property
-    def n_xbins(self):
-        """(int) Number of external correlates (bins)."""
-        return len(self._xbins) - 1
+#     @property
+#     def n_xbins(self):
+#         """(int) Number of external correlates (bins)."""
+#         return len(self._xbins) - 1
 
-    @property
-    def n_ybins(self):
-        """(int) Number of external correlates (bins)."""
-        return len(self._ybins) - 1
+#     @property
+#     def n_ybins(self):
+#         """(int) Number of external correlates (bins)."""
+#         return len(self._ybins) - 1
 
-    @property
-    def ratemap(self):
-        return self._ratemap
+#     @property
+#     def ratemap(self):
+#         return self._ratemap
 
-    @property
-    def mask(self):
-        return self._mask
+#     @property
+#     def mask(self):
+#         return self._mask
 
-    @property
-    def occupancy(self):
-        return self._occupancy
+#     @property
+#     def occupancy(self):
+#         return self._occupancy
 
-    @property
-    def n_signals(self):
-        return self._n_signals
+#     @property
+#     def n_signals(self):
+#         return self._n_signals
 
-    @property
-    def xbins(self):
-        """External correlate bins."""
-        return self._xbins
+#     @property
+#     def xbins(self):
+#         """External correlate bins."""
+#         return self._xbins
 
-    @property
-    def ybins(self):
-        """External correlate bins."""
-        return self._ybins
+#     @property
+#     def ybins(self):
+#         """External correlate bins."""
+#         return self._ybins
 
-    @property
-    def shape(self):
-        """(tuple) The shape of the TuningCurve2DContinuous ratemap."""
-        if self.isempty:
-            return (self.n_signals, 0, 0)
-        if len(self.ratemap.shape) == 1:
-            return (self.ratemap.shape[0], 1, 1)
-        return self.ratemap.shape
+#     @property
+#     def shape(self):
+#         """(tuple) The shape of the TuningCurve2DContinuous ratemap."""
+#         if self.isempty:
+#             return (self.n_signals, 0, 0)
+#         if len(self.ratemap.shape) == 1:
+#             return (self.ratemap.shape[0], 1, 1)
+#         return self.ratemap.shape
 
-    def __repr__(self):
-        address_str = " at " + str(hex(id(self)))
-        if self.isempty:
-            return "<empty TuningCurve2DContinuous" + address_str + ">"
-        shapestr = " with shape (%s, %s, %s)" % (
-            self.shape[0],
-            self.shape[1],
-            self.shape[2],
-        )
-        return "<TuningCurve2D%s>%s" % (address_str, shapestr)
+#     def __repr__(self):
+#         address_str = " at " + str(hex(id(self)))
+#         if self.isempty:
+#             return "<empty TuningCurve2DContinuous" + address_str + ">"
+#         shapestr = " with shape (%s, %s, %s)" % (
+#             self.shape[0],
+#             self.shape[1],
+#             self.shape[2],
+#         )
+#         return "<TuningCurve2D%s>%s" % (address_str, shapestr)
 
-    @property
-    def isempty(self):
-        """(bool) True if TuningCurve1D is empty"""
-        try:
-            return len(self.ratemap) == 0
-        except TypeError:  # TypeError should happen if ratemap = []
-            return True
+#     @property
+#     def isempty(self):
+#         """(bool) True if TuningCurve1D is empty"""
+#         try:
+#             return len(self.ratemap) == 0
+#         except TypeError:  # TypeError should happen if ratemap = []
+#             return True
 
-    def __len__(self):
-        return self.n_signals
+#     def __len__(self):
+#         return self.n_signals
 
-    def smooth(self, *, sigma=None, truncate=None, inplace=False, mode=None, cval=None):
-        """Smooths the tuning curve with a Gaussian kernel.
-        mode : {‘reflect’, ‘constant’, ‘nearest’, ‘mirror’, ‘wrap’}, optional
-            The mode parameter determines how the array borders are handled,
-            where cval is the value when mode is equal to ‘constant’. Default is
-            ‘reflect’
-        cval : scalar, optional
-            Value to fill past edges of input if mode is ‘constant’. Default is 0.0
-        """
-        if sigma is None:
-            sigma = 0.1  # in units of extern
-        if truncate is None:
-            truncate = 4
-        if mode is None:
-            mode = "reflect"
-        if cval is None:
-            cval = 0.0
+#     def smooth(self, *, sigma=None, truncate=None, inplace=False, mode=None, cval=None):
+#         """Smooths the tuning curve with a Gaussian kernel.
+#         mode : {‘reflect’, ‘constant’, ‘nearest’, ‘mirror’, ‘wrap’}, optional
+#             The mode parameter determines how the array borders are handled,
+#             where cval is the value when mode is equal to ‘constant’. Default is
+#             ‘reflect’
+#         cval : scalar, optional
+#             Value to fill past edges of input if mode is ‘constant’. Default is 0.0
+#         """
+#         if sigma is None:
+#             sigma = 0.1  # in units of extern
+#         if truncate is None:
+#             truncate = 4
+#         if mode is None:
+#             mode = "reflect"
+#         if cval is None:
+#             cval = 0.0
 
-        ds_x = (self._xbins[-1] - self._xbins[0]) / self.n_xbins
-        ds_y = (self._ybins[-1] - self._ybins[0]) / self.n_ybins
-        sigma_x = sigma / ds_x
-        sigma_y = sigma / ds_y
+#         ds_x = (self._xbins[-1] - self._xbins[0]) / self.n_xbins
+#         ds_y = (self._ybins[-1] - self._ybins[0]) / self.n_ybins
+#         sigma_x = sigma / ds_x
+#         sigma_y = sigma / ds_y
 
-        if not inplace:
-            out = copy.deepcopy(self)
-        else:
-            out = self
+#         if not inplace:
+#             out = copy.deepcopy(self)
+#         else:
+#             out = self
 
-        if self.mask is None:
-            if self.n_signals > 1:
-                out._ratemap = scipy.ndimage.filters.gaussian_filter(
-                    self.ratemap,
-                    sigma=(0, sigma_x, sigma_y),
-                    truncate=truncate,
-                    mode=mode,
-                    cval=cval,
-                )
-            else:
-                out._ratemap = scipy.ndimage.filters.gaussian_filter(
-                    self.ratemap,
-                    sigma=(sigma_x, sigma_y),
-                    truncate=truncate,
-                    mode=mode,
-                    cval=cval,
-                )
-        else:  # we have a mask!
-            # smooth, dealing properly with NANs
-            # NB! see https://stackoverflow.com/questions/18697532/gaussian-filtering-a-image-with-nan-in-python
+#         if self.mask is None:
+#             if self.n_signals > 1:
+#                 out._ratemap = scipy.ndimage.filters.gaussian_filter(
+#                     self.ratemap,
+#                     sigma=(0, sigma_x, sigma_y),
+#                     truncate=truncate,
+#                     mode=mode,
+#                     cval=cval,
+#                 )
+#             else:
+#                 out._ratemap = scipy.ndimage.filters.gaussian_filter(
+#                     self.ratemap,
+#                     sigma=(sigma_x, sigma_y),
+#                     truncate=truncate,
+#                     mode=mode,
+#                     cval=cval,
+#                 )
+#         else:  # we have a mask!
+#             # smooth, dealing properly with NANs
+#             # NB! see https://stackoverflow.com/questions/18697532/gaussian-filtering-a-image-with-nan-in-python
 
-            masked_ratemap = self.ratemap.copy() * self.mask
-            V = masked_ratemap.copy()
-            V[masked_ratemap != masked_ratemap] = 0
-            W = 0 * masked_ratemap.copy() + 1
-            W[masked_ratemap != masked_ratemap] = 0
+#             masked_ratemap = self.ratemap.copy() * self.mask
+#             V = masked_ratemap.copy()
+#             V[masked_ratemap != masked_ratemap] = 0
+#             W = 0 * masked_ratemap.copy() + 1
+#             W[masked_ratemap != masked_ratemap] = 0
 
-            if self.n_units > 1:
-                VV = scipy.ndimage.filters.gaussian_filter(
-                    V,
-                    sigma=(0, sigma_x, sigma_y),
-                    truncate=truncate,
-                    mode=mode,
-                    cval=cval,
-                )
-                WW = scipy.ndimage.filters.gaussian_filter(
-                    W,
-                    sigma=(0, sigma_x, sigma_y),
-                    truncate=truncate,
-                    mode=mode,
-                    cval=cval,
-                )
-                Z = VV / WW
-                out._ratemap = Z * self.mask
-            else:
-                VV = scipy.ndimage.filters.gaussian_filter(
-                    V, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
-                )
-                WW = scipy.ndimage.filters.gaussian_filter(
-                    W, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
-                )
-                Z = VV / WW
-                out._ratemap = Z * self.mask
+#             if self.n_units > 1:
+#                 VV = scipy.ndimage.filters.gaussian_filter(
+#                     V,
+#                     sigma=(0, sigma_x, sigma_y),
+#                     truncate=truncate,
+#                     mode=mode,
+#                     cval=cval,
+#                 )
+#                 WW = scipy.ndimage.filters.gaussian_filter(
+#                     W,
+#                     sigma=(0, sigma_x, sigma_y),
+#                     truncate=truncate,
+#                     mode=mode,
+#                     cval=cval,
+#                 )
+#                 Z = VV / WW
+#                 out._ratemap = Z * self.mask
+#             else:
+#                 VV = scipy.ndimage.filters.gaussian_filter(
+#                     V, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
+#                 )
+#                 WW = scipy.ndimage.filters.gaussian_filter(
+#                     W, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
+#                 )
+#                 Z = VV / WW
+#                 out._ratemap = Z * self.mask
 
-        return out
+#         return out
 
 
 # ########################################################################
