@@ -12,7 +12,7 @@ from scipy.io import savemat
 import os
 from typing import Union, List
 
-logging.getLogger().setLevel(logging.ERROR)
+# logging.getLogger().setLevel(logging.ERROR)
 np.seterr(divide="ignore", invalid="ignore")
 
 
@@ -21,9 +21,9 @@ class SpatialMap(object):
     SpatialMap: make a spatial map tuning curve
     args:
         pos: position data (nelpy.AnalogSignal or nel.PositionArray)
-        st: spike train data (nelpy.SpikeTrain)
+        st: spike train data (nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray)
         dim: dimension of the map (1 or 2)
-        dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch)
+        dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
         speed_thres: speed threshold for running (float)
         ds_bst: bin size for the spike train (float)
         s_binsize: bin size for the spatial map (float)
@@ -63,7 +63,7 @@ class SpatialMap(object):
         pos: object,
         st: object,
         dim: int = None,
-        dir_epoch: object = None,
+        dir_epoch: object = None, # deprecated
         speed_thres: Union[int, float] = 4,
         ds_bst: float = 0.05,
         s_binsize: Union[int, float] = 3,
@@ -91,8 +91,8 @@ class SpatialMap(object):
             pos, (nel.core._analogsignalarray.AnalogSignalArray, nel.core.PositionArray)
         ):
             raise TypeError("pos must be nelpy.AnalogSignal or nelpy.PositionArray")
-        if not isinstance(st, nel.core._eventarray.SpikeTrainArray):
-            raise TypeError("st must be nelpy.SpikeTrain")
+        if not isinstance(st, (nel.core._eventarray.SpikeTrainArray, nel.core._eventarray.BinnedSpikeTrainArray)):
+            raise TypeError("st must be nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray")
 
         # get speed and running epochs
         if self.speed is None:
@@ -113,21 +113,28 @@ class SpatialMap(object):
         # self.find_fields()
 
     def map_1d(self, pos: object = None):
-        if self.dir_epoch is None:
-            raise ValueError("dir_epoch must be specified")
+        # dir_epoch is deprecated input
+        if self.dir_epoch is not None:
+            # warn user
+            logging.warning(
+                "dir_epoch is deprecated and will be removed. Epoch data by direction prior to calling SpatialMap"
+            )
+            self.st = self.st[self.dir_epoch]
+            self.pos = self.pos[self.dir_epoch]
+
 
         # restrict spike trains to those epochs during which the animal was running
-        st_run = self.st[self.dir_epoch][self.run_epochs]
+        st_run = self.st[self.run_epochs]
 
         # take pos as input for case of shuffling
         if pos is not None:
-            pos_run = pos[self.dir_epoch][self.run_epochs]
+            pos_run = pos[self.run_epochs]
         else:
-            pos_run = self.pos[self.dir_epoch][self.run_epochs]
+            pos_run = self.pos[self.run_epochs]
 
         if self.x_minmax is None:
-            x_max = np.ceil(np.nanmax(self.pos[self.dir_epoch].data))
-            x_min = np.floor(np.nanmin(self.pos[self.dir_epoch].data))
+            x_max = np.ceil(np.nanmax(self.pos.data))
+            x_min = np.floor(np.nanmin(self.pos.data))
         else:
             x_min, x_max = self.x_minmax
 
