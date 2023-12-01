@@ -229,7 +229,7 @@ class SpatialMap(object):
             # divide by sampling rate
             ratemap = ratemap * st_run.fs
             # divide by occupancy
-            ratemap = ratemap / (occupancy * pos_run.fs)
+            ratemap = ratemap / occupancy
 
         # remove nans and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
@@ -337,7 +337,7 @@ class SpatialMap(object):
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
                 ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
             ratemap = ratemap * st_run.fs
-            ratemap = ratemap / (occupancy * pos_run.fs)
+            ratemap = ratemap / occupancy
 
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
         ratemap[bad_idx] = 0
