@@ -170,6 +170,8 @@ def mtspectrumpt(
         fpass: frequency range to evaluate
         NW: time-bandwidth product
         n_tapers: number of tapers
+        tapers: [NW, K] or [tapers, eigenvalues]
+        time_support: time range to evaluate
     Outputs:
         S: power spectrum
 
