@@ -159,6 +159,8 @@ def mtspectrumpt(
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
     time_support: Union[list, None] = None,
+    tapers: Union[np.ndarray, None] = None,
+    tapers_ts: Union[np.ndarray, None] = None,
 ) -> pd.DataFrame:
     """
     mtspectrumpt from chronux toolbox
@@ -187,16 +189,21 @@ def mtspectrumpt(
         mintime = np.min(data)
         maxtime = np.max(data)
     dt = 1 / Fs
-    t = np.arange(mintime - dt, maxtime + dt, dt)
-    N = len(t)
+
+    if tapers is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+        N = len(tapers_ts)
+        tapers, eigens = dpss(N, NW, n_tapers)
+
+    N = len(tapers_ts)
     # number of points in fft of prolates
     nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
     f, findx = getfgrid(Fs, nfft, fpass)
-    tapers, eigens = dpss(N, NW, n_tapers)
+
 
     spec = np.zeros((len(f), len(data)))
     for i, d in enumerate(data):
-        J, Msp, Nsp = mtfftpt(d, tapers, nfft, t, f, findx)
+        J, Msp, Nsp = mtfftpt(d, tapers, nfft, tapers_ts, f, findx)
         spec[:, i] = np.real(np.mean(np.conj(J) * J, 1))
 
     spectrum_df = pd.DataFrame(index=f, columns=np.arange(len(data)), dtype=np.float64)
