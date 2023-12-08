@@ -1327,9 +1327,15 @@ def load_brain_regions(basepath):
     data = data["session"]
     brainRegions = {}
     for dn in data["brainRegions"][0][0].dtype.names:
+        channels = data["brainRegions"][0][0][dn][0][0][0][0][0][0]
+        try:
+            electrodeGroups = data["brainRegions"][0][0][dn][0][0][0][0][1][0]
+        except:
+            electrodeGroups = np.nan
+            
         brainRegions[dn] = {
-            "channels": data["brainRegions"][0][0][dn][0][0][0][0][0][0],
-            "electrodeGroups": data["brainRegions"][0][0][dn][0][0][0][0][1][0],
+            "channels": channels,
+            "electrodeGroups": electrodeGroups,
         }
 
     return brainRegions
