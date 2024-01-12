@@ -354,6 +354,7 @@ def get_cheeseboard_trials(
     return pos, trials
 
 
+# open field
 def get_openfield_trials(
     basepath,
     epoch_type: str = "epochs",
@@ -425,7 +426,9 @@ def get_openfield_trials(
     if epoch_type == "trials":
         epoch_df = loading.load_trials(basepath)
         label = "session_trials"
-        openfield_idx = np.arange(0,len(epoch_df)) # assume trials make up all epochs associated with position
+        openfield_idx = np.arange(
+            0, len(epoch_df)
+        )  # assume trials make up all epochs associated with position
 
     elif epoch_type == "epochs":
         epoch_df = loading.load_epoch(basepath)
