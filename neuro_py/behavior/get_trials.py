@@ -354,9 +354,9 @@ def get_cheeseboard_trials(
     return pos, trials
 
 
-# open field
 def get_openfield_trials(
     basepath,
+    epoch_type: str = "epochs",
     spatial_binsize: int = 3,
     trial_time_bin_size: Union[int, float] = 1 * 60,
     prop_trial_sampled: float = 0.5,
@@ -379,6 +379,7 @@ def get_openfield_trials(
 
     Input:
         basepath: basepath of session
+        epoch_type: type of epoch to use (trials or epochs)
         spatial_binsize: size of spatial bins to use for occupancy
         trial_time_bin_size: size of time bins to use for occupancy
         prop_trial_sampled: proportion of trials to sample
@@ -421,13 +422,22 @@ def get_openfield_trials(
         return pos, nel.EpochArray([], label="session_epochs")
 
     # load epochs and place in array
-    epoch_df = loading.load_epoch(basepath)
+    if epoch_type == "trials":
+        epoch_df = loading.load_trials(basepath)
+        label = "session_trials"
+        openfield_idx = np.arange(0,len(epoch_df)) # assume trials make up all epochs associated with position
+
+    elif epoch_type == "epochs":
+        epoch_df = loading.load_epoch(basepath)
+        label = "session_epochs"
+        # find epochs that are these environments
+        openfield_idx = np.where(np.isin(epoch_df.environment, environments))[0]
+
     epoch = nel.EpochArray(
-        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label="session_epochs"
+        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label=label
     )
 
     # find epochs that are these environments
-    openfield_idx = np.where(np.isin(epoch_df.environment, environments))[0]
     trials = []
     # loop through epochs
     for idx in openfield_idx:
