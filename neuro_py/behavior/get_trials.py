@@ -429,6 +429,7 @@ def get_openfield_trials(
         openfield_idx = np.arange(
             0, len(epoch_df)
         )  # assume trials make up all epochs associated with position
+        trialsID = epoch_df.trialsID.values
 
     elif epoch_type == "epochs":
         epoch_df = loading.load_epoch(basepath)
@@ -442,6 +443,9 @@ def get_openfield_trials(
 
     # find epochs that are these environments
     trials = []
+    if epoch_type == "trials":
+        trial_ID = []
+
     # loop through epochs
     for idx in openfield_idx:
         # get position during epoch
@@ -477,6 +481,8 @@ def get_openfield_trials(
             int(np.ceil(duration / (trial_time_bin_size))),
         )
         trials_temp = nel.EpochArray(np.array([bins[:-1], bins[1:]]).T)
+        if epoch_type == "trials":
+            temp_ID = trialsID[idx]
 
         trial_i = 0
         # loop through possible trials and find when sampled enough
@@ -503,6 +509,8 @@ def get_openfield_trials(
                             trials_temp[trial_i : i_interval + 1].stop,
                         ]
                     )
+                    if epoch_type == "trials":
+                        trial_ID.append(temp_ID)
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
 
@@ -517,12 +525,18 @@ def get_openfield_trials(
                             trials_temp[trial_i : i_interval + 1].stop,
                         ]
                     )
+                    if epoch_type == "trials":
+                        trial_ID.append(temp_ID)
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
             else:
                 raise ValueError("method must be correlation or proportion")
 
     # concatenate trials and place in EpochArray
-    trials = nel.EpochArray(np.vstack(trials))
+    if epoch_type == "trials":
+        trials = nel.EpochArray(np.vstack(trials), label=np.vstack(trial_ID))
+    else:
+        trials = nel.EpochArray(np.vstack(trials), label=label)
+
 
     return pos, trials
