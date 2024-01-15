@@ -359,7 +359,9 @@ def get_openfield_trials(
     basepath,
     epoch_type: str = "epochs",
     spatial_binsize: int = 3,
-    trial_time_bin_size: Union[int, float] = 1 * 60,
+    n_time_bins: int = 1, # for bin_method = "fixed", not used for bin_method = "dynamic"
+    bin_method: str = "dynamic",
+    trial_time_bin_size: Union[int, float] = 1 * 60, # in secords for bin_method = "dynamic", not used for bin_method = "fixed"
     prop_trial_sampled: float = 0.5,
     environments: List[str] = [
         "box",
@@ -382,7 +384,9 @@ def get_openfield_trials(
         basepath: basepath of session
         epoch_type: type of epoch to use (trials or epochs)
         spatial_binsize: size of spatial bins to use for occupancy
-        trial_time_bin_size: size of time bins to use for occupancy
+        n_time_bins: number of time bins to use for occupancy for fixed bin_method
+        bin_method: method to use for binning time (dynamic or fixed), fixed will split the epoch in n_time_bins, whereas dynamic will split the epoch for trial_time_bin_size
+        trial_time_bin_size: size of time bins to use for occupancy for dynamic bin_method
         prop_trial_sampled: proportion of trials to sample
         environments: list of environments to include as openfield
         minimum_correlation: minimum correlation between trials to be considered a trial
@@ -425,21 +429,17 @@ def get_openfield_trials(
     # load epochs and place in array
     if epoch_type == "trials":
         epoch_df = loading.load_trials(basepath)
-        label = "session_trials"
         openfield_idx = np.arange(
             0, len(epoch_df)
         )  # assume trials make up all epochs associated with position
         trialsID = epoch_df.trialsID.values
-
     elif epoch_type == "epochs":
         epoch_df = loading.load_epoch(basepath)
-        label = "session_epochs"
         # find epochs that are these environments
         openfield_idx = np.where(np.isin(epoch_df.environment, environments))[0]
 
     epoch = nel.EpochArray(
-        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label=label
-    )
+        [np.array([epoch_df.startTime, epoch_df.stopTime]).T])
 
     # find epochs that are these environments
     trials = []
@@ -475,11 +475,19 @@ def get_openfield_trials(
         # create possible trials based on trial_time_bin_size
         # these will be iterated over to find trials that are sampled enough
         duration = epoch_df.iloc[idx].stopTime - epoch_df.iloc[idx].startTime
-        bins = np.linspace(
-            epoch_df.iloc[idx].startTime,
-            epoch_df.iloc[idx].stopTime,
-            int(np.ceil(duration / (trial_time_bin_size))),
-        )
+
+        if bin_method == "dynamic": 
+            bins = np.linspace(
+                epoch_df.iloc[idx].startTime,
+                epoch_df.iloc[idx].stopTime,
+                int(np.ceil(duration / (trial_time_bin_size))),
+            )
+        elif bin_method == "fixed":
+            bins = np.arange(
+                epoch_df.iloc[idx].startTime,
+                epoch_df.iloc[idx].stopTime,
+                int(np.floor(epoch[int(idx)].duration / n_time_bins)),
+            )
         trials_temp = nel.EpochArray(np.array([bins[:-1], bins[1:]]).T)
         if epoch_type == "trials":
             temp_ID = trialsID[idx]
@@ -510,7 +518,7 @@ def get_openfield_trials(
                         ]
                     )
                     if epoch_type == "trials":
-                        trial_ID.append(temp_ID)
+                        trial_ID.append(temp_ID+'_'+str(idx))
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
 
@@ -526,7 +534,7 @@ def get_openfield_trials(
                         ]
                     )
                     if epoch_type == "trials":
-                        trial_ID.append(temp_ID)
+                        trial_ID.append(temp_ID+'_'+str(idx))
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
             else:
@@ -536,7 +544,8 @@ def get_openfield_trials(
     if epoch_type == "trials":
         trials = nel.EpochArray(np.vstack(trials), label=np.vstack(trial_ID))
     else:
-        trials = nel.EpochArray(np.vstack(trials), label=label)
+        trials = nel.EpochArray(np.vstack(trials), label="session_epochs")
 
 
     return pos, trials
+
