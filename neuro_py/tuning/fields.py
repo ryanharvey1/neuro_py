@@ -71,7 +71,7 @@ def find_peaks(image):
     indices = np.arange(1, num_objects + 1)
     peaks = ndimage.maximum_position(image, labels=labels, index=indices)
     peaks = np.array(peaks)
-    center = np.array(image.shape) / 2
+    center = (np.array(image.shape) - 1) / 2
     distances = np.linalg.norm(peaks - center, axis=1)
     peaks = peaks[distances.argsort()]
     return peaks
@@ -138,7 +138,7 @@ def remove_fields_by_area(fields, minimum_field_area, maximum_field_area=None):
     # fields[fields_area < minimum_field_area] = 0
 
     labels, counts = np.unique(fields, return_counts=True)
-    for (lab, count) in zip(labels, counts):
+    for lab, count in zip(labels, counts):
         if lab != 0:
             if (count < minimum_field_area) | (count > maximum_field_area):
                 fields[fields == lab] = 0
@@ -263,6 +263,11 @@ def calculate_field_centers(rate_map, labels, center_method="maxima"):
         bc = ndimage.center_of_mass(rate_map, labels=labels, index=indices)
     else:
         raise ValueError("invalid center_method flag '{}'".format(center_method))
+
+    if not bc:
+        # empty list
+        return bc
+
     bc = np.array(bc)
     bc[:, [0, 1]] = bc[:, [1, 0]]  # y, x -> x, y
     return bc
@@ -583,7 +588,7 @@ def compute_2d_place_fields(
         labeled_image, num_labels = label(
             firing_rate > max(local_max * thresh, min_firing_rate)
         )
-        
+
         if not num_labels:  # nothing above min_firing_thresh
             continue
         for i in range(1, num_labels + 1):
@@ -599,7 +604,9 @@ def compute_2d_place_fields(
         receptive_fields, int(min_size), maximum_field_area=max_size
     )
     if n_receptive_fields > 0:
-        receptive_fields = sort_fields_by_rate(firing_rate_orig, receptive_fields, func=np.max)
+        receptive_fields = sort_fields_by_rate(
+            firing_rate_orig, receptive_fields, func=np.max
+        )
     return receptive_fields
 
 
@@ -653,7 +660,9 @@ def find_field2(firing_rate, thresh):
     return field_buffer, field
 
 
-def map_stats2(firing_rate, threshold=0.1, min_size=5, max_size=None, min_peak=1.0, sigma=None):
+def map_stats2(
+    firing_rate, threshold=0.1, min_size=5, max_size=None, min_peak=1.0, sigma=None
+):
     """
     :param firing_rate: array
     :param threshold: float
@@ -678,8 +687,10 @@ def map_stats2(firing_rate, threshold=0.1, min_size=5, max_size=None, min_peak=1
             break
         field_buffer, field = find_field(firing_rate, threshold)
         field_size = np.sum(field)
-        if (field_size > min_size) and (field_size < max_size) and (
-            np.max(firing_rate[field]) > (2 * np.min(firing_rate[field_buffer]))
+        if (
+            (field_size > min_size)
+            and (field_size < max_size)
+            and (np.max(firing_rate[field]) > (2 * np.min(firing_rate[field_buffer])))
         ):
             out["fields"][field] = field_counter
             out["sizes"].append(float(field_size) / len(firing_rate))
