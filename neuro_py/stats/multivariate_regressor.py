@@ -10,6 +10,7 @@ Just simple linear regression with regularization - nothing new here
 
 import numpy as np
 from scipy import sparse
+from sklearn.metrics import r2_score
 
 
 def ideal_data(num, dimX, dimY, _rank=None, noise=1):
@@ -43,6 +44,13 @@ class MultivariateRegressor(object):
         return 'Multivariate Linear Regression'
 
     def predict(self, X):
+        """Return the predicted Y for input X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
-        return np.dot(X, self.W.T)
+        return np.array(np.dot(X, self.W.T))
+    
+    def score(self, X, Y):
+        """Return the coefficient of determination R^2 of the prediction."""
+        y_pred = self.predict(X)
+        return r2_score(Y, y_pred)
+    
