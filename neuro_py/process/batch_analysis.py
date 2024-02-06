@@ -127,7 +127,7 @@ def run(
     basepaths = pd.unique(df.basepath)
     # create save_path if it doesn't exist
     if not os.path.exists(save_path):
-        os.mkdir(save_path)
+        os.makedirs(save_path)
     # run in parallel if parallel is True
     if parallel:
         # get number of cores
@@ -187,9 +187,9 @@ def load_results(
 
         if add_save_file_name:
             results_["save_file_name"] = os.path.basename(session)
-        
+
         results.append(results_)
-        
+
     results = pd.concat(results, ignore_index=True, axis=0)
 
     return results
