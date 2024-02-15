@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 import numpy as np
 import nelpy as nel
 from scipy import stats
@@ -9,6 +9,7 @@ from neuro_py.session.locate_epochs import find_pre_task_post
 import logging
 import copy
 import matplotlib.pyplot as plt
+import seaborn as sns
 from typing import Union
 
 logging.getLogger().setLevel(logging.ERROR)
@@ -261,7 +262,7 @@ class AssemblyReact(object):
         plot_members: bool = True,
         central_line_color: str = "grey",
         marker_color: str = "k",
-        member_color: str = "#6768ab",
+        member_color: Union[str, list] = "#6768ab",
         line_width: float = 1.25,
         markersize: float = 4,
         x_padding: float = 0.2,
@@ -270,6 +271,7 @@ class AssemblyReact(object):
         """
         plots basic stem plot to display assembly weights
         """
+
         if not hasattr(self, "patterns"):
             return f"run get_weights first"
         else:
@@ -305,7 +307,12 @@ class AssemblyReact(object):
                     markerline, stemlines, baseline = axes[i].stem(
                         current_pattern, orientation="horizontal"
                     )
-                    markerline._color = member_color
+                    if isinstance(
+                        member_color, sns.palettes._ColorPalette
+                    ) or isinstance(member_color, list):
+                        markerline._color = member_color[i]
+                    else:
+                        markerline._color = member_color
                     baseline._color = "#00000000"
                     baseline.zorder = -1000
                     plt.setp(stemlines, "color", plt.getp(markerline, "color"))
