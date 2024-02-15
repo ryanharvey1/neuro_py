@@ -258,7 +258,7 @@ class LoadLfp(object):
             if intervals.ndim == 1:
                 intervals = intervals[np.newaxis, :]
         else:
-            intervals = np.array([[min(timestep), max(timestep)]])
+            intervals = np.array([0,timestep.shape[0] / self.fs])[np.newaxis, :]
 
         idx = in_intervals(timestep, intervals)
 
@@ -268,7 +268,7 @@ class LoadLfp(object):
                 data=lfp.T,
                 timestamps=timestep,
                 fs=self.fs,
-                support=nel.EpochArray(np.array([min(timestep), max(timestep)])),
+                support=nel.EpochArray(intervals),
             )
         else:
             self.lfp = nel.AnalogSignalArray(
