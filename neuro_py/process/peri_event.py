@@ -98,9 +98,21 @@ def crossCorr(
     return C
 
 
-def compute_psth(spikes, event, bin_width=0.002, n_bins=100):
-    # times = np.arange(0, bin_width * (n_bins + 1), bin_width) - (n_bins * bin_width) / 2
-    times = np.linspace(-(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1)
+def compute_psth(
+    spikes: np.ndarray,
+    event: np.ndarray,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+    window: list = None,
+):
+    if window is not None:
+        times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        n_bins = len(times) - 1
+    else:
+        times = np.linspace(
+            -(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1
+        )
+
     ccg = pd.DataFrame(index=times, columns=np.arange(len(spikes)))
     # Now we can iterate over spikes
     for i, s in enumerate(spikes):
