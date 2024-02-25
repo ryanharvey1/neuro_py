@@ -789,3 +789,60 @@ def relative_times(t, intervals, values=np.array([0, 1])):
         intervalID[i] = interval_i
 
     return rt, intervalID
+
+
+def nearest_event_delay(ts_1: np.ndarray, ts_2: np.ndarray) -> np.ndarray:
+    """
+    Return for each timestamp in ts_1 the nearest timestamp in ts_2 and the delay between the two
+
+    Parameters
+    ----------
+    ts_1 : array-like
+        timestamps
+    ts_2 : array-like
+        timestamps
+    Returns
+    -------
+    nearest_ts : array-like
+        nearest timestamps in ts_2
+    delays : array-like
+        delays between ts_1 and nearest_ts
+    nearest_index : array-like
+        index of nearest_ts in ts_2
+    """
+    ts_1, ts_2 = np.array(ts_1), np.array(ts_2)
+
+    if not np.all(np.diff(ts_2) > 0):
+        raise ValueError("ts_2 must be monotonically increasing")
+
+    if not np.all(np.diff(ts_1) > 0):
+        raise ValueError("ts_1 must be monotonically increasing")
+    # check if empty
+    if len(ts_1) == 0:
+        raise ValueError("ts_1 is empty")
+    if len(ts_2) == 0:
+        raise ValueError("ts_2 is empty")
+    
+    # Use searchsorted to find the indices where elements of ts_1 should be inserted
+    nearest_indices = np.searchsorted(ts_2, ts_1, side="left")
+
+    # Calculate indices for the elements before and after the insertion points
+    before = np.maximum(nearest_indices - 1, 0)
+    after = np.minimum(nearest_indices, len(ts_2) - 1)
+
+    # Determine the nearest timestamp for each element in ts_1
+    nearest_ts = np.where(
+        np.abs(ts_1 - ts_2[before]) < np.abs(ts_1 - ts_2[after]),
+        ts_2[before],
+        ts_2[after],
+    )
+
+    # Calculate delays between ts_1 and nearest_ts
+    delays = ts_1 - nearest_ts
+
+    # Find the nearest_index using the absolute difference
+    absolute_diff_before = np.abs(ts_1 - ts_2[before])
+    absolute_diff_after = np.abs(ts_1 - ts_2[after])
+    nearest_index = np.where(absolute_diff_before < absolute_diff_after, before, after)
+
+    return nearest_ts, delays, nearest_index
