@@ -47,6 +47,8 @@ def get_linear_maze_trials(basepath, epoch_input=None):
     epoch_df = loading.load_epoch(basepath)
     epoch = nel.EpochArray([np.array([epoch_df.startTime, epoch_df.stopTime]).T])
 
+    domain = nel.EpochArray([np.array([epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]).T])
+
     inbound_laps_temp = []
     outbound_laps_temp = []
     maze_idx = np.where(epoch_df.environment == "linear")[0]
@@ -72,8 +74,8 @@ def get_linear_maze_trials(basepath, epoch_input=None):
         if not outbound_laps.isempty:
             outbound_laps_temp.append(outbound_laps.data)
 
-    inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp))
-    outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp))
+    inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp),domain=domain)
+    outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp),domain=domain)
 
     return pos, inbound_laps, outbound_laps
 
