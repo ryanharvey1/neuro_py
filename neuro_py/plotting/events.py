@@ -203,6 +203,9 @@ def plot_peth_fast(
         warnings.simplefilter("ignore", category=RuntimeWarning)
         ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
 
+    # drop label from kwargs, as it was already used in the plot
+    kwargs.pop("label", None)
+
     lower, upper = confidence_intervals(peth.values.T, conf=ci)
     ax.fill_between(peth.index, lower, upper, alpha=0.5, **kwargs)
 
