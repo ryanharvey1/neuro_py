@@ -106,6 +106,14 @@ def compute_psth(
     window: list = None,
 ):
     if window is not None:
+        window_original = None
+        # check if window is symmetric around 0, if not make it so
+        if ((window[1] - window[0]) / 2 != window[1]) | (
+            (window[1] - window[0]) / -2 != window[0]
+        ):
+            window_original = np.array(window)
+            window = [-np.max(np.abs(window)), np.max(np.abs(window))]
+
         times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
         n_bins = len(times) - 1
     else:
@@ -117,6 +125,11 @@ def compute_psth(
     # Now we can iterate over spikes
     for i, s in enumerate(spikes):
         ccg[i] = crossCorr(event, s, bin_width, n_bins)
+
+    # if window was not symmetric, remove the extra bins
+    if window is not None:
+        if window_original is not None:
+            ccg = ccg.loc[window_original[0] : window_original[1], :]
     return ccg
 
 
@@ -822,7 +835,7 @@ def nearest_event_delay(ts_1: np.ndarray, ts_2: np.ndarray) -> np.ndarray:
         raise ValueError("ts_1 is empty")
     if len(ts_2) == 0:
         raise ValueError("ts_2 is empty")
-    
+
     # Use searchsorted to find the indices where elements of ts_1 should be inserted
     nearest_indices = np.searchsorted(ts_2, ts_1, side="left")
 
