@@ -12,11 +12,11 @@ __all__ = [
 
 import numpy as np
 import pandas as pd
-from numba import jit
+from numba import jit, prange
 from scipy.linalg import toeplitz
 from scipy import stats
-import itertools
 import warnings
+from typing import Union
 
 
 @jit(nopython=True)
@@ -133,7 +133,7 @@ def compute_psth(
     return ccg
 
 
-def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
+def joint_peth(peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2):
     """
     joint_peth - produce a joint histogram for the co-occurrence of two sets of signals around events.
     PETH1 and PETH2 should be in the format of PETH, see example usage below.
@@ -184,7 +184,7 @@ def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
     delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
     st,cm = loading.load_spikes(basepath,brainRegion="PFC",putativeCellType="Pyr")
 
-    # flatten spikes (nelpy has .flatten(), but get_spindices is much faster) 
+    # flatten spikes (nelpy has .flatten(), but get_spindices is much faster)
     spikes = get_spindices(st.data)
 
     # create peri-event time histograms (PETHs) for the three signals
@@ -192,10 +192,6 @@ def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
     labels = ["spikes", "ripple", "delta"]
     peth_1,ts = peth_matrix(spikes.spike_times.values, delta_waves.starts, bin_width=0.02, n_bins=101)
     peth_2,ts = peth_matrix(ripples.starts, delta_waves.starts, bin_width=0.02, n_bins=101)
-
-    # normalize to Hz
-    peth_1 /= np.diff(ts)[0]
-    peth_2 /= np.diff(ts)[0]
 
     # calculate the joint, expected, and difference histograms
     joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=2)
@@ -285,6 +281,7 @@ def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
     return deconvolved, times
 
 
+@jit(nopython=True)
 def get_raster_points(data, time_ref, bin_width=0.002, n_bins=100, window=None):
     """
     Generate points for a raster plot centered around each reference time in the `time_ref` array.
@@ -312,41 +309,73 @@ def get_raster_points(data, time_ref, bin_width=0.002, n_bins=100, window=None):
     times : ndarray
         A 1D array of time values corresponding to the bins in the raster plot.
     """
-
     if window is not None:
         times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
     else:
         times = np.linspace(
             -(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1
         )
-    x = []
-    y = []
+
+    x = np.empty(0)
+    y = np.empty(0)
     for i, r in enumerate(time_ref):
         idx = (data > r + times.min()) & (data < r + times.max())
         cur_data = data[idx]
-        # if any(cur_data):
-        x.append(cur_data - r)
-        y.append(np.ones_like(cur_data) + i)
-    x = list(itertools.chain(*x))
-    y = list(itertools.chain(*y))
+        x = np.concatenate((x, cur_data - r))
+        y = np.concatenate((y, np.ones_like(cur_data) * i))
+
     return x, y, times
 
 
-def peth_matrix(data, time_ref, bin_width=0.002, n_bins=100, window=None):
-    x, y, t = get_raster_points(
-        data, time_ref, bin_width=bin_width, n_bins=n_bins, window=window
-    )
-    dt = np.diff(t)[0]
-    x, y = np.array(x), np.array(y)
-    H, xedges, yedges = np.histogram2d(
-        x,
-        y,
-        bins=(
-            np.arange(t.min(), t.max() + dt, dt),
-            np.arange(0.5, len(time_ref) + 1.5),
-        ),
-    )
-    return H, t[:-1] + dt / 2
+@jit(nopython=True, parallel=True)
+def peth_matrix(
+    data: np.ndarray,
+    time_ref: np.ndarray,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+    window: Union[list, None] = None,
+):
+    """
+    Generate a peri-event time histogram (PETH) matrix.
+
+    Parameters
+    ----------
+    data : ndarray
+        A 1D array of time values.
+    time_ref : ndarray
+        A 1D array of reference times.
+    bin_width : float, optional
+        The width of each bin in the PETH matrix, in seconds. Default is 0.002 seconds.
+    n_bins : int, optional
+        The number of bins in the PETH matrix. Default is 100.
+    window : tuple, optional
+        A tuple containing the start and end times of the window to be plotted around each reference time.
+        If not provided, the window will be centered around each reference time and have a width of `n_bins * bin_width` seconds.
+
+    Returns
+    -------
+    H : ndarray
+        A 2D array representing the PETH matrix.
+    t : ndarray
+        A 1D array of time values corresponding to the bins in the PETH matrix.
+
+    """
+    if window is not None:
+        times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        n_bins = len(times) - 1
+    else:
+        times = (
+            np.arange(0, bin_width * n_bins, bin_width)
+            - (bin_width * n_bins) / 2
+            + bin_width / 2
+        )
+
+    H = np.zeros((len(times), len(time_ref)))
+
+    for event_i in prange(len(time_ref)):
+        H[:, event_i] = crossCorr([time_ref[event_i]], data, bin_width, n_bins)
+
+    return H * bin_width, times
 
 
 def event_triggered_average_irregular_sample(
