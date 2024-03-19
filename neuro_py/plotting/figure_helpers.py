@@ -180,15 +180,17 @@ def plot_joint_peth(
 
     """
     from neuro_py.process.peri_event import joint_peth
-    from neuro_py.process.utils import circular_shift
+    from neuro_py.process.utils import avgerage_diagonal
 
     window = [ts[0], ts[-1]]
 
     joint, expected, difference = joint_peth(peth_1, peth_2, smooth_std=smooth_std)
 
-    corrected = circular_shift(
-        difference, np.ceil(difference.shape[1] / 2) - np.arange(difference.shape[1])
-    )
+    # get average of diagonals
+    corrected = avgerage_diagonal(difference.T)
+    # get center values of corrected_2
+    corrected = corrected[difference.shape[1] // 2:(difference.shape[1] // 2) + difference.shape[1]]
+
 
     fig, ax = plt.subplots(
         2,
@@ -239,7 +241,7 @@ def plot_joint_peth(
     ax[0, 3].set_title(f"corrected {labels[0]} response to {labels[1]}")
     ax[0, 3].plot(
         np.linspace(window[0], window[-1], len(corrected)),
-        corrected.mean(axis=1),
+        corrected,
         color="k",
     )
     ax[0, 3].set_xlim(window[0], window[-1])
