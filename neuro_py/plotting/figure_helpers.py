@@ -184,7 +184,7 @@ def plot_joint_peth(
 
     window = [ts[0], ts[-1]]
 
-    joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=smooth_std)
+    joint, expected, difference = joint_peth(peth_1, peth_2, smooth_std=smooth_std)
 
     corrected = circular_shift(
         difference, np.ceil(difference.shape[1] / 2) - np.arange(difference.shape[1])
