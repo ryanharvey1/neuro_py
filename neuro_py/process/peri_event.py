@@ -133,6 +133,81 @@ def compute_psth(
     return ccg
 
 
+def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
+    """
+    joint_peth - produce a joint histogram for the co-occurrence of two sets of signals around events.
+    PETH1 and PETH2 should be in the format of PETH, see example usage below.
+    This analysis tests for interactions. For example, the interaction of
+    ripples and spindles around the occurrence of delta waves. It is a good way
+    to control whether the relationships between two variables is entirely explained
+    by a third variable (the events serving as basis for the PETHs). See Sirota et al. (2003)
+
+    % Note: sometimes the difference between "joint" and "expected" may be dominated due to
+    % brain state effects (e.g. if both ripples are spindles are more common around delta
+    % waves taking place in early SWS and have decreased rates around delta waves in late
+    % SWS, then all the values of "joint" would be larger than the value of "expected".
+    % In such a case, to investigate the timing effects in particular and ignore such
+    % global changes (correlations across the rows of "PETH1" and "PETH2"), consider
+    % normalizing the rows of the PETHs before calling joint_peth.
+
+    Adapted from JointPETH.m, Copyright (C) 2018-2022 by Ralitsa Todorova
+
+    Parameters
+    ----------
+    peth_1 : array
+        The first peri-event time histogram (PETH) signal, (n events x time).
+    peth_2 : array
+        The second peri-event time histogram (PETH) signal, (n events x time).
+    smooth_std : float, optional
+        The standard deviation of the Gaussian smoothing kernel (default value is 2).
+
+    Returns
+    -------
+    joint : array
+        The joint histogram of the two PETH signals (time x time).
+    expected : array
+        The expected histogram of the two PETH signals (time x time).
+    difference : array
+        The difference between the joint and expected histograms of the two PETH signals (time x time).
+
+    Example
+    -------
+
+    """
+    from scipy.ndimage import gaussian_filter
+
+    # make inputs np.ndarrays
+    peth_1 = np.array(peth_1)
+    peth_2 = np.array(peth_2)
+
+    # calculate the joint histogram
+    joint = peth_1.T @ peth_2
+
+    # smooth the 2d joint histogram
+    joint = gaussian_filter(joint, smooth_std)
+
+    # calculate the expected histogram
+    expected = np.tile(np.nanmean(peth_1, axis=0), [peth_1.shape[0], 1]).T @ np.tile(
+        np.nanmean(peth_2, axis=0), [peth_2.shape[0], 1]
+    )
+
+    # smooth the 2d expected histogram
+    expected = gaussian_filter(expected, smooth_std)
+
+    # normalize the joint and expected histograms
+    joint = joint / peth_1.shape[0]
+    expected = expected / peth_1.shape[0]
+
+    # square root the joint and expected histograms so result is Hz
+    joint = np.sqrt(joint)
+    expected = np.sqrt(expected)
+
+    # calculate the difference between the joint and expected histograms
+    difference = joint - expected
+
+    return joint, expected, difference
+
+
 def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
     """
     This function performs deconvolution of a peri-event time histogram (PETH) signal.

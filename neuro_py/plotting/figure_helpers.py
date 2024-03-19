@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import PathPatch
+import seaborn as sns
+
 
 def set_plotting_defaults():
     tex_fonts = {
@@ -38,6 +40,8 @@ def set_size(width, fraction=1, subplots=(1, 1)):
         width_pt = 426.79135
     elif width == "beamer":
         width_pt = 307.28987
+    elif width == "paper":
+        width_pt = 595.276
     else:
         width_pt = width
 
@@ -77,7 +81,7 @@ def lighten_color(color, amount=0.5):
         return "#%02x%02x%02x" % c
     except ValueError:
         return color
-    
+
 
 def set_equal_axis_range(ax1, ax2):
     """
@@ -141,3 +145,131 @@ def adjust_box_widths(g, fac):
                 for l in ax.lines:
                     if np.all(l.get_xdata() == [xmin, xmax]):
                         l.set_xdata([xmin_new, xmax_new])
+
+
+def plot_joint_peth(
+    peth_1: np.ndarray,
+    peth_2: np.ndarray,
+    ts: np.ndarray,
+    smooth_std: float = 2,
+    labels: list = ["peth_1", "peth_2", "event"],
+):
+    """
+    Plot joint peri-event time histograms (PETHs) and the difference between the observed and expected response.
+
+    Parameters
+    ----------
+    peth_1 : np.ndarray
+        Peri-event time histogram (PETH) for the first event. (n events x time).
+    peth_2 : np.ndarray
+        Peri-event time histogram (PETH) for the second event. (n events x time).
+    ts : np.ndarray
+        Time vector for the PETHs.
+    smooth_std : float, optional
+        Standard deviation of the Gaussian kernel used to smooth the PETHs.
+    labels : list, optional
+        Labels for the PETHs.
+
+    Returns
+    -------
+    fig : plt.Figure
+        Figure object.
+    ax : np.ndarray
+        Axes objects.
+
+
+    """
+    from neuro_py.process.peri_event import joint_peth
+    from neuro_py.process.utils import circular_shift
+
+    window = [ts[0], ts[-1]]
+
+    joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=smooth_std)
+
+    corrected = circular_shift(
+        difference, np.ceil(difference.shape[1] / 2) - np.arange(difference.shape[1])
+    )
+
+    fig, ax = plt.subplots(
+        2,
+        4,
+        figsize=(12, 4),
+        gridspec_kw={"width_ratios": [0.25, 1, 1, 1], "height_ratios": [0.25, 1]},
+    )
+    # space between panels
+    plt.subplots_adjust(wspace=0.2, hspace=0.2)
+    f = ax[1, 1].imshow(
+        joint,
+        aspect="auto",
+        interpolation="nearest",
+        origin="lower",
+        extent=[window[0], window[-1], window[0], window[-1]],
+    )
+
+    ax[0, 1].plot(
+        np.linspace(window[0], window[-1], len(joint)), joint.mean(axis=0), color="k"
+    )
+    ax[0, 1].set_ylabel(f"{labels[1]} rate")
+    ax[0, 1].axvline(0, ls="--", color="k")
+
+    ax[1, 0].plot(
+        joint.mean(axis=1), np.linspace(window[0], window[-1], len(joint)), color="k"
+    )
+    ax[1, 0].axhline(0, ls="--", color="k")
+    ax[1, 0].set_xlabel(f"{labels[1]} rate")
+
+    # plt.colorbar(f)
+    ax[1, 2].imshow(
+        expected,
+        aspect="auto",
+        interpolation="nearest",
+        origin="lower",
+        extent=[window[0], window[-1], window[0], window[-1]],
+    )
+    ax[1, 2].set_title("Expected")
+
+    ax[1, 3].imshow(
+        difference,
+        aspect="auto",
+        interpolation="nearest",
+        origin="lower",
+        extent=[window[0], window[-1], window[0], window[-1]],
+    )
+
+    ax[0, 3].set_title(f"corrected {labels[0]} response to {labels[1]}")
+    ax[0, 3].plot(
+        np.linspace(window[0], window[-1], len(corrected)),
+        corrected.mean(axis=1),
+        color="k",
+    )
+    ax[0, 3].set_xlim(window[0], window[-1])
+    ax[0, 3].axvline(0, ls="--", color="k")
+
+    for a in ax[1, 1:].ravel():
+        a.plot([-1, 1], [-1, 1], "k--")
+        a.axvline(0, c="w", ls="--")
+        a.axhline(0, c="w", ls="--")
+        a.set_xlim(window[0], window[-1])
+        a.set_ylim(window[0], window[-1])
+    ax[0, 0].axis("off")
+    ax[0, 2].axis("off")
+
+    ax[1, 1].set_xlabel(f"{labels[1]} time from {labels[-1]} (s)")
+    ax[1, 2].set_xlabel(f"{labels[1]} time from {labels[-1]} (s)")
+    ax[1, 3].set_xlabel(f"{labels[1]} time from {labels[-1]} (s)")
+
+    ax[1, 0].set_ylabel(f"{labels[0]} time from {labels[-1]} (s)")
+
+    # turn off x ticsk
+    ax[0, 1].set_xticks([])
+    ax[0, 3].set_xticks([])
+
+    ax[1, 1].set_yticks([])
+    ax[1, 2].set_yticks([])
+    ax[1, 3].set_yticks([])
+
+    ax[0, 3].set_xlabel(f"obs - expected")
+
+    sns.despine()
+
+    return fig, ax
