@@ -172,6 +172,10 @@ def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
 
     Example
     -------
+    from neuro_py.process.peri_event import joint_peth, peth_matrix, joint_peth
+    from neuro_py.spikes.spike_tools import get_spindices
+    from neuro_py.io import loading
+
     # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
 
     basepath = r"Z:\Data\HMC1\day8"
