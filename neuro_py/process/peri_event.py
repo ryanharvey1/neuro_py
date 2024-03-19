@@ -172,7 +172,32 @@ def joint_peth(peth_1:np.ndarray, peth_2:np.ndarray, smooth_std:float=2):
 
     Example
     -------
+    # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
 
+    basepath = r"Z:\Data\HMC1\day8"
+
+    ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
+    delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
+    st,cm = loading.load_spikes(basepath,brainRegion="PFC",putativeCellType="Pyr")
+
+    # flatten spikes (nelpy has .flatten(), but get_spindices is much faster) 
+    spikes = get_spindices(st.data)
+
+    # create peri-event time histograms (PETHs) for the three signals
+    window=[-1,1]
+    labels = ["spikes", "ripple", "delta"]
+    peth_1,ts = peth_matrix(spikes.spike_times.values, delta_waves.starts, bin_width=0.02, n_bins=101)
+    peth_2,ts = peth_matrix(ripples.starts, delta_waves.starts, bin_width=0.02, n_bins=101)
+
+    # normalize to Hz
+    peth_1 /= np.diff(ts)[0]
+    peth_2 /= np.diff(ts)[0]
+
+    # calculate the joint, expected, and difference histograms
+    joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=2)
+
+
+    also see plot_joint_peth in figure_helpers.py
     """
     from scipy.ndimage import gaussian_filter
 
