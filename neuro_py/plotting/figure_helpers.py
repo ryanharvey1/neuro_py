@@ -218,7 +218,7 @@ def plot_joint_peth(
         joint.mean(axis=1), np.linspace(window[0], window[-1], len(joint)), color="k"
     )
     ax[1, 0].axhline(0, ls="--", color="k")
-    ax[1, 0].set_xlabel(f"{labels[1]} rate")
+    ax[1, 0].set_xlabel(f"{labels[0]} rate")
 
     # plt.colorbar(f)
     ax[1, 2].imshow(
