@@ -5,6 +5,7 @@ import pandas as pd
 import seaborn as sns
 from neuro_py.stats.stats import confidence_intervals
 import warnings
+from typing import Union
 
 
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
@@ -119,7 +120,8 @@ def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
 
 
 def plot_peth_fast(
-    peth: pd.DataFrame,
+    peth: Union[pd.DataFrame, np.ndarray],
+    ts=None,
     ax=None,
     ci: float = 0.95,
     smooth: bool = False,
@@ -135,8 +137,10 @@ def plot_peth_fast(
 
     Parameters
     ----------
-    peth : pd.DataFrame
+    peth : pd.DataFrame, np.ndarray
         Peth to plot
+    ts : np.ndarray, optional
+        Time points to plot, by default None
     ax : plt.Axes, optional
         Axis to plot on, by default None
     ci : float, optional
@@ -179,9 +183,23 @@ def plot_peth_fast(
     if ax is None:
         fig, ax = plt.subplots()
 
-    # verify peth is a dataframe
+    # verify peth is a dataframe, if not convert it
     if not isinstance(peth, pd.DataFrame):
-        raise TypeError("peth must be a pandas dataframe")
+
+        # if ts is not provided, create a range of time points
+        if ts is None:
+            ts = np.arange(peth.shape[0])
+
+        # transpose peth so that time is rows and trials are columns
+        if len(ts) == peth.shape[1]:
+            peth = peth.T
+
+        peth = pd.DataFrame(
+            index=ts,
+            columns=np.arange(peth.shape[1]),
+            data=peth,
+        )
+        # raise TypeError("peth must be a pandas dataframe")
 
     if smooth:
         # convert window to samples
