@@ -258,7 +258,7 @@ class LoadLfp(object):
             if intervals.ndim == 1:
                 intervals = intervals[np.newaxis, :]
         else:
-            intervals = np.array([0,timestep.shape[0] / self.fs])[np.newaxis, :]
+            intervals = np.array([0, timestep.shape[0] / self.fs])[np.newaxis, :]
 
         idx = in_intervals(timestep, intervals)
 
@@ -1267,12 +1267,30 @@ def load_epoch(basepath: str) -> pd.DataFrame:
     # load file
     data = sio.loadmat(filename, simplify_cells=True)
 
+    def add_columns(df):
+        """add columns to df if they don't exist"""
+        needed_columns = [
+            "name",
+            "startTime",
+            "stopTime",
+            "environment",
+            "manipulation",
+            "behavioralParadigm",
+            "stimuli",
+            "notes",
+        ]
+        for col in needed_columns:
+            if col not in df.columns:
+                df[col] = np.nan
+        return df
     try:
         epoch_df = pd.DataFrame(data["session"]["epochs"])
+        epoch_df = add_columns(epoch_df)
         epoch_df["basepath"] = basepath
         return epoch_df
     except:
         epoch_df = pd.DataFrame([data["session"]["epochs"]])
+        epoch_df = add_columns(epoch_df)
         epoch_df["basepath"] = basepath
         return epoch_df
 
@@ -1332,7 +1350,7 @@ def load_brain_regions(basepath):
             electrodeGroups = data["brainRegions"][0][0][dn][0][0][0][0][1][0]
         except:
             electrodeGroups = np.nan
-            
+
         brainRegions[dn] = {
             "channels": channels,
             "electrodeGroups": electrodeGroups,
@@ -1510,9 +1528,9 @@ def load_deepSuperficialfromRipple(basepath, bypass_mismatch_exception=False):
     shanks[channel_sort_idx] = np.hstack(shanks_) + 1
 
     channel_df["channel"] = channels
-    channel_df.loc[
-        np.arange(len(channel_sort_idx)), "channel_sort_idx"
-    ] = channel_sort_idx
+    channel_df.loc[np.arange(len(channel_sort_idx)), "channel_sort_idx"] = (
+        channel_sort_idx
+    )
     channel_df["shank"] = shanks
 
     # add distance from pyr layer (will only be accurate if polarity rev)
