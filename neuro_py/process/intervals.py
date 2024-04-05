@@ -130,6 +130,22 @@ def overlap_intersect(epoch, interval, return_indices=True):
 
 @jit(nopython=True)
 def find_intersecting_intervals_(set1, set2):
+    """
+    Find the amount of time two sets of intervals are intersecting each other for each intersection.
+
+    Parameters
+    ----------
+    set1 : ndarray
+        An array of intervals represented as pairs of start and end times.
+    set2 : ndarray
+        An array of intervals represented as pairs of start and end times.
+
+    Returns
+    -------
+    list
+        A list of floats, where each float represents the amount of time the
+            corresponding interval in set1 intersects with any interval in set2.
+    """
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
         # Check if any of the intervals in set2 intersect with the current interval in set1
