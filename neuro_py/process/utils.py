@@ -2,6 +2,7 @@ import numpy as np
 import nelpy as nel
 import pandas as pd
 from typing import List, Union
+from neuro_py.process.intervals import truncate_epoch
 
 
 def circular_shift(m: np.ndarray, s: np.ndarray):
@@ -119,6 +120,7 @@ def remove_inactive_cells(
     ----------
     st: SpikeTrainArray
         SpikeTrainArray object
+
     cell_metrics: DataFrame
         DataFrame containing cell metrics
     epochs: EpochArray
@@ -197,8 +199,10 @@ def remove_inactive_cells(
         raise ValueError("cell_metrics must be a DataFrame object")
 
     if not isinstance(epochs, (nel.core._intervalarray.EpochArray, list)):
-        raise ValueError("epochs must be an EpochArray object or a list of EpochArray objects")
-    
+        raise ValueError(
+            "epochs must be an EpochArray object or a list of EpochArray objects"
+        )
+
     if isinstance(epochs, list):
         for epoch in epochs:
             if not isinstance(epoch, nel.core._intervalarray.EpochArray):
@@ -241,3 +245,107 @@ def remove_inactive_cells(
     cell_metrics = cell_metrics[good_idx]
 
     return st, cell_metrics
+
+
+def remove_inactive_cells_pre_task_post(
+    st: nel.core._eventarray.SpikeTrainArray,
+    cell_metrics: pd.core.frame.DataFrame,
+    beh_epochs: nel.core._intervalarray.EpochArray,
+    nrem_epochs: nel.core._intervalarray.EpochArray,
+    theta_epochs: nel.core._intervalarray.EpochArray,
+    min_spikes: int = 100,
+    nrem_time: Union[int,float] = 3600,
+) -> tuple:
+    """
+    remove_inactive_cells_pre_task_post: Remove cells with fewer than min_spikes spikes per pre/task/post
+
+    Parameters
+    ----------
+    st: SpikeTrainArray
+        SpikeTrainArray object
+    cell_metrics: DataFrame
+        DataFrame containing cell metrics
+    beh_epochs: EpochArray
+        EpochArray object containing pre/task/post epochs
+    nrem_epochs: EpochArray
+        EpochArray object containing NREM epochs
+    theta_epochs: EpochArray
+        EpochArray object containing theta epochs
+    min_spikes: int
+        Minimum number of spikes per pre/task/post
+    nrem_time: int or float
+        Time in seconds to truncate NREM epochs
+
+    Returns
+    -------
+    st: SpikeTrainArray
+        SpikeTrainArray object with inactive cells removed
+    cell_metrics: DataFrame
+        DataFrame containing cell metrics with inactive cells removed
+
+    Example
+    -------
+    from neuro_py.process.utils import remove_inactive_cells_pre_task_post
+    from neuro_py.io import loading
+    from neuro_py.session.locate_epochs import (
+        find_multitask_pre_post,
+        compress_repeated_epochs,
+    )
+    import nelpy as nel
+
+    # load data from session
+    basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+
+    # load spikes and cell metrics (cm)
+    st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
+
+    # load epochs and apply multitask epoch restrictions
+    epoch_df = loading.load_epoch(basepath)
+    epoch_df = compress_repeated_epochs(epoch_df)
+    pre_task_post = find_multitask_pre_post(
+        epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
+    )
+
+    beh_epochs = nel.EpochArray(
+        epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
+    )
+
+    # load sleep states to restrict to NREM and theta
+    state_dict = loading.load_SleepState_states(basepath)
+    nrem_epochs = nel.EpochArray(
+        state_dict["NREMstate"],
+    )
+    theta_epochs = nel.EpochArray(
+        state_dict["THETA"],
+    )
+
+    st,cm = remove_inactive_cells_pre_task_post(st,cm,beh_epochs,nrem_epochs,theta_epochs)
+    """
+
+    # check data types (further checks are done in remove_inactive_cells)
+    if not isinstance(beh_epochs, nel.core._intervalarray.EpochArray):
+        raise ValueError("beh_epochs must be an EpochArray object")
+
+    if not isinstance(nrem_epochs, nel.core._intervalarray.EpochArray):
+        raise ValueError("nrem_epochs must be an EpochArray object")
+
+    if not isinstance(theta_epochs, nel.core._intervalarray.EpochArray):
+        raise ValueError("theta_epochs must be an EpochArray object")
+
+    # create list of restricted epochs
+    restict_epochs = []
+    for epoch, epoch_label in zip(beh_epochs, ["pre", "task", "post"]):
+        if epoch_label in "pre":
+            # get cumulative hours of sleep
+            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=nrem_time)
+        elif epoch_label in "post":
+            # get cumulative hours of sleep
+            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=nrem_time)
+        else:
+            # get theta during task
+            epoch_restrict = epoch & theta_epochs
+        restict_epochs.append(epoch_restrict)
+
+    return remove_inactive_cells(
+        st, cell_metrics, restict_epochs, min_spikes=min_spikes
+    )
