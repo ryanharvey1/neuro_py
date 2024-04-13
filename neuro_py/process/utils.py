@@ -1,4 +1,7 @@
 import numpy as np
+import nelpy as nel
+import pandas as pd
+from typing import List, Union
 
 
 def circular_shift(m: np.ndarray, s: np.ndarray):
@@ -99,3 +102,142 @@ def avgerage_diagonal(mat):
     output[0:n] /= np.arange(1, n + 1, 1, dtype=np.float64)
     output[n:] /= np.arange(n - 1, 0, -1, dtype=np.float64)
     return output
+
+
+def remove_inactive_cells(
+    st: nel.core._eventarray.SpikeTrainArray,
+    cell_metrics: pd.core.frame.DataFrame,
+    epochs: Union[
+        List[nel.core._intervalarray.EpochArray], nel.core._intervalarray.EpochArray
+    ],
+    min_spikes: int = 100,
+) -> tuple:
+    """
+    remove_inactive_cells: Remove cells with fewer than min_spikes spikes per sub-epoch
+
+    Parameters
+    ----------
+    st: SpikeTrainArray
+        SpikeTrainArray object
+    cell_metrics: DataFrame
+        DataFrame containing cell metrics
+    epochs: EpochArray
+        list of EpochArray objects or a single EpochArray object
+        If a list of EpochArray objects is provided, each EpochArray object is treated as a sub-epoch
+        If a single EpochArray object is provided, each interval in the EpochArray object is treated as a sub-epoch
+    min_spikes: int
+        Minimum number of spikes per sub-epoch
+
+    Returns
+    -------
+    st: SpikeTrainArray
+        SpikeTrainArray object with inactive cells removed
+    cell_metrics: DataFrame
+        DataFrame containing cell metrics with inactive cells removed
+
+    Example
+    -------
+    from neuro_py.process.intervals import truncate_epoch
+    from neuro_py.session.locate_epochs import (
+        find_multitask_pre_post,
+        compress_repeated_epochs,
+    )
+    from neuro_py.io import loading
+    import nelpy as nel
+    from neuro_py.process.utils import remove_inactive_cells
+
+    # load data from session
+    basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+
+    # load spikes and cell metrics (cm)
+    st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
+
+    # load epochs and apply multitask epoch restrictions
+    epoch_df = loading.load_epoch(basepath)
+    epoch_df = compress_repeated_epochs(epoch_df)
+    pre_task_post = find_multitask_pre_post(
+        epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
+    )
+
+    beh_epochs = nel.EpochArray(
+        epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
+    )
+    # load sleep states to restrict to NREM and theta
+    state_dict = loading.load_SleepState_states(basepath)
+    nrem_epochs = nel.EpochArray(
+        state_dict["NREMstate"],
+    )
+    theta_epochs = nel.EpochArray(
+        state_dict["THETA"],
+    )
+    # create list of restricted epochs
+    restict_epochs = []
+    for epoch, epoch_label in zip(beh_epochs, ["pre", "task", "post"]):
+        if epoch_label in "pre":
+            # get cumulative hours of sleep
+            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
+        elif epoch_label in "post":
+            # get cumulative hours of sleep
+            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
+        else:
+            # get theta during task
+            epoch_restrict = epoch & theta_epochs
+        restict_epochs.append(epoch_restrict)
+
+    # remove inactive cells
+    st, cm = remove_inactive_cells(st, cm, restict_epochs)
+
+    """
+
+    # check data types
+    if not isinstance(st, nel.core._eventarray.SpikeTrainArray):
+        raise ValueError("st must be a SpikeTrainArray object")
+
+    if not isinstance(cell_metrics, pd.core.frame.DataFrame):
+        raise ValueError("cell_metrics must be a DataFrame object")
+
+    if not isinstance(epochs, (nel.core._intervalarray.EpochArray, list)):
+        raise ValueError("epochs must be an EpochArray object or a list of EpochArray objects")
+    
+    if isinstance(epochs, list):
+        for epoch in epochs:
+            if not isinstance(epoch, nel.core._intervalarray.EpochArray):
+                raise ValueError("list of epochs must contain EpochArray objects")
+
+    # check if st is empty
+    if st.isempty:
+        return st, cell_metrics
+
+    # check if epochs is empty
+    if isinstance(epochs, nel.core._intervalarray.EpochArray):
+        if epochs.isempty:
+            return st, cell_metrics
+
+    # check if cell_metrics is empty
+    if cell_metrics.empty:
+        return st, cell_metrics
+
+    # check if min_spikes is less than 1
+    if min_spikes < 1:
+        return st, cell_metrics
+
+    # check if st and cell_metrics have the same number of units
+    if st.n_units != cell_metrics.shape[0]:
+        # assert error message
+        raise ValueError("st and cell_metrics must have the same number of units")
+
+    spk_thres_met = []
+    # check if each cell has at least min_spikes spikes in each epoch
+    for epoch_restrict in epochs:
+        if st[epoch_restrict].isempty:
+            spk_thres_met.append([False] * st.n_units)
+            continue
+        spk_thres_met.append(st[epoch_restrict].n_events >= min_spikes)
+
+    good_idx = np.vstack(spk_thres_met).all(axis=0)
+
+    # remove inactive cells
+    st = st.iloc[:, good_idx]
+    cell_metrics = cell_metrics[good_idx]
+
+    return st, cell_metrics
