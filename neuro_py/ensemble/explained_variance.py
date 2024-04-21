@@ -315,13 +315,13 @@ class ExplainedVariance(object):
             self.ev + self.ev_std,
             alpha=0.5,
         )
-        ax.plot(self.matching_time, self.rev, label="rEV",color="grey")
+        ax.plot(self.matching_time, self.rev, label="rEV", color="grey")
         ax.fill_between(
             self.matching_time,
             self.rev - self.rev_std,
             self.rev + self.rev_std,
             alpha=0.5,
-            color="grey"
+            color="grey",
         )
         # check if matching time overlaps with control time and plot control time
         if np.any(
@@ -334,7 +334,7 @@ class ExplainedVariance(object):
                 color="green",
                 alpha=0.3,
                 label="Control",
-                zorder=-10
+                zorder=-10,
             )
         # check if matching time overlaps with template time and plot template time
         if np.any(
@@ -347,7 +347,7 @@ class ExplainedVariance(object):
                 color="purple",
                 alpha=0.4,
                 label="Template",
-                zorder=-10
+                zorder=-10,
             )
         # remove axis spines
         ax.spines["right"].set_visible(False)
