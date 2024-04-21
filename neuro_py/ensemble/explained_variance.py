@@ -66,6 +66,12 @@ class ExplainedVariance(object):
         time points for matching period
     control_time : array
         time points for control period
+    ev_signal : AnalogSignalArray
+        explained variance signal
+    rev_signal : AnalogSignalArray
+        reverse explained variance signal
+    plot : function
+        plot explained variance
 
     Examples
     --------
@@ -216,6 +222,12 @@ class ExplainedVariance(object):
         self.matching_paircorr = self.__time_resolved_correlation(self.matching_windows)
         self.control_paircorr = self.__time_resolved_correlation(self.control_windows)
 
+    @staticmethod
+    def __get_pairwise_corr(bst_data):
+        """Calculate pairwise correlations."""
+        corr = np.corrcoef(bst_data)
+        return corr[np.tril_indices(corr.shape[0], k=-1)]
+
     def __time_resolved_correlation(self, windows):
         """Calculate pairwise correlations for given windows."""
         paircorr = []
@@ -294,12 +306,16 @@ class ExplainedVariance(object):
         self.matching_time = np.mean(self.matching_windows, axis=1)
         self.control_time = np.mean(self.control_windows, axis=1)
 
-    @staticmethod
-    def __get_pairwise_corr(bst_data):
-        """Calculate pairwise correlations."""
-        corr = np.corrcoef(bst_data)
-        return corr[np.tril_indices(corr.shape[0], k=-1)]
+    @property
+    def ev_signal(self):
+        """Return explained variance signal."""
+        return nel.AnalogSignalArray(data=self.ev, timestamps=self.matching_time)
 
+    @property
+    def rev_signal(self):
+        """Return reverse explained variance signal."""
+        return nel.AnalogSignalArray(data=self.rev, timestamps=self.matching_time)
+    
     def plot(self):
         """Plot explained variance."""
         if self.matching_time.size == 1:
