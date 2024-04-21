@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import nelpy as nel
 import warnings
 from numba import jit
@@ -13,8 +12,99 @@ class ExplainedVariance(object):
 
     References
     -------
-    1) Kudrimoti, H. S., Barnes, C. A., & McNaughton, B. L. (1999). Reactivation of Hippocampal Cell Assemblies: Effects of Behavioral State, Experience, and EEG Dynamics. Journal of Neuroscience, 19(10), 4090–4101. https://doi.org/10/4090
-    2) Tatsuno, M., Lipa, P., & McNaughton, B. L. (2006). Methodological Considerations on the Use of Template Matching to Study Long-Lasting Memory Trace Replay. Journal of Neuroscience, 26(42), 10727–10742. https://doi.org/10.1523/JNEUROSCI.3317-06.2006
+    1) Kudrimoti, H. S., Barnes, C. A., & McNaughton, B. L. (1999).
+        Reactivation of Hippocampal Cell Assemblies: Effects of Behavioral State, Experience, and EEG Dynamics.
+        Journal of Neuroscience, 19(10), 4090-4101. https://doi.org/10/4090
+    2) Tatsuno, M., Lipa, P., & McNaughton, B. L. (2006).
+        Methodological Considerations on the Use of Template Matching to Study Long-Lasting Memory Trace Replay.
+        Journal of Neuroscience, 26(42), 10727-10742. https://doi.org/10.1523/JNEUROSCI.3317-06.2006
+
+    Adapted from https://github.com/diba-lab/NeuroPy/blob/main/neuropy/analyses/reactivation.py
+
+    Attributes
+    ----------
+    st : SpikeTrainArray
+        obj that holds spiketrains
+    template : EpochArray
+        time in seconds, pairwise correlation calculated from this period will be compared to matching period (task-period)
+    matching : EpochArray
+        time in seconds, template-correlations will be correlated with pariwise correlations of this period (post-task period)
+    control : EpochArray
+        time in seconds, control for pairwise correlations within this period (pre-task period)
+    bin_size : float
+        in seconds, binning size for spike counts
+    window : int
+        window over which pairwise correlations will be calculated in matching and control time periods,
+            if window is None entire time period is considered, in seconds
+    slideby : int
+        slide window by this much, in seconds
+    matching_windows : array
+        windows for matching period
+    control_windows : array
+        windows for control period
+    template_corr : array
+        pairwise correlations for template period
+    matching_paircorr : array
+        pairwise correlations for matching period
+    control_paircorr : array
+        pairwise correlations for control period
+    ev : array
+        explained variance for each time point
+    rev : array
+        reverse explained variance for each time point
+    ev_std : array
+        explained variance standard deviation for each time point
+    rev_std : array
+        reverse explained variance standard deviation for each time point
+    partial_corr : array
+        partial correlations for each time point
+    rev_partial_corr : array
+        reverse partial correlations for each time point
+    n_pairs : int
+        number of pairs
+    matching_time : array
+        time points for matching period
+    control_time : array
+        time points for control period
+
+    Examples
+    --------
+    # Load data
+    basepath = r"U:\data\HMC\HMC1\day8"
+    st,cm = loading.load_spikes(basepath,brainRegion="CA1",putativeCellType="Pyr")
+
+    epoch_df = loading.load_epoch(basepath)
+    beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
+
+
+    # Most simple case, returns single explained variance value
+    expvar = explained_variance.ExplainedVariance(
+        st=st,
+        template=beh_epochs[1],
+        matching=beh_epochs[2],
+        control=beh_epochs[0],
+        window=None,
+    )
+
+    # Get time resolved explained variance across entire session in 200sec bins
+    expvar = explained_variance.ExplainedVariance(
+        st=st,
+        template=beh_epochs[1],
+        matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
+        control=beh_epochs[0],
+        window=200
+    )
+
+    # Get time resolved explained variance across entire session in 200sec bins sliding by 100sec
+    expvar = explained_variance.ExplainedVariance(
+        st=st,
+        template=beh_epochs[1],
+        matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
+        control=beh_epochs[0],
+        window=200,
+        slideby=100
+    )
+
     """
 
     def __init__(
@@ -23,41 +113,50 @@ class ExplainedVariance(object):
         template: nel.core._intervalarray.EpochArray,
         matching: nel.core._intervalarray.EpochArray,
         control: nel.core._intervalarray.EpochArray,
-        bin_size: float = 0.250,
+        bin_size: float = 0.2,
         window: int = 900,
         slideby: int = None,
-        ignore_epochs: nel.core._intervalarray.EpochArray = None,
     ):
         """Explained variance measure for assessing reactivation of neuronal activity using pairwise correlations.
 
         Parameters
         ----------
-        st : core.st
-            obj that holds spiketrains for multiple st
-        template : list/array of length 2
-            time in seconds, pairwise correlation calculated from this period will be compared to matching period
-        matching : list/array of length 2
-            time in seconds, template-correlations will be correlated with pariwise correlations of this period
-        control : list/array of length 2
-            time in seconds, control for pairwise correlations within this period
+        st : SpikeTrainArray
+            obj that holds spiketrains
+        template : EpochArray
+            time in seconds, pairwise correlation calculated from this period will be compared to matching period (task-period)
+        matching : EpochArray
+            time in seconds, template-correlations will be correlated with pariwise correlations of this period (post-task period)
+        control : EpochArray
+            time in seconds, control for pairwise correlations within this period (pre-task period)
         bin_size : float, optional
-            in seconds, binning size for spike counts, by default 0.250
-        window : int or typle, optional
+            in seconds, binning size for spike counts, by default 0.2
+        window : int, optional
             window over which pairwise correlations will be calculated in matching and control time periods,
                 if window is None entire time period is considered, in seconds, by default 900
         slideby : int, optional
             slide window by this much, in seconds, by default None
-        ignore_epochs : core.Epoch, optional
-            ignore calculation for these epochs, helps with noisy epochs, by default None
         """
         self.__dict__.update(locals())
         del self.__dict__["self"]
 
+        self.__validate_input()
         self.__calculate()
 
+    def __validate_input(self):
+        """Validate input parameters."""
+        assert isinstance(self.st, nel.core._eventarray.SpikeTrainArray)
+        assert isinstance(self.template, nel.core._intervalarray.EpochArray)
+        assert isinstance(self.matching, nel.core._intervalarray.EpochArray)
+        assert isinstance(self.control, nel.core._intervalarray.EpochArray)
+        assert isinstance(self.bin_size, (float, int))
+        assert isinstance(self.window, (int, type(None)))
+        assert isinstance(self.slideby, (int, type(None)))
+
     def __calculate(self):
-        self.__truncate_ignore_epochs()
+        """processing steps for explained variance calculation."""
         control_window_size, matching_window_size, slideby = self.__get_window_sizes()
+
         self.matching_windows = self.__get_windows_array(
             self.matching, matching_window_size, slideby
         )
@@ -69,18 +168,11 @@ class ExplainedVariance(object):
         self.__calculate_pairwise_correlations()
         self.__calculate_partial_correlations()
 
-    def __truncate_ignore_epochs(self):
-        if self.ignore_epochs is not None:
-            self.st = self.st[~self.ignore_epochs]
-
     def __get_window_sizes(self):
+        """Get window sizes for control and matching periods."""
         if self.window is None:
-            control_window_size = (
-                len(np.arange(self.control.start, self.control.stop)) - 1
-            )
-            matching_window_size = (
-                len(np.arange(self.matching.start, self.matching.stop)) - 1
-            )
+            control_window_size = np.array(self.control.duration).astype(int)
+            matching_window_size = np.array(self.matching.duration).astype(int)
             slideby = None
         elif self.slideby is None:
             control_window_size = self.window
@@ -93,6 +185,7 @@ class ExplainedVariance(object):
         return control_window_size, matching_window_size, slideby
 
     def __get_windows_array(self, epoch_array, window_size, slideby):
+        """Get windows array for control and matching periods."""
         if slideby is not None:
             array = np.arange(epoch_array.start, epoch_array.stop)
             windows = np.lib.stride_tricks.sliding_window_view(array, window_size)
@@ -103,6 +196,7 @@ class ExplainedVariance(object):
         return windows
 
     def __validate_window_sizes(self, control_window_size, matching_window_size):
+        """Validate window sizes."""
         assert (
             control_window_size <= self.control.duration
         ), "window is bigger than matching"
@@ -111,14 +205,17 @@ class ExplainedVariance(object):
         ), "window is bigger than matching"
 
     def __get_template_corr(self):
+        """Get pairwise correlations for template period."""
         self.bst = self.st.bin(ds=self.bin_size)
         return self.__get_pairwise_corr(self.bst[self.template].data)
 
     def __calculate_pairwise_correlations(self):
+        """Calculate pairwise correlations for matching and control periods."""
         self.matching_paircorr = self.__time_resolved_correlation(self.matching_windows)
         self.control_paircorr = self.__time_resolved_correlation(self.control_windows)
 
     def __time_resolved_correlation(self, windows):
+        """Calculate pairwise correlations for given windows."""
         paircorr = []
         bst_data = self.bst.data
         bin_centers = self.bst.bin_centers
@@ -131,8 +228,8 @@ class ExplainedVariance(object):
 
         return np.array(paircorr)
 
-
     def __calculate_partial_correlations(self):
+        """Calculate partial correlations."""
         partial_corr, rev_partial_corr = self.__calculate_partial_correlations_(
             self.matching_paircorr, self.control_paircorr, self.template_corr
         )
@@ -143,6 +240,8 @@ class ExplainedVariance(object):
     def __calculate_partial_correlations_(
         matching_paircorr, control_paircorr, template_corr
     ):
+        """Calculate partial correlations."""
+
         def __explained_variance(x, y, covar):
             """Calculate explained variance and reverse explained variance."""
 
@@ -182,6 +281,7 @@ class ExplainedVariance(object):
         return partial_corr, rev_partial_corr
 
     def __calculate_statistics(self, partial_corr, rev_partial_corr):
+        """Calculate explained variance statistics."""
         self.ev = np.nanmean(partial_corr**2, axis=0)
         self.rev = np.nanmean(rev_partial_corr**2, axis=0)
         self.ev_std = np.nanstd(partial_corr**2, axis=0)
@@ -198,3 +298,32 @@ class ExplainedVariance(object):
         corr = np.corrcoef(bst_data)
         return corr[np.tril_indices(corr.shape[0], k=-1)]
 
+    def plot(self):
+        """Plot explained variance."""
+        if self.matching_time.size == 1:
+            print("Only single time point, cannot plot")
+            return
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+        ax.plot(self.matching_time, self.ev, label="EV")
+        ax.fill_between(
+            self.matching_time,
+            self.ev - self.ev_std,
+            self.ev + self.ev_std,
+            alpha=0.5,
+            label="EV std",
+        )
+        ax.plot(self.matching_time, self.rev, label="rEV")
+        ax.fill_between(
+            self.matching_time,
+            self.rev - self.rev_std,
+            self.rev + self.rev_std,
+            alpha=0.5,
+            label="rEV std",
+        )
+        ax.legend(frameon=False)
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Explained Variance")
+        ax.set_title("Explained Variance")
+        plt.show()
