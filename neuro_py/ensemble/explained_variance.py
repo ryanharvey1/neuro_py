@@ -1,5 +1,7 @@
 import numpy as np
-import nelpy as nel
+from nelpy.core._eventarray import SpikeTrainArray
+from nelpy.core._intervalarray import EpochArray
+from nelpy.core._analogsignalarray import AnalogSignalArray
 import warnings
 from numba import jit
 
@@ -115,10 +117,10 @@ class ExplainedVariance(object):
 
     def __init__(
         self,
-        st: nel.core._eventarray.SpikeTrainArray,
-        template: nel.core._intervalarray.EpochArray,
-        matching: nel.core._intervalarray.EpochArray,
-        control: nel.core._intervalarray.EpochArray,
+        st: SpikeTrainArray,
+        template: EpochArray,
+        matching: EpochArray,
+        control: EpochArray,
         bin_size: float = 0.2,
         window: int = 900,
         slideby: int = None,
@@ -151,10 +153,10 @@ class ExplainedVariance(object):
 
     def __validate_input(self):
         """Validate input parameters."""
-        assert isinstance(self.st, nel.core._eventarray.SpikeTrainArray)
-        assert isinstance(self.template, nel.core._intervalarray.EpochArray)
-        assert isinstance(self.matching, nel.core._intervalarray.EpochArray)
-        assert isinstance(self.control, nel.core._intervalarray.EpochArray)
+        assert isinstance(self.st, SpikeTrainArray)
+        assert isinstance(self.template, EpochArray)
+        assert isinstance(self.matching, EpochArray)
+        assert isinstance(self.control, EpochArray)
         assert isinstance(self.bin_size, (float, int))
         assert isinstance(self.window, (int, type(None)))
         assert isinstance(self.slideby, (int, type(None)))
@@ -309,12 +311,12 @@ class ExplainedVariance(object):
     @property
     def ev_signal(self):
         """Return explained variance signal."""
-        return nel.AnalogSignalArray(data=self.ev, timestamps=self.matching_time)
+        return AnalogSignalArray(data=self.ev, timestamps=self.matching_time)
 
     @property
     def rev_signal(self):
         """Return reverse explained variance signal."""
-        return nel.AnalogSignalArray(data=self.rev, timestamps=self.matching_time)
+        return AnalogSignalArray(data=self.rev, timestamps=self.matching_time)
     
     def plot(self):
         """Plot explained variance."""
