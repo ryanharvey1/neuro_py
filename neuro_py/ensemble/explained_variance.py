@@ -312,16 +312,42 @@ class ExplainedVariance(object):
             self.ev - self.ev_std,
             self.ev + self.ev_std,
             alpha=0.5,
-            label="EV std",
         )
-        ax.plot(self.matching_time, self.rev, label="rEV")
+        ax.plot(self.matching_time, self.rev, label="rEV",color="grey")
         ax.fill_between(
             self.matching_time,
             self.rev - self.rev_std,
             self.rev + self.rev_std,
             alpha=0.5,
-            label="rEV std",
+            color="grey"
         )
+        # check if matching time overlaps with control time and plot control time
+        if np.any(
+            (self.control_time >= self.matching_time[0])
+            & (self.control_time <= self.matching_time[-1])
+        ):
+            ax.axvspan(
+                self.control_time[0],
+                self.control_time[-1],
+                color="green",
+                alpha=0.3,
+                label="Control",
+                zorder=-10
+            )
+        # check if matching time overlaps with template time and plot template time
+        if np.any(
+            (self.template.start >= self.matching_time[0])
+            & (self.template.stop <= self.matching_time[-1])
+        ):
+            ax.axvspan(
+                self.template.start,
+                self.template.stop,
+                color="purple",
+                alpha=0.4,
+                label="Template",
+                zorder=-10
+            )
+
         ax.legend(frameon=False)
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Explained Variance")
