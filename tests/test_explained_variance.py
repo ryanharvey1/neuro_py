@@ -162,6 +162,7 @@ def test_explained_variance():
         )
 
         assert ev.ev > ev.rev
+        assert ev.pvalue() < 0.05
 
         # Example 2
         # test time resolved

@@ -311,13 +311,52 @@ class ExplainedVariance(object):
     @property
     def ev_signal(self):
         """Return explained variance signal."""
-        return AnalogSignalArray(data=self.ev, timestamps=self.matching_time)
+        return AnalogSignalArray(
+            data=self.ev,
+            timestamps=self.matching_time,
+            fs=1 / np.diff(self.matching_time)[0],
+            support=EpochArray(data=[self.matching.start, self.matching.stop])
+        )
 
     @property
     def rev_signal(self):
         """Return reverse explained variance signal."""
-        return AnalogSignalArray(data=self.rev, timestamps=self.matching_time)
-    
+        return AnalogSignalArray(
+            data=self.rev,
+            timestamps=self.matching_time,
+            fs=1 / np.diff(self.matching_time)[0],
+            support=EpochArray(data=[self.matching.start, self.matching.stop])
+        )
+
+    def pvalue(self, n_shuffles=1000):
+        """
+        Calculate p-value for explained variance by shuffling the template correlations.
+        """
+        from copy import deepcopy
+
+        def shuffle_template(self):
+            template_corr = deepcopy(self.template_corr)
+            np.random.shuffle(template_corr)
+
+            partial_corr, _ = self.__calculate_partial_correlations_(
+                self.matching_paircorr, self.control_paircorr, template_corr
+            )
+            ev = np.nanmean(partial_corr**2, axis=0)
+            return ev.flatten()
+
+        if len(self.ev) > 1:
+            print("Multiple time points, p-values are not supported")
+            return
+
+        ev_shuffle = [shuffle_template(self) for _ in range(n_shuffles)]
+
+        ev_shuffle = np.array(ev_shuffle)
+
+        n = len(ev_shuffle)
+        r = np.sum(ev_shuffle > self.ev)
+        pvalues = (r + 1) / (n + 1)
+        return pvalues
+
     def plot(self):
         """Plot explained variance."""
         if self.matching_time.size == 1:
