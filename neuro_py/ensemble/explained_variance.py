@@ -307,7 +307,7 @@ class ExplainedVariance(object):
             return
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+        fig, ax = plt.subplots(1, 1, figsize=(8, 3))
         ax.plot(self.matching_time, self.ev, label="EV")
         ax.fill_between(
             self.matching_time,
@@ -329,8 +329,8 @@ class ExplainedVariance(object):
             & (self.control_time <= self.matching_time[-1])
         ):
             ax.axvspan(
-                self.control_time[0],
-                self.control_time[-1],
+                self.control.start,
+                self.control.stop,
                 color="green",
                 alpha=0.3,
                 label="Control",
@@ -349,6 +349,9 @@ class ExplainedVariance(object):
                 label="Template",
                 zorder=-10
             )
+        # remove axis spines
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
 
         ax.legend(frameon=False)
         ax.set_xlabel("Time (s)")
