@@ -190,6 +190,8 @@ class ExplainedVariance(object):
             array = np.arange(epoch_array.start, epoch_array.stop)
             windows = np.lib.stride_tricks.sliding_window_view(array, window_size)
             windows = windows[::slideby, [0, -1]]
+        elif np.array(epoch_array.duration) == window_size:
+            windows = np.array([[epoch_array.start, epoch_array.stop]])
         else:
             array = np.arange(epoch_array.start, epoch_array.stop, window_size)
             windows = np.array([array[:-1], array[1:]]).T
