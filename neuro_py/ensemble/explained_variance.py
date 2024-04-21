@@ -74,6 +74,8 @@ class ExplainedVariance(object):
         reverse explained variance signal
     plot : function
         plot explained variance
+    pvalue : function
+        calculate p-value for explained variance by shuffling the template correlations
 
     Examples
     --------
