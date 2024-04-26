@@ -107,10 +107,10 @@ def avgerage_diagonal(mat):
 
 def remove_inactive_cells(
     st: nel.core._eventarray.SpikeTrainArray,
-    cell_metrics: pd.core.frame.DataFrame,
+    cell_metrics: Union[pd.core.frame.DataFrame, None] = None,
     epochs: Union[
         List[nel.core._intervalarray.EpochArray], nel.core._intervalarray.EpochArray
-    ],
+    ] = None,
     min_spikes: int = 100,
 ) -> tuple:
     """
@@ -191,11 +191,17 @@ def remove_inactive_cells(
 
     """
 
+    def return_results(st, cell_metrics):
+        if cell_metrics is None:
+            return st
+        else:
+            return st, cell_metrics
+
     # check data types
     if not isinstance(st, nel.core._eventarray.SpikeTrainArray):
         raise ValueError("st must be a SpikeTrainArray object")
 
-    if not isinstance(cell_metrics, pd.core.frame.DataFrame):
+    if not isinstance(cell_metrics, (pd.core.frame.DataFrame, type(None))):
         raise ValueError("cell_metrics must be a DataFrame object")
 
     if not isinstance(epochs, (nel.core._intervalarray.EpochArray, list)):
@@ -210,23 +216,23 @@ def remove_inactive_cells(
 
     # check if st is empty
     if st.isempty:
-        return st, cell_metrics
+        return return_results(st, cell_metrics)
 
     # check if epochs is empty
     if isinstance(epochs, nel.core._intervalarray.EpochArray):
         if epochs.isempty:
-            return st, cell_metrics
+            return return_results(st, cell_metrics)
 
     # check if cell_metrics is empty
-    if cell_metrics.empty:
-        return st, cell_metrics
+    if cell_metrics is not None and cell_metrics.empty:
+        return return_results(st, cell_metrics)
 
     # check if min_spikes is less than 1
     if min_spikes < 1:
-        return st, cell_metrics
+        return return_results(st, cell_metrics)
 
     # check if st and cell_metrics have the same number of units
-    if st.n_units != cell_metrics.shape[0]:
+    if cell_metrics is not None and st.n_units != cell_metrics.shape[0]:
         # assert error message
         raise ValueError("st and cell_metrics must have the same number of units")
 
@@ -242,19 +248,20 @@ def remove_inactive_cells(
 
     # remove inactive cells
     st = st.iloc[:, good_idx]
-    cell_metrics = cell_metrics[good_idx]
+    if cell_metrics is not None:
+        cell_metrics = cell_metrics[good_idx]
 
-    return st, cell_metrics
+    return return_results(st, cell_metrics)
 
 
 def remove_inactive_cells_pre_task_post(
     st: nel.core._eventarray.SpikeTrainArray,
-    cell_metrics: pd.core.frame.DataFrame,
-    beh_epochs: nel.core._intervalarray.EpochArray,
-    nrem_epochs: nel.core._intervalarray.EpochArray,
-    theta_epochs: nel.core._intervalarray.EpochArray,
+    cell_metrics: Union[pd.core.frame.DataFrame,None] = None,
+    beh_epochs: nel.core._intervalarray.EpochArray = None,
+    nrem_epochs: nel.core._intervalarray.EpochArray = None,
+    theta_epochs: nel.core._intervalarray.EpochArray = None,
     min_spikes: int = 100,
-    nrem_time: Union[int,float] = 3600,
+    nrem_time: Union[int, float] = 3600,
 ) -> tuple:
     """
     remove_inactive_cells_pre_task_post: Remove cells with fewer than min_spikes spikes per pre/task/post
