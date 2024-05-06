@@ -656,7 +656,12 @@ def event_triggered_average_fast(
         return avg_signal, time_lags
 
 
-def count_in_interval(st, event_starts, event_stops, par_type="binary"):
+def count_in_interval(
+    st: np.ndarray,
+    event_starts: np.ndarray,
+    event_stops: np.ndarray,
+    par_type: str = "binary",
+) -> np.ndarray:
     """
     count_in_interval: count timestamps in intervals
     make matrix n rows (units) by n cols (ripple epochs)
@@ -668,6 +673,9 @@ def count_in_interval(st, event_starts, event_stops, par_type="binary"):
 
         quick binning solution using searchsorted from:
         https://stackoverflow.com/questions/57631469/extending-histogram-function-to-overlapping-bins-and-bins-with-arbitrary-gap
+
+    Output:
+        unit_mat: matrix (n cells X n epochs) each column shows count per cell per epoch
     """
     # convert to numpy array
     event_starts, event_stops = np.array(event_starts), np.array(event_stops)
