@@ -143,6 +143,9 @@ def event_triggered_wavelet(
 
     for mwt_partial, sig_partial in results:
         if mwt_partial is not None:
+            # samples might be missing if the event is too close to the edge
+            if mwt_partial.shape[1] != n_samples:
+                continue 
             mwt += mwt_partial
             sigs += sig_partial
             event_i += 1
