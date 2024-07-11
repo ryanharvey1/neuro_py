@@ -325,6 +325,9 @@ def get_experience_level(behavioralParadigm: pd.Series) -> int:
             # extract first number from string
             experience = int(re.findall(r'\d+', behavioralParadigm)[0])
         except:
-            # extract experience level from behavioralParadigm column if it is a number
-            experience = int(behavioralParadigm)
+            try:
+                # extract experience level from behavioralParadigm column if it is a number
+                experience = int(behavioralParadigm)
+            except:
+                experience = np.nan
     return experience
