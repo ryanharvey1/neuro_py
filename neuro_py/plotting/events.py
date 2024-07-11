@@ -113,7 +113,10 @@ def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
     peth_long = pd.melt(peth.reset_index(), id_vars=["index"], value_name="peth")
 
     # plot the peth as a lineplot with seaborn
-    lineplot_ax = sns.lineplot(data=peth_long, x="index", y="peth", ax=ax, **kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=FutureWarning)
+        lineplot_ax = sns.lineplot(data=peth_long, x="index", y="peth", ax=ax, **kwargs)
+
     ax.set_xlabel("Time (s)")
     sns.despine(ax=ax)
     return lineplot_ax
