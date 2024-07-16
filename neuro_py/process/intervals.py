@@ -75,27 +75,39 @@ def randomize_epochs(epoch, randomize_each=True, start_stop=None):
 
 
 def split_epoch_equal_parts(
-    epoch: np.ndarray, n_parts: int, return_epoch_array: bool = True
+    intervals: np.ndarray, n_parts: int, return_epoch_array: bool = True
 ) -> Union[np.ndarray, nel.EpochArray]:
     """
-    Split epoch into equal parts.
+    Split multiple intervals into equal parts.
     Input:
-        epoch: array-like (2,)
-            The epoch to split
+        intervals: array-like (n_intervals, 2)
+            The intervals to split
         n_parts: int
-            The number of parts to split the epoch into
+            The number of parts to split each interval into
         return_epoch_array: bool
-            If True, returns the epoch as a nelpy.EpochArray object
+            If True, returns the intervals as a nelpy.EpochArray object
     Output:
-        epoch_parts: array-like (n_parts, 2)
-            The split epoch
+        split_intervals: array-like (n_intervals * n_parts, 2)
+            The split intervals
     """
-    epoch_parts = np.linspace(epoch[0], epoch[1], n_parts + 1)
-    epoch_parts = np.vstack((epoch_parts[:-1], epoch_parts[1:])).T
+    # Ensure intervals is a numpy array
+    intervals = np.asarray(intervals)
+
+    # Number of intervals
+    n_intervals = intervals.shape[0]
+
+    # Preallocate the output array
+    split_intervals = np.zeros((n_intervals * n_parts, 2))
+
+    for i, interval in enumerate(intervals):
+        start, end = interval
+        epoch_parts = np.linspace(start, end, n_parts + 1)
+        epoch_parts = np.vstack((epoch_parts[:-1], epoch_parts[1:])).T
+        split_intervals[i * n_parts : (i + 1) * n_parts] = epoch_parts
 
     if return_epoch_array:
-        return nel.EpochArray(epoch_parts.T)
-    return epoch_parts
+        return nel.EpochArray(split_intervals)
+    return split_intervals
 
 
 def overlap_intersect(epoch, interval, return_indices=True):
@@ -407,6 +419,7 @@ def truncate_epoch(
     while (time - truncated_intervals.duration) > 1e-10 or interval_i > len(epoch):
         # Add the last interval
         next_interval = int(np.where(cumulative_lengths >= time)[0][interval_i])
+
         remainder = (
             nel.EpochArray(
                 [
