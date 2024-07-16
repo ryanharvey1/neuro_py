@@ -277,13 +277,13 @@ class SpatialMap(object):
         # compute ratemap (in Hz)
         ratemap = self.compute_ratemap_2d(st_run, pos_run, occupancy)
 
-        # enforce minimum background firing rate
-        # background firing rate of xx Hz
-        ratemap[ratemap < self.minbgrate] = self.minbgrate
-
         # enforce minimum background occupancy
         for uu in range(st_run.data.shape[0]):
             ratemap[uu][occupancy < self.min_duration] = 0
+
+        # enforce minimum background firing rate
+        # background firing rate of xx Hz
+        ratemap[ratemap < self.minbgrate] = self.minbgrate
 
         tc = nel.TuningCurve2D(
             ratemap=ratemap,
