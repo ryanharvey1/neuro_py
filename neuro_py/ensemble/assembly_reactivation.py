@@ -230,7 +230,7 @@ class AssemblyReact(object):
         if (bst == 0).all():
             self.patterns = []
         else:
-            self.patterns, _, _ = assembly.runPatterns(
+            patterns, _, _ = assembly.runPatterns(
                 bst,
                 method=self.method,
                 nullhyp=self.nullhyp,
@@ -238,6 +238,17 @@ class AssemblyReact(object):
                 percentile=self.percentile,
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
+            )
+            # flip patterns to have positive max
+            self.patterns = np.array(
+                [
+                    (
+                        patterns[i, :]
+                        if patterns[i, np.argmax(np.abs(patterns[i, :]))] > 0
+                        else -patterns[i, :]
+                    )
+                    for i in range(patterns.shape[0])
+                ]
             )
 
     def get_assembly_act(self, epoch=None):
