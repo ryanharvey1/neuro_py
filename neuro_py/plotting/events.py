@@ -131,6 +131,7 @@ def plot_peth_fast(
     smooth_window: float = 0.30,
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
+    alpha: float = 0.2,
     **kwargs
 ) -> plt.Axes:
     """
@@ -156,6 +157,8 @@ def plot_peth_fast(
         Standard deviation of the smoothing window, by default 5
     smooth_win_type : str, optional
         Type of smoothing window, by default "gaussian"
+    alpha : float, optional
+        Transparency of the confidence interval, by default 0.2
 
     **kwargs
         Keyword arguments to pass to ax.plot
@@ -228,7 +231,7 @@ def plot_peth_fast(
     kwargs.pop("label", None)
 
     lower, upper = confidence_intervals(peth.values.T, conf=ci)
-    ax.fill_between(peth.index, lower, upper, alpha=0.5, **kwargs)
+    ax.fill_between(peth.index, lower, upper, alpha=alpha, **kwargs)
 
     ax.set_xlabel("Time (s)")
     sns.despine(ax=ax)
