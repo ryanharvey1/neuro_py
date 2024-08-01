@@ -75,9 +75,9 @@ class SpatialMap(object):
         dir_epoch: object = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         s_binsize: Union[int, float] = 3,
+        tuning_curve_sigma: Union[int, float] = 3,
         x_minmax: List[Union[int, float]] = None,
         y_minmax: List[Union[int, float]] = None,
-        tuning_curve_sigma: Union[int, float] = 3,
         smooth_mode: str = "reflect",
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
