@@ -17,6 +17,7 @@ from scipy.linalg import toeplitz
 from scipy import stats
 import warnings
 from typing import Union
+from nelpy.core._eventarray import SpikeTrainArray
 
 
 @jit(nopython=True)
@@ -1000,3 +1001,113 @@ def nearest_event_delay(ts_1: np.ndarray, ts_2: np.ndarray) -> np.ndarray:
     nearest_index = np.where(absolute_diff_before < absolute_diff_after, before, after)
 
     return nearest_ts, delays, nearest_index
+
+
+def event_spiking_threshold(
+    spikes: SpikeTrainArray,
+    events: np.ndarray,
+    window: list = [-0.5, 0.5],
+    event_size: float = 0.1,
+    spiking_thres: float = 0,
+    binsize: float = 0.01,
+    sigma: float = 0.02,
+    min_units: int = 6,
+    show_fig: bool = False,
+):
+    """
+    event_spiking_threshold: filter events based on spiking threshold
+    Parameters
+    ----------
+    spikes : nel.SpikeTrainArray
+        spike train array
+    events : np.ndarray
+        event times
+    window : list, optional
+        window to compute the event triggered average, by default [-0.5, 0.5]
+    event_size : float, optional
+        event size in seconds (assumed firing increase location, +-), by default 0.1
+    spiking_thres : float, optional
+        spiking threshold in zscore units, by default 0
+    binsize : float, optional
+        bin size, by default 0.01
+    sigma : float, optional
+        sigma for smoothing binned spike train, by default 0.02
+    min_units : int, optional
+        minimum number of units to compute the event triggered average, by default 6
+    show_fig : bool, optional
+        show figure, by default False
+    Returns
+    -------
+    np.ndarray
+        valid events
+
+    Example
+    -------
+    basepath = r"U:\data\hpc_ctx_project\HP04\day_32_20240430"
+    ripples = loading.load_ripples_events(basepath, return_epoch_array=False)
+
+    st, cell_metrics = loading.load_spikes(
+        basepath,
+        brainRegion="CA1",
+        support=nel.EpochArray([0, loading.load_epoch(basepath).iloc[-1].stopTime]),
+    )
+    idx = event_spiking_threshold(st, ripples.peaks.values, show_fig=True)
+    print(f"Number of valid ripples: {idx.sum()} out of {len(ripples)}")
+
+    >>> Number of valid ripples: 9244 out of 12655
+
+    """
+
+    # check if there are enough units to compute a confident event triggered average
+    if spikes.n_active < min_units:
+        return np.ones(len(events), dtype=bool)
+
+    # bin spikes
+    bst = spikes.bin(ds=binsize).smooth(sigma=sigma)
+    # sum over all neurons and zscore
+    bst = bst.data.sum(axis=0)
+    bst = (bst - bst.mean()) / bst.std()
+    # get event triggered average
+    avg_signal, time_lags = event_triggered_average_fast(
+        bst[np.newaxis, :],
+        events,
+        sampling_rate=int(1 / binsize),
+        window=window,
+        return_average=False,
+    )
+    # get the event response within the event size
+    idx = (time_lags >= -event_size) & (time_lags <= event_size)
+    event_response = avg_signal[0, idx, :].mean(axis=0)
+
+    # get events that are above threshold
+    valid_events = event_response > spiking_thres
+
+    if show_fig:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        sorted_idx = np.argsort(event_response)
+
+        fig, ax = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
+        ax[0].imshow(
+            avg_signal[0, :, sorted_idx],
+            aspect="auto",
+            extent=[time_lags[0], time_lags[-1], 0, len(event_response)],
+            vmin=-2,
+            vmax=2,
+            origin="lower",
+            interpolation="nearest",
+        )
+        ax[0].axhline(
+            np.where(event_response[sorted_idx] > spiking_thres)[0][0],
+            color="r",
+            linestyle="--",
+        )
+        ax[1].plot(event_response[sorted_idx], np.arange(len(event_response)))
+        ax[1].axvline(spiking_thres, color="r", linestyle="--")
+        ax[0].set_xlabel("Time from event (s)")
+        ax[0].set_ylabel("Event index")
+        ax[1].set_xlabel("Average response")
+        ax[1].set_ylabel("Event index")
+        sns.despine()
+
+    return valid_events
