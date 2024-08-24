@@ -1258,10 +1258,11 @@ def load_epoch(basepath: str) -> pd.DataFrame:
     """
     Loads epoch info from cell explorer basename.session and stores in df
     """
-    try:
-        filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
-    except:
-        warnings.warn("file does not exist")
+
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
+    
+    if not os.path.exists(filename):
+        warnings.warn(f"file {filename} does not exist")
         return pd.DataFrame()
 
     # load file
