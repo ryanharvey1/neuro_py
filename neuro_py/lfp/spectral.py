@@ -2,68 +2,8 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from neurodsp.timefrequency.wavelets import compute_wavelet_transform
 import pandas as pd
-from scipy import linalg
 from scipy import signal
 from statsmodels.regression import yule_walker
-
-
-def _yule_walker(X, order=1):
-    """
-    Compute the Yule-Walker equations to estimate the parameters of an autoregressive (AR) model.
-
-    This function calculates the autocorrelation coefficients (rho) and the noise standard deviation
-    (sigma) of an AR model of a given order for a 2D input array `X` using the Yule-Walker method.
-
-    Parameters:
-    -----------
-    X : ndarray
-        A 2D numpy array where each row represents a different time series.
-        The number of columns is the length of each time series.
-
-    order : int, optional (default=1)
-        The order of the autoregressive model.
-
-    Returns:
-    --------
-    rho : ndarray
-        The estimated AR coefficients of length equal to `order`.
-
-    sigma : float
-        The estimated standard deviation of the noise in the AR model.
-    """
-    assert X.ndim == 2, "Input data X must be a 2-dimensional array."
-
-    # Compute the denominator for the autocorrelation calculation
-    denom = X.shape[-1] - np.arange(order + 1)  # [N, N-1, ..., N-order]
-
-    # Initialize the autocorrelation array
-    r = np.zeros(
-        order + 1, np.float64
-    )  # Holds autocorrelations up to the specified order
-
-    # Loop over each row (time series) in X
-    for di, d in enumerate(X):
-        # Remove mean to center the time series
-        d -= d.mean()
-        # Autocorrelation at lag 0 (total variance)
-        r[0] += np.dot(d, d)
-
-        # Compute autocorrelation for each lag up to the specified order
-        for k in range(1, order + 1):
-            # Autocorrelation at lag k
-            r[k] += np.dot(d[0:-k], d[k:])
-
-    # Normalize by the number of observations and the denominator
-    r /= denom * len(X)
-
-    # Solve the Yule-Walker equations (Toeplitz system) to estimate AR coefficients
-    rho = linalg.solve(linalg.toeplitz(r[:-1]), r[1:])
-
-    # Estimate the variance of the noise
-    sigmasq = r[0] - (r[1:] * rho).sum()
-
-    # Return AR coefficients and noise standard deviation
-    return rho, np.sqrt(sigmasq)
 
 
 def whiten_lfp(lfp, order=2):
@@ -78,7 +18,7 @@ def whiten_lfp(lfp, order=2):
     lfp : ndarray
         A 1D numpy array containing the LFP data. 
 
-    order : int, optional (default=6)
+    order : int, optional (default=2)
         The order of the AR model to be used for whitening the LFP data.
 
     Returns:
