@@ -29,6 +29,7 @@ __all__ = [
     "load_manipulation",
     "load_channel_tags",
     "load_extracellular_metadata",
+    "load_probe_layout",
     "load_emg",
 ]
 
@@ -1811,6 +1812,53 @@ def load_extracellular_metadata(basepath):
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
+
+def load_probe_layout(basepath):
+    """
+    Load electrode coordinates and grouping from session.extracellular.mat file
+
+    Parameters
+    ----------
+    basepath : str
+        path to the session folder
+        
+    Returns
+    -------
+
+    probe_layout : pd.DataFrame
+        DataFrame with x,y coordinates and shank number
+        
+    Laura Berkowitz 09/2024
+    """
+
+    # load session file 
+    filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
+
+    # load file
+    data = sio.loadmat(filename)
+    x = data["session"][0][0]['extracellular'][0][0]['chanCoords'][0][0][0]
+    y = data["session"][0][0]['extracellular'][0][0]['chanCoords'][0][0][1]
+    electrode_groups = data["session"][0][0]['extracellular'][0][0]['electrodeGroups'][0][0][0]
+
+    # for each group in electrodeGroups
+    mapped_shanks = []
+    mapped_channels = []
+    for shank_i in np.arange(electrode_groups.shape[1]):
+        mapped_channels.append(electrode_groups[0][shank_i][0]-1) # -1 to make 0 indexed
+        mapped_shanks.append(np.repeat(shank_i,len(electrode_groups[0][shank_i][0])))
+
+    #  unpack to lists
+    mapped_channels = list(chain(*mapped_channels))
+    shanks = list(chain(*mapped_shanks))
+
+    # get shank in same dimension as channels
+    shanks = np.expand_dims(shanks,axis=1)
+
+    probe_layout = pd.DataFrame({'x':x.flatten(),'y':y.flatten()}).iloc[mapped_channels].reset_index(drop=True)
+    probe_layout['shank'] = shanks
+    probe_layout['channels']= mapped_channels
+
+    return probe_layout
 
 
 def load_emg(basepath: str, threshold: float = 0.9):
