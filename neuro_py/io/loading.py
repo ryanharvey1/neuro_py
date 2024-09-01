@@ -49,6 +49,8 @@ import multiprocessing
 from joblib import Parallel, delayed
 from xml.dom import minidom
 from scipy import signal
+from itertools import chain
+
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
@@ -1284,6 +1286,7 @@ def load_epoch(basepath: str) -> pd.DataFrame:
             if col not in df.columns:
                 df[col] = np.nan
         return df
+
     try:
         epoch_df = pd.DataFrame(data["session"]["epochs"])
         epoch_df = add_columns(epoch_df)
@@ -1321,9 +1324,9 @@ def load_trials(basepath):
         return df
 
 
-def load_brain_regions(basepath):
+def load_brain_regions(basepath, out_format="dict"):
     """
-    Loads brain region info from cell explorer basename.session and stores in dict
+    Loads brain region info from cell explorer basename.session and stores in dict (default) or DataFrame
 
     Example:
         Input:
@@ -1338,12 +1341,16 @@ def load_brain_regions(basepath):
             [145 146 147 148 149 153 155 157 150 151 154 159 156 152 158 160 137 140
             129 136 138 134 130 132 142 143 144 141 131 139 133 135]
             [17 18 19 20]
+
+            region_df: pandas DataFrame with columns ['channels','brain_region','shank']
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
+    _, _, _, shank_to_channel = loadXML(basepath)
 
     # load file
     data = sio.loadmat(filename)
     data = data["session"]
+
     brainRegions = {}
     for dn in data["brainRegions"][0][0].dtype.names:
         channels = data["brainRegions"][0][0][dn][0][0][0][0][0][0]
@@ -1357,7 +1364,33 @@ def load_brain_regions(basepath):
             "electrodeGroups": electrodeGroups,
         }
 
-    return brainRegions
+    if out_format == "DataFrame":  # return as DataFrame
+
+        region_df = pd.DataFrame(columns = ["channels","region"])
+        for key in brainRegions.keys():
+            temp_df = pd.DataFrame(brainRegions[key]['channels'],columns=['channels'])
+            temp_df['region'] = key
+
+            region_df = pd.concat([region_df,temp_df])
+        
+                # # sort channels by shank
+        mapped_channels= []
+        mapped_shanks = []
+        for key,shank_i in enumerate(shank_to_channel.keys()):
+            mapped_channels.append(shank_to_channel[key]) 
+            mapped_shanks.append(np.repeat(shank_i,len(shank_to_channel[key])))
+        #  unpack to listssss
+        idx = list(chain(*mapped_channels))
+        shanks = list(chain(*mapped_shanks))
+
+        mapped_df = region_df.sort_values('channels').reset_index(drop=True).iloc[idx]
+        mapped_df['shank'] = shanks
+        mapped_df['channels'] = mapped_df['channels'] - 1 # save channel as zero-indexed
+
+        return mapped_df.reset_index(drop=True)
+
+    elif out_format == "dict":
+        return brainRegions
 
 
 def get_animal_id(basepath):
