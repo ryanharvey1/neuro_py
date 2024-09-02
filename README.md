@@ -56,6 +56,7 @@ Please make sure to update tests as appropriate.
 
 - [@ryanharvey1](https://www.github.com/ryanharvey1)
 - [@lolaBerkowitz](https://www.github.com/lolaBerkowitz)
+- [@kushaangupta](https://github.com/kushaangupta)
 
 
 ## License
