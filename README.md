@@ -23,6 +23,12 @@ cd neuro_py
 pip install -e .
 ```
 
+To sync the `nelpy` dependency to latest version, use following instead,
+
+```bash
+pip install -e . --force-reinstall --no-cache-dir
+```
+
 ## Usage
 
 ```python
