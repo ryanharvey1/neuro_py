@@ -42,7 +42,7 @@ def get_coords(basepath,shank = 0):
 
     return coords
 
-def get_csd(basepath, data, fs = 1250, diam = 0.015, method = 'DeltaiCSD'):
+def get_csd(basepath, data, shank, fs = 1250, diam = 0.015, method = 'DeltaiCSD'):
     """
     compute the CSD for a given basepath and data
 
@@ -71,7 +71,7 @@ def get_csd(basepath, data, fs = 1250, diam = 0.015, method = 'DeltaiCSD'):
     Laura Berkowitz, 2024
 
     """
-    coords = get_coords(basepath)
+    coords = get_coords(basepath,shank = shank)
 
     signal = neo.AnalogSignal(
         data,
