@@ -10,12 +10,10 @@ readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Ryan Harvey", email = "ryanh412@gmail.com" }]
 keywords = ["electrophysiology", "neuroscience", "data analysis"]
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]
@@ -23,15 +21,15 @@ dependencies = [
     "numpy>=1.23.0",
     "scipy>=1.9.0",
     "matplotlib>=3.7.1",
-    "scikit-learn>=1.5.1",
+    "scikit-learn>=1.2.2",
     "pandas>=1.5.0",
     "numba>=0.56.0",
     "pillow>=9.3.0",
     "tqdm>=4.64.0",
     "joblib>=1.2.0",
     "dill>=0.3.8",
-    "seaborn>=0.13.2",
-    "scikit-image>=0.24.0",
+    "seaborn>=0.11.2",
+    "scikit-image>=0.21.0",
     "nelpy @ git+https://github.com/ryanharvey1/nelpy.git",
 ]
 
