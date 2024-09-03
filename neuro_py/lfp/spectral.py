@@ -46,6 +46,7 @@ def event_triggered_wavelet(
     return_pandas: bool = False,
     parallel: bool = True,
     whiten: bool = True,
+    whiten_order: int = 2,
 ):
     """
     Compute the event-triggered wavelet transform of a signal.
@@ -144,7 +145,7 @@ def event_triggered_wavelet(
 
     signal_ = signal.copy()
     if whiten:
-        signal_ = whiten_lfp(signal)
+        signal_ = whiten_lfp(signal, order=whiten_order)
 
     # set up frequency range
     freqs = np.arange(freq_min, freq_max, freq_step)
