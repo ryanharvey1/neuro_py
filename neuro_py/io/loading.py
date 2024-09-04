@@ -117,14 +117,18 @@ def loadLFP(
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
+    filename: str = None,
 ):
-    path = ""
-    if ext == "lfp":
-        path = os.path.join(basepath, os.path.basename(basepath) + ".lfp")
-        if not os.path.exists(path):
-            path = os.path.join(basepath, os.path.basename(basepath) + ".eeg")
-    if ext == "dat":
-        path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
+    if filename is not None:
+        path = filename
+    else:
+        path = ""
+        if ext == "lfp":
+            path = os.path.join(basepath, os.path.basename(basepath) + ".lfp")
+            if not os.path.exists(path):
+                path = os.path.join(basepath, os.path.basename(basepath) + ".eeg")
+        if ext == "dat":
+            path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
 
     # check if saved file exists
     if not os.path.exists(path):
