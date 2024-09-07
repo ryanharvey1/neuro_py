@@ -1,9 +1,18 @@
+import warnings
+
 import numpy as np
+
+from lazy_loader import attach as _attach
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
 from nelpy.core._analogsignalarray import AnalogSignalArray
-import warnings
 from numba import jit
+
+__all__ = (
+    "ExplainedVariance",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=RuntimeWarning)

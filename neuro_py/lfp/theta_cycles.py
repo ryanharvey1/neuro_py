@@ -1,16 +1,28 @@
-import numpy as np
-import pandas as pd
 import os
 import sys
+
+import numpy as np
+import pandas as pd
 import nelpy as nel
-from neuro_py.process.intervals import find_interval
-from neuro_py.io import loading
-from scipy.io import savemat
+
 from typing import Union
 
+from lazy_loader import attach as _attach
 from neurodsp.filt import filter_signal
+from scipy.io import savemat
 
+from neuro_py.process.intervals import find_interval
+from neuro_py.io import loading
 
+__all__ = (
+    "get_theta_channel",
+    "process_lfp",
+    "get_ep_from_df",
+    "save_theta_cycles",
+    "get_theta_cycles",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
     brain_region = loading.load_brain_regions(basepath)

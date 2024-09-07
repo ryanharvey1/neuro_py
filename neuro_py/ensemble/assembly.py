@@ -4,12 +4,31 @@
 	This implementation was written in Feb 2019.
 	Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
 """
+import warnings
+
+import numpy as np
+
 from typing import Tuple, Union
+
+from scipy import stats
 from sklearn.decomposition import FastICA
 from sklearn.decomposition import PCA
-from scipy import stats
-import numpy as np
-import warnings
+from lazy_loader import attach as _attach
+
+__all__ = (
+    "toyExample",
+    "ToyAssemblies",
+    "marcenkopastur",
+    "getlambdacontrol",
+    "binshuffling",
+    "circshuffling",
+    "runSignificance",
+    "extractPatterns",
+    "runPatterns",
+    "computeAssemblyActivity",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 __author__ = "Vítor Lopes dos Santos"
 __version__ = "2019.1"
@@ -36,7 +55,7 @@ def toyExample(assemblies, nneurons=10, nbins=1000, rate=1.0):
     return actmat
 
 
-class toyassemblies:
+class ToyAssemblies:
     def __init__(self, membership, actrate, actstrength):
         self.membership = membership
         self.actrate = actrate

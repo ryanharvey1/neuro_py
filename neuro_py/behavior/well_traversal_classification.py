@@ -1,8 +1,22 @@
 # https://github.com/Eden-Kramer-Lab/loren_frank_data_processing/blob/master/loren_frank_data_processing/well_traversal_classification.py
-
 import numpy as np
 import pandas as pd
+
+from lazy_loader import attach as _attach
 from scipy.ndimage.measurements import label
+
+__all__ = (
+    "paired_distances",
+    "enter_exit_target",
+    "enter_exit_target_dio",
+    "shift_well_enters",
+    "segment_path",
+    "find_last_non_center_well",
+    "get_correct_inbound_outbound",
+    "score_inbound_outbound",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 _WELL_NAMES = {1: "Center", 2: "Left", 3: "Right"}
 

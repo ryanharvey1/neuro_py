@@ -1,11 +1,38 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-from scipy.interpolate import interp1d
+
 from math import sqrt
-import matplotlib.pyplot as plt
+
+from lazy_loader import attach as _attach
+from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
 from scipy.ndimage import label, gaussian_filter1d
+
+__all__ = (
+    "detect_firing_fields",
+    "find_peaks",
+    "sort_fields_by_rate",
+    "remove_fields_by_area",
+    "separate_fields_by_laplace",
+    "separate_fields_by_dilation",
+    "separate_fields_by_laplace_of_gaussian",
+    "calculate_field_centers",
+    "which_field",
+    "compute_crossings",
+    "distance_to_edge_function",
+    "map_pass_to_unit_circle",
+    "consecutive",
+    "find_fields_1d",
+    "compute_linear_place_fields",
+    "compute_2d_place_fields",
+    "find_field",
+    "find_field2",
+    "map_stats2",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def detect_firing_fields(

@@ -1,8 +1,24 @@
 import numpy as np
-from scipy.signal.windows import dpss as dpss_scipy
 import pandas as pd
-from spectrum import dpss
+
 from typing import Union
+
+from lazy_loader import attach as _attach
+from scipy.signal.windows import dpss as dpss_scipy
+from spectrum import dpss
+
+__all__ = (
+    "getfgrid",
+    "dpsschk",
+    "get_tapers",
+    "mtfftpt",
+    "mtspectrumpt",
+    "mtfftc",
+    "mtspectrumc",
+    "point_spectra",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def getfgrid(Fs: int, nfft: int, fpass: list):

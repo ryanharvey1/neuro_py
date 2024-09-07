@@ -1,9 +1,19 @@
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
-from neurodsp.timefrequency.wavelets import compute_wavelet_transform
 import pandas as pd
+
+from concurrent.futures import ThreadPoolExecutor
+
+from lazy_loader import attach as _attach
+from neurodsp.timefrequency.wavelets import compute_wavelet_transform
 from scipy import signal
 from statsmodels.regression import yule_walker
+
+__all__ = (
+    "whiten_lfp",
+    "event_triggered_wavelet",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def whiten_lfp(lfp, order=2):

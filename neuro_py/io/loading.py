@@ -1,19 +1,41 @@
 """ Loading functions for cell explorer format"""
+import glob
+import sys, os
+import warnings
+import multiprocessing
 
-__all__ = [
+import nelpy as nel
+import numpy as np
+import pandas as pd
+import scipy.io as sio
+
+from itertools import chain
+from typing import List, Union
+from warnings import simplefilter
+from xml.dom import minidom
+
+from lazy_loader import attach as _attach
+from scipy import signal
+
+from neuro_py.process.intervals import in_intervals, find_interval
+from neuro_py.process.peri_event import get_participation
+from neuro_py.behavior.kinematics import get_speed
+
+__all__ = (
     "loadXML",
     "loadLFP",
-    "LoadLfp",
+    "LFPLoader",
     "load_position",
     "writeNeuroscopeEvents",
     "load_all_cell_metrics",
     "load_cell_metrics",
     "load_SWRunitMetrics",
+    "add_manual_events",
     "load_ripples_events",
     "load_theta_cycles",
     "load_barrage_events",
     "load_ied_events",
-    "load_dentate_spike",
+    "load_dentate_spikes",
     "load_theta_rem_shift",
     "load_SleepState_states",
     "load_animal_behavior",
@@ -31,27 +53,10 @@ __all__ = [
     "load_extracellular_metadata",
     "load_probe_layout",
     "load_emg",
-]
-
-
-import scipy.io as sio
-import sys, os
-import pandas as pd
-import numpy as np
-import glob
-import nelpy as nel
-import warnings
-from neuro_py.process.intervals import in_intervals, find_interval
-from neuro_py.process.peri_event import get_participation
-from neuro_py.behavior.utils import get_speed
-from warnings import simplefilter
-from typing import List, Union
-import multiprocessing
-from joblib import Parallel, delayed
-from xml.dom import minidom
-from scipy import signal
-from itertools import chain
-
+    "load_events",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
@@ -190,7 +195,7 @@ def loadLFP(
             return data, timestep
 
 
-class LoadLfp(object):
+class LFPLoader(object):
     """
     Simple class to load LFP or wideband data from a recording folder
     Args:
@@ -204,12 +209,12 @@ class LoadLfp(object):
     Example:
         # load lfp file
         >>> basepath = r"X:/data/Barrage/NN10/day10"
-        >>> lfp = loading.LoadLfp(basepath,ext="lfp")
+        >>> lfp = loading.LFPLoader(basepath,ext="lfp")
         >>> lfp
         >>>    <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
 
         # Loading dat file
-        >>> dat = loading.LoadLfp(basepath,ext="dat")
+        >>> dat = loading.LFPLoader(basepath,ext="dat")
         >>> dat
         >>>    <AnalogSignalArray at 0x25ba4fedc40: 128 signals> for a total of 5:33:58:790 hours
         >>> dat.lfp.data.shape
@@ -975,7 +980,7 @@ def load_ied_events(
     return df
 
 
-def load_dentate_spike(
+def load_dentate_spikes(
     basepath: str,
     dentate_spike_type: List[str] = ["DS1", "DS2"],
     manual_events: bool = True,
@@ -1816,6 +1821,7 @@ def load_extracellular_metadata(basepath):
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
+
 
 def load_probe_layout(basepath):
     """

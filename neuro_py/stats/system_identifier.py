@@ -16,8 +16,17 @@ This is a linear dynamical system.
 """
 import numpy as np
 import scipy as sp
+
+from lazy_loader import attach as _attach
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
+
+__all__ = (
+    "ideal_data",
+    "SystemIdentifier",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def ideal_data(num, dimU, dimY, dimX, noise=1):

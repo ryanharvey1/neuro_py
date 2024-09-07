@@ -34,6 +34,11 @@ dependencies = [
     "seaborn>=0.11.2",
     "scikit-image>=0.21.0",
     "nelpy @ git+https://github.com/ryanharvey1/nelpy.git",
+    "lazy-loader>=0.4",
+    "elephant>=1.1.0",
+    "neo>=0.13.3",
+    "quantities>=0.15.0",
+    "neurodsp>=2.2.1",
 ]
 
 [project.urls]

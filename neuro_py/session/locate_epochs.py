@@ -1,14 +1,24 @@
-__all__ = [
+import logging
+import re
+
+import numpy as np
+import pandas as pd
+
+from lazy_loader import attach as _attach
+from typing import Union
+
+__all__ = (
     "find_pre_task_post",
     "compress_repeated_epochs",
     "find_multitask_pre_post",
     "find_epoch_pattern",
-]
-import numpy as np
-import pandas as pd
-import logging
-from typing import Union
-import re
+    "find_env_paradigm_pre_task_post",
+    "find_pre_task_post_optimize_novel",
+    "get_experience_level",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
+
 
 def find_pre_task_post(env, pre_post_label="sleep"):
     """
