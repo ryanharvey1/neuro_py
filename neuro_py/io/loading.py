@@ -1202,13 +1202,14 @@ def load_animal_behavior(
 
     Ryan H 2021
     """
+    df = pd.DataFrame()
 
     if alternative_file is None:
         try:
             filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
         except:
             warnings.warn("file does not exist")
-            return pd.DataFrame()
+            return df
     else:
         try:
             filename = glob.glob(
@@ -1216,32 +1217,34 @@ def load_animal_behavior(
             )[0]
         except:
             warnings.warn("file does not exist")
-            return pd.DataFrame()
-    data = []
+            return df
+
     data = sio.loadmat(filename, simplify_cells=True)
 
-    df = pd.DataFrame()
     # add timestamps first which provide the correct shape of df
     # here, I'm naming them time, but this should be depreciated
     df["time"] = data["behavior"]["timestamps"]
 
     # add all other position coordinates to df (will add everything it can within position)
     for key in data["behavior"]["position"].keys():
-        try:
-            df[key] = data["behavior"]["position"][key]
-        except:
-            pass
+        values = data["behavior"]["position"][key]
+        if (isinstance(values, (list, np.ndarray)) and len(values) == 0):
+            continue
+        df[key] = values
+
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
-        try:
-            df[key] = data["behavior"][key]
-        except:
-            pass
+        values = data["behavior"][key]
+        if isinstance(values, (list, np.ndarray)) and len(values) != len(df):
+            continue
+        df[key] = values
+
     # add speed and acceleration
     if "speed" not in df.columns:
         df["speed"] = get_speed(df[["x", "y"]].values, df.time.values)
-    if "acceleration" not in df.columns:
-        df.loc[1:, "acceleration"] = np.diff(df["speed"])
+    if "acceleration" not in df.columns:  # using backward difference
+        df.loc[1:, "acceleration"] = np.diff(df["speed"]) / np.diff(df["time"])
+        df.loc[0, "acceleration"] = 0  # assuming no acceleration at start
 
     trials = data["behavior"]["trials"]
     try:
