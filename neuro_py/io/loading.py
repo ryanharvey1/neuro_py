@@ -326,6 +326,17 @@ class LFPLoader(object):
         return filt_sig, phase, amplitude, amplitude_filtered
 
 
+# Alias for backwards compatibility
+class __init__(LFPLoader):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "Class 'LoadLfp' is deprecated, please use 'LFPLoader' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
+
+
 def load_position(basepath, fs=39.0625):
     if not os.path.exists(basepath):
         print("The path " + basepath + " doesn't exist; Exiting ...")
