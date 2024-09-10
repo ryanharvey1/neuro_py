@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
 from lazy_loader import attach as _attach
 from matplotlib.patches import PathPatch
 
@@ -32,8 +31,10 @@ def set_plotting_defaults():
         "ytick.labelsize": 8,
         "svg.fonttype": "none",
     }
-    plt.style.use("seaborn-paper")
+    
+    plt.style.use("default")
     plt.rcParams.update(tex_fonts)
+    
 
 
 def set_size(width, fraction=1, subplots=(1, 1)):
@@ -285,7 +286,7 @@ def plot_joint_peth(
     ax[1, 2].set_yticks([])
     ax[1, 3].set_yticks([])
 
-    ax[0, 3].set_xlabel(f"obs - expected")
+    ax[0, 3].set_xlabel("obs - expected")
 
     sns.despine()
 
