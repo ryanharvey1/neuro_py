@@ -1,8 +1,7 @@
-import numpy as np
-import pandas as pd
-
 from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
+import pandas as pd
 from lazy_loader import attach as _attach
 from neurodsp.timefrequency.wavelets import compute_wavelet_transform
 from scipy import signal
@@ -26,7 +25,7 @@ def whiten_lfp(lfp, order=2):
     Parameters:
     -----------
     lfp : ndarray
-        A 1D numpy array containing the LFP data. 
+        A 1D numpy array containing the LFP data.
 
     order : int, optional (default=2)
         The order of the AR model to be used for whitening the LFP data.
@@ -159,9 +158,17 @@ def event_triggered_wavelet(
 
     # set up frequency range
     freqs = np.arange(freq_min, freq_max, freq_step)
+    # set up time range
     ds = timestamps[1] - timestamps[0]
     fs = 1 / ds
-    times = np.linspace(-max_lag, max_lag, np.round((max_lag * 2) / ds).astype(int))
+    # Create times array based on the sample rate (fs)
+    times = np.arange(-max_lag, max_lag, 1 / fs)
+    # Number of samples corresponding to the time window around each event
+    n_samples = int(max_lag * 2 * fs)
+
+    # Ensure the length of times matches n_samples
+    if len(times) != n_samples:
+        times = np.linspace(-max_lag, max_lag, n_samples)
 
     n_freqs = len(freqs)
     n_samples = len(times)
@@ -179,13 +186,12 @@ def event_triggered_wavelet(
 
         if start + max_lag > timestamps.max() or start - max_lag < timestamps.min():
             return None, None
-        
-        idx = (timestamps >= start - max_lag) & (timestamps < start + max_lag)
-        sig = signal[idx]
+
+        idx = (timestamps >= start - max_lag) & (timestamps <= start + max_lag)
 
         mwt_partial = np.abs(compute_wavelet_transform(signal_[idx], fs, freqs=freqs))
 
-        return mwt_partial, sig
+        return mwt_partial, signal[idx]
 
     if parallel:
         with ThreadPoolExecutor() as executor:
