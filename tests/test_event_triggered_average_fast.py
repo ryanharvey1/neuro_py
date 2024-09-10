@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from neuro_py.process.peri_event import event_triggered_average_fast
 
 
@@ -25,4 +24,4 @@ def test_event_triggered_average_fast():
         return_pandas=True,
     )
     # assert that the psth peak is at the middle of the window
-    assert np.allclose(psth.index[np.argmax(psth, axis=0)], 0, atol=1e-3)
+    assert np.allclose(psth.index[np.argmax(psth.values, axis=0)], 0, atol=1e-3)
