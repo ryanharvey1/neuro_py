@@ -2,9 +2,10 @@ import itertools
 
 import numpy as np
 import pandas as pd
-
 from lazy_loader import attach as _attach
 from scipy import signal, stats
+from scipy.stats import poisson
+
 from neuro_py.process.peri_event import crossCorr, deconvolve_peth
 
 __all__ = (
@@ -173,3 +174,57 @@ def compute_cross_correlogram(X, dt=1, window=0.5):
         return crosscorrs
     else:
         return crosscorrs[(crosscorrs.index >= -window) & (crosscorrs.index <= window)]
+
+
+def local_firfilt(x, W):
+    C = int(len(W))
+    D = int(np.ceil(C / 2) - 1)
+    xx = [np.flipud(x[:C]), x, np.flipud(x[-C:])]
+    xx = list(itertools.chain(*xx))
+    Y = signal.lfilter(W, 1, xx)
+    Y = Y[C + D : len(Y) - C + D]
+    return Y
+
+
+def local_gausskernel(sigma, N):
+    x = np.arange(-(N - 1) / 2, ((N - 1) / 2) + 1)
+    k = 1 / (2 * np.pi * sigma) * np.exp(-(x**2 / 2 / sigma**2))
+    return k
+
+
+def cch_conv(cch, W=30, HF=0.6):
+    # Stark and Abeles JNM 2009
+    SDG = W / 2
+    if round(SDG) == SDG:  # even W
+        win = local_gausskernel(SDG, 6 * SDG + 1)
+        cidx = int(SDG * 3 + 1)
+    else:
+        win = local_gausskernel(SDG, 6 * SDG + 2)
+        cidx = int(SDG * 3 + 1.5)
+    win[cidx - 1] = win[cidx - 1] * (1 - HF)
+    win = win / sum(win)
+    pred = local_firfilt(cch, win)
+    pvals = 1 - poisson.cdf(cch - 1, pred) - poisson.pmf(cch, pred) * 0.5
+    qvals = 1 - pvals
+    return pvals, pred, qvals
+
+
+def sig_mod(cch, binsize=0.005, sig_window=0.2, alpha=0.001, W=30):
+    # check and correct for negative values
+    if np.any(cch < 0):
+        cch = cch + np.abs(min(cch))
+
+    pvals, pred, qvals = cch_conv(cch, W)
+
+    nBonf = int(sig_window / binsize) * 2
+    hiBound = poisson.ppf(1 - alpha / nBonf, pred)
+    loBound = poisson.ppf(alpha / nBonf, pred)
+
+    center_bins = np.arange(
+        int(len(cch) / 2 - 0.1 / binsize), int(len(cch) / 2 + 0.1 / binsize)
+    )
+    # at least 2 bins more extreme than bound to be sig
+    sig = (sum(cch[center_bins] > max(hiBound)) > 2) | (
+        sum(cch[center_bins] < min(loBound)) > 2
+    )
+    return sig, hiBound, loBound, pvals, pred
