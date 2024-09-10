@@ -56,5 +56,5 @@ def plot_grid_with_circle_and_random_dots():
     plt.axis("off")
     plt.show()
 
-
-plot_grid_with_circle_and_random_dots()
+if __name__ == "__main__":
+    plot_grid_with_circle_and_random_dots()
