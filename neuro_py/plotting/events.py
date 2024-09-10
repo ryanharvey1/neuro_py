@@ -66,7 +66,15 @@ def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=Non
     ax.set_yticklabels(labels)
 
 
-def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
+def plot_peth(
+    peth: pd.DataFrame,
+    ax=None,
+    smooth: bool = False,
+    smooth_window: float = 0.30,
+    smooth_std: int = 5,
+    smooth_win_type: str = "gaussian",
+    **kwargs
+) -> matplotlib.axes.Axes:
     """
     Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
 
@@ -108,6 +116,21 @@ def plot_peth(peth: pd.DataFrame, ax=None, **kwargs) -> matplotlib.axes.Axes:
     # verify peth is a dataframe
     if not isinstance(peth, pd.DataFrame):
         raise TypeError("peth must be a pandas dataframe")
+
+    if smooth:
+        # convert window to samples
+        smooth_window = int(smooth_window / np.diff(peth.index)[0])
+        # smooth the peth
+        peth = (
+            peth.rolling(
+                window=smooth_window,
+                win_type=smooth_win_type,
+                center=True,
+                min_periods=1,
+            )
+            .mean(std=smooth_std)
+            .copy()
+        )
 
     # melt the dataframe so that the index is time and there is a column for each trial/cell/etc.
     peth_long = pd.melt(peth.reset_index(), id_vars=["index"], value_name="peth")
