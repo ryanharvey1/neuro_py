@@ -1,16 +1,29 @@
+import logging
+import os
+
+import numpy as np
+import nelpy as nel
+import scipy.io as sio
+
+from typing import Tuple, List, Union
+
+from lazy_loader import attach as _attach
+from scipy.signal import medfilt
+
 from neuro_py.behavior import linear_positions
 from neuro_py.behavior import well_traversal_classification
-import numpy as np
-from scipy import stats
-import nelpy as nel
 from neuro_py.io import loading
-import pandas as pd
-import os
-import scipy.io as sio
-from scipy.signal import medfilt
 from neuro_py.process.intervals import find_interval
-from typing import Tuple, List, Union
-import logging
+
+__all__ = (
+    "get_linear_maze_trials",
+    "get_t_maze_trials",
+    "get_w_maze_trials",
+    "get_cheeseboard_trials",
+    "get_openfield_trials",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 # linear track
@@ -550,4 +563,3 @@ def get_openfield_trials(
 
 
     return pos, trials
-

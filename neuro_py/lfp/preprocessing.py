@@ -1,8 +1,18 @@
-import numpy as np
 import nelpy as nel
+import numpy as np
+
+from lazy_loader import attach as _attach
+
 from neuro_py.process import intervals
 
-def clean_lfp(lfp, thresholds=[5, 10], artifact_time_expand=[0.25, 0.1]):
+__all__ = (
+    "clean_lfp",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
+
+
+def clean_lfp(lfp, thresholds=(5, 10), artifact_time_expand=(0.25, 0.1)):
     """
     Remove artefacts and noise from a local field potential (LFP) signal.
 

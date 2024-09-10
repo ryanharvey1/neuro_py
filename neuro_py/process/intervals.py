@@ -1,19 +1,28 @@
-__all__ = [
+import random
+
+import nelpy as nel
+import numba
+import numpy as np
+
+from typing import List, Union
+
+from lazy_loader import attach as _attach
+from nelpy import core
+from numba import jit, njit
+
+__all__ = (
+    "randomize_epochs",
+    "split_epoch_equal_parts",
+    "overlap_intersect",
     "find_intersecting_intervals",
     "find_interval",
     "in_intervals",
     "in_intervals_interval",
-    "overlap_intersect",
-    "randomize_epochs",
-]
-
-from typing import List, Union
-import numpy as np
-import random
-from numba import jit, njit
-import numba
-from nelpy import core
-import nelpy as nel
+    "truncate_epoch",
+    "shift_epoch_array",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def randomize_epochs(epoch, randomize_each=True, start_stop=None):

@@ -1,8 +1,22 @@
-from sklearn.decomposition import PCA
+import sys
+
+import nelpy as nel
 import numpy as np
 import pandas as pd
-import sys
-import nelpy as nel
+
+from lazy_loader import attach as _attach
+from sklearn.decomposition import PCA
+
+__all__ = (
+    "linearize_position",
+    "find_laps",
+    "peakdetz",
+    "find_good_laps",
+    "get_linear_track_lap_epochs",
+    "find_good_lap_epochs",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def linearize_position(x, y):

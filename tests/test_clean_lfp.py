@@ -1,6 +1,6 @@
 import numpy as np
 import nelpy as nel
-from neuro_py.lfp.clean_lfp import clean_lfp
+from neuro_py.lfp.preprocessing import clean_lfp
 
 
 def test_clean_lfp():
