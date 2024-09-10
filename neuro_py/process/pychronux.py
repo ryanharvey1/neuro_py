@@ -1,8 +1,22 @@
-import numpy as np
-from scipy.signal.windows import dpss as dpss_scipy
-import pandas as pd
-from spectrum import dpss
 from typing import Union
+
+import numpy as np
+import pandas as pd
+from lazy_loader import attach as _attach
+from scipy.signal.windows import dpss
+
+__all__ = (
+    "getfgrid",
+    "dpsschk",
+    "get_tapers",
+    "mtfftpt",
+    "mtspectrumpt",
+    "mtfftc",
+    "mtspectrumc",
+    "point_spectra",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def getfgrid(Fs: int, nfft: int, fpass: list):
@@ -35,7 +49,7 @@ def dpsschk(tapers, N, Fs):
     Outputs:
         tapers: [tapers, eigenvalues]
     """
-    tapers, eigs = dpss_scipy(
+    tapers, eigs = dpss(
         N, NW=tapers[0], Kmax=tapers[1], sym=False, return_ratios=True
     )
     tapers = tapers * np.sqrt(Fs)
@@ -79,8 +93,10 @@ def get_tapers(N, bandwidth, *, fs=1, min_lambda=0.95, n_tapers=None):
             f"Not enough tapers, with 'NW' of {NW}. Increase the bandwidth or "
             "use more data points"
         )
-
-    tapers, lambdas = dpss(N, NW, Kmax=K, norm=2, return_ratios=True)
+    
+    tapers, lambdas  = dpss(
+        N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True
+    )
     mask = lambdas > min_lambda
     if not np.sum(mask) > 0:
         raise ValueError(
@@ -273,7 +289,6 @@ def point_spectra(times, Fs=1250, freq_range=[1, 20], tapers0=[3, 5], pad=0):
     """
 
     timesRange = [min(times), max(times)]
-    t = np.mean(timesRange)
     window = np.floor(np.diff(timesRange))
     nSamplesPerWindow = int(np.round(Fs * window))  # number of samples in window
     nfft = np.max(
@@ -282,7 +297,7 @@ def point_spectra(times, Fs=1250, freq_range=[1, 20], tapers0=[3, 5], pad=0):
     fAll = np.linspace(0, Fs, int(nfft))
     ok = (fAll >= freq_range[0]) & (fAll <= freq_range[1])
     Nf = sum(ok)
-    tapers, eigens = dpss(nSamplesPerWindow, tapers0[0], tapers0[1])
+    tapers, _ = dpss(nSamplesPerWindow, tapers0[0], tapers0[1])
     tapers = tapers * np.sqrt(Fs)
     spectra = np.zeros(Nf)
     H = np.fft.fft(tapers.T, int(nfft), 1)  # fft of tapers

@@ -1,8 +1,19 @@
 import itertools
-import numpy as np
-from neuro_py.stats.stats import get_significant_events
 import multiprocessing
+
+import numpy as np
+
 from joblib import Parallel, delayed
+
+from lazy_loader import attach as _attach
+
+from neuro_py.stats.stats import get_significant_events
+
+__all__ = (
+    "similarity_index",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def similarity_index(patterns, n_shuffles=1000, parallel=True):

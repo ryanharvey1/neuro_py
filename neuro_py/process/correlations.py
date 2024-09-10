@@ -1,16 +1,22 @@
-__all__ = [
+import itertools
+
+import numpy as np
+import pandas as pd
+
+from lazy_loader import attach as _attach
+from scipy import signal, stats
+from neuro_py.process.peri_event import crossCorr, deconvolve_peth
+
+__all__ = (
     "compute_AutoCorrs",
     "pairwise_corr",
     "pairwise_cross_corr",
     "pairwise_spatial_corr",
     "compute_cross_correlogram",
-]
-import numpy as np
-import itertools
-import pandas as pd
-from scipy import stats
-from neuro_py.process.peri_event import crossCorr, deconvolve_peth
-from scipy import signal
+
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def compute_AutoCorrs(spks, binsize=0.001, nbins=100):

@@ -1,16 +1,30 @@
+import multiprocessing
+
+import numba
 import numpy as np
-import scipy as sp
 import pycircstat as pcs
 import pyfftw
-import multiprocessing
-import numba
+import scipy as sp
+
+from lazy_loader import attach as _attach
 from scipy.signal import find_peaks
 from scipy.ndimage import gaussian_filter1d
+
+__all__ = (
+    "corrcc",
+    "corrcc_uniform",
+    "spatial_phase_precession",
+    "fast_acf",
+    "acf_power",
+    "nonspatial_phase_precession",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
+
 
 # These are the core functions used to identify both spatial and non-spatial phase precession
 # https://github.com/seqasim/human_precession/blob/main/Precession_utils.py
 # https://doi.org/10.1016/j.cell.2021.04.017
-
 
 def corrcc(alpha1, alpha2, axis=None):
     """

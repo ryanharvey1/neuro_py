@@ -1,16 +1,26 @@
-from typing import Tuple, Union
-import numpy as np
+import copy
+import logging
+
+import matplotlib.pyplot as plt
 import nelpy as nel
+import numpy as np
+import seaborn as sns
+
+from typing import Tuple, Union
+
+from lazy_loader import attach as _attach
 from scipy import stats
+
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs
 from neuro_py.ensemble import assembly
 from neuro_py.session.locate_epochs import find_pre_task_post
-import logging
-import copy
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Union
+
+__all__ = (
+    "AssemblyReact",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 logging.getLogger().setLevel(logging.ERROR)
 

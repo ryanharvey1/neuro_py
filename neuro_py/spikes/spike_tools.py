@@ -7,7 +7,19 @@ __all__ = [
 
 import numpy as np
 import pandas as pd
+
+from lazy_loader import attach as _attach
 from typing import Union
+
+__all__ = (
+    "get_spindices",
+    "spindices_to_ndarray",
+    "BurstIndex_Royer_2012",
+    "select_burst_spikes",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
+
 
 def get_spindices(data: np.ndarray) -> pd.DataFrame():
     """

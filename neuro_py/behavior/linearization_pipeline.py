@@ -2,12 +2,24 @@ import glob
 import os
 import pickle
 import sys
-import pandas as pd
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from lazy_loader import attach as _attach
+from scipy.io import savemat, loadmat
+
 from track_linearization import make_track_graph
 from track_linearization import get_linearized_position
-from scipy.io import savemat, loadmat
+
+__all__ = (
+    "NodePicker",
+    "load_animal_behavior",
+    "load_epoch",
+    "run",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 
 plt.ion()
 plt.style.use("dark_background")

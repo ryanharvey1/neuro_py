@@ -1,14 +1,19 @@
 """ Loading functions for cell explorer format"""
-
-__all__ = [
-    "epoch_to_mat",
-]
-
-from scipy.io import savemat
 import os
-import numpy as np
+
 import nelpy as nel
+import numpy as np
+
 from typing import Union
+
+from lazy_loader import attach as _attach
+from scipy.io import savemat
+
+__all__ = (
+    "epoch_to_mat",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 def epoch_to_mat(

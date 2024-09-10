@@ -1,10 +1,18 @@
 # CSD
 import neo
-from elephant.current_source_density import estimate_csd
+import numpy as np
 import quantities as pq
+
+from lazy_loader import attach as _attach
+from elephant.current_source_density import estimate_csd
+
 from neuro_py.io import loading
 
-import numpy as np
+__all__ = (
+    "get_coords",
+    "get_csd",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 
 
 def get_coords(basepath, shank=0):

@@ -1,16 +1,26 @@
-import numpy as np
-import nelpy as nel
+import os
 import copy
-import scipy
-from neuro_py.tuning import fields
-from neuro_py.stats.stats import get_significant_events
-from scipy.spatial.distance import pdist
 import logging
 import multiprocessing
+
+import numpy as np
+import nelpy as nel
+import scipy
+
+from lazy_loader import attach as _attach
+from scipy.spatial.distance import pdist
 from joblib import Parallel, delayed
 from scipy.io import savemat
-import os
 from typing import Union, List
+
+from neuro_py.tuning import fields
+from neuro_py.stats.stats import get_significant_events
+
+__all__ = (
+    "SpatialMap",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 # logging.getLogger().setLevel(logging.ERROR)
 np.seterr(divide="ignore", invalid="ignore")

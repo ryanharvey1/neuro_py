@@ -1,23 +1,37 @@
-__all__ = [
+import warnings
+
+import numpy as np
+import pandas as pd
+
+from typing import Union
+
+from lazy_loader import attach as _attach
+from numba import jit, prange
+from scipy import stats
+from scipy.linalg import toeplitz
+
+from nelpy.core._eventarray import SpikeTrainArray
+
+__all__ = (
     "crossCorr",
-    "compute_AutoCorrs",
     "compute_psth",
+    "joint_peth",
     "deconvolve_peth",
     "peth_matrix",
     "get_raster_points",
     "event_triggered_average_irregular_sample",
     "event_triggered_average",
+    "event_triggered_average_fast",
+    "count_in_interval",
     "get_participation",
-]
-
-import numpy as np
-import pandas as pd
-from numba import jit, prange
-from scipy.linalg import toeplitz
-from scipy import stats
-import warnings
-from typing import Union
-from nelpy.core._eventarray import SpikeTrainArray
+    "get_rank_order",
+    "count_events",
+    "relative_times",
+    "nearest_event_delay",
+    "event_spiking_threshold",
+)
+__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
+del _attach
 
 
 @jit(nopython=True)
