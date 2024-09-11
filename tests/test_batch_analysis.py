@@ -98,11 +98,18 @@ def test_batchanalysis():
 
     # test file encode/decode
     with tempfile.TemporaryDirectory() as save_path:
-        file = os.path.join("C:", os.sep, "test_data", "test_data_1")
+        # extract drive letter
+        cwd = os.getcwd()
+        drive = os.path.splitdrive(cwd)[0]
+        # create a test file path
+        file = os.path.join(drive, os.sep, "test_data", "test_data_1")
         file = os.path.normpath(file)
+        # encode and decode the file path
         encoded_file = batch_analysis.encode_file_path(file, save_path)
         decoded_file = batch_analysis.decode_file_path(encoded_file)
+        # check that the decoded file path is the same as the original file path
         assert decoded_file == file
+        # check that the encoded file path is the same as the expected file path
         assert encoded_file == os.path.normpath(
-            os.path.join(save_path, "C---___test_data___test_data_1.pkl")
+            os.path.join(save_path, drive[0] + "---___test_data___test_data_1.pkl")
         )
