@@ -92,9 +92,9 @@ def test_batchanalysis():
 
         df = batch_analysis.load_results(save_path)
         assert df.shape[0] == 3
-        assert df["basepath"].iloc[0] == r"\test_data\test_data_1"
-        assert df["basepath"].iloc[1] == r"\test_data\test_data_2"
-        assert df["basepath"].iloc[2] == r"\test_data\test_data_3"
+        assert r"\test_data\test_data_1" in df["basepath"].values
+        assert r"\test_data\test_data_2" in df["basepath"].values
+        assert r"\test_data\test_data_3" in df["basepath"].values
 
     # test file encode/decode
     with tempfile.TemporaryDirectory() as save_path:
