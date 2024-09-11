@@ -40,7 +40,7 @@ dependencies = [
     "quantities>=0.15.0",
     "neurodsp>=2.2.1",
     "track-linearization>=2.3.1",
-    "pyFFTW>=0.14.0"
+    "pyFFTW>=0.14"
 ]
 
 [project.urls]
