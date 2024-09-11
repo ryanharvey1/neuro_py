@@ -226,7 +226,7 @@ class AssemblyReact(object):
 
         # check if st has any neurons
         if self.st.isempty:
-            self.patterns = []
+            self.patterns = None
             return
 
         if epoch is not None:
@@ -235,7 +235,7 @@ class AssemblyReact(object):
             bst = self.st.bin(ds=self.weight_dt).data
 
         if (bst == 0).all():
-            self.patterns = []
+            self.patterns = None
         else:
             patterns, _, _ = assembly.runPatterns(
                 bst,
@@ -293,7 +293,7 @@ class AssemblyReact(object):
         if not hasattr(self, "patterns"):
             return "run get_weights first"
         else:
-            if self.patterns == []:
+            if self.patterns is None:
                 return None, None
             if plot_members:
                 self.find_members()
@@ -352,9 +352,7 @@ class AssemblyReact(object):
 
     def n_assemblies(self):
         if hasattr(self, "patterns"):
-            if self.patterns == []:
-                return 0
-            elif self.patterns is None:
+            if self.patterns is None:
                 return 0
             return self.patterns.shape[0]
 
