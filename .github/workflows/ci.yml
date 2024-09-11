@@ -39,7 +39,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools setuptools-scm
           pip install .
-
+          pip install pytest 
+          
       - name: Install ruff for linting
         run: |
           pip install ruff
