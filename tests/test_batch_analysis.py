@@ -1,9 +1,11 @@
 import glob
 import os
 import pickle
-import pandas as pd
-from neuro_py.process import batch_analysis
 import tempfile
+
+import pandas as pd
+
+from neuro_py.process import batch_analysis
 
 
 def test_batchanalysis():
@@ -99,7 +101,8 @@ def test_batchanalysis():
     # test file encode/decode
     with tempfile.TemporaryDirectory() as save_path:
         file = r"C:\test_data\test_data_1"
+        file = os.path.normpath(file)
         encoded_file = batch_analysis.encode_file_path(file, save_path)
         decoded_file = batch_analysis.decode_file_path(encoded_file)
         assert decoded_file == file
-        assert encoded_file == save_path + os.sep + "C---___test_data___test_data_1.pkl"
+        assert encoded_file == os.path.normpath(save_path + os.sep + "C---___test_data___test_data_1.pkl")
