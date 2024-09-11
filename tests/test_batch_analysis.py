@@ -101,6 +101,12 @@ def test_batchanalysis():
         # extract drive letter
         cwd = os.getcwd()
         drive = os.path.splitdrive(cwd)[0]
+
+        if drive:
+            drive_letter = drive[0]
+        else:
+            drive_letter = ''  # No drive letter on Linux systems
+        
         # create a test file path
         file = os.path.join(drive, os.sep, "test_data", "test_data_1")
         file = os.path.normpath(file)
@@ -110,6 +116,9 @@ def test_batchanalysis():
         # check that the decoded file path is the same as the original file path
         assert decoded_file == file
         # check that the encoded file path is the same as the expected file path
-        assert encoded_file == os.path.normpath(
-            os.path.join(save_path, drive[0] + "---___test_data___test_data_1.pkl")
-        )
+        if drive_letter:
+            expected_encoded_file = os.path.join(save_path, drive_letter + "---___test_data___test_data_1.pkl")
+        else:
+            expected_encoded_file = os.path.join(save_path, "test_data___test_data_1.pkl")
+            
+        assert encoded_file == os.path.normpath(expected_encoded_file)
