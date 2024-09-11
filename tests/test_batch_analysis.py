@@ -22,11 +22,10 @@ def test_batchanalysis():
         return results
 
     df = pd.DataFrame()
-    df["basepath"] = [
-        r"\test_data\test_data_1",
-        r"\test_data\test_data_2",
-        r"\test_data\test_data_3",
+    basepaths = [
+        os.sep + os.path.join("test_data", f"test_data_{i}") for i in range(1, 4)
     ]
+    df["basepath"] = basepaths
 
     # test serial
     with tempfile.TemporaryDirectory() as save_path:
@@ -94,15 +93,16 @@ def test_batchanalysis():
 
         df = batch_analysis.load_results(save_path)
         assert df.shape[0] == 3
-        assert r"\test_data\test_data_1" in df["basepath"].values
-        assert r"\test_data\test_data_2" in df["basepath"].values
-        assert r"\test_data\test_data_3" in df["basepath"].values
+        for basepath in basepaths:
+            assert basepath in df["basepath"].values
 
     # test file encode/decode
     with tempfile.TemporaryDirectory() as save_path:
-        file = r"C:\test_data\test_data_1"
+        file = os.path.join("C:", os.sep, "test_data", "test_data_1")
         file = os.path.normpath(file)
         encoded_file = batch_analysis.encode_file_path(file, save_path)
         decoded_file = batch_analysis.decode_file_path(encoded_file)
         assert decoded_file == file
-        assert encoded_file == os.path.normpath(save_path + os.sep + "C---___test_data___test_data_1.pkl")
+        assert encoded_file == os.path.normpath(
+            os.path.join(save_path, "C---___test_data___test_data_1.pkl")
+        )
