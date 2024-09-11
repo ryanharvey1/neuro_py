@@ -39,6 +39,8 @@ dependencies = [
     "neo>=0.13.3",
     "quantities>=0.15.0",
     "neurodsp>=2.2.1",
+    "pycircstat>=0.0.2",
+    "track-linearization>=2.3.1"
 ]
 
 [project.urls]
