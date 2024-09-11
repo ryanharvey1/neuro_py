@@ -1,16 +1,13 @@
 import warnings
+from typing import Union
 
 import numpy as np
 import pandas as pd
-
-from typing import Union
-
 from lazy_loader import attach as _attach
+from nelpy.core._eventarray import SpikeTrainArray
 from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
-
-from nelpy.core._eventarray import SpikeTrainArray
 
 __all__ = (
     "crossCorr",
@@ -93,7 +90,7 @@ def crossCorr(
             i2 = i2 - 1
 
         rbound = lbound
-        l = i2
+        last_index = i2
 
         # Calculate the cross-correlogram values for each bin
         for j in range(nbins):
@@ -101,8 +98,8 @@ def crossCorr(
             rbound = rbound + binsize
 
             # Count the number of elements in 't2' that fall within the bin
-            while l < nt2 and t2[l] < rbound:
-                l = l + 1
+            while last_index < nt2 and t2[last_index] < rbound:
+                last_index = last_index + 1
                 k = k + 1
 
             C[j] += k
@@ -592,7 +589,7 @@ def event_triggered_average(
             # for speed, instead of checking if we have enough time each iteration, just skip if we don't
             try:
                 result_sta[:, i] += signal[idx, i]
-            except:
+            except Exception:
                 continue
             # counting of the used event
             used_events[i] += 1

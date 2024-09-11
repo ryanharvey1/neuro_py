@@ -1,11 +1,10 @@
 import logging
 import re
+from typing import Union
 
 import numpy as np
 import pandas as pd
-
 from lazy_loader import attach as _attach
-from typing import Union
 
 __all__ = (
     "find_pre_task_post",
@@ -243,7 +242,7 @@ def find_env_paradigm_pre_task_post(epoch_df, env="sleep", paradigm="memory"):
 
     """
     # compress back to back sleep epochs
-    epoch_df_ = comp_rep_ep.main(epoch_df, epoch_name="sleep")
+    epoch_df_ = compress_repeated_epochs(epoch_df, epoch_name="sleep")
     # make col with env and paradigm
     epoch_df_["sleep_ind"] = (
         epoch_df_.environment + "_" + epoch_df_.behavioralParadigm.astype(str)
@@ -333,11 +332,11 @@ def get_experience_level(behavioralParadigm: pd.Series) -> int:
     else:
         try:
             # extract first number from string
-            experience = int(re.findall(r'\d+', behavioralParadigm)[0])
-        except:
+            experience = int(re.findall(r"\d+", behavioralParadigm)[0])
+        except Exception:
             try:
                 # extract experience level from behavioralParadigm column if it is a number
                 experience = int(behavioralParadigm)
-            except:
+            except Exception:
                 experience = np.nan
     return experience

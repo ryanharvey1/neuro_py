@@ -1,14 +1,13 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.ndimage as ndimage
-import scipy.ndimage.filters as filters
-
 from math import sqrt
 
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.ndimage as ndimage
+import scipy.ndimage.filters as filters
 from lazy_loader import attach as _attach
 from scipy.interpolate import interp1d
+from scipy.ndimage import gaussian_filter1d, label
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
-from scipy.ndimage import label, gaussian_filter1d
 
 __all__ = (
     "detect_firing_fields",
@@ -43,7 +42,7 @@ def detect_firing_fields(
     dog_thres=0.1,
     doh_thres=0.01,
 ):
-    from skimage.feature import blob_dog, blob_log, blob_doh
+    from skimage.feature import blob_dog, blob_doh, blob_log
 
     plt.imshow(image_gray, origin="lower")
 
@@ -195,12 +194,12 @@ def separate_fields_by_laplace(rate_map, threshold=0, minimum_field_area=None):
         Halvard Sutterud <halvard.sutterud@gmail.com>
     """
 
-    l = ndimage.laplace(rate_map)
+    laplacian = ndimage.laplace(rate_map)
 
-    l[l > threshold * np.min(l)] = 0
+    laplacian[laplacian > threshold * np.min(laplacian)] = 0
 
     # Labels areas of the laplacian not connected by values > 0.
-    fields, field_count = ndimage.label(l)
+    fields, _ = ndimage.label(laplacian)
     fields = sort_fields_by_rate(rate_map, fields)
     if minimum_field_area is not None:
         fields = remove_fields_by_area(fields, minimum_field_area)
@@ -237,9 +236,9 @@ def separate_fields_by_dilation(rate_map, seed=2.5, sigma=2.5, minimum_field_are
     dilated = reconstruction(rate_map_norm - seed, rate_map_norm, method="dilation")
     rate_map_reconstructed = rate_map_norm - dilated
 
-    l = ndimage.gaussian_laplace(rate_map_reconstructed, sigma)
-    l[l > 0] = 0
-    fields, field_count = ndimage.label(l)
+    laplacian = ndimage.gaussian_laplace(rate_map_reconstructed, sigma)
+    laplacian[laplacian > 0] = 0
+    fields, _ = ndimage.label(laplacian)
     fields = sort_fields_by_rate(rate_map, fields)
     if minimum_field_area is not None:
         fields = remove_fields_by_area(fields, minimum_field_area)
@@ -265,11 +264,11 @@ def separate_fields_by_laplace_of_gaussian(rate_map, sigma=2, minimum_field_area
         in rate_map. The fill values are in range(1,nFields + 1), sorted by size of the
         field (sum of all field values) with 0 elsewhere.
     """
-    l = ndimage.gaussian_laplace(rate_map, sigma)
-    l[l > 0] = 0
+    laplacian = ndimage.gaussian_laplace(rate_map, sigma)
+    laplacian[laplacian > 0] = 0
 
     # Labels areas of the laplacian not connected by values > 0.
-    fields, field_count = ndimage.label(l)
+    fields, _ = ndimage.label(laplacian)
 
     fields = sort_fields_by_rate(rate_map, fields)
     if minimum_field_area is not None:

@@ -1,14 +1,12 @@
 import random
+from typing import List, Union
 
 import nelpy as nel
 import numba
 import numpy as np
-
-from typing import List, Union
-
 from lazy_loader import attach as _attach
 from nelpy import core
-from numba import jit, njit
+from numba import jit
 
 __all__ = (
     "randomize_epochs",

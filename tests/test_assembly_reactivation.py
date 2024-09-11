@@ -1,8 +1,9 @@
 from itertools import chain
-from scipy import stats
-import numpy as np
+
 import nelpy as nel
+import numpy as np
 from neuro_py.ensemble import assembly_reactivation
+from scipy import stats
 
 
 def test_assembly_reactivation():
@@ -105,13 +106,13 @@ def test_assembly_reactivation():
     assembly_react = assembly_reactivation.AssemblyReact()
 
     # test is empty
-    assert assembly_react.isempty == True
+    assert assembly_react.isempty is True
 
     # load spike trains
     assembly_react.add_st(st)
 
     # test is empty
-    assert assembly_react.isempty == False
+    assert assembly_react.isempty is False
 
     # detect assemblies
     assembly_react.get_weights()
@@ -156,4 +157,6 @@ def test_assembly_reactivation():
     assembly_act = assembly_react.get_assembly_act()
 
     # test that the assembly activity is higher in the post-task epoch than the pre-task epoch
-    assert all(assembly_act[epochs[0]].mean(axis=1) < assembly_act[epochs[2]].mean(axis=1))
+    assert all(
+        assembly_act[epochs[0]].mean(axis=1) < assembly_act[epochs[2]].mean(axis=1)
+    )

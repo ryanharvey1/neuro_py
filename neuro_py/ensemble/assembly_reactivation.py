@@ -1,20 +1,17 @@
 import copy
 import logging
+from typing import Tuple, Union
 
 import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
 import seaborn as sns
-
-from typing import Tuple, Union
-
 from lazy_loader import attach as _attach
 from scipy import stats
 
-from neuro_py.io import loading
-from neuro_py.session.locate_epochs import compress_repeated_epochs
 from neuro_py.ensemble import assembly
-from neuro_py.session.locate_epochs import find_pre_task_post
+from neuro_py.io import loading
+from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
 __all__ = (
     "AssemblyReact",
@@ -294,7 +291,7 @@ class AssemblyReact(object):
         """
 
         if not hasattr(self, "patterns"):
-            return f"run get_weights first"
+            return "run get_weights first"
         else:
             if self.patterns == []:
                 return None, None

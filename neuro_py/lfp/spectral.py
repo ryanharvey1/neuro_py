@@ -38,7 +38,7 @@ def whiten_lfp(lfp, order=2):
 
     rho, sigma = yule_walker(lfp, order=order)
 
-    b, a = np.array([1.0]), np.concatenate(([1.0], -rho))
+    _, a = np.array([1.0]), np.concatenate(([1.0], -rho))
 
     # Apply the whitening filter to the LFP data and return the result as a 1D array
     return signal.convolve(lfp, a, "same")

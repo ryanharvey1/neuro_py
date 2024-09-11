@@ -1,17 +1,14 @@
 import logging
 import os
+from typing import List, Tuple, Union
 
-import numpy as np
 import nelpy as nel
+import numpy as np
 import scipy.io as sio
-
-from typing import Tuple, List, Union
-
 from lazy_loader import attach as _attach
 from scipy.signal import medfilt
 
-from neuro_py.behavior import linear_positions
-from neuro_py.behavior import well_traversal_classification
+from neuro_py.behavior import linear_positions, well_traversal_classification
 from neuro_py.io import loading
 from neuro_py.process.intervals import find_interval
 
@@ -60,7 +57,9 @@ def get_linear_maze_trials(basepath, epoch_input=None):
     epoch_df = loading.load_epoch(basepath)
     epoch = nel.EpochArray([np.array([epoch_df.startTime, epoch_df.stopTime]).T])
 
-    domain = nel.EpochArray([np.array([epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]).T])
+    domain = nel.EpochArray(
+        [np.array([epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]).T]
+    )
 
     inbound_laps_temp = []
     outbound_laps_temp = []
@@ -87,8 +86,8 @@ def get_linear_maze_trials(basepath, epoch_input=None):
         if not outbound_laps.isempty:
             outbound_laps_temp.append(outbound_laps.data)
 
-    inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp),domain=domain)
-    outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp),domain=domain)
+    inbound_laps = nel.EpochArray(np.vstack(inbound_laps_temp), domain=domain)
+    outbound_laps = nel.EpochArray(np.vstack(outbound_laps_temp), domain=domain)
 
     return pos, inbound_laps, outbound_laps
 
@@ -199,17 +198,11 @@ def get_w_maze_trials(
 
     # load epochs and place in array
     epoch_df = loading.load_epoch(basepath)
-    epoch = nel.EpochArray(
-        [np.array([epoch_df.startTime, epoch_df.stopTime]).T], label="session_epochs"
-    )
 
     # load position and place in array
     position_df = loading.load_animal_behavior(basepath)
     position_df_no_nan = position_df.query("not x.isnull() & not y.isnull()")
-    # pos = nel.PositionArray(
-    #     data=position_df_no_nan[["x", "y"]].values.T,
-    #     timestamps=position_df_no_nan.timestamps.values,
-    # )
+
     pos = nel.PositionArray(
         data=position_df_no_nan["linearized"].values.T,
         timestamps=position_df_no_nan.timestamps.values,
@@ -374,9 +367,10 @@ def get_openfield_trials(
     basepath,
     epoch_type: str = "epochs",
     spatial_binsize: int = 3,
-    n_time_bins: int = 1, # for bin_method = "fixed", not used for bin_method = "dynamic"
+    n_time_bins: int = 1,  # for bin_method = "fixed", not used for bin_method = "dynamic"
     bin_method: str = "dynamic",
-    trial_time_bin_size: Union[int, float] = 1 * 60, # in secords for bin_method = "dynamic", not used for bin_method = "fixed"
+    trial_time_bin_size: Union[int, float] = 1
+    * 60,  # in secords for bin_method = "dynamic", not used for bin_method = "fixed"
     prop_trial_sampled: float = 0.5,
     environments: List[str] = [
         "box",
@@ -453,8 +447,7 @@ def get_openfield_trials(
         # find epochs that are these environments
         openfield_idx = np.where(np.isin(epoch_df.environment, environments))[0]
 
-    epoch = nel.EpochArray(
-        [np.array([epoch_df.startTime, epoch_df.stopTime]).T])
+    epoch = nel.EpochArray([np.array([epoch_df.startTime, epoch_df.stopTime]).T])
 
     # find epochs that are these environments
     trials = []
@@ -491,7 +484,7 @@ def get_openfield_trials(
         # these will be iterated over to find trials that are sampled enough
         duration = epoch_df.iloc[idx].stopTime - epoch_df.iloc[idx].startTime
 
-        if bin_method == "dynamic": 
+        if bin_method == "dynamic":
             bins = np.linspace(
                 epoch_df.iloc[idx].startTime,
                 epoch_df.iloc[idx].stopTime,
@@ -533,7 +526,7 @@ def get_openfield_trials(
                         ]
                     )
                     if epoch_type == "trials":
-                        trial_ID.append(temp_ID+'_'+str(idx))
+                        trial_ID.append(temp_ID + "_" + str(idx))
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
 
@@ -549,7 +542,7 @@ def get_openfield_trials(
                         ]
                     )
                     if epoch_type == "trials":
-                        trial_ID.append(temp_ID+'_'+str(idx))
+                        trial_ID.append(temp_ID + "_" + str(idx))
                     # update trial_i to next interval to start from
                     trial_i = i_interval + 1
             else:
@@ -560,6 +553,5 @@ def get_openfield_trials(
         trials = nel.EpochArray(np.vstack(trials), label=np.vstack(trial_ID))
     else:
         trials = nel.EpochArray(np.vstack(trials), label="session_epochs")
-
 
     return pos, trials

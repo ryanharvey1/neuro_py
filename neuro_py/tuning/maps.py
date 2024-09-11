@@ -1,20 +1,18 @@
-import os
 import copy
 import logging
 import multiprocessing
+import os
+from typing import List, Union
 
-import numpy as np
 import nelpy as nel
-import scipy
-
-from lazy_loader import attach as _attach
-from scipy.spatial.distance import pdist
+import numpy as np
 from joblib import Parallel, delayed
+from lazy_loader import attach as _attach
 from scipy.io import savemat
-from typing import Union, List
+from scipy.spatial.distance import pdist
 
-from neuro_py.tuning import fields
 from neuro_py.stats.stats import get_significant_events
+from neuro_py.tuning import fields
 
 __all__ = (
     "SpatialMap",

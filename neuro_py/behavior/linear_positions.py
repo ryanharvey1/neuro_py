@@ -3,7 +3,6 @@ import sys
 import nelpy as nel
 import numpy as np
 import pandas as pd
-
 from lazy_loader import attach as _attach
 from sklearn.decomposition import PCA
 
@@ -161,9 +160,9 @@ def find_laps(
     while True:
         try:
             positions = np.arange(laps.iloc[i].pos, laps.iloc[i + 1].pos)
-        except:
+        except Exception:
             positions = [np.nan, np.nan]
-        if (np.any(positions > middle) == True) & (np.any(positions < middle) == False):
+        if (np.any(positions > middle) is True) & (np.any(positions < middle) is False):
             laps = laps.drop(laps.index[i + 1])
         i = i + 1
         if i + 1 >= len(laps.pos):
@@ -247,7 +246,7 @@ def peakdetz(v, delta, lookformax=1, backwards=0):
         if lookformax:
             try:
                 idx = mx - delta > mintab[-1]
-            except:
+            except Exception:
                 idx = mx - delta > mintab
 
             if (this < mx - delta) | ((ii == last - 1) & (len(mintab) > 0) & idx):
@@ -258,7 +257,7 @@ def peakdetz(v, delta, lookformax=1, backwards=0):
         else:
             try:
                 idx = mx - delta < maxtab[-1]
-            except:
+            except Exception:
                 idx = mx - delta < maxtab
             if (this > mn + delta) | ((ii == last - 1) & (len(maxtab) > 0) & idx):
                 mintab.append((mnpos, mn))
@@ -327,23 +326,28 @@ def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=5
     startgoodlaps = []
     stopgoodlaps = []
 
-    l = 0
-    while l < len(laps) - 1:
+    lap = 0
+    lastlapend = np.nan
+    while lap < len(laps) - 1:
         # % select out just this lap
-        if l == len(laps):
+        if lap == len(laps):
             endoflap = ts[-1]
         else:
-            endoflap = laps.iloc[l + 1].start_ts
+            endoflap = laps.iloc[lap + 1].start_ts
 
         v = V_rest[
-            np.where(ts == laps.iloc[l].start_ts)[0][0] : np.where(ts == endoflap)[0][0]
+            np.where(ts == laps.iloc[lap].start_ts)[0][0] : np.where(ts == endoflap)[0][
+                0
+            ]
         ]
         t = ts[
-            np.where(ts == laps.iloc[l].start_ts)[0][0] : np.where(ts == endoflap)[0][0]
+            np.where(ts == laps.iloc[lap].start_ts)[0][0] : np.where(ts == endoflap)[0][
+                0
+            ]
         ]
 
         # % find turn around points during this lap
-        lookformax = laps.iloc[l].direction == 1
+        lookformax = laps.iloc[lap].direction == 1
         peak, trough = peakdetz(v, delta, lookformax, 0)
 
         if lookformax:
@@ -429,27 +433,27 @@ def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=5
 
         if len(v) < 3:
             # % eliminate the lap if it is non-existent (as is sometimes the case for lap 1)
-            laps = laps.drop(laps.index[l])
+            laps = laps.drop(laps.index[lap])
         # % eliminate the lap if >completeprop of it is NaNs or if it has been marked for
         # % deleting above
         elif (len(v) < 6) | (sum(vcovered == 0) > completeprop * posbins):
-            laps.drop(laps.index[l])
+            laps.drop(laps.index[lap])
             # % remove the other lap from the lap pair
-            if l % 2 == 0:
+            if lap % 2 == 0:
                 # % delete previous lap from laps
-                laps = laps.drop(laps.index[l - 1])
+                laps = laps.drop(laps.index[lap - 1])
                 # % change goodlaps markers to delete previous lap from laps
                 if len(stopgoodlaps) > 0:
-                    if "lastlapend" not in locals() | (startgoodlaps[-1] > lastlapend):
+                    if np.isnan(lastlapend).all() | (startgoodlaps[-1] > lastlapend):
                         startgoodlaps[-1] = []
                         stopgoodlaps[-1] = []
                     else:
                         stopgoodlaps[-1] = lastlapend
 
-                l = l - 1
-            elif l <= len(laps) & l > 1:
+                lap = lap - 1
+            elif lap <= len(laps) & lap > 1:
                 # % delete next lap from laps
-                laps = laps.drop(laps.index[l])
+                laps = laps.drop(laps.index[lap])
         else:  # % if lap is good
             # % store last lap end just in case have to delete this lap with next lap
             if len(stopgoodlaps) > 0:
@@ -458,7 +462,7 @@ def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=5
             # % add this lap to goodlaps
             try:
                 idx = stopgoodlaps[-1] == t[0]
-            except:
+            except Exception:
                 idx = stopgoodlaps == t[0]
             if (len(stopgoodlaps) > 0) & (idx):
                 stopgoodlaps[-1] = t[-1]
@@ -466,7 +470,7 @@ def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=5
                 startgoodlaps.append(t[0])
                 stopgoodlaps.append(t[-1])
 
-            l = l + 1
+            lap = lap + 1
 
     return laps
 
@@ -535,7 +539,7 @@ def find_good_lap_epochs(pos, dir_epoch, thres=0.5, binsize=6, min_laps=10):
     x_coord = pos.data[0]
     time = pos.abscissa_vals
     epochs = dir_epoch.data
-    
+
     # iterate through laps
     for i, ep in enumerate(epochs):
         # bin position per lap

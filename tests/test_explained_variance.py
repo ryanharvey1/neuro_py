@@ -1,8 +1,9 @@
-import numpy as np
-import nelpy as nel
-from neuro_py.ensemble.explained_variance import ExplainedVariance
-import pytest
 from itertools import chain
+
+import nelpy as nel
+import numpy as np
+import pytest
+from neuro_py.ensemble.explained_variance import ExplainedVariance
 from scipy import stats
 
 
@@ -143,7 +144,7 @@ def test_explained_variance():
     def test_validate_input():
         # Test validation of input parameters
         with pytest.raises(AssertionError):
-            ev = ExplainedVariance(None, None, None, None)
+            ExplainedVariance(None, None, None, None)
 
     def test_examples():
         # Load data

@@ -6,12 +6,9 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from lazy_loader import attach as _attach
-from scipy.io import savemat, loadmat
-
-from track_linearization import make_track_graph
-from track_linearization import get_linearized_position
+from scipy.io import loadmat, savemat
+from track_linearization import get_linearized_position, make_track_graph
 
 __all__ = (
     "NodePicker",
@@ -50,6 +47,7 @@ class NodePicker:
         self.edges = [[]]
         self.basepath = basepath
         self.epoch = epoch
+        self.use_HMM = False
 
         if self.epoch is not None:
             self.epoch = int(self.epoch)
@@ -148,22 +146,17 @@ class NodePicker:
         self.redraw()
 
     def format_and_save(self):
-
         behave_df = load_animal_behavior(self.basepath)
 
         if self.epoch is not None:
             epochs = load_epoch(self.basepath)
-            # na_idx = np.isnan(behave_df.x) | (
-            #     (behave_df.time < epochs.iloc[self.epoch].startTime)
-            #     & (behave_df.time > epochs.iloc[self.epoch].stopTime)
-            # )
+
             cur_epoch = (
-                ~np.isnan(behave_df.x) &
-                (behave_df.time >= epochs.iloc[self.epoch].startTime) &
-                (behave_df.time <= epochs.iloc[self.epoch].stopTime)
+                ~np.isnan(behave_df.x)
+                & (behave_df.time >= epochs.iloc[self.epoch].startTime)
+                & (behave_df.time <= epochs.iloc[self.epoch].stopTime)
             )
         else:
-            # na_idx = np.isnan(behave_df.x)
             cur_epoch = ~np.isnan(behave_df.x)
 
         print("running hmm...")
@@ -177,22 +170,30 @@ class NodePicker:
             position=position,
             track_graph=track_graph,
             edge_order=self.edges,
-            use_HMM=True,
+            use_HMM=self.use_HMM,
         )
 
         print("saving to disk...")
         behave_df.loc[cur_epoch, "linearized"] = position_df.linear_position.values
         behave_df.loc[cur_epoch, "states"] = position_df.track_segment_id.values
-        behave_df.loc[cur_epoch, "projected_x_position"] = position_df.projected_x_position.values
-        behave_df.loc[cur_epoch, "projected_y_position"] = position_df.projected_y_position.values
+        behave_df.loc[cur_epoch, "projected_x_position"] = (
+            position_df.projected_x_position.values
+        )
+        behave_df.loc[cur_epoch, "projected_y_position"] = (
+            position_df.projected_y_position.values
+        )
 
         filename = glob.glob(os.path.join(self.basepath, "*.animal.behavior.mat"))[0]
         data = loadmat(filename, simplify_cells=True)
 
         data["behavior"]["position"]["linearized"] = behave_df.linearized.values
         data["behavior"]["states"] = behave_df.states.values
-        data["behavior"]["position"]["projected_x"] = behave_df.projected_x_position.values
-        data["behavior"]["position"]["projected_y"] = behave_df.projected_y_position.values
+        data["behavior"]["position"][
+            "projected_x"
+        ] = behave_df.projected_x_position.values
+        data["behavior"]["position"][
+            "projected_y"
+        ] = behave_df.projected_y_position.values
 
         # store nodes and edges within behavior file
         data = self.save_nodes_edges_to_behavior(data, behave_df)
@@ -214,9 +215,8 @@ class NodePicker:
         Store nodes and edges into behavior file
         Searches to find epochs with valid linearized coords
         Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}
-        """ 
+        """
         if self.epoch is None:
-
             # load epochs
             epochs = load_epoch(self.basepath)
             # iter over each epoch
@@ -224,17 +224,24 @@ class NodePicker:
                 # locate index for given epoch
                 idx = behave_df.time.between(ep.startTime, ep.stopTime)
                 # if linearized is not all nan, add nodes and edges
-                if not all(np.isnan(behave_df[idx].linearized)) & (behave_df[idx].shape[0] != 0):
+                if not all(np.isnan(behave_df[idx].linearized)) & (
+                    behave_df[idx].shape[0] != 0
+                ):
                     # adding nodes and edges
-                    data["behavior"]["epochs"][epoch_i]["node_positions"] = self.node_positions
+                    data["behavior"]["epochs"][epoch_i][
+                        "node_positions"
+                    ] = self.node_positions
                     data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
         else:
             # if epoch was used, add nodes and edges just that that epoch
-            data["behavior"]["epochs"][self.epoch]["node_positions"] = self.node_positions
+            data["behavior"]["epochs"][self.epoch][
+                "node_positions"
+            ] = self.node_positions
             data["behavior"]["epochs"][self.epoch]["edges"] = self.edges
 
         return data
-        
+
+
 def load_animal_behavior(basepath):
     filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
     data = loadmat(filename, simplify_cells=True)
@@ -242,12 +249,12 @@ def load_animal_behavior(basepath):
     df["time"] = data["behavior"]["timestamps"]
     try:
         df["states"] = data["behavior"]["states"]
-    except:
+    except Exception:
         pass
     for key in data["behavior"]["position"].keys():
         try:
             df[key] = data["behavior"]["position"][key]
-        except:
+        except Exception:
             pass
     return df
 
@@ -261,7 +268,7 @@ def load_epoch(basepath):
     data = loadmat(filename, simplify_cells=True)
     try:
         return pd.DataFrame(data["session"]["epochs"])
-    except:
+    except Exception:
         return pd.DataFrame([data["session"]["epochs"]])
 
 
@@ -288,7 +295,7 @@ def run(basepath, epoch=None):
     ax.set_ylabel("y (cm)")
     ax.set_xlabel("x (cm)")
 
-    picker = NodePicker(ax=ax, basepath=basepath, epoch=epoch)
+    NodePicker(ax=ax, basepath=basepath, epoch=epoch)
 
     plt.show(block=True)
 

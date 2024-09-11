@@ -1,25 +1,25 @@
 """ Loading functions for cell explorer format"""
 import glob
-import sys, os
-import warnings
 import multiprocessing
-
-import nelpy as nel
-import numpy as np
-import pandas as pd
-import scipy.io as sio
-
+import os
+import sys
+import warnings
 from itertools import chain
 from typing import List, Union
 from warnings import simplefilter
 from xml.dom import minidom
 
+import nelpy as nel
+import numpy as np
+import pandas as pd
+import scipy.io as sio
+from joblib import Parallel, delayed
 from lazy_loader import attach as _attach
 from scipy import signal
 
-from neuro_py.process.intervals import in_intervals, find_interval
-from neuro_py.process.peri_event import get_participation
 from neuro_py.behavior.kinematics import get_speed
+from neuro_py.process.intervals import find_interval, in_intervals
+from neuro_py.process.peri_event import get_participation
 
 __all__ = (
     "loadXML",
@@ -80,7 +80,7 @@ def loadXML(basepath: str):
     try:
         basename = os.path.basename(basepath)
         filename = glob.glob(os.path.join(basepath, basename + ".xml"))[0]
-    except:
+    except Exception:
         warnings.warn("xml file does not exist")
         return
 
@@ -147,7 +147,6 @@ def loadLFP(
         endoffile = f.seek(0, 2)
         bytes_size = 2
         n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        duration = n_samples / frequency
         f.close()
         data = np.memmap(path, np.int16, "r", shape=(n_samples, n_channels))
         timestep = np.arange(0, n_samples) / frequency
@@ -159,8 +158,6 @@ def loadLFP(
         endoffile = f.seek(0, 2)
         bytes_size = 2
         n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        duration = n_samples / frequency
-        interval = 1 / frequency
         f.close()
         with open(path, "rb") as f:
             data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
@@ -181,7 +178,6 @@ def loadLFP(
         bytes_size = 2
 
         n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        duration = n_samples / frequency
         f.close()
         with open(path, "rb") as f:
             data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
@@ -446,7 +442,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
                 ev.T[0]
                 for ev in data["cell_metrics"]["events"][0][0]["ripples"][0][0][0]
             ]
-        except:
+        except Exception:
             ripple_fr = []
         # extract spikes times
         spikes = [
@@ -455,13 +451,13 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         # extract epochs
         try:
             epochs = extract_epochs(data)
-        except:
+        except Exception:
             epochs = []
 
         # extract events
         try:
             events_psth = extract_events(data)
-        except:
+        except Exception:
             events_psth = []
 
         # extract avg waveforms
@@ -469,12 +465,12 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             waveforms = np.vstack(
                 data["cell_metrics"]["waveforms"][0][0]["filt"][0][0][0]
             )
-        except:
+        except Exception:
             try:
                 waveforms = [
                     w.T for w in data["cell_metrics"]["waveforms"][0][0][0][0][0][0]
                 ]
-            except:
+            except Exception:
                 waveforms = [w.T for w in data["cell_metrics"]["waveforms"][0][0][0]]
         # extract chanCoords
         try:
@@ -484,7 +480,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             chanCoords_y = data["cell_metrics"]["general"][0][0]["chanCoords"][0][0][0][
                 0
             ]["y"].T[0]
-        except:
+        except Exception:
             chanCoords_x = []
             chanCoords_y = []
 
@@ -513,7 +509,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
                 df[item][0][0].size
                 # the below line is from: https://www.py4u.net/discuss/140913
                 df[item] = df[item].str.get(0)
-            except:
+            except Exception:
                 continue
         return df
 
@@ -544,7 +540,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
                 data["cell_metrics"][dn][0][0][0].size == n_cells
             ):
                 df[dn] = data["cell_metrics"][dn][0][0][0]
-        except:
+        except Exception:
             continue
 
     # load in tag
@@ -581,7 +577,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         df["geneticLine"] = data["cell_metrics"]["general"][0][0]["animal"][0][0][
             "geneticLine"
         ][0][0][0]
-    except:
+    except Exception:
         pass
     df["cellCount"] = data["cell_metrics"]["general"][0][0]["cellCount"][0][0][0][0]
 
@@ -625,7 +621,7 @@ def load_SWRunitMetrics(basepath):
         # skip those by returning empty df
         try:
             n_cells = data["SWRunitMetrics"][epoch][0][0][0]["particip"][0].shape[0]
-        except:
+        except Exception:
             return df2
 
         for dn in dt.names:
@@ -638,7 +634,7 @@ def load_SWRunitMetrics(basepath):
 
     try:
         filename = glob.glob(os.path.join(basepath, "*.SWRunitMetrics.mat"))[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
@@ -742,14 +738,14 @@ def load_ripples_events(
     try:
         df["start"] = data["ripples"]["timestamps"][0][0][:, 0]
         df["stop"] = data["ripples"]["timestamps"][0][0][:, 1]
-    except:
+    except Exception:
         df["start"] = data["ripples"]["times"][0][0][:, 0]
         df["stop"] = data["ripples"]["times"][0][0][:, 1]
 
     for name in ["peaks", "amplitude", "duration", "frequency", "peakNormedPower"]:
         try:
             df[name] = data["ripples"][name][0][0]
-        except:
+        except Exception:
             df[name] = np.nan
 
     if df.duration.isna().all():
@@ -759,10 +755,10 @@ def load_ripples_events(
         df["detectorName"] = data["ripples"]["detectorinfo"][0][0]["detectorname"][0][
             0
         ][0]
-    except:
+    except Exception:
         try:
             df["detectorName"] = data["ripples"]["detectorName"][0][0][0]
-        except:
+        except Exception:
             df["detectorName"] = "unknown"
 
     # find ripple channel (this can be in several places depending on the file)
@@ -770,27 +766,27 @@ def load_ripples_events(
         df["ripple_channel"] = data["ripples"]["detectorinfo"][0][0]["detectionparms"][
             0
         ][0]["Channels"][0][0][0][0]
-    except:
+    except Exception:
         try:
             df["ripple_channel"] = data["ripples"]["detectorParams"][0][0]["channel"][
                 0
             ][0][0][0]
-        except:
+        except Exception:
             try:
                 df["ripple_channel"] = data["ripples"]["detectorinfo"][0][0][
                     "detectionparms"
                 ][0][0]["channel"][0][0][0][0]
-            except:
+            except Exception:
                 try:
                     df["ripple_channel"] = data["ripples"]["detectorinfo"][0][0][
                         "detectionparms"
                     ][0][0]["ripple_channel"][0][0][0][0]
-                except:
+                except Exception:
                     try:
                         df["ripple_channel"] = data["ripples"]["detectorinfo"][0][0][
                             "detectionchannel1"
                         ][0][0][0][0]
-                    except:
+                    except Exception:
                         df["ripple_channel"] = np.nan
 
     # remove flagged ripples, if exist
@@ -801,14 +797,14 @@ def load_ripples_events(
             inplace=True,
         )
         df.reset_index(inplace=True)
-    except:
+    except Exception:
         pass
 
     # adding manual events
     if manual_events:
         try:
             df = add_manual_events(df, data["ripples"]["added"][0][0].T[0])
-        except:
+        except Exception:
             pass
 
     # adding if ripples were restricted by spikes
@@ -951,10 +947,10 @@ def load_ied_events(
     # locate .mat file
     try:
         filename = glob.glob(basepath + os.sep + "*IED.events.mat")[0]
-    except:
+    except Exception:
         try:
             filename = glob.glob(basepath + os.sep + "*interictal_spikes.events.mat")[0]
-        except:
+        except Exception:
             # warnings.warn("file does not exist")
             return pd.DataFrame()
 
@@ -975,14 +971,14 @@ def load_ied_events(
             inplace=True,
         )
         df.reset_index(inplace=True)
-    except:
+    except Exception:
         pass
 
     # adding manual events
     if manual_events:
         try:
             df = add_manual_events(df, data[struct_name]["added"])
-        except:
+        except Exception:
             pass
 
     if return_epoch_array:
@@ -1041,14 +1037,14 @@ def load_dentate_spikes(
                 inplace=True,
             )
             df.reset_index(inplace=True)
-        except:
+        except Exception:
             pass
 
         # adding manual events
         if manual_events:
             try:
                 df = add_manual_events(df, data[s_type]["added"])
-            except:
+            except Exception:
                 pass
         return df
 
@@ -1088,7 +1084,7 @@ def load_theta_rem_shift(basepath):
     """
     try:
         filename = glob.glob(basepath + os.sep + "*theta_rem_shift.mat")[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return pd.DataFrame(), np.nan
 
@@ -1167,7 +1163,7 @@ def load_SleepState_states(basepath):
     """
     try:
         filename = glob.glob(os.path.join(basepath, "*.SleepState.states.mat"))[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return
 
@@ -1223,7 +1219,7 @@ def load_animal_behavior(
     if alternative_file is None:
         try:
             filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
-        except:
+        except Exception:
             warnings.warn("file does not exist")
             return df
     else:
@@ -1231,7 +1227,7 @@ def load_animal_behavior(
             filename = glob.glob(
                 os.path.join(basepath, "*" + alternative_file + ".mat")
             )[0]
-        except:
+        except Exception:
             warnings.warn("file does not exist")
             return df
 
@@ -1267,7 +1263,7 @@ def load_animal_behavior(
         for t in range(trials.shape[0]):
             idx = (df.time >= trials[t, 0]) & (df.time <= trials[t, 1])
             df.loc[idx, "trials"] = t
-    except:
+    except Exception:
         pass
 
     epochs = load_epoch(basepath)
@@ -1316,7 +1312,7 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         epoch_df = add_columns(epoch_df)
         epoch_df["basepath"] = basepath
         return epoch_df
-    except:
+    except Exception:
         epoch_df = pd.DataFrame([data["session"]["epochs"]])
         epoch_df = add_columns(epoch_df)
         epoch_df["basepath"] = basepath
@@ -1329,7 +1325,7 @@ def load_trials(basepath):
     """
     try:
         filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
@@ -1341,7 +1337,7 @@ def load_trials(basepath):
         df.columns = ["startTime", "stopTime"]
         df["trialsID"] = data["behavior"]["trialsID"]
         return df
-    except:
+    except Exception:
         df = pd.DataFrame(data=[data["behavior"]["trials"]])
         df.columns = ["startTime", "stopTime"]
         df["trialsID"] = data["behavior"]["trialsID"]
@@ -1380,7 +1376,7 @@ def load_brain_regions(basepath, out_format="dict"):
         channels = data["brainRegions"][0][0][dn][0][0][0][0][0][0]
         try:
             electrodeGroups = data["brainRegions"][0][0][dn][0][0][0][0][1][0]
-        except:
+        except Exception:
             electrodeGroups = np.nan
 
         brainRegions[dn] = {
@@ -1421,7 +1417,7 @@ def get_animal_id(basepath):
     """return animal ID from basepath using basename.session.mat"""
     try:
         filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
@@ -1440,7 +1436,7 @@ def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
 def load_basic_data(basepath):
     try:
         nChannels, fs, fs_dat, shank_to_channel = loadXML(basepath)
-    except:
+    except Exception:
         fs_dat = load_extracellular_metadata(basepath).get("sr")
 
     ripples = load_ripples_events(basepath)
@@ -1470,7 +1466,7 @@ def load_spikes(
     # get sample rate from xml or session
     try:
         _, _, fs_dat, _ = loadXML(basepath)
-    except:
+    except Exception:
         fs_dat = load_extracellular_metadata(basepath).get("sr")
 
     # load cell metrics and spike data
@@ -1525,7 +1521,7 @@ def load_spikes(
 
     if remove_bad_unit:
         # bad units will be tagged true, so only keep false values
-        restrict_idx = cell_metrics.bad_unit.values == False
+        restrict_idx = cell_metrics.bad_unit.values is False
         cell_metrics = cell_metrics[restrict_idx]
         st = st[restrict_idx]
 
@@ -1535,7 +1531,7 @@ def load_spikes(
             st = nel.SpikeTrainArray(timestamps=st, fs=fs_dat, support=support)
         else:
             st = nel.SpikeTrainArray(timestamps=st, fs=fs_dat)
-    except:  # if only single cell... should prob just skip session
+    except Exception:  # if only single cell... should prob just skip session
         if support is not None:
             st = nel.SpikeTrainArray(timestamps=st[0], fs=fs_dat, support=support)
         else:
@@ -1599,7 +1595,7 @@ def load_deepSuperficialfromRipple(basepath, bypass_mismatch_exception=False):
     for item in data[name]["channelClass"][0][0]:
         try:
             channelClass.append(item[0][0])
-        except:
+        except Exception:
             channelClass.append("unknown")
     channel_df["channelClass"] = channelClass
 
@@ -1617,7 +1613,7 @@ def load_deepSuperficialfromRipple(basepath, bypass_mismatch_exception=False):
             channel_df.loc[channel_sort_idx, label] = np.hstack(
                 data[name][label][0][0][0]
             )[0]
-        except:
+        except Exception:
             x = np.arange(len(channel_sort_idx)) * np.nan
             x[0 : len(np.hstack(data[name][label][0][0][0])[0])] = np.hstack(
                 data[name][label][0][0][0]
@@ -1674,7 +1670,7 @@ def load_mua_events(basepath):
     # locate .mat file
     try:
         filename = glob.glob(basepath + os.sep + "*mua_ca1_pyr.events.mat")[0]
-    except:
+    except Exception:
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
@@ -1753,7 +1749,7 @@ def load_manipulation(
             filename = glob.glob(
                 basepath + os.sep + "*" + struct_name + ".manipulation.mat"
             )[0]
-    except:
+    except Exception:
         return None
     # load matfile
     data = sio.loadmat(filename)

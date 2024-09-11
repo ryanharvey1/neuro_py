@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -31,10 +30,9 @@ def set_plotting_defaults():
         "ytick.labelsize": 8,
         "svg.fonttype": "none",
     }
-    
+
     plt.style.use("default")
     plt.rcParams.update(tex_fonts)
-    
 
 
 def set_size(width, fraction=1, subplots=(1, 1)):
@@ -158,9 +156,9 @@ def adjust_box_widths(g, fac):
                 verts_sub[verts_sub[:, 0] == xmax, 0] = xmax_new
 
                 # setting new width of median line
-                for l in ax.lines:
-                    if np.all(l.get_xdata() == [xmin, xmax]):
-                        l.set_xdata([xmin_new, xmax_new])
+                for line in ax.lines:
+                    if np.all(line.get_xdata() == [xmin, xmax]):
+                        line.set_xdata([xmin_new, xmax_new])
 
 
 def plot_joint_peth(
@@ -205,8 +203,9 @@ def plot_joint_peth(
     # get average of diagonals
     corrected = avgerage_diagonal(difference.T)
     # get center values of corrected_2
-    corrected = corrected[difference.shape[1] // 2:(difference.shape[1] // 2) + difference.shape[1]]
-
+    corrected = corrected[
+        difference.shape[1] // 2 : (difference.shape[1] // 2) + difference.shape[1]
+    ]
 
     fig, ax = plt.subplots(
         2,
@@ -216,7 +215,7 @@ def plot_joint_peth(
     )
     # space between panels
     plt.subplots_adjust(wspace=0.2, hspace=0.2)
-    f = ax[1, 1].imshow(
+    ax[1, 1].imshow(
         joint,
         aspect="auto",
         interpolation="nearest",

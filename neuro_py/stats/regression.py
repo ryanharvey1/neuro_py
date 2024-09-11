@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-
 from lazy_loader import attach as _attach
 from scipy import sparse
 from sklearn.base import BaseEstimator
@@ -11,6 +10,7 @@ __all__ = (
     "ReducedRankRegressor",
     "MultivariateRegressor",
     "ReducedRankRegressor",
+    "kernelReducedRankRegressor",
 )
 __getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 del _attach
@@ -23,6 +23,7 @@ def ideal_data(num, dimX, dimY, rrank, noise=1):
     Y = X @ W + np.random.randn(num, dimY) * noise
     return X, Y
 
+
 """
 Reduced rank regression class.
 Requires scipy to be installed.
@@ -32,6 +33,8 @@ dchrisrayner AT gmail DOT com
 
 Optimal linear 'bottlenecking' or 'multitask learning'.
 """
+
+
 class ReducedRankRegressor(object):
     """
     Reduced Rank Regressor (linear 'bottlenecking' or 'multitask learning')
@@ -75,6 +78,7 @@ class ReducedRankRegressor(object):
         y_pred = self.predict(X)
         return r2_score(Y, y_pred)
 
+
 """
 Multivariate linear regression
 Requires scipy to be installed.
@@ -84,6 +88,8 @@ dchrisrayner AT gmail DOT com
 
 Just simple linear regression with regularization - nothing new here
 """
+
+
 class MultivariateRegressor(object):
     """
     Multivariate Linear Regressor.
@@ -91,6 +97,7 @@ class MultivariateRegressor(object):
     - Y is an n-by-D matrix of targets.
     - reg is a regularization parameter (optional).
     """
+
     def __init__(self, X, Y, reg=None):
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
@@ -104,18 +111,19 @@ class MultivariateRegressor(object):
         self.W = np.dot(Y.T, W2)
 
     def __str__(self):
-        return 'Multivariate Linear Regression'
+        return "Multivariate Linear Regression"
 
     def predict(self, X):
         """Return the predicted Y for input X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         return np.array(np.dot(X, self.W.T))
-    
+
     def score(self, X, Y):
         """Return the coefficient of determination R^2 of the prediction."""
         y_pred = self.predict(X)
         return r2_score(Y, y_pred)
+
 
 """
 kernel Reduced Rank Ridge Regression by Mukherjee
@@ -124,7 +132,9 @@ kernel Reduced Rank Ridge Regression by Mukherjee
 Code by Michele Svanera (2017-June)
 
 """
-class ReducedRankRegressor(BaseEstimator):
+
+
+class kernelReducedRankRegressor(BaseEstimator):
     """
     kernel Reduced Rank Ridge Regression
     - X is an n-by-P matrix of features (n-time points).
@@ -171,15 +181,15 @@ class ReducedRankRegressor(BaseEstimator):
         diag_corr = (np.diag(np.corrcoef(Ytest, Yhat))).mean()
         return diag_corr
 
-
-## Optional
+    ## Optional
     def get_params(self, deep=True):
         return {"rank": self.rank, "reg": self.reg}
-#
-#    def set_params(self, **parameters):
-#        for parameter, value in parameters.items():
-#            self.setattr(parameter, value)
-#        return self
+
+    #
+    #    def set_params(self, **parameters):
+    #        for parameter, value in parameters.items():
+    #            self.setattr(parameter, value)
+    #        return self
 
     def mse(self, X, y_true):
         """

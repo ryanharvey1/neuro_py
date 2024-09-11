@@ -1,18 +1,16 @@
 import os
 import sys
-
-import numpy as np
-import pandas as pd
-import nelpy as nel
-
 from typing import Union
 
+import nelpy as nel
+import numpy as np
+import pandas as pd
 from lazy_loader import attach as _attach
 from neurodsp.filt import filter_signal
 from scipy.io import savemat
 
-from neuro_py.process.intervals import find_interval
 from neuro_py.io import loading
+from neuro_py.process.intervals import find_interval
 
 __all__ = (
     "get_theta_channel",
@@ -24,6 +22,7 @@ __all__ = (
 __getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 del _attach
 
+
 def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
     brain_region = loading.load_brain_regions(basepath)
 
@@ -31,9 +30,9 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
 
     if tag in brain_region.keys():
         theta_chan = brain_region[tag]["channels"]
-    else:       
+    else:
         return None
-    
+
     bad_ch = channel_tags["Bad"]["channels"]
     for ch in theta_chan:
         if np.any(ch != bad_ch):
@@ -50,8 +49,9 @@ def process_lfp(basepath: str) -> tuple:
     )
     return lfp, ts, fs
 
-def get_ep_from_df(df: pd.DataFrame,ts: np.ndarray):
-# inputs a dataframe from bycycle and ts from lfp and returns a nelpy array of theta epochs 
+
+def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray):
+    # inputs a dataframe from bycycle and ts from lfp and returns a nelpy array of theta epochs
 
     index_for_oscilation_epoch = find_interval(df.is_burst)
     start = []
@@ -72,6 +72,7 @@ def get_ep_from_df(df: pd.DataFrame,ts: np.ndarray):
     theta_epoch = nel.EpochArray([np.array([start_ts, stop_ts]).T])
 
     return theta_epoch
+
 
 def save_theta_cycles(
     df: pd.DataFrame,
@@ -159,20 +160,21 @@ def get_theta_cycles(
     ch: Union[int, None] = None,
 ):
     from bycycle import Bycycle
+
     # load lfp as memmap
     lfp, ts, fs = process_lfp(basepath)
 
     # get theta channel - default chooses CA1so
     if ch is None:
-        ch = get_theta_channel(basepath,tag="CA1so")
+        ch = get_theta_channel(basepath, tag="CA1so")
 
     if ch is None:
-        ch = get_theta_channel(basepath,tag="CA1sp")
+        ch = get_theta_channel(basepath, tag="CA1sp")
 
     if ch is None:
         Warning("No theta channel found")
         return None
-    
+
     # per bycycle documentation, low-pass filter signal before running bycycle 4x the frequency of interest
     filt_sig = filter_signal(lfp[:, ch], fs, "lowpass", lowpass, remove_edges=False)
 
@@ -194,10 +196,11 @@ def get_theta_cycles(
 
     save_theta_cycles(bm.df_features, ts, basepath, detection_params=thresholds, ch=ch)
 
+
 # to run on cmd
 if __name__ == "__main__":
     print(len(sys.argv))
     if len(sys.argv) == 2:
-        run(sys.argv[1])
+        get_theta_cycles(sys.argv[1])
     elif len(sys.argv) == 3:
-        run(sys.argv[1], epoch=int(sys.argv[2]))
+        get_theta_cycles(sys.argv[1], epoch=int(sys.argv[2]))

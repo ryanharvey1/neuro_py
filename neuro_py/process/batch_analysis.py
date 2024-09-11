@@ -3,11 +3,9 @@ import multiprocessing
 import os
 import pickle
 import traceback
-
-import pandas as pd
-
 from collections.abc import Callable
 
+import pandas as pd
 from joblib import Parallel, delayed
 from lazy_loader import attach as _attach
 from tqdm import tqdm
@@ -148,7 +146,7 @@ def run(
         if num_cores is None:
             num_cores = multiprocessing.cpu_count()
         # run in parallel
-        processed_list = Parallel(n_jobs=num_cores)(
+        Parallel(n_jobs=num_cores)(
             delayed(main_loop)(
                 basepath, save_path, func, overwrite, skip_if_error, **kwargs
             )
