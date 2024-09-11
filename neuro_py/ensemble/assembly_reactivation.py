@@ -13,9 +13,7 @@ from neuro_py.ensemble import assembly
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
-__all__ = (
-    "AssemblyReact",
-)
+__all__ = ("AssemblyReact",)
 __getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 del _attach
 
