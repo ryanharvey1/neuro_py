@@ -2,13 +2,13 @@ import multiprocessing
 
 import numba
 import numpy as np
-import pycircstat as pcs
 import pyfftw
 import scipy as sp
-
 from lazy_loader import attach as _attach
-from scipy.signal import find_peaks
 from scipy.ndimage import gaussian_filter1d
+from scipy.signal import find_peaks
+
+import neuro_py.stats.circ_stats as pcs
 
 __all__ = (
     "corrcc",
@@ -25,6 +25,7 @@ del _attach
 # These are the core functions used to identify both spatial and non-spatial phase precession
 # https://github.com/seqasim/human_precession/blob/main/Precession_utils.py
 # https://doi.org/10.1016/j.cell.2021.04.017
+
 
 def corrcc(alpha1, alpha2, axis=None):
     """
@@ -57,7 +58,7 @@ def corrcc(alpha1, alpha2, axis=None):
     n = len(alpha1)
 
     # center data on circular mean
-    alpha1_centered, alpha2_centered = pcs.descriptive.center(alpha1, alpha2, axis=axis)
+    alpha1_centered, alpha2_centered = pcs.center(alpha1, alpha2, axis=axis)
 
     num = np.sum(np.sin(alpha1_centered) * np.sin(alpha2_centered), axis=axis)
     den = np.sqrt(
@@ -114,14 +115,14 @@ def corrcc_uniform(alpha1, alpha2, axis=None):
     n = len(alpha1)
 
     # center data on circular mean
-    alpha1_centered, alpha2_centered = pcs.descriptive.center(alpha1, alpha2, axis=axis)
+    alpha1_centered, alpha2_centered = pcs.center(alpha1, alpha2, axis=axis)
 
     # One of the sample means is not well defined due to uniform distribution of data
     # so take the difference of the resultant vector length for the sum and difference
     # of the alphas
-    num = pcs.descriptive.resultant_vector_length(
+    num = pcs.resultant_vector_length(
         alpha1 - alpha2
-    ) - pcs.descriptive.resultant_vector_length(alpha1 + alpha2)
+    ) - pcs.resultant_vector_length(alpha1 + alpha2)
     den = 2 * np.sqrt(
         np.sum(np.sin(alpha1_centered) ** 2, axis=axis)
         * np.sum(np.sin(alpha2_centered) ** 2, axis=axis)
@@ -206,8 +207,8 @@ def spatial_phase_precession(circ, lin, slope_bounds=[-3 * np.pi, 3 * np.pi]):
     linear_circ = np.mod(abs(sl) * lin, 2 * np.pi)
 
     # # marginal distributions:
-    p1, z1 = pcs.tests.rayleigh(circ)
-    p2, z2 = pcs.tests.rayleigh(linear_circ)
+    p1, z1 = pcs.rayleigh(circ)
+    p2, z2 = pcs.rayleigh(linear_circ)
 
     # circular-linear correlation:
     if (p1 > 0.5) | (p2 > 0.5):
@@ -297,7 +298,6 @@ def pcorrelate(t, u, bins):
 
 
 def fast_acf(counts, width, bin_width, cut_peak=True):
-
     """
     Super fast ACF function relying on numba (above).
 
@@ -339,7 +339,6 @@ def fast_acf(counts, width, bin_width, cut_peak=True):
 
 
 def acf_power(acf, norm=True):
-
     """
     Compute the power spectrum of the signal by computing the FFT of the autocorrelation.
 
@@ -384,9 +383,8 @@ def nonspatial_phase_precession(
     norm: bool = True,
     psd_lims: list = [0.65, 1.55],
     upsample: int = 4,
-    smooth_sigma=1
+    smooth_sigma=1,
 ):
-
     """
     Compute the nonspatial spike-LFP relationship modulation index.
 
@@ -425,7 +423,9 @@ def nonspatial_phase_precession(
     )
 
     frequencies = np.interp(
-        np.arange(0, len(frequencies), 1/upsample), np.arange(0, len(frequencies)), frequencies
+        np.arange(0, len(frequencies), 1 / upsample),
+        np.arange(0, len(frequencies)),
+        frequencies,
     )
 
     freqs_of_interest = np.intersect1d(
@@ -436,7 +436,7 @@ def nonspatial_phase_precession(
     psd = acf_power(acf, norm=norm)
 
     # upsample 2x psd
-    psd = np.interp(np.arange(0, len(psd), 1/upsample), np.arange(0, len(psd)), psd)
+    psd = np.interp(np.arange(0, len(psd), 1 / upsample), np.arange(0, len(psd)), psd)
     # smooth psd with gaussian filter
     psd = gaussian_filter1d(psd, smooth_sigma)
 
@@ -445,7 +445,13 @@ def nonspatial_phase_precession(
 
     # make sure there is a peak
     if ~np.any(all_peaks):
-        return np.nan, np.nan, psd[freqs_of_interest], frequencies[freqs_of_interest], acf
+        return (
+            np.nan,
+            np.nan,
+            psd[freqs_of_interest],
+            frequencies[freqs_of_interest],
+            acf,
+        )
 
     max_peak = np.max(psd[freqs_of_interest][all_peaks])
     max_idx = [all_peaks[np.argmax(psd[freqs_of_interest][all_peaks])]]

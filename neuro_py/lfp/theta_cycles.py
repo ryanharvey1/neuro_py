@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Union
+from typing import Union, Tuple
 
 import nelpy as nel
 import numpy as np
@@ -154,11 +154,12 @@ def save_theta_cycles(
 
 def get_theta_cycles(
     basepath: str,
-    theta_freq: tuple[int] = (6, 10),
+    theta_freq: Tuple[int] = (6, 10),
     lowpass: int = 48,
     detection_params: Union[dict, None] = None,
     ch: Union[int, None] = None,
 ):
+    # import bycycle, hidden import to avoid mandatory dependency
     from bycycle import Bycycle
 
     # load lfp as memmap

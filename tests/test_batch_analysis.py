@@ -1,9 +1,11 @@
 import glob
 import os
 import pickle
-import pandas as pd
-from neuro_py.process import batch_analysis
 import tempfile
+
+import pandas as pd
+
+from neuro_py.process import batch_analysis
 
 
 def test_batchanalysis():
@@ -20,11 +22,10 @@ def test_batchanalysis():
         return results
 
     df = pd.DataFrame()
-    df["basepath"] = [
-        r"\test_data\test_data_1",
-        r"\test_data\test_data_2",
-        r"\test_data\test_data_3",
+    basepaths = [
+        os.sep + os.path.join("test_data", f"test_data_{i}") for i in range(1, 4)
     ]
+    df["basepath"] = basepaths
 
     # test serial
     with tempfile.TemporaryDirectory() as save_path:
@@ -92,14 +93,32 @@ def test_batchanalysis():
 
         df = batch_analysis.load_results(save_path)
         assert df.shape[0] == 3
-        assert df["basepath"].iloc[0] == r"\test_data\test_data_1"
-        assert df["basepath"].iloc[1] == r"\test_data\test_data_2"
-        assert df["basepath"].iloc[2] == r"\test_data\test_data_3"
+        for basepath in basepaths:
+            assert basepath in df["basepath"].values
 
     # test file encode/decode
     with tempfile.TemporaryDirectory() as save_path:
-        file = r"C:\test_data\test_data_1"
+        # extract drive letter
+        cwd = os.getcwd()
+        drive = os.path.splitdrive(cwd)[0]
+
+        if drive:
+            drive_letter = drive[0]
+        else:
+            drive_letter = ''  # No drive letter on Linux systems
+        
+        # create a test file path
+        file = os.path.join(drive, os.sep, "test_data", "test_data_1")
+        file = os.path.normpath(file)
+        # encode and decode the file path
         encoded_file = batch_analysis.encode_file_path(file, save_path)
         decoded_file = batch_analysis.decode_file_path(encoded_file)
+        # check that the decoded file path is the same as the original file path
         assert decoded_file == file
-        assert encoded_file == save_path + os.sep + "C---___test_data___test_data_1.pkl"
+        # check that the encoded file path is the same as the expected file path
+        if drive_letter:
+            expected_encoded_file = os.path.join(save_path, drive_letter + "---___test_data___test_data_1.pkl")
+        else:
+            expected_encoded_file = os.path.join(save_path, "___test_data___test_data_1.pkl")
+
+        assert encoded_file == os.path.normpath(expected_encoded_file)

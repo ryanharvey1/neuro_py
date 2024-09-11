@@ -13,9 +13,7 @@ from neuro_py.ensemble import assembly
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
-__all__ = (
-    "AssemblyReact",
-)
+__all__ = ("AssemblyReact",)
 __getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 del _attach
 
@@ -226,7 +224,7 @@ class AssemblyReact(object):
 
         # check if st has any neurons
         if self.st.isempty:
-            self.patterns = []
+            self.patterns = None
             return
 
         if epoch is not None:
@@ -235,7 +233,7 @@ class AssemblyReact(object):
             bst = self.st.bin(ds=self.weight_dt).data
 
         if (bst == 0).all():
-            self.patterns = []
+            self.patterns = None
         else:
             patterns, _, _ = assembly.runPatterns(
                 bst,
@@ -293,7 +291,7 @@ class AssemblyReact(object):
         if not hasattr(self, "patterns"):
             return "run get_weights first"
         else:
-            if self.patterns == []:
+            if self.patterns is None:
                 return None, None
             if plot_members:
                 self.find_members()
@@ -352,9 +350,7 @@ class AssemblyReact(object):
 
     def n_assemblies(self):
         if hasattr(self, "patterns"):
-            if self.patterns == []:
-                return 0
-            elif self.patterns is None:
+            if self.patterns is None:
                 return 0
             return self.patterns.shape[0]
 

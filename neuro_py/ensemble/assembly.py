@@ -4,16 +4,14 @@
 	This implementation was written in Feb 2019.
 	Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
 """
+
 import warnings
-
-import numpy as np
-
 from typing import Tuple, Union
 
-from scipy import stats
-from sklearn.decomposition import FastICA
-from sklearn.decomposition import PCA
+import numpy as np
 from lazy_loader import attach as _attach
+from scipy import stats
+from sklearn.decomposition import PCA, FastICA
 
 __all__ = (
     "toyExample",
@@ -227,7 +225,7 @@ def runPatterns(
 
     if np.isnan(significance.nassemblies):
         return None, significance, None
-    
+
     if significance.nassemblies < 1:
         warnings.warn("no assembly detected")
 

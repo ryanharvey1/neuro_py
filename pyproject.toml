@@ -39,6 +39,9 @@ dependencies = [
     "neo>=0.13.3",
     "quantities>=0.15.0",
     "neurodsp>=2.2.1",
+    "track-linearization>=2.3.1",
+    "pyFFTW>=0.13.1",
+    "statsmodels>=0.14.1"
 ]
 
 [project.urls]
