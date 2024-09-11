@@ -119,6 +119,6 @@ def test_batchanalysis():
         if drive_letter:
             expected_encoded_file = os.path.join(save_path, drive_letter + "---___test_data___test_data_1.pkl")
         else:
-            expected_encoded_file = os.path.join(save_path, "test_data___test_data_1.pkl")
-            
+            expected_encoded_file = os.path.join(save_path, "___test_data___test_data_1.pkl")
+
         assert encoded_file == os.path.normpath(expected_encoded_file)
