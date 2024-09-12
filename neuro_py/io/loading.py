@@ -122,10 +122,10 @@ def loadLFP(
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
-    filename: str = None,
+    filename: str = None, # name of file to load, located in basepath
 ):
     if filename is not None:
-        path = filename
+        path = os.path.join(basepath,filename)
     else:
         path = ""
         if ext == "lfp":
