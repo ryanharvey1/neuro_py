@@ -4,19 +4,6 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from lazy_loader import attach as _attach
-
-__all__ = (
-    "find_pre_task_post",
-    "compress_repeated_epochs",
-    "find_multitask_pre_post",
-    "find_epoch_pattern",
-    "find_env_paradigm_pre_task_post",
-    "find_pre_task_post_optimize_novel",
-    "get_experience_level",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def find_pre_task_post(env, pre_post_label="sleep"):
@@ -267,8 +254,8 @@ def find_env_paradigm_pre_task_post(epoch_df, env="sleep", paradigm="memory"):
 
 
 def find_pre_task_post_optimize_novel(
-    epoch_df: pd.DataFrame(), novel_indicators: list = [1, "novel", "1"]
-) -> pd.DataFrame():
+    epoch_df: pd.DataFrame, novel_indicators: list = [1, "novel", "1"]
+) -> pd.DataFrame:
     """
     find_pre_task_post_optimize_novel: find pre task post epochs in epoch_df
 

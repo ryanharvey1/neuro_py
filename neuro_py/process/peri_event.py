@@ -3,32 +3,10 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from lazy_loader import attach as _attach
 from nelpy.core._eventarray import SpikeTrainArray
 from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
-
-__all__ = (
-    "crossCorr",
-    "compute_psth",
-    "joint_peth",
-    "deconvolve_peth",
-    "peth_matrix",
-    "get_raster_points",
-    "event_triggered_average_irregular_sample",
-    "event_triggered_average",
-    "event_triggered_average_fast",
-    "count_in_interval",
-    "get_participation",
-    "get_rank_order",
-    "count_events",
-    "relative_times",
-    "nearest_event_delay",
-    "event_spiking_threshold",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 @jit(nopython=True)

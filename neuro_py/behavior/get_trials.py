@@ -5,22 +5,11 @@ from typing import List, Tuple, Union
 import nelpy as nel
 import numpy as np
 import scipy.io as sio
-from lazy_loader import attach as _attach
 from scipy.signal import medfilt
 
 from neuro_py.behavior import linear_positions, well_traversal_classification
 from neuro_py.io import loading
 from neuro_py.process.intervals import find_interval
-
-__all__ = (
-    "get_linear_maze_trials",
-    "get_t_maze_trials",
-    "get_w_maze_trials",
-    "get_cheeseboard_trials",
-    "get_openfield_trials",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 # linear track

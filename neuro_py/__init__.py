@@ -1,20 +1,3 @@
-from lazy_loader import attach as _attach
+import lazy_loader as lazy
 
-_proto_all_ = [
-    "behavior",
-    "ensemble",
-    "io",
-    "lfp",
-    "plotting",
-    "process",
-    "session",
-    "spikes",
-    "stats",
-    "tuning",
-]
-
-__getattr__, __dir__, __all__ = _attach(
-    __name__, submodules=_proto_all_
-)
-
-del _attach
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)

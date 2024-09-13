@@ -1,14 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from lazy_loader import attach as _attach
-
-__all__ = (
-    "plot_grid_with_circle_and_random_dots",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
-
 
 def plot_grid_with_circle_and_random_dots():
     # Create a 15x15 grid of dots within the circle
@@ -55,6 +47,7 @@ def plot_grid_with_circle_and_random_dots():
     plt.gca().set_aspect("equal", adjustable="box")
     plt.axis("off")
     plt.show()
+
 
 if __name__ == "__main__":
     plot_grid_with_circle_and_random_dots()

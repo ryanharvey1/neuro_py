@@ -1,4 +1,3 @@
-from . import events
-from . import figure_helpers
+import lazy_loader as lazy
 
-__all__ = ["events", "figure_helpers"]
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)

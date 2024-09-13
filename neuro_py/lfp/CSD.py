@@ -2,17 +2,9 @@
 import neo
 import numpy as np
 import quantities as pq
-
-from lazy_loader import attach as _attach
 from elephant.current_source_density import estimate_csd
 
 from neuro_py.io import loading
-
-__all__ = (
-    "get_coords",
-    "get_csd",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 
 
 def get_coords(basepath, shank=0):
@@ -51,10 +43,13 @@ def get_coords(basepath, shank=0):
 
     return rescaled_coords
 
-def get_csd(basepath, data, shank, fs = 1250, diam = 0.015, method = 'DeltaiCSD', channel_offset = 0.046 ):
+
+def get_csd(
+    basepath, data, shank, fs=1250, diam=0.015, method="DeltaiCSD", channel_offset=0.046
+):
     """
-    compute the CSD for a given basepath and data using elephant estimate_csd. 
-    
+    compute the CSD for a given basepath and data using elephant estimate_csd.
+
     Klas H. Pettersen, Anna Devor, Istvan Ulbert, Anders M. Dale, Gaute T. Einevoll,
     Current-source density estimation based on inversion of electrostatic forward
     solution: Effects of finite extent of neuronal activity and conductivity
@@ -97,10 +92,10 @@ def get_csd(basepath, data, shank, fs = 1250, diam = 0.015, method = 'DeltaiCSD'
         dtype=float,
     )
 
-    if method == 'DeltaiCSD':
+    if method == "DeltaiCSD":
         csd = estimate_csd(signal, coordinates=coords, diam=diam * pq.mm, method=method)
 
-    elif method == 'StandardCSD':
+    elif method == "StandardCSD":
 
         # create coordinates for the CSD
         coords = np.zeros(data.shape[1])
@@ -108,28 +103,28 @@ def get_csd(basepath, data, shank, fs = 1250, diam = 0.015, method = 'DeltaiCSD'
             if idx == 0:
                 coords[idx] = 0
             else:
-                coords[idx] = coords[idx-1] + channel_offset 
+                coords[idx] = coords[idx - 1] + channel_offset
 
         coords = coords * pq.mm
 
         # add dimension to coords to make it (64,1)
-        coords = coords[:,np.newaxis]
+        coords = coords[:, np.newaxis]
 
         csd = estimate_csd(signal, coordinates=coords, method=method)
-    
-    elif method == 'KD1CSD':
+
+    elif method == "KD1CSD":
         # create coordinates for the CSD
         coords = np.zeros(data.shape[1])
         for idx, i in enumerate(coords):
             if idx == 0:
                 coords[idx] = 0
             else:
-                coords[idx] = coords[idx-1] + channel_offset 
+                coords[idx] = coords[idx - 1] + channel_offset
 
         coords = coords * pq.mm
 
         # add dimension to coords to make it (64,1)
-        coords = coords[:,np.newaxis]
-        csd = estimate_csd(signal, coordinates=coords,  method=method)
+        coords = coords[:, np.newaxis]
+        csd = estimate_csd(signal, coordinates=coords, method=method)
 
     return csd

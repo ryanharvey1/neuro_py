@@ -1,20 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from lazy_loader import attach as _attach
 from matplotlib.patches import PathPatch
-
-__all__ = (
-    "set_plotting_defaults",
-    "set_size",
-    "lighten_color",
-    "set_equal_axis_range",
-    "restore_natural_scale",
-    "adjust_box_widths",
-    "plot_joint_peth",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def set_plotting_defaults():

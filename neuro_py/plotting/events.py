@@ -1,4 +1,5 @@
 import warnings
+from typing import Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -6,19 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from typing import Union
-
-from lazy_loader import attach as _attach
 from neuro_py.stats.stats import confidence_intervals
-
-__all__ = (
-    "plot_events",
-    "plot_peth",
-    "plot_peth_fast",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
-
 
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
     """

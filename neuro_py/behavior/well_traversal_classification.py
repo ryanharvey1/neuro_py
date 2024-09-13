@@ -2,23 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from lazy_loader import attach as _attach
 from scipy.ndimage.measurements import label
-
-__all__ = (
-    "paired_distances",
-    "enter_exit_target",
-    "enter_exit_target_dio",
-    "shift_well_enters",
-    "segment_path",
-    "find_last_non_center_well",
-    "get_correct_inbound_outbound",
-    "score_inbound_outbound",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
-
-_WELL_NAMES = {1: "Center", 2: "Left", 3: "Right"}
 
 
 def paired_distances(x, y):
@@ -88,9 +72,7 @@ def shift_well_enters(enter_exit):
     return shifted_enter_exit
 
 
-def segment_path(
-    time, position, well_locations, max_distance_from_well=10
-):
+def segment_path(time, position, well_locations, max_distance_from_well=10):
     """Label traversals between each well location.
 
     Parameters
@@ -206,7 +188,9 @@ def get_correct_inbound_outbound(segments_df):
 
 
 def score_inbound_outbound(
-    segments_df, min_distance_traveled=50, well_names=_WELL_NAMES
+    segments_df,
+    min_distance_traveled=50,
+    well_names={1: "Center", 2: "Left", 3: "Right"},
 ):
     """In the alternating arm task, determines whether the trial should be
     inbound (running to the center arm) or outbound (running to the opposite

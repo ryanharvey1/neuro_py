@@ -1,17 +1,8 @@
 import numpy as np
-
-from lazy_loader import attach as _attach
 from sklearn.metrics.pairwise import cosine_similarity as getsim
-
-__all__ = (
-    "similaritymat",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def similaritymat(patternsX, patternsY=None, method="cosine", findpairs=False):
-
     """
     INPUTS
 
