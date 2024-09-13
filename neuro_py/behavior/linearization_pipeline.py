@@ -18,8 +18,6 @@ __all__ = (
 )
 __getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 
-plt.ion()
-plt.style.use("dark_background")
 
 """
 TODO: 
@@ -274,30 +272,33 @@ def load_epoch(basepath):
 
 def run(basepath, epoch=None):
     print("here is the file,", basepath)
-    fig, ax = plt.subplots(figsize=(5, 5))
-
-    behave_df = load_animal_behavior(basepath)
-
-    if epoch is not None:
-        epochs = load_epoch(basepath)
-
-        behave_df = behave_df[
-            behave_df["time"].between(
-                epochs.iloc[epoch].startTime, epochs.iloc[epoch].stopTime
-            )
-        ]
-
-    ax.scatter(behave_df.x, behave_df.y, color="white", s=0.5, alpha=0.5)
-    ax.axis("equal")
-    ax.set_axisbelow(True)
-    ax.yaxis.grid(color="gray", linestyle="dashed")
-    ax.xaxis.grid(color="gray", linestyle="dashed")
-    ax.set_ylabel("y (cm)")
-    ax.set_xlabel("x (cm)")
-
-    NodePicker(ax=ax, basepath=basepath, epoch=epoch)
-
-    plt.show(block=True)
+    
+    with plt.style.context('dark_background'):
+        plt.ion()
+        fig, ax = plt.subplots(figsize=(5, 5))
+    
+        behave_df = load_animal_behavior(basepath)
+    
+        if epoch is not None:
+            epochs = load_epoch(basepath)
+    
+            behave_df = behave_df[
+                behave_df["time"].between(
+                    epochs.iloc[epoch].startTime, epochs.iloc[epoch].stopTime
+                )
+            ]
+    
+        ax.scatter(behave_df.x, behave_df.y, color="white", s=0.5, alpha=0.5)
+        ax.axis("equal")
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(color="gray", linestyle="dashed")
+        ax.xaxis.grid(color="gray", linestyle="dashed")
+        ax.set_ylabel("y (cm)")
+        ax.set_xlabel("x (cm)")
+    
+        NodePicker(ax=ax, basepath=basepath, epoch=epoch)
+    
+        plt.show(block=True)
 
 
 if __name__ == "__main__":
