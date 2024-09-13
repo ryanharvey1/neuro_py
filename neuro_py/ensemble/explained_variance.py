@@ -2,17 +2,11 @@ import warnings
 
 import numpy as np
 
-from lazy_loader import attach as _attach
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from numba import jit
 
-__all__ = (
-    "ExplainedVariance",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=RuntimeWarning)
@@ -326,7 +320,7 @@ class ExplainedVariance(object):
             data=self.ev,
             timestamps=self.matching_time,
             fs=1 / np.diff(self.matching_time)[0],
-            support=EpochArray(data=[self.matching.start, self.matching.stop])
+            support=EpochArray(data=[self.matching.start, self.matching.stop]),
         )
 
     @property
@@ -336,7 +330,7 @@ class ExplainedVariance(object):
             data=self.rev,
             timestamps=self.matching_time,
             fs=1 / np.diff(self.matching_time)[0],
-            support=EpochArray(data=[self.matching.start, self.matching.stop])
+            support=EpochArray(data=[self.matching.start, self.matching.stop]),
         )
 
     def pvalue(self, n_shuffles=1000):

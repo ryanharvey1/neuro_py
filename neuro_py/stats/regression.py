@@ -1,19 +1,9 @@
 import numpy as np
 import scipy
-from lazy_loader import attach as _attach
 from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score
 
-__all__ = (
-    "ideal_data",
-    "ReducedRankRegressor",
-    "MultivariateRegressor",
-    "ReducedRankRegressor",
-    "kernelReducedRankRegressor",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def ideal_data(num, dimX, dimY, rrank, noise=1):

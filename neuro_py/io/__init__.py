@@ -1,4 +1,4 @@
-from . import loading
-from . import saving
+import lazy_loader as lazy
 
-__all__ = ["loading", "saving"]
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+del lazy

@@ -1,19 +1,11 @@
 """ Loading functions for cell explorer format"""
+
 import os
+from typing import Union
 
 import nelpy as nel
 import numpy as np
-
-from typing import Union
-
-from lazy_loader import attach as _attach
 from scipy.io import savemat
-
-__all__ = (
-    "epoch_to_mat",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def epoch_to_mat(
@@ -49,7 +41,7 @@ def epoch_to_mat(
         data[epoch_name]["peaks"] = np.median(epoch.data, axis=0)
     else:
         data[epoch_name]["peaks"] = np.median(epoch.data, axis=1)
-        
+
     data[epoch_name]["amplitudes"] = []
     data[epoch_name]["amplitudeUnits"] = []
     data[epoch_name]["eventID"] = []
@@ -62,7 +54,7 @@ def epoch_to_mat(
     else:
         data[epoch_name]["duration"] = epoch.durations
 
-    data[epoch_name]["center"] = data[epoch_name]["peaks"] 
+    data[epoch_name]["center"] = data[epoch_name]["peaks"]
     data[epoch_name]["detectorinfo"] = {}
     if detection_name is None:
         data[epoch_name]["detectorinfo"]["detectorname"] = []

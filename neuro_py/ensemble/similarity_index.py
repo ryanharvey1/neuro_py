@@ -2,18 +2,9 @@ import itertools
 import multiprocessing
 
 import numpy as np
-
 from joblib import Parallel, delayed
 
-from lazy_loader import attach as _attach
-
 from neuro_py.stats.stats import get_significant_events
-
-__all__ = (
-    "similarity_index",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def similarity_index(patterns, n_shuffles=1000, parallel=True):
@@ -50,7 +41,7 @@ def similarity_index(patterns, n_shuffles=1000, parallel=True):
         return np.random.permutation(patterns.flatten()).reshape(patterns.shape)
 
     # calculate absolute inner product between patterns
-    def get_si(patterns,return_combo=False):
+    def get_si(patterns, return_combo=False):
         x = np.arange(0, patterns.shape[0])
         # use itertools to get all combinations of patterns
         combos = np.array(list(itertools.combinations(x, 2)))
@@ -64,7 +55,7 @@ def similarity_index(patterns, n_shuffles=1000, parallel=True):
             return np.array(si)
 
     # calculate observed si
-    si, combos = get_si(patterns,return_combo=True)
+    si, combos = get_si(patterns, return_combo=True)
 
     # shuffle patterns and calculate si
     if parallel:

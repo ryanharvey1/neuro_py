@@ -7,18 +7,7 @@ from collections.abc import Callable
 
 import pandas as pd
 from joblib import Parallel, delayed
-from lazy_loader import attach as _attach
 from tqdm import tqdm
-
-__all__ = (
-    "encode_file_path",
-    "decode_file_path",
-    "main_loop",
-    "run",
-    "load_results",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def encode_file_path(basepath: str, save_path: str) -> str:

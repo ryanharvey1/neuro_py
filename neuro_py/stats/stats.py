@@ -1,24 +1,8 @@
-__all__ = [
-    "get_significant_events",
-    "confidence_intervals",
-    "reindex_df",
-    "regress_out",
-]
-import numpy as np
-import scipy.stats as stats
-import pandas as pd
 import warnings
 
-from lazy_loader import attach as _attach
-
-__all__ = (
-    "get_significant_events",
-    "confidence_intervals",
-    "reindex_df",
-    "regress_out",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
+import numpy as np
+import pandas as pd
+import scipy.stats as stats
 
 
 def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
@@ -103,7 +87,7 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
     # split into lower and upper
     lower = interval[:, 0]
     upper = interval[:, 1]
-    
+
     return lower, upper
 
 

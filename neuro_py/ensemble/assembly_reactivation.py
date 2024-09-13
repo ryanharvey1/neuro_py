@@ -6,16 +6,12 @@ import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
 import seaborn as sns
-from lazy_loader import attach as _attach
 from scipy import stats
 
 from neuro_py.ensemble import assembly
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
-__all__ = ("AssemblyReact",)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 logging.getLogger().setLevel(logging.ERROR)
 
@@ -451,91 +447,3 @@ class AssemblyReact(object):
         self.valid_assembly = np.array(keep_assembly)
 
         return self.assembly_members
-
-
-# def get_peak_activity(assembly_act, epochs):
-#     """
-#     Gets the peak activity of the assembly activity
-#     """
-#     strengths = []
-#     assembly_id = []
-#     centers = []
-#     for assembly_act, ep in zip(assembly_act[epochs], epochs):
-#         strengths.append(assembly_act.max())
-#         assembly_id.append(np.arange(assembly_act.n_signals))
-#         centers.append(np.tile(ep.centers, assembly_act.n_signals))
-
-#     return np.hstack(assembly_id), np.hstack(strengths), np.hstack(centers)
-
-
-# def get_pre_post_assembly_strengths(basepath):
-#     """
-#     Gets the pre and post assembly strengths
-#     """
-#     # initialize session
-#     m1 = AssemblyReact(basepath, weight_dt=0.025)
-#     # load data
-#     m1.load_data()
-#     # check if no cells were found
-#     if m1.cell_metrics.shape[0] == 0:
-#         return None
-#     # restrict to pre/task/post epochs
-#     m1.restrict_epochs_to_pre_task_post()
-#     # get weights for task outside ripples
-#     # % (TODO: use more robust method to locate epochs than index)
-#     m1.get_weights(m1.epochs[1][~m1.ripples])
-
-#     # get assembly activity
-#     assembly_act_pre = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[0]])
-#     assembly_act_task = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[1]])
-#     assembly_act_post = m1.get_assembly_act(epoch=m1.ripples[m1.epochs[2]])
-#     results = {
-#         "assembly_act_pre": assembly_act_pre,
-#         "assembly_act_task": assembly_act_task,
-#         "assembly_act_post": assembly_act_post,
-#         "react": m1,
-#     }
-
-#     return results
-
-
-# def session_loop(basepath, save_path):
-#     save_file = os.path.join(
-#         save_path, basepath.replace(os.sep, "_").replace(":", "_") + ".pkl"
-#     )
-#     if os.path.exists(save_file):
-#         return
-#     results = get_pre_post_assembly_strengths(basepath)
-#     # save file
-#     with open(save_file, "wb") as f:
-#         pickle.dump(results, f)
-
-
-# def run(df, save_path, parallel=True):
-#     # find sessions to run
-#     basepaths = pd.unique(df.basepath)
-
-#     if not os.path.exists(save_path):
-#         os.mkdir(save_path)
-
-#     if parallel:
-#         num_cores = multiprocessing.cpu_count()
-#         processed_list = Parallel(n_jobs=num_cores)(
-#             delayed(session_loop)(basepath, save_path) for basepath in basepaths
-#         )
-#     else:
-#         for basepath in basepaths:
-#             print(basepath)
-#             session_loop(basepath, save_path)
-
-
-# def load_results(save_path):
-#     sessions = glob.glob(save_path + os.sep + "*.pkl")
-#     all_results = {}
-#     for session in sessions:
-#         with open(session, "rb") as f:
-#             results = pickle.load(f)
-#             if results is None:
-#                 continue
-#         all_results[results["react"].basepath] = results
-#     return all_results

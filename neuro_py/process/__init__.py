@@ -1,17 +1,4 @@
-from . import batch_analysis
-from . import correlations
-from . import intervals
-from . import peri_event
-from . import precession_utils
-from . import pychronux
-from . import utils
+import lazy_loader as lazy
 
-__all__ = [
-    "batch_analysis",
-    "correlations",
-    "intervals",
-    "peri_event",
-    "precession_utils",
-    "pychronux",
-    "utils",
-]
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+del lazy

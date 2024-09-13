@@ -9,24 +9,9 @@ import warnings
 from typing import Tuple, Union
 
 import numpy as np
-from lazy_loader import attach as _attach
 from scipy import stats
 from sklearn.decomposition import PCA, FastICA
 
-__all__ = (
-    "toyExample",
-    "ToyAssemblies",
-    "marcenkopastur",
-    "getlambdacontrol",
-    "binshuffling",
-    "circshuffling",
-    "runSignificance",
-    "extractPatterns",
-    "runPatterns",
-    "computeAssemblyActivity",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 __author__ = "Vítor Lopes dos Santos"
 __version__ = "2019.1"

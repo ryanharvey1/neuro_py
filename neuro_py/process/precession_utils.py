@@ -4,23 +4,10 @@ import numba
 import numpy as np
 import pyfftw
 import scipy as sp
-from lazy_loader import attach as _attach
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
 import neuro_py.stats.circ_stats as pcs
-
-__all__ = (
-    "corrcc",
-    "corrcc_uniform",
-    "spatial_phase_precession",
-    "fast_acf",
-    "acf_power",
-    "nonspatial_phase_precession",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
-
 
 # These are the core functions used to identify both spatial and non-spatial phase precession
 # https://github.com/seqasim/human_precession/blob/main/Precession_utils.py

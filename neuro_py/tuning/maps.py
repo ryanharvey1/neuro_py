@@ -7,20 +7,12 @@ from typing import List, Union
 import nelpy as nel
 import numpy as np
 from joblib import Parallel, delayed
-from lazy_loader import attach as _attach
 from scipy.io import savemat
 from scipy.spatial.distance import pdist
 
 from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
 
-__all__ = (
-    "SpatialMap",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
-
-# logging.getLogger().setLevel(logging.ERROR)
 np.seterr(divide="ignore", invalid="ignore")
 
 

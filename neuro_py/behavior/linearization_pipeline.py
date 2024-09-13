@@ -6,17 +6,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from lazy_loader import attach as _attach
 from scipy.io import loadmat, savemat
 from track_linearization import get_linearized_position, make_track_graph
-
-__all__ = (
-    "NodePicker",
-    "load_animal_behavior",
-    "load_epoch",
-    "run",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
 
 
 """

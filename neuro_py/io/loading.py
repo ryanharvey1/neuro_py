@@ -14,49 +14,11 @@ import numpy as np
 import pandas as pd
 import scipy.io as sio
 from joblib import Parallel, delayed
-from lazy_loader import attach as _attach
 from scipy import signal
 
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
-
-__all__ = (
-    "loadXML",
-    "loadLFP",
-    "LFPLoader",
-    "load_position",
-    "writeNeuroscopeEvents",
-    "load_all_cell_metrics",
-    "load_cell_metrics",
-    "load_SWRunitMetrics",
-    "add_manual_events",
-    "load_ripples_events",
-    "load_theta_cycles",
-    "load_barrage_events",
-    "load_ied_events",
-    "load_dentate_spikes",
-    "load_theta_rem_shift",
-    "load_SleepState_states",
-    "load_animal_behavior",
-    "load_epoch",
-    "load_trials",
-    "load_brain_regions",
-    "get_animal_id",
-    "add_animal_id",
-    "load_basic_data",
-    "load_spikes",
-    "load_deepSuperficialfromRipple",
-    "load_mua_events",
-    "load_manipulation",
-    "load_channel_tags",
-    "load_extracellular_metadata",
-    "load_probe_layout",
-    "load_emg",
-    "load_events",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
@@ -1521,7 +1483,7 @@ def load_spikes(
 
     if remove_bad_unit:
         # bad units will be tagged true, so only keep false values
-        restrict_idx = cell_metrics.bad_unit.values is False
+        restrict_idx = ~cell_metrics.bad_unit.values
         cell_metrics = cell_metrics[restrict_idx]
         st = st[restrict_idx]
 

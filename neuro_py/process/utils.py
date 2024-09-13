@@ -1,22 +1,10 @@
-import numpy as np
-import nelpy as nel
-import pandas as pd
-
 from typing import List, Union
 
-from lazy_loader import attach as _attach
+import nelpy as nel
+import numpy as np
+import pandas as pd
 
 from neuro_py.process.intervals import truncate_epoch
-
-
-__all__ = (
-    "circular_shift",
-    "avgerage_diagonal",
-    "remove_inactive_cells",
-    "remove_inactive_cells_pre_task_post",
-)
-__getattr__, __dir__, __all__ = _attach(f"{__name__}", submodules=__all__)
-del _attach
 
 
 def circular_shift(m: np.ndarray, s: np.ndarray):
@@ -270,7 +258,7 @@ def remove_inactive_cells(
 
 def remove_inactive_cells_pre_task_post(
     st: nel.core._eventarray.SpikeTrainArray,
-    cell_metrics: Union[pd.core.frame.DataFrame,None] = None,
+    cell_metrics: Union[pd.core.frame.DataFrame, None] = None,
     beh_epochs: nel.core._intervalarray.EpochArray = None,
     nrem_epochs: nel.core._intervalarray.EpochArray = None,
     theta_epochs: nel.core._intervalarray.EpochArray = None,
