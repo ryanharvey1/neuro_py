@@ -1483,7 +1483,7 @@ def load_spikes(
 
     if remove_bad_unit:
         # bad units will be tagged true, so only keep false values
-        restrict_idx = cell_metrics.bad_unit.values is False
+        restrict_idx = ~cell_metrics.bad_unit.values
         cell_metrics = cell_metrics[restrict_idx]
         st = st[restrict_idx]
 
