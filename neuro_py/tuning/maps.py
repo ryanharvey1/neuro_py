@@ -13,8 +13,6 @@ from scipy.spatial.distance import pdist
 from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
 
-np.seterr(divide="ignore", invalid="ignore")
-
 
 class SpatialMap(object):
     """

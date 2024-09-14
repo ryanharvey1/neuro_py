@@ -8,10 +8,6 @@ from nelpy.core._analogsignalarray import AnalogSignalArray
 from numba import jit
 
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
-warnings.simplefilter(action="ignore", category=RuntimeWarning)
-
-
 class ExplainedVariance(object):
     """Explained variance measure for assessing reactivation of neuronal activity using pairwise correlations.
 

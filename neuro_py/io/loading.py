@@ -20,8 +20,6 @@ from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 
-simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
-
 
 def loadXML(basepath: str):
     """
