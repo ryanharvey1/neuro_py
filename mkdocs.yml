@@ -1,0 +1,65 @@
+site_name: "neuro_py"
+repo_name: ryanharvey1/neuro_py
+repo_url: https://github.com/ryanharvey1/neuro_py
+edit_uri: edit/main/docs/
+
+extra_css:
+  - stylesheets/extra.css
+
+theme:
+  name: "material"
+  palette:
+  - media: "(prefers-color-scheme)"
+    toggle:
+      icon: material/brightness-auto
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: light
+    primary: custom
+    accent: custom
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: indigo
+    accent: blue
+    toggle:
+      icon: material/weather-night
+      name: Switch to system preference
+  features:
+  - announce.dismiss
+  - content.action.edit
+  - content.action.view
+  - content.code.annotate
+  - content.code.copy
+  - content.tooltips
+  - content.tabs.link
+  - navigation.footer
+  - navigation.indexes
+  - navigation.instant.prefetch
+  - navigation.instant.preview
+  - navigation.instant.progress
+  - navigation.path
+  - navigation.sections
+  - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.top
+  - navigation.tracking
+  - search.highlight
+  - search.suggest
+  - toc.follow
+
+plugins:
+- search
+- gen-files:
+    scripts:
+    - scripts/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings
+
+nav:
+- Home: index.md
+- API Reference: reference/
