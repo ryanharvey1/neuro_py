@@ -1172,7 +1172,7 @@ def load_animal_behavior(
 ) -> pd.DataFrame:
     """
     load_animal_behavior loads basename.animal.behavior.mat files created by general_behavior_file.m
-    The output is a pandas data frame with [time,x,y,z,linerized,speed,acceleration,trials,epochs]
+    The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration,trials,epochs]
 
     Ryan H 2021
     """
@@ -1196,7 +1196,7 @@ def load_animal_behavior(
     data = sio.loadmat(filename, simplify_cells=True)
 
     # add timestamps first which provide the correct shape of df
-    # here, I'm naming them time, but this should be depreciated
+    # here, I'm naming them time, but this should be deprecated
     df["time"] = data["behavior"]["timestamps"]
 
     # add all other position coordinates to df (will add everything it can within position)
