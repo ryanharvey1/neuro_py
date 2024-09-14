@@ -6,7 +6,6 @@ import sys
 import warnings
 from itertools import chain
 from typing import List, Union
-from warnings import simplefilter
 from xml.dom import minidom
 
 import nelpy as nel
