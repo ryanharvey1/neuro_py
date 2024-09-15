@@ -1375,8 +1375,20 @@ def load_brain_regions(basepath, out_format="dict"):
         return brainRegions
 
 
-def get_animal_id(basepath):
-    """return animal ID from basepath using basename.session.mat"""
+def get_animal_id(basepath) -> str:
+    """
+    return animal ID from basepath using basename.session.mat
+
+    Parameters
+    ----------
+    basepath : str
+        path to session folder
+
+    Returns
+    -------
+    str
+        animal ID
+    """
     try:
         filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     except Exception:
@@ -1389,6 +1401,19 @@ def get_animal_id(basepath):
 
 
 def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+    """
+    Add animal_id column to a dataframe based on the basepath column
+
+    Parameters
+    ----------
+    df : pd.core.frame.DataFrame
+        Dataframe with a basepath column
+
+    Returns
+    -------
+    pd.core.frame.DataFrame
+        Dataframe with an additional animal_id column
+    """
     df["animal_id"] = df.basepath.map(
         dict([(basepath, get_animal_id(basepath)) for basepath in df.basepath.unique()])
     )
