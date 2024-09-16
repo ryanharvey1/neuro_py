@@ -210,10 +210,8 @@ class SpatialMap(object):
                     ),
                     bins=self.x_edges,
                 )
-            # divide by occupancy
-            ratemap = ratemap / occupancy
 
-        # if data to map is analog signal (continous)
+        # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             # get x location for every bin center
             x = np.interp(
@@ -226,8 +224,9 @@ class SpatialMap(object):
                 ratemap[:, bidx - 1] += st_run.data[:, tt]
             # divide by sampling rate
             ratemap = ratemap * st_run.fs
-            # divide by occupancy
-            ratemap = ratemap / occupancy
+
+        # divide by occupancy
+        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
 
         # remove nans and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
@@ -321,7 +320,6 @@ class SpatialMap(object):
                     np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]),
                     bins=(self.x_edges, self.y_edges),
                 )
-            ratemap = ratemap / occupancy
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             x = np.interp(
@@ -335,7 +333,8 @@ class SpatialMap(object):
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
                 ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
             ratemap = ratemap * st_run.fs
-            ratemap = ratemap / occupancy
+
+        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
 
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
         ratemap[bad_idx] = 0
