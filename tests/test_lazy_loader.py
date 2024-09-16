@@ -21,6 +21,11 @@ def getsize(obj):
     return size
 
 def test_lazy_loader():
+    # if neuro_py is loaded, remove it and reload it
+    if 'neuro_py' in sys.modules:
+        del sys.modules['neuro_py']
+    import neuro_py
+
     # default module size
     module_size = getsize(neuro_py)
 
