@@ -1,15 +1,9 @@
-import warnings
-
 import numpy as np
 
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from numba import jit
-
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-warnings.simplefilter(action="ignore", category=RuntimeWarning)
 
 
 class ExplainedVariance(object):

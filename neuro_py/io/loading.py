@@ -6,7 +6,6 @@ import sys
 import warnings
 from itertools import chain
 from typing import List, Union
-from warnings import simplefilter
 from xml.dom import minidom
 
 import nelpy as nel
@@ -19,8 +18,6 @@ from scipy import signal
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
-
-simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 
 def loadXML(basepath: str):
