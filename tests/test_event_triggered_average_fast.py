@@ -13,7 +13,7 @@ def test_event_triggered_average_fast():
     # 5 random timestamps from 0 to 10
     ts_rand = np.random.choice(ts, 5)
     # set the 5 signals to 5 at the random timestamps
-    x[:, np.in1d(ts, ts_rand)] = 5
+    x[:, np.isin(ts, ts_rand)] = 5
     # make psth of the 5 signals at the random timestamps
     psth = event_triggered_average_fast(
         x,
