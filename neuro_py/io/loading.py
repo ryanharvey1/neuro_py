@@ -488,7 +488,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
     data = sio.loadmat(filename)
 
     # construct data frame with features per neuron
-    df = pd.DataFrame()
+    df = {}
     # count units
     n_cells = data["cell_metrics"]["UID"][0][0][0].size
     dt = data["cell_metrics"].dtype
@@ -497,10 +497,16 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         try:
             if (data["cell_metrics"][dn][0][0][0][0].size == 1) & (
                 data["cell_metrics"][dn][0][0][0].size == n_cells
-            ):
-                df[dn] = data["cell_metrics"][dn][0][0][0]
+            ):  
+                # check if nested within brackets
+                try:
+                    df[dn] = list(chain(*data["cell_metrics"][dn][0][0][0]))
+                except Exception:
+                    df[dn] = data["cell_metrics"][dn][0][0][0]
         except Exception:
             continue
+
+    df = pd.DataFrame(df)     
 
     # load in tag
     # check if tags exist within cell_metrics
