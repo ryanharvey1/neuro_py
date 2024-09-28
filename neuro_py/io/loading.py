@@ -500,7 +500,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
             ):  
                 # check if nested within brackets
                 try:
-                    df[dn] = list(chain(*data["cell_metrics"][dn][0][0][0]))
+                    df[dn] = [value[0] if len(value)==1 else value for value in data["cell_metrics"][dn][0][0][0]]
                 except Exception:
                     df[dn] = data["cell_metrics"][dn][0][0][0]
         except Exception:
