@@ -18,11 +18,6 @@ for path in sorted(chain(src.rglob("*.py"), src.rglob("*.pyi"))):
 
     parts = tuple(module_path.parts)
 
-    #if any([[p == "__pycache__" for p in parts]]):
-    #    continue
-    # if parts[0] == "__init__":
-    #     continue
-
     if parts[-1] == "__init__":
         parts = parts[:-1]
         doc_path = doc_path.with_name("index.md")
@@ -31,7 +26,6 @@ for path in sorted(chain(src.rglob("*.py"), src.rglob("*.pyi"))):
         continue
 
     nav_parts = [f"{mod_symbol} {part}" for part in parts]
-    print(nav_parts)
     nav[tuple(nav_parts)[-2:]] = doc_path.as_posix()
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
