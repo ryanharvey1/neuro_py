@@ -16,7 +16,9 @@ jobs:
       - name: Install Python libs
         run: pip install .
       - name: Install Crystal libs
-        run: shards install
+        run: |
+          shards install
+          shards init
       - name: Build site
         run: mkdocs build
       - name: Deploy to gh-pages
