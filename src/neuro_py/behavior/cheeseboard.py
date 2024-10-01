@@ -47,7 +47,3 @@ def plot_grid_with_circle_and_random_dots():
     plt.gca().set_aspect("equal", adjustable="box")
     plt.axis("off")
     plt.show()
-
-
-if __name__ == "__main__":
-    plot_grid_with_circle_and_random_dots()
