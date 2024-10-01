@@ -6,7 +6,6 @@ import sys
 import warnings
 from itertools import chain
 from typing import List, Union
-from warnings import simplefilter
 from xml.dom import minidom
 
 import nelpy as nel
@@ -19,8 +18,6 @@ from scipy import signal
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
-
-simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 
 def loadXML(basepath: str):
@@ -491,7 +488,7 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
     data = sio.loadmat(filename)
 
     # construct data frame with features per neuron
-    df = pd.DataFrame()
+    df = {}
     # count units
     n_cells = data["cell_metrics"]["UID"][0][0][0].size
     dt = data["cell_metrics"].dtype
@@ -500,10 +497,16 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         try:
             if (data["cell_metrics"][dn][0][0][0][0].size == 1) & (
                 data["cell_metrics"][dn][0][0][0].size == n_cells
-            ):
-                df[dn] = data["cell_metrics"][dn][0][0][0]
+            ):  
+                # check if nested within brackets
+                try:
+                    df[dn] = [value[0] if len(value)==1 else value for value in data["cell_metrics"][dn][0][0][0]]
+                except Exception:
+                    df[dn] = data["cell_metrics"][dn][0][0][0]
         except Exception:
             continue
+
+    df = pd.DataFrame(df)     
 
     # load in tag
     # check if tags exist within cell_metrics
@@ -1375,8 +1378,20 @@ def load_brain_regions(basepath, out_format="dict"):
         return brainRegions
 
 
-def get_animal_id(basepath):
-    """return animal ID from basepath using basename.session.mat"""
+def get_animal_id(basepath) -> str:
+    """
+    return animal ID from basepath using basename.session.mat
+
+    Parameters
+    ----------
+    basepath : str
+        path to session folder
+
+    Returns
+    -------
+    str
+        animal ID
+    """
     try:
         filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     except Exception:
@@ -1389,6 +1404,19 @@ def get_animal_id(basepath):
 
 
 def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+    """
+    Add animal_id column to a dataframe based on the basepath column
+
+    Parameters
+    ----------
+    df : pd.core.frame.DataFrame
+        Dataframe with a basepath column
+
+    Returns
+    -------
+    pd.core.frame.DataFrame
+        Dataframe with an additional animal_id column
+    """
     df["animal_id"] = df.basepath.map(
         dict([(basepath, get_animal_id(basepath)) for basepath in df.basepath.unique()])
     )

@@ -9,6 +9,7 @@ import seaborn as sns
 
 from neuro_py.stats.stats import confidence_intervals
 
+
 def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
     """
     events: nested list of nelpy EpochArrays
