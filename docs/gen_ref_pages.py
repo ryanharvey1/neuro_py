@@ -1,13 +1,11 @@
 """Generate the code reference pages."""
-import os
-from itertools import chain
 from pathlib import Path
 
 import mkdocs_gen_files
 
 
 nav = mkdocs_gen_files.Nav()
-mod_symbol = '<code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>'
+mod_symbol = ''
 
 root = Path(__file__).parent.parent
 src = root

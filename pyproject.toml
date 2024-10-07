@@ -57,6 +57,5 @@ dependencies = [
 "*" = ["*"]
 
 [tool.setuptools.packages.find]
-where = ['src']
 include = ['neuro_py']
 exclude = ['docs']

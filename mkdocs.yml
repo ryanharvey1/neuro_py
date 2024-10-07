@@ -8,8 +8,11 @@ extra_css:
 
 theme:
   name: "material"
+  font:
+    text: Roboto
+    code: Roboto Mono
   palette:
-  - media: "(prefers-color-scheme)"
+  - media: "(prefers-color-scheme: dark)"
     toggle:
       icon: material/brightness-auto
       name: Switch to light mode
@@ -58,7 +61,12 @@ plugins:
 - literate-nav:
     nav_file: SUMMARY.md
 - section-index
-- mkdocstrings
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          docstring_style: numpy
+
 
 nav:
 - Home: index.md
