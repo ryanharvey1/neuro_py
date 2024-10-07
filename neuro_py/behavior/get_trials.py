@@ -12,19 +12,35 @@ from neuro_py.io import loading
 from neuro_py.process.intervals import find_interval
 
 
-# linear track
-def get_linear_maze_trials(basepath, epoch_input=None):
-    """
-    Get trials for linear maze
-    Locates inbound and outbound laps for each linear track in session
-    Input:
-        basepath: str
-        epoch_input: None, deprecated
-    Output:
-        pos: PositionArray
-        inbound_laps: EpochArray
-        outbound_laps: EpochArray
+def get_linear_maze_trials(basepath: str, epoch_input: None = None) -> Tuple[
+    Union[nel.PositionArray, None],
+    Union[nel.EpochArray, None],
+    Union[nel.EpochArray, None],
+]:
+    """Get trials for linear maze.
 
+    Locates inbound and outbound laps for each linear track in the session.
+
+    Parameters
+    ----------
+    basepath : str
+        The path to the base directory of the session data.
+    epoch_input : None, optional
+        Deprecated parameter. This is no longer supported.
+
+    Returns
+    -------
+    pos : PositionArray or None
+        The position data for the linear maze trials.
+    inbound_laps : EpochArray or None
+        The epochs corresponding to inbound laps.
+    outbound_laps : EpochArray or None
+        The epochs corresponding to outbound laps.
+
+    Notes
+    -----
+    If no valid position data is found, None values are returned for all
+    outputs.
     """
     if epoch_input is not None:
         logging.warning("epoch_input is no longer supported")
@@ -81,14 +97,47 @@ def get_linear_maze_trials(basepath, epoch_input=None):
     return pos, inbound_laps, outbound_laps
 
 
-# tmaze
-def get_t_maze_trials(basepath: str, epoch, bypass_standard_behavior: bool = False):
+def get_t_maze_trials(
+    basepath: str, epoch: nel.EpochArray, bypass_standard_behavior: bool = False
+) -> Tuple[
+    Union[nel.PositionArray, None],
+    Union[nel.EpochArray, None],
+    Union[nel.EpochArray, None],
+]:
     """
-    Get trials for t maze
-    :param basepath: basepath to session
-    :param epoch: epoch to get trials for
-    :param bypass_standard_behavior: more outbound than inbound trials (True to disregard)
-    :return: pos, right_epochs, left_epochs
+    Get trials for T maze.
+
+    This function retrieves position data and epochs for right and left trials
+    based on the specified epoch. It checks if the number of outbound laps exceeds
+    the number of inbound laps unless bypassed.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path to the session data.
+    epoch : nel.EpochArray
+        The epoch to get trials for.
+    bypass_standard_behavior : bool, optional
+        If True, allows for more outbound than inbound trials. Default is False.
+
+    Returns
+    -------
+    pos : PositionArray or None
+        The position data for the T maze trials.
+    right_epochs : EpochArray or None
+        The epochs corresponding to right trials.
+    left_epochs : EpochArray or None
+        The epochs corresponding to left trials.
+
+    Raises
+    ------
+    TypeError
+        If inbound laps exceed outbound laps and bypass_standard_behavior is False.
+
+    Notes
+    -----
+    If there are no valid positions or states in the session data, None is returned
+    for all outputs.
     """
 
     def dissociate_laps_by_states(states, dir_epoch, states_of_interest=[1, 2]):
@@ -161,22 +210,47 @@ def get_t_maze_trials(basepath: str, epoch, bypass_standard_behavior: bool = Fal
     return pos, right_epochs, left_epochs
 
 
-# wmaze
 def get_w_maze_trials(
     basepath: str, max_distance_from_well: int = 20, min_distance_traveled: int = 50
-):
+) -> Tuple[
+    Union[nel.PositionArray, None],
+    Union[np.ndarray, None],
+    Union[np.ndarray, None],
+    Union[np.ndarray, None],
+]:
     """
-    Get trials for w maze
-    :param basepath: basepath to session
-    :param max_distance_from_well: maximum distance from well to be considered a trial
-    :param min_distance_traveled: minimum distance traveled to be considered a trial
-    :return: pos, trials, right_trials, left_trials
+    Get trials for W maze.
 
-    metadata dependencies:
-    animal.behavior.mat
-        center, left, right x y coordinates *
+    This function retrieves position data and identifies trials for the W maze
+    based on specified distance criteria.
 
-    * can label these with label_key_locations_wmaze.m or manually
+    Parameters
+    ----------
+    basepath : str
+        The base path to the session data.
+    max_distance_from_well : int, optional
+        The maximum distance from the well to be considered a trial. Default is 20.
+    min_distance_traveled : int, optional
+        The minimum distance traveled to be considered a trial. Default is 50.
+
+    Returns
+    -------
+    pos : PositionArray or None
+        The position data for the W maze trials.
+    trials : ndarray or None
+        The indices of the trials.
+    right_trials : ndarray or None
+        The indices of the right trials.
+    left_trials : ndarray or None
+        The indices of the left trials.
+
+    Notes
+    -----
+    This function requires the following metadata dependencies:
+
+    - `animal.behavior.mat`: contains center, left, and right x y coordinates.
+
+    You can label these with `label_key_locations_wmaze.m` or manually.
     """
 
     # load position and key location metadata
@@ -250,33 +324,50 @@ def get_w_maze_trials(
     return pos, trajectories
 
 
-# cheeseboard
 def get_cheeseboard_trials(
     basepath: str,
     min_distance_from_home: int = 15,
-    max_trial_time: int = 60 * 10,
+    max_trial_time: int = 600,  # Default is 60 * 10
     min_trial_time: int = 5,
     kernel_size: int = 2,
     min_std_away_from_home: int = 6,
-):
+) -> Tuple[nel.PositionArray, nel.EpochArray]:
     """
-    get_cheeseboard_trials: get epochs of cheeseboard trials
-    Input:
-        basepath: basepath of session
-        min_distance_from_home: minimum distance from home to be considered a trial
-        max_trial_time: maximum time of a trial
-        min_trial_time: minimum time of a trial
-        kernel_size: size of kernel to use for smoothing
-        min_std_away_from_home: minimum standard deviation away from home to be considered a trial
-    Output:
-        trial_epochs: epochs of trials
+    Get epochs of cheeseboard trials.
 
-    metadata dependencies:
-        animal.behavior.mat
-            homebox_x within epochs *
-            homebox_y within epochs *
+    This function retrieves epochs for cheeseboard trials based on specified 
+    distance and time criteria.
 
-        * can label these with label_key_locations_cheeseboard.m or manually
+    Parameters
+    ----------
+    basepath : str
+        The base path to the session data.
+    min_distance_from_home : int, optional
+        The minimum distance from home to be considered a trial. Default is 15.
+    max_trial_time : int, optional
+        The maximum duration of a trial in seconds. Default is 600 (10 minutes).
+    min_trial_time : int, optional
+        The minimum duration of a trial in seconds. Default is 5.
+    kernel_size : int, optional
+        The size of the kernel to use for smoothing. Default is 2.
+    min_std_away_from_home : int, optional
+        The minimum standard deviation away from home to be considered a trial.
+        Default is 6.
+
+    Returns
+    -------
+    pos : PositionArray
+        The position data for the cheeseboard trials.
+    trials : EpochArray
+        The epochs of the trials.
+
+    Notes
+    -----
+    This function requires the following metadata dependencies:
+
+    - `animal.behavior.mat`: contains homebox_x and homebox_y coordinates within epochs.
+
+    You can label these with `label_key_locations_cheeseboard.m` or manually.
     """
 
     # load position and key location metadata
@@ -351,15 +442,13 @@ def get_cheeseboard_trials(
     return pos, trials
 
 
-# open field
 def get_openfield_trials(
-    basepath,
+    basepath: str,
     epoch_type: str = "epochs",
     spatial_binsize: int = 3,
     n_time_bins: int = 1,  # for bin_method = "fixed", not used for bin_method = "dynamic"
     bin_method: str = "dynamic",
-    trial_time_bin_size: Union[int, float] = 1
-    * 60,  # in secords for bin_method = "dynamic", not used for bin_method = "fixed"
+    trial_time_bin_size: Union[int, float] = 60,  # in seconds for bin_method = "dynamic", not used for bin_method = "fixed"
     prop_trial_sampled: float = 0.5,
     environments: List[str] = [
         "box",
@@ -368,45 +457,84 @@ def get_openfield_trials(
         "bigSquarePlus",
         "plus",
     ],
-    minimum_correlation=0.6,
-    method="correlation",
+    minimum_correlation: float = 0.6,
+    method: str = "correlation",
 ) -> Tuple[nel.PositionArray, nel.EpochArray]:
     """
-    get_openfield_trials: get epochs of openfield trials
+    Get epochs of openfield trials.
 
-    The logic here is to find trials that have a minimum and even amount of
-        spatial sampling (prop_trial_sampled) in order to assess spatial
-        stability, population correlations, and other things.
+    This function identifies trials in an open field environment that meet
+    specific criteria for spatial sampling to assess spatial stability and
+    population correlations.
 
-    Input:
-        basepath: basepath of session
-        epoch_type: type of epoch to use (trials or epochs)
-        spatial_binsize: size of spatial bins to use for occupancy
-        n_time_bins: number of time bins to use for occupancy for fixed bin_method
-        bin_method: method to use for binning time (dynamic or fixed), fixed will split the epoch in n_time_bins, whereas dynamic will split the epoch for trial_time_bin_size
-        trial_time_bin_size: size of time bins to use for occupancy for dynamic bin_method
-        prop_trial_sampled: proportion of trials to sample
-        environments: list of environments to include as openfield
-        minimum_correlation: minimum correlation between trials to be considered a trial
-        method: method to use (correlation,proportion)
-            correlation - use correlation between the trial map and the overall map to determine if it is a trial
-            proportion - use the proportion of the trial map that is sampled to determine if it is a trial
-    Output:
-        pos: position array
-        trials: epochs of trials
+    Parameters
+    ----------
+    basepath : str
+        The base path to the session data.
+    epoch_type : str, optional
+        The type of epoch to use ('trials' or 'epochs'). Default is 'epochs'.
+    spatial_binsize : int, optional
+        The size of spatial bins to use for occupancy. Default is 3.
+    n_time_bins : int, optional
+        The number of time bins to use for occupancy for fixed bin method. 
+        Default is 1.
+    bin_method : str, optional
+        The method to use for binning time ('dynamic' or 'fixed'). 
+        Default is 'dynamic'.
+    trial_time_bin_size : Union[int, float], optional
+        The size of time bins to use for occupancy for dynamic bin method 
+        (in seconds). Default is 60.
+    prop_trial_sampled : float, optional
+        The proportion of trials to sample. Default is 0.5.
+    environments : List[str], optional
+        A list of environments to include as open field. Default includes 
+        several environments such as 'box' and 'plus'.
+    minimum_correlation : float, optional
+        The minimum correlation between trials to be considered a trial. 
+        Default is 0.6.
+    method : str, optional
+        The method to use ('correlation' or 'proportion'). Default is 
+        'correlation'. `correlation` - use correlation between the trial map and
+        the overall map to determine if it is a trial. `proportion` - use the
+        proportion of the trial map that is sampled to determine if it is a
+        trial
+
+    Returns
+    -------
+    pos : PositionArray
+        The position data for the open field trials.
+    trials : EpochArray
+        The epochs of the identified trials.
+
+    Raises
+    ------
+    ValueError
+        If the method is not 'correlation' or 'proportion'.
+
+    Notes
+    -----
+    This function requires the loading of animal behavior and epoch data
+    from the specified base path.
     """
 
     def compute_occupancy_2d(
         pos_run: object, x_edges: list, y_edges: list
     ) -> np.ndarray:
-        """
-        compute_occupancy_2d: compute occupancy of 2d position
-        Input:
-            pos_run: position array
-            x_edges: x edges of bins
-            y_edges: y edges of bins
-        Output:
-            occupancy: occupancy of 2d position
+        """Compute occupancy of 2D position
+        
+        Parameters
+        ----------
+        pos_run : object
+            Position data for the run
+        x_edges : list
+            Bin edges of x position
+        y_edges : list
+            Bin edges of y position
+        
+        Returns
+        -------
+        np.ndarray
+            Occupancy map of the position
         """
         occupancy, _, _ = np.histogram2d(
             pos_run.data[0, :], pos_run.data[1, :], bins=(x_edges, y_edges)

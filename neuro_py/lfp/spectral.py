@@ -82,7 +82,8 @@ def event_triggered_wavelet(
     freqs : 1d array
         Frequencies used in the wavelet transform.
 
-    Examples:
+    Example
+    -------
     from neuro_py.lfp.spectral import event_triggered_wavelet
 
     basepath = r"Z:\Data\hpc_ctx_project\HP04\day_34_20240503"
