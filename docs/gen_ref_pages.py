@@ -1,4 +1,5 @@
 """Generate the code reference pages."""
+import os
 from itertools import chain
 from pathlib import Path
 
@@ -6,12 +7,14 @@ import mkdocs_gen_files
 
 
 nav = mkdocs_gen_files.Nav()
-mod_symbol = ''#<code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>'
+mod_symbol = '<code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>'
 
 root = Path(__file__).parent.parent
-src = root / 'src'
+src = root
 
-for path in sorted(chain(src.rglob("*.py"), src.rglob("*.pyi"))):
+for path in sorted(src.rglob("*.py")):
+    if path.relative_to(src).parts[0] != "neuro_py":
+        continue
     module_path = path.relative_to(src).with_suffix("")
     doc_path = path.relative_to(src).with_suffix(".md")
     full_doc_path = Path("reference", doc_path)
@@ -26,6 +29,7 @@ for path in sorted(chain(src.rglob("*.py"), src.rglob("*.pyi"))):
         continue
 
     nav_parts = [f"{mod_symbol} {part}" for part in parts]
+    print(nav_parts)
     nav[tuple(nav_parts)[-2:]] = doc_path.as_posix()
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
