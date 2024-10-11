@@ -27,7 +27,6 @@ for path in sorted(src.rglob("*.py")):
         continue
 
     nav_parts = [f"{mod_symbol} {part}" for part in parts]
-    print(nav_parts)
     nav[tuple(nav_parts)[-2:]] = doc_path.as_posix()
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
