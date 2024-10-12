@@ -1,1 +1,1 @@
-# neuro-py
+{% include-markdown "../README.md" %}

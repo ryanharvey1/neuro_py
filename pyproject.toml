@@ -48,6 +48,7 @@ dependencies = [
     "mkdocs-gen-files>=0.5.0",
     "mkdocs-literate-nav>=0.6.1",
     "mkdocs-section-index>=0.3.9",
+    "mkdocs-include-markdown-plugin>=6.2.2",
 ]
 
 [project.urls]
