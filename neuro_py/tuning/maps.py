@@ -2,7 +2,7 @@ import copy
 import logging
 import multiprocessing
 import os
-from typing import List, Union
+from typing import Any, List, Optional, Union
 
 import nelpy as nel
 import numpy as np
@@ -19,71 +19,105 @@ class SpatialMap(object):
     SpatialMap: make a spatial map tuning curve
         maps timestamps or continuous signals onto positions
 
-    args:
-        pos: position data (nelpy.AnalogSignal or nel.PositionArray)
-        st: spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal)
-        
-        optional:
-            speed: speed data (nelpy.AnalogSignal), recommended input: from non-epoched data
-            dim: dimension of the map (1 or 2) *deprecated*
-            dir_epoch: epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*
-            speed_thres: speed threshold for running (float)
-            s_binsize: bin size for the spatial map (float)
-            x_minmax: min and max x values for the spatial map (list)
-            y_minmax: min and max y values for the spatial map (list)
-            tuning_curve_sigma: sigma for the tuning curve (float)
-            smooth_mode: mode for smoothing curve (str) reflect,constant,nearest,mirror,wrap
-            min_duration: minimum duration for a tuning curve (float)
-            minbgrate: min firing rate for tuning curve, will set to this if lower (float)
-            n_shuff: number of positon shuffles for spatial information (int)
-            parallel_shuff: parallelize shuffling (bool)
+    Parameters
+    ----------
+    pos : object
+        Position data (nelpy.AnalogSignal or nel.PositionArray).
+    st : object
+        Spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal).
+    
+    Optional Parameters
+    -------------------
+    speed : Optional[object]
+        Speed data (nelpy.AnalogSignal), recommended input: from non-epoched data.
+    dim : Optional[int]
+        Dimension of the map (1 or 2) *deprecated*.
+    dir_epoch : Optional[object]
+        Epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*.
+    speed_thres : Union[int, float], optional
+        Speed threshold for running. Default is 4.
+    s_binsize : Union[int, float], optional
+        Bin size for the spatial map. Default is 3.
+    x_minmax : Optional[List[Union[int, float]]], optional
+        Min and max x values for the spatial map.
+    y_minmax : Optional[List[Union[int, float]]], optional
+        Min and max y values for the spatial map.
+    tuning_curve_sigma : Union[int, float], optional
+        Sigma for the tuning curve. Default is 3.
+    smooth_mode : str, optional
+        Mode for smoothing curve (str) reflect, constant, nearest, mirror, wrap. Default is "reflect".
+    min_duration : float, optional
+        Minimum duration for a tuning curve. Default is 0.1.
+    minbgrate : Union[int, float], optional
+        Minimum firing rate for tuning curve; will set to this if lower. Default is 0.
+    n_shuff : int, optional
+        Number of position shuffles for spatial information. Default is 500.
+    parallel_shuff : bool, optional
+        Parallelize shuffling. Default is True.
+    
+    Place Field Detector Parameters
+    -------------------------------
+    place_field_thres : Union[int, float], optional
+        Percent of continuous region of peak firing rate. Default is 0.2.
+    place_field_min_size : Optional[Union[int, float]]
+        Minimum size of place field (cm).
+    place_field_max_size : Optional[Union[int, float]]
+        Maximum size of place field (cm).
+    place_field_min_peak : Union[int, float], optional
+        Minimum peak rate of place field. Default is 3.
+    place_field_sigma : Union[int, float], optional
+        Extra smoothing sigma to apply before field detection. Default is 2.
 
-            Place field detector parameters:
-                place_field_thres: percent of continuous region of peak firing rate (float)
-                place_field_min_size: min size of place field (cm) (float)
-                place_field_min_peak: min peak rate of place field (float)
-                place_field_sigma: extra smoothing sigma to apply before field detection (float)
+    Attributes
+    ----------
+    tc : nelpy.TuningCurve
+        Tuning curves.
+    st_run : nelpy.SpikeTrain
+        Spike train restricted to running epochs.
+    bst_run : nelpy.binnedSpikeTrain
+        Binned spike train restricted to running epochs.
+    speed : Optional[nnelpy.AnalogSignal]
+        Speed data.
+    run_epochs : nelpy.EpochArray
+        Running epochs.
 
-    attributes:
-        tc: tuning curves (nelpy.TuningCurve)
-        st_run: spike train restricted to running epochs (nelpy.SpikeTrain)
-        bst_run: binned spike train restricted to running epochs (nelpy.binnedSpikeTrain)
-        speed: speed data (nelpy.AnalogSignal)
-        run_epochs: running epochs (nelpy.EpochArray)
-    Note:
-        Place field detector (.find_fields()) is sensitive to many parameters.
-        For 2D, it is highly recommended to have good environmental sampling.
-        In brief testing with 300cm linear track, optimal 1D parameters were:
-            place_field_min_size=15
-            place_field_max_size=None
-            place_field_min_peak=3
-            place_field_sigma=None
-            place_field_thres=.33
+    Notes
+    -----
+    Place field detector (.find_fields()) is sensitive to many parameters.
+    For 2D, it is highly recommended to have good environmental sampling.
+    In brief testing with 300cm linear track, optimal 1D parameters were:
+        place_field_min_size=15
+        place_field_max_size=None
+        place_field_min_peak=3
+        place_field_sigma=None
+        place_field_thres=.33
 
-    TODO: place field detector currently collects field width and peak rate for peak place field
-            In the future, these should be stored for all sub fields
+    TODO
+    ----
+    Place field detector currently collects field width and peak rate for peak place field.
+    In the future, these should be stored for all sub fields.
     """
 
     def __init__(
         self,
         pos: object,
         st: object,
-        speed: object = None,
-        dim: int = None,  # deprecated
-        dir_epoch: object = None,  # deprecated
+        speed: Optional[object] = None,
+        dim: Optional[int] = None,  # deprecated
+        dir_epoch: Optional[object] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         s_binsize: Union[int, float] = 3,
         tuning_curve_sigma: Union[int, float] = 3,
-        x_minmax: List[Union[int, float]] = None,
-        y_minmax: List[Union[int, float]] = None,
+        x_minmax: Optional[List[Union[int, float]]] = None,
+        y_minmax: Optional[List[Union[int, float]]] = None,
         smooth_mode: str = "reflect",
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
         n_shuff: int = 500,
         parallel_shuff: bool = True,
         place_field_thres: Union[int, float] = 0.2,
-        place_field_min_size: Union[int, float] = None,
-        place_field_max_size: Union[int, float] = None,
+        place_field_min_size: Optional[Union[int, float]] = None,
+        place_field_max_size: Optional[Union[int, float]] = None,
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
     ) -> None:
@@ -129,7 +163,19 @@ class SpatialMap(object):
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()
 
-    def map_1d(self, pos: object = None):
+    def map_1d(self, pos: Optional[object] = None) -> tuple:
+        """Maps 1D data for the spatial tuning curve.
+
+        Parameters
+        ----------
+        pos : Optional[object]
+            Position data for shuffling.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the tuning curve and restricted spike train.
+        """
         # dir_epoch is deprecated input
         if self.dir_epoch is not None:
             # warn user
@@ -187,13 +233,41 @@ class SpatialMap(object):
 
         return tc, st_run
 
-    def compute_occupancy_1d(self, pos_run: object):
+    def compute_occupancy_1d(self, pos_run: object) -> np.ndarray:
+        """Computes the occupancy for 1D position data.
+
+        Parameters
+        ----------
+        pos_run : object
+            Restricted position data for running.
+
+        Returns
+        -------
+        np.ndarray
+            Occupancy values per bin.
+        """
         occupancy, _ = np.histogram(pos_run.data[0, :], bins=self.x_edges)
         return occupancy / pos_run.fs
 
     def compute_ratemap_1d(
         self, st_run: object, pos_run: object, occupancy: np.ndarray
-    ):
+    ) -> np.ndarray:
+        """Computes the ratemap for 1D data.
+
+        Parameters
+        ----------
+        st_run : object
+            Spike train data restricted to running epochs.
+        pos_run : object
+            Position data restricted to running epochs.
+        occupancy : np.ndarray
+            Occupancy values per bin.
+
+        Returns
+        -------
+        np.ndarray
+            Ratemap values for the given spike and position data.
+        """
         # initialize ratemap
         ratemap = np.zeros((st_run.data.shape[0], occupancy.shape[0]))
 
@@ -234,7 +308,19 @@ class SpatialMap(object):
 
         return ratemap
 
-    def map_2d(self, pos: object = None):
+    def map_2d(self, pos: Optional[object] = None) -> tuple:
+        """Maps 2D data for the spatial tuning curve.
+
+        Parameters
+        ----------
+        pos : Optional[object]
+            Position data for shuffling.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the tuning curve and restricted spike train.
+        """
         # restrict spike trains to those epochs during which the animal was running
         st_run = self.st[self.run_epochs]
 
@@ -302,6 +388,18 @@ class SpatialMap(object):
         return tc, st_run
 
     def compute_occupancy_2d(self, pos_run: object) -> np.ndarray:
+        """Computes the occupancy for 2D position data.
+
+        Parameters
+        ----------
+        pos_run : object
+            Restricted position data for running.
+
+        Returns
+        -------
+        np.ndarray
+            Occupancy values per bin.
+        """
         occupancy, _, _ = np.histogram2d(
             pos_run.data[0, :], pos_run.data[1, :], bins=(self.x_edges, self.y_edges)
         )
@@ -310,6 +408,22 @@ class SpatialMap(object):
     def compute_ratemap_2d(
         self, st_run: object, pos_run: object, occupancy: np.ndarray
     ) -> np.ndarray:
+        """Computes the ratemap for 2D data.
+
+        Parameters
+        ----------
+        st_run : object
+            Spike train data restricted to running epochs.
+        pos_run : object
+            Position data restricted to running epochs.
+        occupancy : np.ndarray
+            Occupancy values per bin.
+
+        Returns
+        -------
+        np.ndarray
+            Ratemap values for the given spike and position data.
+        """
         ratemap = np.zeros(
             (st_run.data.shape[0], occupancy.shape[0], occupancy.shape[1])
         )
@@ -342,7 +456,32 @@ class SpatialMap(object):
         return ratemap
 
     def shuffle_spatial_information(self) -> np.ndarray:
-        def create_shuffled_coordinates(X, n_shuff=500):
+        """Shuffle spatial information and compute p-values for observed vs. null.
+
+        This method creates shuffled coordinates of the position data and computes
+        spatial information for each shuffle. The p-values for the observed
+        spatial information against the null distribution are calculated.
+
+        Returns
+        -------
+        np.ndarray
+            P-values for the spatial information.
+        """
+        def create_shuffled_coordinates(X: np.ndarray, n_shuff: int = 500) -> List[np.ndarray]:
+            """Create shuffled coordinates by rolling the original coordinates.
+
+            Parameters
+            ----------
+            X : np.ndarray
+                Original position data.
+            n_shuff : int, optional
+                Number of shuffles to create (default is 500).
+
+            Returns
+            -------
+            List[np.ndarray]
+                List of shuffled coordinates.
+            """
             range_ = X.shape[1]
 
             # if fewer coordinates then shuffles, reduce number of shuffles to n coords
@@ -357,7 +496,23 @@ class SpatialMap(object):
 
             return x_temp
 
-        def get_spatial_infos(pos_shuff, ts, dim):
+        def get_spatial_infos(pos_shuff: np.ndarray, ts: np.ndarray, dim: int) -> float:
+            """Get spatial information for shuffled position data.
+
+            Parameters
+            ----------
+            pos_shuff : np.ndarray
+                Shuffled position data.
+            ts : np.ndarray
+                Timestamps corresponding to the shuffled data.
+            dim : int
+                Dimension of the spatial data (1 or 2).
+
+            Returns
+            -------
+            float
+                Spatial information calculated from the tuning curve.
+            """
             pos_shuff = nel.AnalogSignalArray(
                 data=pos_shuff,
                 timestamps=ts,
@@ -396,19 +551,11 @@ class SpatialMap(object):
         return self.spatial_information_pvalues
 
     def find_fields(self) -> None:
-        """
-        Find place fields in the spatial maps.
+        """Find place fields in the spatial maps.
 
-        args: inherited from Class
-
-        Returns:
-            None.
-
-        Attributes:
-            field_mask: mask of the place fields (list of numpy arrays).
-            n_fields: number of place fields detected (int).
-            field_width: width of the place fields (list of floats).
-            field_peak_rate: peak firing rate of the place fields (list of floats).
+        This method detects place fields from the spatial maps and calculates
+        their properties, including width, peak firing rate, and a mask for
+        each detected field.
         """
         from skimage import measure
 
@@ -481,9 +628,8 @@ class SpatialMap(object):
             [len(np.unique(mask_)) - 1 for mask_ in self.tc.field_mask]
         )
 
-    def save_mat_file(self, basepath: str, UID=None):
-        """
-        Save firing rate map data to a .mat file in MATLAB format.
+    def save_mat_file(self, basepath: str, UID: Optional[Any] = None) -> None:
+        """Save firing rate map data to a .mat file in MATLAB format.
 
         The saved file will contain the following variables:
         - map: a 1xN cell array containing the ratemaps, where N is the number of ratemaps.
@@ -501,10 +647,20 @@ class SpatialMap(object):
         - timestamps: the timestamps for the speed data.
         - pos: the position data.
 
-        The file will be saved to a .mat file with the name `basepath.ratemap.firingRateMap.mat`, where
-        `basepath` is the base path of the data.
-        """
+        The file will be saved to a .mat file with the name `basepath.ratemap.firingRateMap.mat`,
+        where `basepath` is the base path of the data.
 
+        Parameters
+        ----------
+        basepath : str
+            The base path for saving the .mat file.
+        UID : Optional[Any], optional
+            A unique identifier for the data (default is None).
+
+        Returns
+        -------
+        None
+        """
         if self.dim == 1:
             raise ValueError("1d storeage not implemented")
 

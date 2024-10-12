@@ -1,24 +1,43 @@
 from math import sqrt
+from typing import Any, Callable, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
+
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d, label
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
 
 
 def detect_firing_fields(
-    image_gray,
-    max_sigma=30,
-    log_num_sigma=10,
-    log_thres=0.1,
-    dog_thres=0.1,
-    doh_thres=0.01,
-):
-    from skimage.feature import blob_dog, blob_doh, blob_log
+    image_gray: np.ndarray,
+    max_sigma: int = 30,
+    log_num_sigma: int = 10,
+    log_thres: float = 0.1,
+    dog_thres: float = 0.1,
+    doh_thres: float = 0.01,
+) -> None:
+    """
+    Detect firing fields in a grayscale image using different blob detection methods.
 
+    Parameters
+    ----------
+    image_gray : np.ndarray
+        Grayscale image to analyze.
+    max_sigma : int, optional
+        The maximum standard deviation for Gaussian filter.
+    log_num_sigma : int, optional
+        The number of sigma values for the Laplacian of Gaussian.
+    log_thres : float, optional
+        Threshold for Laplacian of Gaussian blobs.
+    dog_thres : float, optional
+        Threshold for Difference of Gaussian blobs.
+    doh_thres : float, optional
+        Threshold for Determinant of Hessian blobs.
+    """
+    from skimage.feature import blob_dog, blob_doh, blob_log
     plt.imshow(image_gray, origin="lower")
 
     blobs_log = blob_log(
@@ -56,13 +75,19 @@ def detect_firing_fields(
     plt.tight_layout()
 
 
-def find_peaks(image):
+def find_peaks(image: np.ndarray) -> np.ndarray:
     """
-    Find peaks sorted by distance from center of image.
+    Find peaks sorted by distance from the center of the image.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        The input image.
+
     Returns
     -------
-    peaks : array
-        coordinates for peaks in image as [row, column]
+    np.ndarray
+        Coordinates for peaks in the image as [row, column].
     """
     image = image.copy()
     image[~np.isfinite(image)] = 0
@@ -78,19 +103,27 @@ def find_peaks(image):
     return peaks
 
 
-def sort_fields_by_rate(rate_map, fields, func=None):
-    """Sort fields by the rate value of each field
+def sort_fields_by_rate(
+    rate_map: np.ndarray,
+    fields: np.ndarray,
+    func: Optional[Callable[[np.ndarray], Any]] = None
+) -> np.ndarray:
+    """
+    Sort fields by the rate value of each field.
+
     Parameters
     ----------
-    rate_map : array
-        The rate map
-    fields : array
-        The fields same shape as rate_map
-    func : function returning value to sort after, default np.max
+    rate_map : np.ndarray
+        The rate map.
+    fields : np.ndarray
+        The fields of the same shape as rate_map.
+    func : Callable, optional
+        Function returning value to sort after, default is np.max.
+
     Returns
     -------
-    sorted_fields : array
-        Sorted fields
+    np.ndarray
+        Sorted fields.
     """
     indx = np.sort(np.unique(fields.ravel()))
     func = func or np.max
@@ -114,18 +147,32 @@ def sort_fields_by_rate(rate_map, fields, func=None):
     return sorted_fields
 
 
-def remove_fields_by_area(fields, minimum_field_area, maximum_field_area=None):
-    """Sets fields below minimum area to zero, measured as the number of bins in a field.
+def remove_fields_by_area(
+    fields: np.ndarray,
+    minimum_field_area: int,
+    maximum_field_area: Optional[int] = None
+) -> np.ndarray:
+    """
+    Sets fields below minimum area to zero, measured as the number of bins in a field.
+
     Parameters
     ----------
-    fields : array
-        The fields
+    fields : np.ndarray
+        The fields.
     minimum_field_area : int
-        Minimum field area (number of bins in a field)
+        Minimum field area (number of bins in a field).
+    maximum_field_area : Optional[int]
+        Maximum field area (number of bins in a field). Default is None.
+
     Returns
     -------
-    fields
-        Fields with number of bins below minimum_field_area are set to zero
+    np.ndarray
+        Fields with number of bins below minimum_field_area are set to zero.
+    
+    Raises
+    ------
+    ValueError
+        If minimum_field_area is not an integer.
     """
     if not isinstance(minimum_field_area, (int, np.integer)):
         raise ValueError("'minimum_field_area' should be int")
@@ -146,27 +193,32 @@ def remove_fields_by_area(fields, minimum_field_area, maximum_field_area=None):
     return fields
 
 
-def separate_fields_by_laplace(rate_map, threshold=0, minimum_field_area=None):
-    """Separates fields using the laplacian to identify fields separated by
+def separate_fields_by_laplace(
+    rate_map: np.ndarray,
+    threshold: float = 0,
+    minimum_field_area: Optional[int] = None
+) -> np.ndarray:
+    """
+    Separates fields using the Laplacian to identify fields separated by
     a negative second derivative.
+
     Parameters
     ----------
-    rate_map : np 2d array
-        firing rate in each bin
+    rate_map : np.ndarray
+        2D array representing firing rate in each bin.
     threshold : float
-        value of laplacian to separate fields by relative to the minima. Should be
-        on the interval 0 to 1, where 0 cuts off at 0 and 1 cuts off at
-        min(laplace(rate_map)). Default 0.
-    minimum_field_area: int
-        minimum number of bins to consider it a field. Default None (all fields are kept)
+        Value of Laplacian to separate fields by relative to the minima.
+        Should be on the interval 0 to 1, where 0 cuts off at 0 and
+        1 cuts off at min(laplace(rate_map)). Default is 0.
+    minimum_field_area : Optional[int]
+        Minimum number of bins to consider it a field. Default is None (all fields are kept).
+
     Returns
     -------
-    labels : numpy array, shape like rate_map.
-        contains areas all filled with same value, corresponding to fields
-        in rate_map. The fill values are in range(1,nFields + 1), sorted by size of the
+    np.ndarray
+        Labels with areas filled with the same value, corresponding to fields
+        in rate_map. The fill values are in range(1, nFields + 1), sorted by size of the
         field (sum of all field values) with 0 elsewhere.
-    :Authors:
-        Halvard Sutterud <halvard.sutterud@gmail.com>
     """
 
     laplacian = ndimage.laplace(rate_map)
@@ -181,29 +233,38 @@ def separate_fields_by_laplace(rate_map, threshold=0, minimum_field_area=None):
     return fields
 
 
-def separate_fields_by_dilation(rate_map, seed=2.5, sigma=2.5, minimum_field_area=None):
-    """Separates fields by the Laplace of Gaussian (LoG)
+def separate_fields_by_dilation(
+    rate_map: np.ndarray,
+    seed: float = 2.5,
+    sigma: float = 2.5,
+    minimum_field_area: Optional[int] = None
+) -> np.ndarray:
+    """
+    Separates fields by the Laplace of Gaussian (LoG)
     on the rate map subtracted by a reconstruction of the rate map using
     dilation.
+
     Parameters
     ----------
-    rate_map : np 2d array
-        firing rate in each bin
+    rate_map : np.ndarray
+        2D array representing firing rate in each bin.
     seed : float
-        Magnitude of dilation
+        Magnitude of dilation.
     sigma : float
-        Standard deviation of Gaussian to separate fields Default 2.
-    minimum_field_area: int
-        minimum number of bins to consider it a field. Default None (all fields are kept)
+        Standard deviation of Gaussian to separate fields. Default is 2.5.
+    minimum_field_area : Optional[int]
+        Minimum number of bins to consider it a field. Default is None (all fields are kept).
+
     Returns
     -------
-    labels : numpy array, shape like rate_map.
-        contains areas all filled with same value, corresponding to fields
-        in rate_map. The fill values are in range(1,nFields + 1), sorted by size of the
+    np.ndarray
+        Labels with areas filled with the same value, corresponding to fields
+        in rate_map. The fill values are in range(1, nFields + 1), sorted by size of the
         field (sum of all field values) with 0 elsewhere.
+
     References
     ----------
-    see https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_regional_maxima.html
+    .. [1] https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_regional_maxima.html
     """
     from skimage.morphology import reconstruction
 
@@ -220,23 +281,30 @@ def separate_fields_by_dilation(rate_map, seed=2.5, sigma=2.5, minimum_field_are
     return fields
 
 
-def separate_fields_by_laplace_of_gaussian(rate_map, sigma=2, minimum_field_area=None):
-    """Separates fields using the Laplace of Gaussian (LoG) to identify fields
+def separate_fields_by_laplace_of_gaussian(
+    rate_map: np.ndarray,
+    sigma: float = 2,
+    minimum_field_area: Optional[int] = None
+) -> np.ndarray:
+    """
+    Separates fields using the Laplace of Gaussian (LoG) to identify fields
     separated by a negative second derivative. Works best if no smoothing is
-    applied to the rate map, preferably with interpolated nans.
+    applied to the rate map, preferably with interpolated NaNs.
+
     Parameters
     ----------
-    rate_map : np 2d array
-        firing rate in each bin
+    rate_map : np.ndarray
+        2D array representing firing rate in each bin.
     sigma : float
-        Standard deviation of Gaussian to separate fields Default 2.
-    minimum_field_area: int
-        minimum number of bins to consider it a field. Default None (all fields are kept)
+        Standard deviation of Gaussian to separate fields. Default is 2.
+    minimum_field_area : Optional[int]
+        Minimum number of bins to consider it a field. Default is None (all fields are kept).
+
     Returns
     -------
-    labels : numpy array, shape like rate_map.
-        contains areas all filled with same value, corresponding to fields
-        in rate_map. The fill values are in range(1,nFields + 1), sorted by size of the
+    np.ndarray
+        Labels with areas filled with the same value, corresponding to fields
+        in rate_map. The fill values are in range(1, nFields + 1), sorted by size of the
         field (sum of all field values) with 0 elsewhere.
     """
     laplacian = ndimage.gaussian_laplace(rate_map, sigma)
@@ -251,12 +319,33 @@ def separate_fields_by_laplace_of_gaussian(rate_map, sigma=2, minimum_field_area
     return fields
 
 
-def calculate_field_centers(rate_map, labels, center_method="maxima"):
-    """Finds center of fields at labels.
-    :Authors:
-        Halvard Sutterud <halvard.sutterud@gmail.com>
+def calculate_field_centers(
+    rate_map: np.ndarray,
+    labels: np.ndarray,
+    center_method: str = "maxima"
+) -> np.ndarray:
     """
+    Finds center of fields at labels.
 
+    Parameters
+    ----------
+    rate_map : np.ndarray
+        2D array representing firing rate in each bin.
+    labels : np.ndarray
+        Labeled fields.
+    center_method : str
+        Method to calculate the center; either 'maxima' or 'center_of_mass'. Default is 'maxima'.
+
+    Returns
+    -------
+    np.ndarray
+        Coordinates of the center for each field.
+    
+    Raises
+    ------
+    ValueError
+        If an invalid center_method is provided.
+    """
     indices = np.arange(1, np.max(labels) + 1)
     if center_method == "maxima":
         bc = ndimage.maximum_position(rate_map, labels=labels, index=indices)
@@ -274,25 +363,37 @@ def calculate_field_centers(rate_map, labels, center_method="maxima"):
     return bc
 
 
-def which_field(x, y, fields, box_size):
-    """Returns which spatial field each (x,y)-position is in.
-
-    Parameters:
-    -----------
-    x : numpy array
-    y : numpy array, len(y) == len(x)
-    fields : numpy nd array
-        labeled fields, where each field is defined by an area separated by
-        zeros. The fields are labeled with indices from [1:].
-    box_size: list of two floats
-        extents of arena
-
-    Returns:
-    --------
-    indices : numpy array, length = len(x)
-        arraylike x and y with fields-labeled indices
+def which_field(
+    x: np.ndarray,
+    y: np.ndarray,
+    fields: np.ndarray,
+    box_size: List[float]
+) -> np.ndarray:
     """
+    Returns which spatial field each (x, y) position is in.
 
+    Parameters
+    ----------
+    x : np.ndarray
+        X-coordinates.
+    y : np.ndarray
+        Y-coordinates, must have the same length as x.
+    fields : np.ndarray
+        Labeled fields, where each field is defined by an area separated by
+        zeros. The fields are labeled with indices from [1:].
+    box_size : List[float]
+        Extents of the arena.
+
+    Returns
+    -------
+    np.ndarray
+        Array-like x and y with fields-labeled indices.
+
+    Raises
+    ------
+    ValueError
+        If x and y do not have the same length.
+    """
     if len(x) != len(y):
         raise ValueError("x and y must have same length")
 
@@ -313,15 +414,19 @@ def which_field(x, y, fields, box_size):
     return np.array(fields[ix, iy])
 
 
-def compute_crossings(field_indices):
-    """Compute indices at which a field is entered or exited
+def compute_crossings(field_indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Compute indices at which a field is entered or exited.
+
     Parameters
     ----------
-    field_indices : 1D array
-        typically obtained with in_field
-    See also
-    --------
-    in_field
+    field_indices : np.ndarray
+        1D array, typically obtained with in_field.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        Indices at which fields are entered and exited.
     """
     # make sure to start and end outside fields
     field_indices = np.concatenate(([0], field_indices.astype(bool).astype(int), [0]))
@@ -331,14 +436,34 @@ def compute_crossings(field_indices):
     return enter, exit
 
 
-def distance_to_edge_function(x_c, y_c, field, box_size, interpolation="linear"):
-    """Returns a function which for a given angle returns the distance to
+def distance_to_edge_function(
+    x_c: float,
+    y_c: float,
+    field: np.ndarray,
+    box_size: Tuple[float, float],
+    interpolation: str = "linear"
+) -> Callable[[float], float]:
+    """
+    Returns a function which, for a given angle, returns the distance to
     the edge of the field from the center.
-    Parameters:
-        x_c
-        y_c
-        field: numpy 2d array
-            ones at field bins, zero elsewhere
+
+    Parameters
+    ----------
+    x_c : float
+        X-coordinate of the center.
+    y_c : float
+        Y-coordinate of the center.
+    field : np.ndarray
+        2D array with ones at field bins and zeros elsewhere.
+    box_size : Tuple[float, float]
+        Size of the box (arena).
+    interpolation : str, optional
+        Type of interpolation to use. Default is "linear".
+
+    Returns
+    -------
+    Callable[[float], float]
+        A function that takes an angle and returns the distance to the edge of the field.
     """
     from skimage import measure
 
@@ -370,7 +495,20 @@ def distance_to_edge_function(x_c, y_c, field, box_size, interpolation="linear")
     x_func = interp1d(pad_a, pad_x, kind=interpolation)
     y_func = interp1d(pad_a, pad_y, kind=interpolation)
 
-    def dist_func(angle):
+    def dist_func(angle: float) -> float:
+        """
+        Computes the distance from the center to the edge of the field at a given angle.
+
+        Parameters
+        ----------
+        angle : float
+            Angle in radians.
+
+        Returns
+        -------
+        float
+            Distance to the edge of the field from the center.
+        """
         x = x_func(angle)
         y = y_func(angle)
         dist = np.sqrt((x - x_c) ** 2 + (y - y_c) ** 2)
@@ -380,41 +518,59 @@ def distance_to_edge_function(x_c, y_c, field, box_size, interpolation="linear")
 
 
 def map_pass_to_unit_circle(
-    x, y, t, x_c, y_c, field=None, box_size=None, dist_func=None
-):
-    """Uses three vectors {v,p,q} to map the passes to the unit circle. v
+    x: np.ndarray,
+    y: np.ndarray,
+    t: np.ndarray,
+    x_c: float,
+    y_c: float,
+    field: Optional[np.ndarray] = None,
+    box_size: Optional[Tuple[float, float]] = None,
+    dist_func: Optional[Callable[[float], float]] = None
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Uses three vectors {v, p, q} to map the passes to the unit circle. v
     is the average velocity vector of the pass, p is the vector from the
-    position (x,y) to the center of the field and q is the vector from the
-    center to the edge through (x,y). See [1].
+    position (x, y) to the center of the field, and q is the vector from the
+    center to the edge through (x, y).
 
-    Parameters:
-    -----------
-        :x, y, t: np arrays
-            should contain x,y and t data in numpy arrays
-        :x_c , y_c: floats
-            bump center
-        :field: np 2d array (optional)
-            bins indicating location of field.
-        :dist_func: function (optional)
-            dist_func(angle) = distance to bump edge from center
-            default is distance_to_edge_function with linear interpolation
-        :return_vecs(optional): bool, default False
+    Parameters
+    ----------
+    x : np.ndarray
+        X-coordinates.
+    y : np.ndarray
+        Y-coordinates.
+    t : np.ndarray
+        Time data.
+    x_c : float
+        X-coordinate of the center of the field.
+    y_c : float
+        Y-coordinate of the center of the field.
+    field : Optional[np.ndarray], optional
+        2D array indicating the location of the field.
+    box_size : Optional[Tuple[float, float]], optional
+        Size of the box (arena).
+    dist_func : Optional[Callable[[float], float]], optional
+        Function that computes distance to bump edge from center. Default is
+        distance_to_edge_function with linear interpolation.
 
-    See also:
-    ---------
-    distance_to_edge_function
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        r : Array of distances to origin on unit circle.
+        theta : Array of angles to axis defined by mean velocity vector.
+        pdcd : Array of distances to peak projected onto the current direction.
+        pdmd : Array of distances to peak projected onto the mean direction.
 
-    Returns:
-    --------
-        r : array of distance to origin on unit circle
-        theta : array of angles to axis defined by mean velocity vector
-        pdcd : array of distance to peak projected onto the current direction
-        pdmd : array of distance to peak projected onto the mean direction
+    Raises
+    ------
+    AssertionError
+        If neither dist_func nor both field and box_size are provided.
 
     References:
     -----------
-        [1]: A. Jeewajee et. al., Theta phase precession of grid and
-        placecell firing in open environment
+    .. [1] Jeewajee A, Barry C, Douchamps V, Manson D, Lever C, Burgess N. Theta
+           phase precession of grid and place cell firing in open environments.
+           Philos Trans R Soc Lond B Biol Sci. 2013 Dec 23;369(1635):20120532
     """
     if dist_func is None:
         assert (
@@ -454,48 +610,56 @@ def map_pass_to_unit_circle(
     return r, theta, pdcd, pdmd
 
 
-def consecutive(array, stepsize):
-    """Splits array when distance between neighbouring points is further than the stepsize.
+def consecutive(array: np.ndarray, stepsize: float) -> List[np.ndarray]:
+    """
+    Splits array when distance between neighboring points is further than the stepsize.
+
     Parameters
     ----------
-    array : np.array
+    array : np.ndarray
+        Array to be split.
     stepsize : float
+        Minimum distance to consider points as separate.
+
     Returns
     -------
-    List of np.arrays, split when jump greater than stepsize
+    List[np.ndarray]
+        List of arrays, split when jump greater than stepsize.
     """
-
     return np.split(array, np.where(np.diff(array) > stepsize)[0] + 1)
 
 
 def find_fields_1d(
-    tuning, hz_thresh=5, min_length=1, max_length=20, max_mean_firing=10
-):
-    """Finds the location of maximum spiking.
+    tuning: List[np.ndarray],
+    hz_thresh: float = 5,
+    min_length: int = 1,
+    max_length: int = 20,
+    max_mean_firing: float = 10
+) -> dict:
+    """
+    Finds the location of maximum spiking.
+
     Parameters
     ----------
-    tuning : list of np.arrays
-        Where each inner array contains the tuning curves for an
-        individual neuron.
-    hz_thresh : int or float
-        Any bin with firing above this value is considered to be part of a field.
-    min_length : int
-        Minimum length of field (in tuning curve bin units, eg. if bin size is 3cm,
-        min_length=1 is 3cm.
-    max_length : int
-        Maximum length of field (in tuning curve bin units, eg. if bin size is 3cm,
-        min_length=10 is 3cm*10 = 30cm.
-    max_mean_firing : int or float
+    tuning : List[np.ndarray]
+        Each inner array contains the tuning curves for an individual neuron.
+    hz_thresh : float, optional
+        Any bin with firing above this value is considered to be part of a field. Default is 5.
+    min_length : int, optional
+        Minimum length of field (in tuning curve bin units). Default is 1.
+    max_length : int, optional
+        Maximum length of field (in tuning curve bin units). Default is 20.
+    max_mean_firing : float, optional
         Only neurons with a mean firing rate less than this amount are considered for
-        having place fields. The default is set to 10.
+        having place fields. Default is 10.
+
     Returns
     -------
-    with_fields : dict
-        Where the key is the neuron number (int), value is a list of arrays (int)
+    dict
+        Where the key is the neuron number (int), and the value is a list of arrays (int)
         that are indices into the tuning curve where the field occurs.
         Each inner array contains the indices for a given place field.
     """
-
     fields = []
     for neuron_tc in tuning:
         if np.mean(neuron_tc) < max_mean_firing:
@@ -524,21 +688,31 @@ def find_fields_1d(
 
 
 def compute_linear_place_fields(
-    firing_rate, min_window_size=5, min_firing_rate=1.0, thresh=0.5
-):
-    """Find consecutive bins where all are >= 50% of local max firing rate and
-    the local max in > 1 Hz
+    firing_rate: np.ndarray,
+    min_window_size: int = 5,
+    min_firing_rate: float = 1.0,
+    thresh: float = 0.5
+) -> np.ndarray:
+    """
+    Find consecutive bins where all are >= threshold of local max firing rate
+    and the local max is > min_firing_rate.
+
     Parameters
     ----------
-    firing_rate: array-like(dtype=float)
-    min_window_size: int
-    min_firing_rate: float
-    thresh: float
+    firing_rate : np.ndarray
+        Array of firing rates.
+    min_window_size : int, optional
+        Minimum size of the window. Default is 5.
+    min_firing_rate : float, optional
+        Minimum firing rate to consider a bin. Default is 1.0.
+    thresh : float, optional
+        Threshold percentage of local max. Default is 0.5.
+
     Returns
     -------
-    np.ndarray(dtype=bool)
+    np.ndarray
+        Boolean array indicating place fields.
     """
-
     is_place_field = np.zeros(len(firing_rate), dtype="bool")
     for start in range(len(firing_rate) - min_window_size):
         for fin in range(start + min_window_size, len(firing_rate)):
@@ -553,29 +727,36 @@ def compute_linear_place_fields(
 
 
 def compute_2d_place_fields(
-    firing_rate,
-    min_firing_rate=1,
-    thresh=0.2,
-    min_size=100,
-    max_size=200,
-    sigma=None,
-):
-    """Compute place fields
+    firing_rate: np.ndarray,
+    min_firing_rate: float = 1,
+    thresh: float = 0.2,
+    min_size: int = 100,
+    max_size: int = 200,
+    sigma: Optional[float] = None
+) -> np.ndarray:
+    """
+    Compute place fields from the firing rate.
+
     Parameters
     ----------
-    firing_rate: np.ndarray(NxN, dtype=float)
-    min_firing_rate: float
-        in Hz
-    thresh: float
-        % of local max
-    min_size: float
-        minimum size of place field in pixels
+    firing_rate : np.ndarray
+        2D array of firing rates (NxN).
+    min_firing_rate : float, optional
+        Minimum firing rate in Hz. Default is 1.
+    thresh : float, optional
+        Percentage of local max. Default is 0.2.
+    min_size : int, optional
+        Minimum size of place field in pixels. Default is 100.
+    max_size : int, optional
+        Maximum size of place field in pixels. Default is 200.
+    sigma : Optional[float], optional
+        Standard deviation for Gaussian smoothing. Default is None.
+
     Returns
     -------
-    receptive_fields: np.ndarray(NxN, dtype=int)
-        Each receptive field is labeled with a unique integer
+    np.ndarray
+        2D array of receptive fields labeled with unique integers.
     """
-
     firing_rate_orig = firing_rate.copy()
 
     if sigma is not None:
@@ -611,14 +792,24 @@ def compute_2d_place_fields(
     return receptive_fields
 
 
-def find_field(firing_rate, threshold):
-    """Copied FMAToolbox
+def find_field(
+    firing_rate: np.ndarray,
+    threshold: float
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Find the field in the firing rate that exceeds the threshold.
+
     Parameters
     ----------
-    firing_rate: np.ndarray
-    threshold: float
+    firing_rate : np.ndarray
+        Array of firing rates.
+    threshold : float
+        Threshold for detection.
+
     Returns
     -------
+    Tuple[np.ndarray, np.ndarray]
+        Tuple containing the image label and the same label.
     """
     mm = np.max(firing_rate)
 
@@ -629,14 +820,25 @@ def find_field(firing_rate, threshold):
             return image_label, image_label
 
 
-def find_field2(firing_rate, thresh):
-    """Only works for 1D
+def find_field2(
+    firing_rate: np.ndarray,
+    thresh: float
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Find the field in a 1D firing rate array that exceeds the threshold.
+
     Parameters
     ----------
-    firing_rate: np.array
-    thresh: float
+    firing_rate : np.ndarray
+        1D array of firing rates.
+    thresh : float
+        Threshold for detection.
+
     Returns
     -------
+    Tuple[np.ndarray, np.ndarray]
+        Tuple containing two boolean arrays: 
+        the first indicates the buffer area and the second indicates the field.
     """
     firing_rate = np.array(firing_rate)
     imm = np.argmax(firing_rate)
@@ -662,14 +864,35 @@ def find_field2(firing_rate, thresh):
 
 
 def map_stats2(
-    firing_rate, threshold=0.1, min_size=5, max_size=None, min_peak=1.0, sigma=None
-):
+    firing_rate: np.ndarray,
+    threshold: float = 0.1,
+    min_size: int = 5,
+    max_size: Optional[int] = None,
+    min_peak: float = 1.0,
+    sigma: Optional[float] = None
+) -> Dict[str, List[float]]:
     """
-    :param firing_rate: array
-    :param threshold: float
-    :param min_size: int
-    :param min_peak: float
-    :return:
+    Map statistics of firing rate fields.
+
+    Parameters
+    ----------
+    firing_rate : np.ndarray
+        1D array of firing rates.
+    threshold : float, optional
+        Threshold for field detection. Default is 0.1.
+    min_size : int, optional
+        Minimum size of detected fields. Default is 5.
+    max_size : Optional[int], optional
+        Maximum size of detected fields. Default is None, which sets it to the length of firing_rate.
+    min_peak : float, optional
+        Minimum peak firing rate to consider a field valid. Default is 1.0.
+    sigma : Optional[float], optional
+        Standard deviation for Gaussian smoothing. Default is None.
+
+    Returns
+    -------
+    Dict[str, List[float]]
+        A dictionary containing the sizes, peaks, means, and fields of detected firing rate fields.
     """
     if sigma is not None:
         firing_rate = gaussian_filter1d(firing_rate, sigma)
