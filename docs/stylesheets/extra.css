@@ -11,6 +11,12 @@ p {
     text-align: justify;
 }
 
+.md-nav__link--active {
+  background-color: var(--md-code-bg-color);
+  border-radius: 0.2em;
+  padding: 0.2em;
+}
+
 :root {
   --md-code-font: "Roboto Mono";
   --md-default-fg-color: #111;

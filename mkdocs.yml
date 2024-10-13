@@ -8,9 +8,6 @@ extra_css:
 
 theme:
   name: "material"
-  font:
-    text: Roboto
-    code: Roboto Mono
   palette:
   - media: "(prefers-color-scheme: dark)"
     toggle:
@@ -58,6 +55,7 @@ plugins:
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
+    - docs/copy_tutorials.py
 - literate-nav:
     nav_file: SUMMARY.md
 - section-index
@@ -66,12 +64,26 @@ plugins:
       python:
         options:
           docstring_style: numpy
+          docstring_section_style: table
+          filters: ["!__"] # exclude all members starting with __
 - include-markdown:  # https://github.com/mondeja/mkdocs-include-markdown-plugin
     opening_tag: "{%"
     closing_tag: "%}"
     rewrite_relative_urls: true
     heading_offset: 1
+- mkdocs-jupyter:
+    include: ["*.ipynb"]
+    include_source: true
+    ignore_h1_titles: true
+    execute: false
+    allow_errors: true
+    include_requirejs: true
 
 nav:
 - Home: index.md
 - API Reference: reference/
+- Tutorials:
+  - Batch Analysis: tutorials/batch_analysis.ipynb
+  - Explained Variance: tutorials/explained_variance.ipynb
+  - Reactivation: tutorials/reactivation.ipynb
+  - Spatial Map: tutorials/spatial_map.ipynb

@@ -49,6 +49,7 @@ dependencies = [
     "mkdocs-literate-nav>=0.6.1",
     "mkdocs-section-index>=0.3.9",
     "mkdocs-include-markdown-plugin>=6.2.2",
+    "mkdocs-jupyter>=0.25.0",
 ]
 
 [project.urls]
