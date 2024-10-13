@@ -1,3 +1,22 @@
+@import url('https://rsms.me/inter/inter.css');
+* {
+    font-family: 'Inter', sans-serif;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700 !important;
+}
+pre * { font-family: monospace; }
+
+p {
+    text-align: justify;
+}
+
+.md-nav__link--active {
+  background-color: var(--md-code-bg-color);
+  border-radius: 0.2em;
+  padding: 0.2em;
+}
+
 :root {
   --md-code-font: "Roboto Mono";
   --md-default-fg-color: #111;

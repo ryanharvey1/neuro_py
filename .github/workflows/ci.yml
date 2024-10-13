@@ -1,4 +1,4 @@
-name: neuro_py CI
+name: CI
 
 on:
   push:
