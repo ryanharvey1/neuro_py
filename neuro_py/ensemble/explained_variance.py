@@ -77,40 +77,40 @@ class ExplainedVariance(object):
     Examples
     --------
     # Load data
-    basepath = r"U:\data\HMC\HMC1\day8"
-    st,cm = loading.load_spikes(basepath,brainRegion="CA1",putativeCellType="Pyr")
+    >>> basepath = r"U:\data\HMC\HMC1\day8"
+    >>> st,cm = loading.load_spikes(basepath,brainRegion="CA1",putativeCellType="Pyr")
 
-    epoch_df = loading.load_epoch(basepath)
-    beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
+    >>> epoch_df = loading.load_epoch(basepath)
+    >>> beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
 
 
     # Most simple case, returns single explained variance value
-    expvar = explained_variance.ExplainedVariance(
-        st=st,
-        template=beh_epochs[1],
-        matching=beh_epochs[2],
-        control=beh_epochs[0],
-        window=None,
-    )
+    >>> expvar = explained_variance.ExplainedVariance(
+            st=st,
+            template=beh_epochs[1],
+            matching=beh_epochs[2],
+            control=beh_epochs[0],
+            window=None,
+        )
 
     # Get time resolved explained variance across entire session in 200sec bins
-    expvar = explained_variance.ExplainedVariance(
-        st=st,
-        template=beh_epochs[1],
-        matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
-        control=beh_epochs[0],
-        window=200
-    )
+    >>> expvar = explained_variance.ExplainedVariance(
+            st=st,
+            template=beh_epochs[1],
+            matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
+            control=beh_epochs[0],
+            window=200
+        )
 
     # Get time resolved explained variance across entire session in 200sec bins sliding by 100sec
-    expvar = explained_variance.ExplainedVariance(
-        st=st,
-        template=beh_epochs[1],
-        matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
-        control=beh_epochs[0],
-        window=200,
-        slideby=100
-    )
+    >>> expvar = explained_variance.ExplainedVariance(
+            st=st,
+            template=beh_epochs[1],
+            matching=nel.EpochArray([beh_epochs.start, beh_epochs.stop]),
+            control=beh_epochs[0],
+            window=200,
+            slideby=100
+        )
 
     """
 
