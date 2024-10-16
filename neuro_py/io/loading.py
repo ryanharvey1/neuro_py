@@ -1,11 +1,12 @@
 """ Loading functions for cell explorer format"""
+
 import glob
 import multiprocessing
 import os
 import sys
 import warnings
 from itertools import chain
-from typing import List, Union
+from typing import Any, List, Tuple, Union, Dict
 from xml.dom import minidom
 
 import nelpy as nel
@@ -20,18 +21,28 @@ from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 
 
-def loadXML(basepath: str):
+def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
     """
-    path should be the folder session containing the XML file
-    Function returns :
-        1. the number of channels
-        2. the sampling frequency of the dat file or the eeg file depending of what is present in the folder
-            eeg file first if both are present or both are absent
-        3. the mappings shanks to channels as a dict
-    Args:
-        path : string
-    Returns:
-        int, int, dict
+    Load XML file and extract relevant information.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the folder session containing the XML file.
+
+    Returns
+    -------
+    Union[Tuple[int, int, int, Dict[int, list]], None]
+        A tuple containing:
+        - The number of channels (int)
+        - The sampling frequency of the dat file (int)
+        - The sampling frequency of the eeg file (int)
+        - The mappings shanks to channels as a dict (Dict[int, list])
+
+    Notes
+    -----
+    If both dat and eeg files are present, eeg file is prioritized.
+    If neither are present, returns None.
 
     by Guillaume Viejo
     """
@@ -81,10 +92,40 @@ def loadLFP(
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
-    filename: str = None, # name of file to load, located in basepath
+    filename: str = None,  # name of file to load, located in basepath
 ):
+    """
+    Load LFP data from a specified file.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the folder containing the LFP file.
+    n_channels : int, optional
+        Number of channels, by default 90.
+    channel : Optional[Union[int, list]], optional
+        Specific channel(s) to load, by default None.
+    frequency : float, optional
+        Sampling frequency, by default 1250.0.
+    precision : str, optional
+        Data precision, by default "int16".
+    ext : str, optional
+        File extension, by default "lfp".
+    filename : Optional[str], optional
+        Name of the file to load, located in basepath, by default None.
+
+    Returns
+    -------
+    Optional[Tuple[np.ndarray, np.ndarray]]
+        Data and corresponding timestamps.
+
+    Notes
+    -----
+    If both .lfp and .eeg files are present, .lfp file is prioritized.
+    If neither are present, returns None.
+    """
     if filename is not None:
-        path = os.path.join(basepath,filename)
+        path = os.path.join(basepath, filename)
     else:
         path = ""
         if ext == "lfp":
@@ -152,32 +193,39 @@ def loadLFP(
 
 class LFPLoader(object):
     """
-    Simple class to load LFP or wideband data from a recording folder
-    Args:
-        basepath : string (path to the recording folder)
-        channels : int or list of int or None (default None, load all channels memmap)
-        ext : string (lfp or dat)
-        epoch: nelpy EpochArray or ndarray (default None, load all data)
-    Returns:
-        : nelpy analogsignalarray of shape (n_channels, n_samples)
+    Simple class to load LFP or wideband data from a recording folder.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the recording folder.
+    channels : Union[int, list, None], optional
+        Channel number or list of channel numbers, by default None (load all channels memmap).
+    ext : str, optional
+        File extension, by default "lfp".
+    epoch : Union[np.ndarray, nel.EpochArray, None], optional
+        Epoch array or ndarray, by default None (load all data).
+
+    Returns
+    -------
+    nelpy.AnalogSignalArray
+        Analog signal array of shape (n_channels, n_samples).
 
     Example:
-        # load lfp file
-        >>> basepath = r"X:/data/Barrage/NN10/day10"
-        >>> lfp = loading.LFPLoader(basepath,ext="lfp")
-        >>> lfp
-        >>>    <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
+    # load lfp file
+    >>> basepath = r"X:/data/Barrage/NN10/day10"
+    >>> lfp = loading.LFPLoader(basepath,ext="lfp")
+    >>> lfp
+    >>>    <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
 
-        # Loading dat file
-        >>> dat = loading.LFPLoader(basepath,ext="dat")
-        >>> dat
-        >>>    <AnalogSignalArray at 0x25ba4fedc40: 128 signals> for a total of 5:33:58:790 hours
-        >>> dat.lfp.data.shape
-        >>>    (128, 400775808)
-        >>> type(dat.lfp.data)
-        >>>    numpy.memmap
-
-    Ryan Harvey 2023
+    # Loading dat file
+    >>> dat = loading.LFPLoader(basepath,ext="dat")
+    >>> dat
+    >>>    <AnalogSignalArray at 0x25ba4fedc40: 128 signals> for a total of 5:33:58:790 hours
+    >>> dat.lfp.data.shape
+    >>>    (128, 400775808)
+    >>> type(dat.lfp.data)
+    >>>    numpy.memmap
     """
 
     def __init__(
@@ -202,14 +250,14 @@ class LFPLoader(object):
         # load lfp
         self.load_lfp()
 
-    def get_xml_data(self):
+    def get_xml_data(self) -> None:
         nChannels, fs, fs_dat, shank_to_channel = loadXML(self.basepath)
         self.nChannels = nChannels
         self.fs = fs
         self.fs_dat = fs_dat
         self.shank_to_channel = shank_to_channel
 
-    def load_lfp(self):
+    def load_lfp(self) -> None:
         lfp, timestep = loadLFP(
             self.basepath,
             n_channels=self.nChannels,
@@ -250,24 +298,44 @@ class LFPLoader(object):
     def __repr__(self) -> None:
         return self.lfp.__repr__()
 
-    def get_phase(self, band2filter: list = [6, 12], ford=3):
+    def get_phase(self, band2filter: list = [6, 12], ford: int = 3) -> np.ndarray:
+        """
+        Get the phase of the LFP signal using a bandpass filter and Hilbert transform.
+
+        Parameters
+        ----------
+        band2filter : list, optional
+            The frequency band to filter, by default [6, 12].
+        ford : int, optional
+            The order of the Butterworth filter, by default 3.
+
+        Returns
+        -------
+        np.ndarray
+            The phase of the LFP signal.
+        """
         band2filter = np.array(band2filter, dtype=float)
         b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
         filt_sig = signal.filtfilt(b, a, self.lfp.data, padtype="odd")
         return np.angle(signal.hilbert(filt_sig))
 
-    def get_freq_phase_amp(self, band2filter: list = [6, 12], ford=3):
+    def get_freq_phase_amp(
+        self, band2filter: list = [6, 12], ford: int = 3
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Uses the Hilbert transform to calculate the instantaneous phase and
-        amplitude of the time series in sig
+        Get the filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
+
         Parameters
         ----------
-        sig: np.array
-            The signal to be analysed
-        ford: int
-            The order for the Butterworth filter
-        band2filter: list
-            The two frequencies to be filtered for e.g. [6, 12]
+        band2filter : list, optional
+            The frequency band to filter, by default [6, 12].
+        ford : int, optional
+            The order of the Butterworth filter, by default 3.
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+            The filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
         """
 
         band2filter = np.array(band2filter, dtype=float)
@@ -292,7 +360,26 @@ class __init__(LFPLoader):
         super().__init__(*args, **kwargs)
 
 
-def load_position(basepath, fs=39.0625):
+def load_position(basepath: str, fs: float = 39.0625) -> Tuple[pd.DataFrame, float]:
+    """
+    Load position data from a .whl file in the specified directory.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the directory containing the .whl file.
+    fs : float, optional
+        Sampling frequency, by default 39.0625.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, float]
+        DataFrame containing position data and the sampling frequency.
+
+    Notes
+    -----
+    If the directory does not exist or contains no .whl files, the function will exit.
+    """
     if not os.path.exists(basepath):
         print("The path " + basepath + " doesn't exist; Exiting ...")
         sys.exit()
@@ -307,7 +394,23 @@ def load_position(basepath, fs=39.0625):
     return df, fs
 
 
-def writeNeuroscopeEvents(path, ep, name):
+def writeNeuroscopeEvents(path: str, ep: Any, name: str) -> None:
+    """
+    Write events to a Neuroscope-compatible file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the output file.
+    ep : Any
+        Epoch data containing start and end times.
+    name : str
+        Name of the event.
+
+    Returns
+    -------
+    None
+    """
     f = open(path, "w")
     for i in range(len(ep)):
         f.writelines(
@@ -323,19 +426,25 @@ def writeNeuroscopeEvents(path, ep, name):
             str(ep.as_units("ms").iloc[i]["end"]) + " " + name + " end " + str(1) + "\n"
         )
     f.close()
-    return
 
 
-def load_all_cell_metrics(basepaths):
+def load_all_cell_metrics(basepaths: List[str]) -> pd.DataFrame:
     """
-    load cell metrics from multiple sessions
+    Load cell metrics from multiple sessions.
 
-    Input:
-            basepaths: list of basepths, can be pandas column
-    Output:
-            cell_metrics: concatenated pandas df with metrics
+    Parameters
+    ----------
+    basepaths : List[str]
+        List of basepaths, can be a pandas column.
 
-    Note: to get waveforms, spike times, etc. use load_cell_metrics
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated pandas DataFrame with metrics.
+
+    Notes
+    -----
+    To get waveforms, spike times, etc., use load_cell_metrics.
     """
 
     # to speed up, use parallel
@@ -347,19 +456,29 @@ def load_all_cell_metrics(basepaths):
     return pd.concat(cell_metrics, ignore_index=True)
 
 
-def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
+def load_cell_metrics(
+    basepath: str, only_metrics: bool = False
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, dict]]:
     """
-    loader of cell-explorer cell_metrics.cellinfo.mat
+    Loader of cell-explorer cell_metrics.cellinfo.mat.
 
-    Inputs: basepath: path to folder with cell_metrics.cellinfo.mat
-    outputs: df: data frame of single unit features
-    data_: dict with data that does not fit nicely into a dataframe (waveforms, acgs, epochs, etc.)
+    Parameters
+    ----------
+    basepath : str
+        Path to folder with cell_metrics.cellinfo.mat.
+    only_metrics : bool, optional
+        If True, only metrics are loaded, by default False.
 
-    See https://cellexplorer.org/datastructure/standard-cell-metrics/ for details
+    Returns
+    -------
+    Union[pd.DataFrame, Tuple[pd.DataFrame, dict]]
+        DataFrame of single unit features and a dictionary with data that does not fit nicely into a DataFrame (waveforms, acgs, epochs, etc.).
 
-    TODO: extract all fields from cell_metrics.cellinfo. There are more items that can be extracted
+    Notes
+    -----
+    See https://cellexplorer.org/datastructure/standard-cell-metrics/ for details.
 
-    - Ryan H
+    TODO: Extract all fields from cell_metrics.cellinfo. There are more items that can be extracted.
     """
 
     def extract_epochs(data):
@@ -497,16 +616,19 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
         try:
             if (data["cell_metrics"][dn][0][0][0][0].size == 1) & (
                 data["cell_metrics"][dn][0][0][0].size == n_cells
-            ):  
+            ):
                 # check if nested within brackets
                 try:
-                    df[dn] = [value[0] if len(value)==1 else value for value in data["cell_metrics"][dn][0][0][0]]
+                    df[dn] = [
+                        value[0] if len(value) == 1 else value
+                        for value in data["cell_metrics"][dn][0][0][0]
+                    ]
                 except Exception:
                     df[dn] = data["cell_metrics"][dn][0][0][0]
         except Exception:
             continue
 
-    df = pd.DataFrame(df)     
+    df = pd.DataFrame(df)
 
     # load in tag
     # check if tags exist within cell_metrics
@@ -562,17 +684,25 @@ def load_cell_metrics(basepath: str, only_metrics: bool = False) -> tuple:
     return df, data_
 
 
-def load_SWRunitMetrics(basepath):
+def load_SWRunitMetrics(basepath: str) -> pd.DataFrame:
     """
-    load_SWRunitMetrics loads SWRunitMetrics.mat into pandas dataframe
+    Load SWRunitMetrics.mat into a pandas DataFrame.
 
-    returns pandas dataframe with the following fields
-        particip: the probability of participation into ripples for each unit
-        FRall: mean firing rate during ripples
-        FRparticip: mean firing rate for ripples with at least 1 spike
-        nSpkAll: mean number of spikes in all ripples
-        nSpkParticip: mean number of spikes in ripples with at least 1 spike
-        epoch: behavioral epoch label
+    Parameters
+    ----------
+    basepath : str
+        Path to the folder containing the SWRunitMetrics.mat file.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the following fields:
+        - particip: the probability of participation into ripples for each unit
+        - FRall: mean firing rate during ripples
+        - FRparticip: mean firing rate for ripples with at least 1 spike
+        - nSpkAll: mean number of spikes in all ripples
+        - nSpkParticip: mean number of spikes in ripples with at least 1 spike
+        - epoch: behavioral epoch label
     """
 
     def extract_swr_epoch_data(data, epoch):
@@ -620,20 +750,24 @@ def load_SWRunitMetrics(basepath):
     return df2
 
 
-def add_manual_events(df, added_ts):
+def _add_manual_events(df: pd.DataFrame, added_ts: list) -> pd.DataFrame:
     """
     Add new rows to a dataframe representing manual events (from Neuroscope2)
     with durations equal to the mean duration of the existing events.
 
-    Parameters:
-    df (pandas DataFrame): The input dataframe, with at least two columns called
-        'start' and 'stop', representing the start and stop times of the events
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input dataframe, with at least two columns called 'start' and 'stop',
+        representing the start and stop times of the events.
+    added_ts : list
+        A list of timestamps representing the peaks of the new events to be added
+        to the dataframe.
 
-    added_ts (list): A list of timestamps representing the peaks of the new
-        events to be added to the dataframe.
-
-    Returns:
-    pandas DataFrame: The modified dataframe with the new rows added and sorted by the 'peaks' column.
+    Returns
+    -------
+    pd.DataFrame
+        The modified dataframe with the new rows added and sorted by the 'peaks' column.
     """
     # Calculate the mean duration of the existing events
     mean_duration = (df["stop"] - df["start"]).mean()
@@ -660,31 +794,38 @@ def add_manual_events(df, added_ts):
 
 def load_ripples_events(
     basepath: str, return_epoch_array: bool = False, manual_events: bool = True
-):
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
-    load info from ripples.events.mat and store within df
+    Load info from ripples.events.mat and store within a DataFrame.
 
-    args:
-        basepath: path to your session where ripples.events.mat is
-        return_epoch_array: if you want the output in an EpochArray
-        manual_events: add manually added events from Neuroscope2
-            (interval will be calculated from mean event duration)
+    Parameters
+    ----------
+    basepath : str
+        Path to your session where ripples.events.mat is located.
+    return_epoch_array : bool, optional
+        If True, the output will be an EpochArray, by default False.
+    manual_events : bool, optional
+        If True, add manually added events from Neuroscope2 (interval will be calculated from mean event duration), by default True.
 
-    returns pandas dataframe with the following fields
-        start: start time of ripple
-        stop: end time of ripple
-        peaks: peak time of ripple
-        amplitude: envlope value at peak time
-        duration: ripple duration
-        frequency: insta frequency at peak
-        detectorName: the name of ripple detector used
-        event_spk_thres: 1 or 0 for if a mua thres was used
-        basepath: path name
-        basename: session id
-        animal: animal id *
+    Returns
+    -------
+    Union[pd.DataFrame, nel.EpochArray]
+        DataFrame with the following fields:
+        - start: start time of ripple
+        - stop: end time of ripple
+        - peaks: peak time of ripple
+        - amplitude: envelope value at peak time
+        - duration: ripple duration
+        - frequency: instant frequency at peak
+        - detectorName: the name of ripple detector used
+        - event_spk_thres: 1 or 0 for if a mua threshold was used
+        - basepath: path name
+        - basename: session id
+        - animal: animal id
 
-        * Note that basepath/basename/animal relies on specific folder
-        structure and may be incorrect for some data structures
+    Notes
+    -----
+    * Note that basepath/basename/animal relies on specific folder structure and may be incorrect for some data structures.
     """
 
     # locate .mat file
@@ -768,7 +909,7 @@ def load_ripples_events(
     # adding manual events
     if manual_events:
         try:
-            df = add_manual_events(df, data["ripples"]["added"][0][0].T[0])
+            df = _add_manual_events(df, data["ripples"]["added"][0][0].T[0])
         except Exception:
             pass
 
@@ -792,9 +933,29 @@ def load_ripples_events(
     return df
 
 
-def load_theta_cycles(basepath, return_epoch_array=False):
+def load_theta_cycles(
+    basepath: str, return_epoch_array: bool = False
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
-    load theta cycles calculated from auto_theta_cycles.m
+    Load theta cycles calculated from auto_theta_cycles.m.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to your session where thetacycles.events.mat is located.
+    return_epoch_array : bool, optional
+        If True, the output will be an EpochArray, by default False.
+
+    Returns
+    -------
+    Union[pd.DataFrame, nel.EpochArray]
+        DataFrame with the following fields:
+        - start: start time of theta cycle
+        - stop: end time of theta cycle
+        - duration: theta cycle duration
+        - center: center time of theta cycle
+        - trough: trough time of theta cycle
+        - theta_channel: the theta channel used for detection
     """
     filename = os.path.join(
         basepath, os.path.basename(basepath) + ".thetacycles.events.mat"
@@ -818,7 +979,7 @@ def load_barrage_events(
     return_epoch_array: bool = False,
     restrict_to_nrem: bool = True,
     min_duration: float = 0.0,
-):
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
     Load barrage events from the .HSEn2.events.mat file.
 
@@ -835,7 +996,7 @@ def load_barrage_events(
 
     Returns
     -------
-    pd.DataFrame
+    Union[pd.DataFrame, nel.EpochArray]
         DataFrame with barrage events.
     """
 
@@ -893,20 +1054,31 @@ def load_barrage_events(
 
 def load_ied_events(
     basepath: str, manual_events: bool = True, return_epoch_array: bool = False
-):
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
-    load info from ripples.events.mat and store within df
+    Load info from ripples.events.mat and store within a DataFrame.
 
-    args:
-        basepath: path to your session where ripples.events.mat is
-        return_epoch_array: if you want the output in an EpochArray
-        manual_events: add manually added events from Neuroscope2
-            (interval will be calculated from mean event duration)
+    Parameters
+    ----------
+    basepath : str
+        Path to your session where ripples.events.mat is located.
+    return_epoch_array : bool, optional
+        If True, the output will be an EpochArray, by default False.
+    manual_events : bool, optional
+        If True, add manually added events from Neuroscope2 (interval will be calculated from mean event duration), by default True.
 
-    returns pandas dataframe
+    Returns
+    -------
+    Union[pd.DataFrame, nel.EpochArray]
+        DataFrame with the following fields:
+        - start: start time of ripple
+        - stop: end time of ripple
+        - center: center time of ripple
+        - peaks: peak time of ripple
 
-        * Note that basepath/basename/animal relies on specific folder
-        structure and may be incorrect for some data structures
+    Notes
+    -----
+    * Note that basepath/basename/animal relies on specific folder structure and may be incorrect for some data structures.
     """
 
     # locate .mat file
@@ -942,7 +1114,7 @@ def load_ied_events(
     # adding manual events
     if manual_events:
         try:
-            df = add_manual_events(df, data[struct_name]["added"])
+            df = _add_manual_events(df, data[struct_name]["added"])
         except Exception:
             pass
 
@@ -957,27 +1129,38 @@ def load_dentate_spikes(
     dentate_spike_type: List[str] = ["DS1", "DS2"],
     manual_events: bool = True,
     return_epoch_array: bool = False,
-):
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
-    load info from DS*.events.mat and store within df
-    basepath: path to your session where DS*.events.mat is
-    dentate_spike_type: list of DS types to load
-    manual_events: add manually added events from Neuroscope2
-        (interval will be calculated from mean event duration)
-    return_epoch_array: if you want the output in an EpochArray
+    Load info from DS*.events.mat and store within a DataFrame.
 
-    returns pandas dataframe with the following fields
-        start: start time of DS
-        stop: end time of DS
-        peaks: peak time of DS
-        amplitude: envlope value at peak time
-        duration: DS duration
-        detectorName: the name of DS detector used
-        basepath: path name
-        basename: session id
-        animal: animal id *
-        * Note that basepath/basename/animal relies on specific folder
-        structure and may be incorrect for some data structures
+    Parameters
+    ----------
+    basepath : str
+        Path to your session where DS*.events.mat is located.
+    dentate_spike_type : List[str], optional
+        List of DS types to load, by default ["DS1", "DS2"].
+    manual_events : bool, optional
+        If True, add manually added events from Neuroscope2 (interval will be calculated from mean event duration), by default True.
+    return_epoch_array : bool, optional
+        If True, the output will be an EpochArray, by default False.
+
+    Returns
+    -------
+    Union[pd.DataFrame, nel.EpochArray]
+        DataFrame with the following fields:
+        - start: start time of DS
+        - stop: end time of DS
+        - peaks: peak time of DS
+        - amplitude: envelope value at peak time
+        - duration: DS duration
+        - detectorName: the name of DS detector used
+        - basepath: path name
+        - basename: session id
+        - animal: animal id
+
+    Notes
+    -----
+    * Note that basepath/basename/animal relies on specific folder structure and may be incorrect for some data structures.
     """
 
     def extract_data(s_type, data, manual_events):
@@ -1008,7 +1191,7 @@ def load_dentate_spikes(
         # adding manual events
         if manual_events:
             try:
-                df = add_manual_events(df, data[s_type]["added"])
+                df = _add_manual_events(df, data[s_type]["added"])
             except Exception:
                 pass
         return df
@@ -1043,9 +1226,36 @@ def load_dentate_spikes(
     return df
 
 
-def load_theta_rem_shift(basepath):
+def load_theta_rem_shift(basepath: str) -> Tuple[pd.DataFrame, dict]:
     """
-    load_theta_rem_shift: loads matlab structure from get_rem_shift.m
+    Load theta REM shift data from get_rem_shift.m.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to your session where theta_rem_shift.mat is located.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, dict]
+        DataFrame with the following fields:
+        - UID: unique identifier for each unit
+        - circ_dist: circular distance
+        - rem_shift: REM shift
+        - non_rem_shift: non-REM shift
+        - m_rem: mean phase locking value during REM
+        - r_rem: resultant vector length during REM
+        - k_rem: concentration parameter during REM
+        - p_rem: p-value of phase locking during REM
+        - mode_rem: mode of phase locking during REM
+        - m_wake: mean phase locking value during wake
+        - r_wake: resultant vector length during wake
+        - k_wake: concentration parameter during wake
+        - p_wake: p-value of phase locking during wake
+        - mode_wake: mode of phase locking during wake
+
+    dict
+        Dictionary with phase distributions and spike phases for REM and wake states.
     """
     try:
         filename = glob.glob(basepath + os.sep + "*theta_rem_shift.mat")[0]
@@ -1117,14 +1327,23 @@ def load_theta_rem_shift(basepath):
     return df, data_dict
 
 
-def load_SleepState_states(basepath):
+def load_SleepState_states(basepath: str) -> dict:
     """
-    loader of SleepState.states.mat
+    Loader of SleepState.states.mat.
 
-    returns dict of structures contents.
+    Parameters
+    ----------
+    basepath : str
+        Path to the folder containing the SleepState.states.mat file.
 
-    TODO: extract more from file, this extracts the basics for now.
+    Returns
+    -------
+    dict
+        Dictionary containing the contents of the SleepState.states.mat file.
 
+    Notes
+    -----
+    TODO: Extract more from the file, this extracts the basics for now.
     """
     try:
         filename = glob.glob(os.path.join(basepath, "*.SleepState.states.mat"))[0]
@@ -1177,7 +1396,27 @@ def load_animal_behavior(
     load_animal_behavior loads basename.animal.behavior.mat files created by general_behavior_file.m
     The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration,trials,epochs]
 
-    Ryan H 2021
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    alternative_file : Union[str, None], optional
+        Alternative file name to load, by default None.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the following fields:
+        - time: timestamps
+        - x: x-coordinate
+        - y: y-coordinate
+        - z: z-coordinate
+        - linearized: linearized position
+        - speed: speed of the animal
+        - acceleration: acceleration of the animal
+        - trials: trial numbers
+        - epochs: epoch names
+        - environment: environment names
     """
     df = pd.DataFrame()
 
@@ -1205,7 +1444,7 @@ def load_animal_behavior(
     # add all other position coordinates to df (will add everything it can within position)
     for key in data["behavior"]["position"].keys():
         values = data["behavior"]["position"][key]
-        if (isinstance(values, (list, np.ndarray)) and len(values) == 0):
+        if isinstance(values, (list, np.ndarray)) and len(values) == 0:
             continue
         df[key] = values
 
@@ -1243,11 +1482,30 @@ def load_animal_behavior(
 
 def load_epoch(basepath: str) -> pd.DataFrame:
     """
-    Loads epoch info from cell explorer basename.session and stores in df
+    Loads epoch info from cell explorer basename.session and stores in a DataFrame.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the following fields:
+        - name: name of the epoch
+        - startTime: start time of the epoch
+        - stopTime: stop time of the epoch
+        - environment: environment during the epoch
+        - manipulation: manipulation during the epoch
+        - behavioralParadigm: behavioral paradigm during the epoch
+        - stimuli: stimuli during the epoch
+        - notes: notes about the epoch
+        - basepath: path to the session folder
     """
 
     filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
-    
+
     if not os.path.exists(filename):
         warnings.warn(f"file {filename} does not exist")
         return pd.DataFrame()
@@ -1284,9 +1542,22 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         return epoch_df
 
 
-def load_trials(basepath):
+def load_trials(basepath: str) -> pd.DataFrame:
     """
-    Loads trials from cell explorer basename.session.behavioralTracking and stores in df
+    Loads trials from cell explorer basename.session.behavioralTracking and stores in a DataFrame.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the following fields:
+        - startTime: start time of the trial
+        - stopTime: stop time of the trial
+        - trialsID: ID of the trial
     """
     try:
         filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
@@ -1309,25 +1580,36 @@ def load_trials(basepath):
         return df
 
 
-def load_brain_regions(basepath, out_format="dict"):
+def load_brain_regions(
+    basepath: str, out_format: str = "dict"
+) -> Union[dict, pd.DataFrame]:
     """
-    Loads brain region info from cell explorer basename.session and stores in dict (default) or DataFrame
+    Loads brain region info from cell explorer basename.session and stores in dict (default) or DataFrame.
 
-    Example:
-        Input:
-            brainRegions = load_epoch("Z:\\Data\\GirardeauG\\Rat09\\Rat09-20140327")
-            print(brainRegions.keys())
-            print(brainRegions['CA1'].keys())
-            print(brainRegions['CA1']['channels'])
-            print(brainRegions['CA1']['electrodeGroups'])
-        output:
-            dict_keys(['CA1', 'Unknown', 'blv', 'bmp', 'ven'])
-            dict_keys(['channels', 'electrodeGroups'])
-            [145 146 147 148 149 153 155 157 150 151 154 159 156 152 158 160 137 140
-            129 136 138 134 130 132 142 143 144 141 131 139 133 135]
-            [17 18 19 20]
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    out_format : str, optional
+        Output format, either 'dict' or 'DataFrame', by default 'dict'.
 
-            region_df: pandas DataFrame with columns ['channels','brain_region','shank']
+    Returns
+    -------
+    Union[dict, pd.DataFrame]
+        Dictionary or DataFrame with brain region information.
+
+    Example
+    -------
+    >>> brainRegions = load_epoch("Z:\\Data\\GirardeauG\\Rat09\\Rat09-20140327")
+    >>> print(brainRegions.keys())
+    dict_keys(['CA1', 'Unknown', 'blv', 'bmp', 'ven'])
+    >>> print(brainRegions['CA1'].keys())
+    dict_keys(['channels', 'electrodeGroups'])
+    >>> print(brainRegions['CA1']['channels'])
+    [145 146 147 148 149 153 155 157 150 151 154 159 156 152 158 160 137 140
+    129 136 138 134 130 132 142 143 144 141 131 139 133 135]
+    >>> print(brainRegions['CA1']['electrodeGroups'])
+        [17 18 19 20]
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     _, _, _, shank_to_channel = loadXML(basepath)
@@ -1351,26 +1633,28 @@ def load_brain_regions(basepath, out_format="dict"):
 
     if out_format == "DataFrame":  # return as DataFrame
 
-        region_df = pd.DataFrame(columns = ["channels","region"])
+        region_df = pd.DataFrame(columns=["channels", "region"])
         for key in brainRegions.keys():
-            temp_df = pd.DataFrame(brainRegions[key]['channels'],columns=['channels'])
-            temp_df['region'] = key
+            temp_df = pd.DataFrame(brainRegions[key]["channels"], columns=["channels"])
+            temp_df["region"] = key
 
-            region_df = pd.concat([region_df,temp_df])
-        
-                # # sort channels by shank
-        mapped_channels= []
+            region_df = pd.concat([region_df, temp_df])
+
+            # # sort channels by shank
+        mapped_channels = []
         mapped_shanks = []
-        for key,shank_i in enumerate(shank_to_channel.keys()):
-            mapped_channels.append(shank_to_channel[key]) 
-            mapped_shanks.append(np.repeat(shank_i,len(shank_to_channel[key])))
+        for key, shank_i in enumerate(shank_to_channel.keys()):
+            mapped_channels.append(shank_to_channel[key])
+            mapped_shanks.append(np.repeat(shank_i, len(shank_to_channel[key])))
         #  unpack to listssss
         idx = list(chain(*mapped_channels))
         shanks = list(chain(*mapped_shanks))
 
-        mapped_df = region_df.sort_values('channels').reset_index(drop=True).iloc[idx]
-        mapped_df['shank'] = shanks
-        mapped_df['channels'] = mapped_df['channels'] - 1 # save channel as zero-indexed
+        mapped_df = region_df.sort_values("channels").reset_index(drop=True).iloc[idx]
+        mapped_df["shank"] = shanks
+        mapped_df["channels"] = (
+            mapped_df["channels"] - 1
+        )  # save channel as zero-indexed
 
         return mapped_df.reset_index(drop=True)
 
@@ -1378,19 +1662,19 @@ def load_brain_regions(basepath, out_format="dict"):
         return brainRegions
 
 
-def get_animal_id(basepath) -> str:
+def get_animal_id(basepath: str) -> str:
     """
-    return animal ID from basepath using basename.session.mat
+    Return animal ID from basepath using basename.session.mat.
 
     Parameters
     ----------
     basepath : str
-        path to session folder
+        Path to session folder.
 
     Returns
     -------
     str
-        animal ID
+        Animal ID.
     """
     try:
         filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
@@ -1405,17 +1689,17 @@ def get_animal_id(basepath) -> str:
 
 def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
     """
-    Add animal_id column to a dataframe based on the basepath column
+    Add animal_id column to a dataframe based on the basepath column.
 
     Parameters
     ----------
     df : pd.core.frame.DataFrame
-        Dataframe with a basepath column
+        Dataframe with a basepath column.
 
     Returns
     -------
     pd.core.frame.DataFrame
-        Dataframe with an additional animal_id column
+        Dataframe with an additional animal_id column.
     """
     df["animal_id"] = df.basepath.map(
         dict([(basepath, get_animal_id(basepath)) for basepath in df.basepath.unique()])
@@ -1423,7 +1707,23 @@ def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
     return df
 
 
-def load_basic_data(basepath):
+def load_basic_data(basepath: str) -> Tuple[pd.DataFrame, dict, pd.DataFrame, float]:
+    """
+    Load basic data from the specified basepath.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, dict, pd.DataFrame, float]
+        - cell_metrics: DataFrame containing cell metrics.
+        - data: Dictionary containing additional data.
+        - ripples: DataFrame containing ripple events.
+        - fs_dat: Sampling rate of the data.
+    """
     try:
         nChannels, fs, fs_dat, shank_to_channel = loadXML(basepath)
     except Exception:
@@ -1436,17 +1736,41 @@ def load_basic_data(basepath):
 
 
 def load_spikes(
-    basepath,
-    putativeCellType=[],  # restrict spikes to putativeCellType
-    brainRegion=[],  # restrict spikes to brainRegion
-    remove_bad_unit=True,  # true for not loading bad cells (tagged in CE)
-    brain_state=[],  # restrict spikes to brainstate
-    other_metric=None,  # restrict spikes to other_metric
-    other_metric_value=None,  # restrict spikes to other_metric_value
-    support=None,  # provide time support
-):
+    basepath: str,
+    putativeCellType: List[str] = [],  
+    brainRegion: List[str] = [],  
+    remove_bad_unit: bool = True,  
+    brain_state: List[str] = [],  
+    other_metric: Union[str, None] = None,  
+    other_metric_value: Union[str, None] = None,  
+    support: Union[nel.EpochArray, None] = None,  
+) -> Tuple[Union[nel.SpikeTrainArray, None], Union[pd.DataFrame, None]]:
     """
-    Load specific cells' spike times
+    Load specific cells' spike times.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    putativeCellType : List[str], optional
+        List of putative cell types to restrict spikes to, by default [].
+    brainRegion : List[str], optional
+        List of brain regions to restrict spikes to, by default [].
+    remove_bad_unit : bool, optional
+        If True, do not load bad cells (tagged in CE), by default True.
+    brain_state : List[str], optional
+        List of brain states to restrict spikes to, by default [].
+    other_metric : Union[str, None], optional
+        Metric to restrict spikes to, by default None.
+    other_metric_value : Union[str, None], optional
+        Value of the metric to restrict spikes to, by default None.
+    support : Union[nel.EpochArray, None], optional
+        Time support to provide, by default None.
+
+    Returns
+    -------
+    Tuple[Union[nel.SpikeTrainArray, None], Union[pd.DataFrame, None]]
+        Spike train array and cell metrics DataFrame.
     """
     if not isinstance(putativeCellType, list):
         putativeCellType = [putativeCellType]
@@ -1540,10 +1864,23 @@ def load_spikes(
     return st, cell_metrics
 
 
-def load_deepSuperficialfromRipple(basepath, bypass_mismatch_exception=False):
+def load_deepSuperficialfromRipple(basepath: str, bypass_mismatch_exception: bool = False) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
     """
-    Load deepSuperficialfromRipple file created by classification_DeepSuperficial.m
+    Load deepSuperficialfromRipple file created by classification_DeepSuperficial.m.
 
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    bypass_mismatch_exception : bool, optional
+        If True, bypass the mismatch exception, by default False.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, np.ndarray, np.ndarray]
+        - channel_df: DataFrame containing channel information.
+        - ripple_average: Array containing average ripple traces.
+        - ripple_time_axis: Array containing ripple time axis.
     """
     # locate .mat file
     file_type = "*.deepSuperficialfromRipple.channelinfo.mat"
@@ -1642,19 +1979,24 @@ def load_deepSuperficialfromRipple(basepath, bypass_mismatch_exception=False):
     return channel_df, ripple_average, ripple_time_axis
 
 
-def load_mua_events(basepath):
+def load_mua_events(basepath: str) -> pd.DataFrame:
     """
     Loads the MUA data from the basepath.
-    Meant to load .mat file created by find_HSE.m
+    Meant to load .mat file created by find_HSE.m.
 
-    input:
-        basepath: str
-            The path to the folder containing the MUA data.
-    output:
-        mua_data: pandas.DataFrame
-            The pandas.DataFrame containing the MUA data
+    Parameters
+    ----------
+    basepath : str
+        The path to the folder containing the MUA data.
 
-    TODO: if none exist in basepath, create one
+    Returns
+    -------
+    pd.DataFrame
+        The pandas DataFrame containing the MUA data.
+
+    TODO
+    ----
+    If none exist in basepath, create one.
     """
 
     # locate .mat file
@@ -1689,42 +2031,45 @@ def load_mua_events(basepath):
 
 
 def load_manipulation(
-    basepath, struct_name=None, return_epoch_array=True, merge_gap=None
-):
+    basepath: str, struct_name: Union[str, None] = None, return_epoch_array: bool = True, merge_gap: Union[int, None] = None
+) -> Union[pd.DataFrame, nel.EpochArray]:
     """
-    Loads the data from the basename.eventName.manipulations.mat file and returns a pandas dataframe
+    Loads the data from the basename.eventName.manipulations.mat file and returns a pandas dataframe.
 
     file structure defined here:
         https://cellexplorer.org/datastructure/data-structure-and-format/#manipulations
 
-    inputs:
-        basepath: string, path to the basename.eventName.manipulations.mat file
-        struct_name: string, name of the structure in the mat file to load. If None, loads all the manipulation files.
-        return_epoch_array: bool, if True, returns only the epoch array
-        merge_gap: int, if not None, merges the epochs that are separated by less than merge_gap (sec). return_epoch_array must be True.
-    outputs:
-        df: pandas dataframe, with the following columns:
-            - start (float): start time of the manipulation in frames
-            - stop (float): stop time of the manipulation in frames
-            - peaks (float): list of the peak times of the manipulation in frames
-            - center (float): center time of the manipulation in frames
-            - duration (float): duration of the manipulation in frames
-            - amplitude (float): amplitude of the manipulation
-            - amplitudeUnit (string): unit of the amplitude
-    Example:
-        >> basepath = r"Z:\Data\Can\OML22\day8"
-        >> df_manipulation = load_manipulation(basepath,struct_name="optoStim",return_epoch_array=False)
-        >> df_manipulation.head(2)
+    Parameters
+    ----------
+    basepath : str
+        Path to the basename.eventName.manipulations.mat file.
+    struct_name : Union[str, None], optional
+        Name of the structure in the mat file to load. If None, loads all the manipulation files, by default None.
+    return_epoch_array : bool, optional
+        If True, returns only the epoch array, by default True.
+    merge_gap : Union[int, None], optional
+        If not None, merges the epochs that are separated by less than merge_gap (sec). return_epoch_array must be True, by default None.
 
-                start	    stop	    peaks	    center	    duration amplitude amplitudeUnits
-        0	8426.83650	8426.84845	8426.842475	8426.842475	0.01195	19651	pulse_respect_baseline
-        1	8426.85245	8426.86745	8426.859950	8426.859950	0.01500	17516	pulse_respect_baseline
+    Returns
+    -------
+    Union[pd.DataFrame, nel.EpochArray]
+        DataFrame or EpochArray with the manipulation data.
 
-        >> basepath = r"Z:\Data\Can\OML22\day8"
-        >> df_manipulation = load_manipulation(basepath,struct_name="optoStim",return_epoch_array=True)
-        >> df_manipulation
+    Example
+    -------
+    >> basepath = r"Z:\Data\Can\OML22\day8"
+    >> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
+    >> df_manipulation.head(2)
 
-        <EpochArray at 0x1faba577520: 5,774 epochs> of length 1:25:656 minutes
+            start	    stop	    peaks	    center	    duration amplitude amplitudeUnits
+    0	8426.83650	8426.84845	8426.842475	8426.842475	0.01195	19651	pulse_respect_baseline
+    1	8426.85245	8426.86745	8426.859950	8426.859950	0.01500	17516	pulse_respect_baseline
+
+    >> basepath = r"Z:\Data\Can\OML22\day8"
+    >> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=True)
+    >> df_manipulation
+
+    <EpochArray at 0x1faba577520: 5,774 epochs> of length 1:25:656 minutes
     """
     try:
         if struct_name is None:
@@ -1831,42 +2176,50 @@ def load_probe_layout(basepath):
     ----------
     basepath : str
         path to the session folder
-        
+
     Returns
     -------
 
     probe_layout : pd.DataFrame
         DataFrame with x,y coordinates and shank number
-        
+
     Laura Berkowitz 09/2024
     """
 
-    # load session file 
+    # load session file
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
     # load file
     data = sio.loadmat(filename)
-    x = data["session"][0][0]['extracellular'][0][0]['chanCoords'][0][0][0]
-    y = data["session"][0][0]['extracellular'][0][0]['chanCoords'][0][0][1]
-    electrode_groups = data["session"][0][0]['extracellular'][0][0]['electrodeGroups'][0][0][0]
+    x = data["session"][0][0]["extracellular"][0][0]["chanCoords"][0][0][0]
+    y = data["session"][0][0]["extracellular"][0][0]["chanCoords"][0][0][1]
+    electrode_groups = data["session"][0][0]["extracellular"][0][0]["electrodeGroups"][
+        0
+    ][0][0]
 
     # for each group in electrodeGroups
     mapped_shanks = []
     mapped_channels = []
     for shank_i in np.arange(electrode_groups.shape[1]):
-        mapped_channels.append(electrode_groups[0][shank_i][0]-1) # -1 to make 0 indexed
-        mapped_shanks.append(np.repeat(shank_i,len(electrode_groups[0][shank_i][0])))
+        mapped_channels.append(
+            electrode_groups[0][shank_i][0] - 1
+        )  # -1 to make 0 indexed
+        mapped_shanks.append(np.repeat(shank_i, len(electrode_groups[0][shank_i][0])))
 
     #  unpack to lists
     mapped_channels = list(chain(*mapped_channels))
     shanks = list(chain(*mapped_shanks))
 
     # get shank in same dimension as channels
-    shanks = np.expand_dims(shanks,axis=1)
+    shanks = np.expand_dims(shanks, axis=1)
 
-    probe_layout = pd.DataFrame({'x':x.flatten(),'y':y.flatten()}).iloc[mapped_channels].reset_index(drop=True)
-    probe_layout['shank'] = shanks
-    probe_layout['channels']= mapped_channels
+    probe_layout = (
+        pd.DataFrame({"x": x.flatten(), "y": y.flatten()})
+        .iloc[mapped_channels]
+        .reset_index(drop=True)
+    )
+    probe_layout["shank"] = shanks
+    probe_layout["channels"] = mapped_channels
 
     return probe_layout
 
