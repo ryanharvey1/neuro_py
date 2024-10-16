@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Tuple, Union
+from typing import Optional, Tuple
 
 import nelpy as nel
 import numpy as np
@@ -12,7 +12,22 @@ from neuro_py.io import loading
 from neuro_py.process.intervals import find_interval
 
 
-def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
+def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
+    """
+    Get the theta channel for the specified brain region.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path for loading data.
+    tag : str, optional
+        The tag identifying the brain region. Default is "CA1so".
+
+    Returns
+    -------
+    int or None
+        The index of the theta channel (0-based), or None if not found.
+    """
     brain_region = loading.load_brain_regions(basepath)
 
     channel_tags = loading.load_channel_tags(basepath)
@@ -30,7 +45,20 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> int:
     return ch - 1  # return in base 0
 
 
-def process_lfp(basepath: str) -> tuple:
+def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
+    """
+    Process and load Local Field Potential (LFP) data.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path for loading LFP data.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the LFP data, timestamps, and sampling frequency.
+    """
     nChannels, fs, _, _ = loading.loadXML(basepath)
 
     lfp, ts = loading.loadLFP(
@@ -39,9 +67,22 @@ def process_lfp(basepath: str) -> tuple:
     return lfp, ts, fs
 
 
-def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray):
-    # inputs a dataframe from bycycle and ts from lfp and returns a nelpy array of theta epochs
+def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
+    """
+    Extract epochs of theta oscillations from a bycycle dataframe.
 
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing burst detection results.
+    ts : np.ndarray
+        Timestamps of the LFP data.
+
+    Returns
+    -------
+    nel.EpochArray
+        An array of theta epochs.
+    """
     index_for_oscilation_epoch = find_interval(df.is_burst)
     start = []
     stop = []
@@ -70,23 +111,27 @@ def save_theta_cycles(
     detection_params: dict,
     ch: int,
     event_name: str = "thetacycles",
-    detection_name: str = "bycycle",
+    detection_name: Optional[str] = None,
 ) -> None:
     """
     Save theta cycles detected using bycycle to a .mat file in the cell explorer format.
 
     Parameters
     ----------
-    df : bycycle dataframe (df_features)
-    ts: array, timestamps of lfp
+    df : pd.DataFrame
+        The bycycle dataframe containing theta cycle features.
+    ts : np.ndarray
+        Timestamps of the LFP data.
     basepath : str
-        Basepath to save the file to.
-    event_name : str
-        Name of the events.
-    detection_name : Union[None, str], optional
-        Name of the detection, by default None
-    detection_params : dictionary of detection parameters, by default thresholds
-    ch: int, channel used for theta detection
+        Base path to save the file to.
+    detection_params : dict
+        Dictionary of detection parameters.
+    ch : int
+        Channel used for theta detection.
+    event_name : str, optional
+        Name of the events (default is "thetacycles").
+    detection_name : str or None, optional
+        Name of the detection (default is None).
     """
     filename = os.path.join(
         basepath, os.path.basename(basepath) + "." + event_name + ".events.mat"
@@ -143,11 +188,31 @@ def save_theta_cycles(
 
 def get_theta_cycles(
     basepath: str,
-    theta_freq: Tuple[int] = (6, 10),
+    theta_freq: Tuple[int, int] = (6, 10),
     lowpass: int = 48,
-    detection_params: Union[dict, None] = None,
-    ch: Union[int, None] = None,
-):
+    detection_params: Optional[dict] = None,
+    ch: Optional[int] = None,
+) -> Optional[None]:
+    """
+    Detect theta cycles in LFP data and save the results.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path for loading LFP data.
+    theta_freq : tuple, optional
+        Frequency range for theta detection (default is (6, 10)).
+    lowpass : int, optional
+        Cut-off frequency for low-pass filtering (default is 48).
+    detection_params : dict or None, optional
+        Parameters for theta detection (default is None).
+    ch : int or None, optional
+        Channel used for theta detection (default is None).
+
+    Returns
+    -------
+    None
+    """
     # import bycycle, hidden import to avoid mandatory dependency
     from bycycle import Bycycle
 

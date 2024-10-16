@@ -7,27 +7,21 @@ from elephant.current_source_density import estimate_csd
 from neuro_py.io import loading
 
 
-def get_coords(basepath, shank=0):
+def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
     """
-    get the coordinates of the channels from the probe layout
+    Get the coordinates of the channels from the probe layout.
 
     Parameters
     ----------
     basepath : str
-        path to the basepath
+        Path to the basepath.
     shank : int, optional
-        shank to get the coordinates from, by default 0
+        Shank to get the coordinates from, by default 0.
 
     Returns
     -------
-    np.array
-        coordinates of the channels
-
-    Dependencies
-    ------------
-    loading.load_probe_layout, numpy, quantities
-
-    Laura Berkowitz, 2024
+    np.ndarray
+        Coordinates of the channels.
     """
     # load the probe layout
     probe_layout = loading.load_probe_layout(basepath)
@@ -78,8 +72,6 @@ def get_csd(
     Dependencies
     ------------
     get_coords, estimate_csd (Elephant), neo, quantities
-
-    Laura Berkowitz, 2024
 
     """
     coords = get_coords(basepath, shank=shank)
