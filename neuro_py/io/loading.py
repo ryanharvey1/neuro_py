@@ -6,7 +6,7 @@ import os
 import sys
 import warnings
 from itertools import chain
-from typing import Any, List, Tuple, Union, Dict
+from typing import Any, Dict, List, Tuple, Union
 from xml.dom import minidom
 
 import nelpy as nel
@@ -2149,41 +2149,57 @@ def load_manipulation(
         return df
 
 
-def load_channel_tags(basepath):
+def load_channel_tags(basepath: str) -> dict:
     """
-    load_channel_tags returns dictionary of tags located in basename.session.channelTags
+    Load channel tags from session file.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path to the directory containing the session file.
+
+    Returns
+    -------
+    dict
+        A dictionary of channel tags from the session file.
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["channelTags"]
 
 
-def load_extracellular_metadata(basepath):
+def load_extracellular_metadata(basepath: str) -> dict:
     """
-    load_extracellular returns dictionary of metadata located
-        in basename.session.extracellular
+    Load extracellular metadata from session file.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path to the directory containing the session file.
+
+    Returns
+    -------
+    dict
+        A dictionary of extracellular metadata from the session file.
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
 
 
-def load_probe_layout(basepath):
+def load_probe_layout(basepath: str) -> pd.DataFrame:
     """
-    Load electrode coordinates and grouping from session.extracellular.mat file
+    Load electrode coordinates and grouping from the session.extracellular.mat file.
 
     Parameters
     ----------
     basepath : str
-        path to the session folder
+        Path to the session folder.
 
     Returns
     -------
-
     probe_layout : pd.DataFrame
-        DataFrame with x,y coordinates and shank number
-
-    Laura Berkowitz 09/2024
+        DataFrame with x, y coordinates and shank number.
     """
 
     # load session file
@@ -2224,23 +2240,25 @@ def load_probe_layout(basepath):
     return probe_layout
 
 
-def load_emg(basepath: str, threshold: float = 0.9):
+def load_emg(basepath: str, threshold: float = 0.9) -> tuple[nel.AnalogSignalArray, nel.EpochArray, nel.EpochArray]:
     """
-    load_emg loads EMG data from basename.EMGFromLFP.LFP.mat
+    Load EMG data from basename.EMGFromLFP.LFP.mat.
 
-    Input:
-        basepath: str
-            path to session folder
-        threshold: float
-            threshold for high epochs (low will be < threshold)
-    Output:
-        emg: nel.AnalogSignalArray
-            EMG data
-        high_emg_epoch: nel.EpochArray
-            high emg epochs
-        low_emg_epoch: nel.EpochArray
-            low emg epochs
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    threshold : float, optional
+        Threshold for high epochs (low will be < threshold). Default is 0.9.
 
+    Returns
+    -------
+    emg : nel.AnalogSignalArray
+        EMG data.
+    high_emg_epoch : nel.EpochArray
+        High EMG epochs.
+    low_emg_epoch : nel.EpochArray
+        Low EMG epochs.
     """
     # locate .mat file
     filename = os.path.join(
@@ -2265,19 +2283,21 @@ def load_emg(basepath: str, threshold: float = 0.9):
     return emg, high_emg_epoch, low_emg_epoch
 
 
-def load_events(basepath: str, epoch_name: str) -> nel.EpochArray:
+def load_events(basepath: str, epoch_name: str) -> nel.EpochArray | None:
     """
-    load_events loads events from basename.epoch_name.events.mat
+    Load events from basename.epoch_name.events.mat.
 
-    Input:
-        basepath: str
-            path to session folder
-        epoch_name: str
-            name of epoch to load
-    Output:
-        events: nel.EpochArray
-            events
+    Parameters
+    ----------
+    basepath : str
+        Path to the session folder.
+    epoch_name : str
+        Name of epoch to load.
 
+    Returns
+    -------
+    events : nel.EpochArray or None
+        Events, or None if the file does not exist.
     """
     filename = os.path.join(
         basepath, os.path.basename(basepath) + "." + epoch_name + ".events.mat"
