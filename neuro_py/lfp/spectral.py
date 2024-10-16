@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -47,7 +48,7 @@ def event_triggered_wavelet(
     parallel: bool = True,
     whiten: bool = True,
     whiten_order: int = 2,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | tuple[pd.DataFrame, pd.Series]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | Tuple[pd.DataFrame, pd.Series]:
     """
     Compute the event-triggered wavelet transform of a signal.
 

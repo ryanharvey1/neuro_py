@@ -2240,7 +2240,7 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
     return probe_layout
 
 
-def load_emg(basepath: str, threshold: float = 0.9) -> tuple[nel.AnalogSignalArray, nel.EpochArray, nel.EpochArray]:
+def load_emg(basepath: str, threshold: float = 0.9) -> Tuple[nel.AnalogSignalArray, nel.EpochArray, nel.EpochArray]:
     """
     Load EMG data from basename.EMGFromLFP.LFP.mat.
 
