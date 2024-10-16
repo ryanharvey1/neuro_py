@@ -2283,7 +2283,7 @@ def load_emg(basepath: str, threshold: float = 0.9) -> Tuple[nel.AnalogSignalArr
     return emg, high_emg_epoch, low_emg_epoch
 
 
-def load_events(basepath: str, epoch_name: str) -> nel.EpochArray | None:
+def load_events(basepath: str, epoch_name: str) -> Union[nel.EpochArray, None]:
     """
     Load events from basename.epoch_name.events.mat.
 
