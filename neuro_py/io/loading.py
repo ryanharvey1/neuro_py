@@ -211,21 +211,22 @@ class LFPLoader(object):
     nelpy.AnalogSignalArray
         Analog signal array of shape (n_channels, n_samples).
 
-    Examples:
-    # load lfp file
+    Examples
+    --------
+    >>> # load lfp file
     >>> basepath = r"X:/data/Barrage/NN10/day10"
     >>> lfp = loading.LFPLoader(basepath,ext="lfp")
     >>> lfp
-    >>>    <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
+        <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
 
-    # Loading dat file
+    >>> # Loading dat file
     >>> dat = loading.LFPLoader(basepath,ext="dat")
     >>> dat
-    >>>    <AnalogSignalArray at 0x25ba4fedc40: 128 signals> for a total of 5:33:58:790 hours
+        <AnalogSignalArray at 0x25ba4fedc40: 128 signals> for a total of 5:33:58:790 hours
     >>> dat.lfp.data.shape
-    >>>    (128, 400775808)
+        (128, 400775808)
     >>> type(dat.lfp.data)
-    >>>    numpy.memmap
+        numpy.memmap
     """
 
     def __init__(
@@ -2057,17 +2058,17 @@ def load_manipulation(
 
     Examples
     -------
-    >> basepath = r"Z:\Data\Can\OML22\day8"
-    >> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
-    >> df_manipulation.head(2)
+    >>> basepath = r"Z:\Data\Can\OML22\day8"
+    >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
+    >>> df_manipulation.head(2)
 
             start	    stop	    peaks	    center	    duration amplitude amplitudeUnits
     0	8426.83650	8426.84845	8426.842475	8426.842475	0.01195	19651	pulse_respect_baseline
     1	8426.85245	8426.86745	8426.859950	8426.859950	0.01500	17516	pulse_respect_baseline
 
-    >> basepath = r"Z:\Data\Can\OML22\day8"
-    >> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=True)
-    >> df_manipulation
+    >>> basepath = r"Z:\Data\Can\OML22\day8"
+    >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=True)
+    >>> df_manipulation
 
     <EpochArray at 0x1faba577520: 5,774 epochs> of length 1:25:656 minutes
     """
