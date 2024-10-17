@@ -2062,12 +2062,15 @@ def load_manipulation(
     >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
     >>> df_manipulation.head(2)
 
-    ====== ========== ========== ========== ========== ========== ========================
-        start      stop       peaks      center     duration    amplitude     amplitudeUnits
-    ====== ========== ========== ========== ========== ========== ========================
-    8426.83650  8426.84845  8426.842475  8426.842475  0.01195   19651       pulse_respect_baseline
-    8426.85245  8426.86745  8426.859950  8426.859950  0.01500   17516       pulse_respect_baseline
-    ====== ========== ========== ========== ========== ========== ========================
+    .. table:: Manipulation Data
+        :widths: auto
+
+        ====== ========== ========== ========== ========== ========== ========================
+            start      stop       peaks      center     duration    amplitude     amplitudeUnits
+        ====== ========== ========== ========== ========== ========== ========================
+        8426.83650  8426.84845  8426.842475  8426.842475  0.01195   19651       pulse_respect_baseline
+        8426.85245  8426.86745  8426.859950  8426.859950  0.01500   17516       pulse_respect_baseline
+        ====== ========== ========== ========== ========== ========== ========================
 
     >>> basepath = r"Z:\Data\Can\OML22\day8"
     >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=True)
