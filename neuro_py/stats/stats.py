@@ -1,31 +1,41 @@
 import warnings
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
 
-def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
+def get_significant_events(
+    scores: Union[list, np.ndarray],
+    shuffled_scores: np.ndarray,
+    q: float = 95,
+    tail: str = "both",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Return the significant events based on percentiles,
-    the p-values and the standard deviation of the scores
+    the p-values, and the standard deviation of the scores
     in terms of the shuffled scores.
+
     Parameters
     ----------
-    scores : array of shape (n_events,)
-        The array of scores for which to calculate significant events
-    shuffled_scores : array of shape (n_shuffles, n_events)
-        The array of scores obtained from randomized data
-    q : float in range of [0,100]
-        Percentile to compute, which must be between 0 and 100 inclusive.
+    scores : Union[list, np.ndarray]
+        The array of scores for which to calculate significant events.
+    shuffled_scores : np.ndarray
+        The array of scores obtained from randomized data (shape: (n_shuffles, n_events)).
+    q : float, optional
+        Percentile to compute, which must be between 0 and 100 inclusive (default is 95).
+    tail : str, optional
+        Tail for the test, which can be 'left', 'right', or 'both' (default is 'both').
+
     Returns
     -------
-    sig_event_idx : array of shape (n_sig_events,)
+    sig_event_idx : np.ndarray
         Indices (from 0 to n_events-1) of significant events.
-    pvalues : array of shape (n_events,)
-        The p-values
-    stddev : array of shape (n_events,)
-        The standard deviation of the scores in terms of the shuffled scores
+    pvalues : np.ndarray
+        The p-values.
+    stddev : np.ndarray
+        The standard deviation of the scores in terms of the shuffled scores.
     """
     # check shape and correct if needed
     if isinstance(scores, list) | isinstance(scores, np.ndarray):
@@ -59,16 +69,25 @@ def get_significant_events(scores, shuffled_scores, q=95, tail="both"):
     return np.atleast_1d(sig_event_idx), np.atleast_1d(pvalues), np.atleast_1d(stddev)
 
 
-def confidence_intervals(X: np.ndarray, conf: float = 0.95):
+def confidence_intervals(
+    X: np.ndarray, conf: float = 0.95
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    confidence_intervals: calculates upper and lower .95 confidence intervals on matrix
+    Calculate upper and lower confidence intervals on a matrix.
 
-    Input:
-        X - numpy ndarray, (n signals, n samples)
-        conf - float, confidence level value (default: .95)
-    Output:
-        lower - numpy ndarray, (n signals, 1)
-        upper - numpy ndarray, (n signals, 1)
+    Parameters
+    ----------
+    X : np.ndarray
+        A numpy ndarray of shape (n_signals, n_samples).
+    conf : float, optional
+        Confidence level value (default is 0.95).
+
+    Returns
+    -------
+    lower : np.ndarray
+        Lower bounds of the confidence intervals (shape: (n_signals,)).
+    upper : np.ndarray
+        Upper bounds of the confidence intervals (shape: (n_signals,)).
     """
     # compute interval for each column
     with warnings.catch_warnings():
@@ -91,19 +110,25 @@ def confidence_intervals(X: np.ndarray, conf: float = 0.95):
     return lower, upper
 
 
-def reindex_df(df: pd.core.frame.DataFrame, weight_col: str) -> pd.core.frame.DataFrame:
+def reindex_df(df: pd.DataFrame, weight_col: str) -> pd.DataFrame:
     """
-    reindex_df: expands dataframe by weights
+    Expand the dataframe by weights.
 
-    expand the dataframe to prepare for resampling result is 1 row per count per sample
+    This function expands the dataframe to prepare for resampling,
+    resulting in 1 row per count per sample, which is helpful
+    when making weighted proportion plots.
 
-    Helpful when making weighted proportion plots
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The pandas dataframe to be expanded.
+    weight_col : str
+        The column name that contains weights (should be int).
 
-    Input:
-            df - pandas dataframe
-            weight_col - column name that contains weights (should be int)
-    Output:
-            df - new pandas dataframe with resampling
+    Returns
+    -------
+    pd.DataFrame
+        A new pandas dataframe with resampling based on the weights.
     """
 
     df = df.reindex(df.index.repeat(df[weight_col])).copy()
@@ -115,28 +140,28 @@ def reindex_df(df: pd.core.frame.DataFrame, weight_col: str) -> pd.core.frame.Da
 
 def regress_out(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
-    Regress b from a keeping a's original mean.
+    Regress b from a while keeping a's original mean.
 
-
-    a_prime = regress_out(a, b) performs regression of variable b from variable a
-    while preserving the original mean of a. The function calculates the residual
-    component of a that remains after removing the effect of b. The regression is
-    performed using the ordinary least squares method.
-
-    adapted from the seaborn function of the same name
-        https://github.com/mwaskom/seaborn/blob/824c102525e6a29cde9bca1ce0096d50588fda6b/seaborn/regression.py#L337
+    This function performs regression of variable b from variable a while
+    preserving the original mean of a. It calculates the residual component
+    of a that remains after removing the effect of b using ordinary least squares.
 
     Parameters
     ----------
-    a : array-like
+    a : np.ndarray
         The variable to be regressed. Must be 1-dimensional.
-    b : array-like
+    b : np.ndarray
         The variable to regress on a. Must be 1-dimensional.
 
     Returns
     -------
-    a_prime : array-like
+    np.ndarray
         The residual of a after regressing out b. Has the same shape as a.
+
+    Notes
+    -----
+    Adapted from the seaborn function of the same name:
+    https://github.com/mwaskom/seaborn/blob/824c102525e6a29cde9bca1ce0096d50588fda6b/seaborn/regression.py#L337
     """
     # remove nans and infs from a and b, and make a_result vector for output
     a_result = np.full_like(a, np.nan)
