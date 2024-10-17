@@ -1,6 +1,5 @@
 import warnings
-from ast import List
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 
 import numpy as np
 import pandas as pd
@@ -1159,7 +1158,7 @@ def event_spiking_threshold(
 ) -> np.ndarray:
     """
     event_spiking_threshold: filter events based on spiking threshold
-    
+
     Parameters
     ----------
     spikes : nel.SpikeTrainArray
