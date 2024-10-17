@@ -43,7 +43,7 @@ def plot_events(
     plt.Axes
         The axis with the plotted events.
 
-    Example
+    Examples
     -------
     >>> # load sleep states
     >>> state_dict = loading.load_SleepState_states(basepath)
@@ -128,7 +128,7 @@ def plot_peth(
     TypeError
         If peth is not a pandas DataFrame.
 
-    Example
+    Examples
     -------
     >>> from neuro_py.plotting.events import plot_peth
     >>> from neuro_py.process import peri_event
@@ -224,7 +224,7 @@ def plot_peth_fast(
     TypeError
         If peth is not a pandas dataframe
 
-    Example
+    Examples
     -------
     >>> from neuro_py.plotting.events import plot_peth
     >>> from neuro_py.process import peri_event

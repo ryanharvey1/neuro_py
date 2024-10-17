@@ -251,7 +251,7 @@ def mtspectrumpt(
         DataFrame containing the power spectrum.
 
 
-    Example
+    Examples
     -------
     >>> spec = pychronux.mtspectrumpt(
     >>>    st.data,

@@ -26,7 +26,7 @@ def encode_file_path(basepath: str, save_path: str) -> str:
     str
         Encoded file path suitable for use as a filename.
 
-    Example
+    Examples
     -------
     >>> basepath = r"Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     >>> save_path = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23"
@@ -57,7 +57,7 @@ def decode_file_path(save_file: str) -> str:
     str
         Original session path before encoding.
 
-    Example
+    Examples
     -------
     >>> save_file = r"Z:\home\ryanh\projects\ripple_heterogeneity\replay_02_17_23\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     >>> decode_file_path(save_file)

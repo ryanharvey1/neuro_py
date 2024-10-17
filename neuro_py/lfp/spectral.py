@@ -82,67 +82,67 @@ def event_triggered_wavelet(
     freqs : 1d array
         Frequencies used in the wavelet transform.
 
-    Example
+    Examples
     -------
-    from neuro_py.lfp.spectral import event_triggered_wavelet
+    >>> from neuro_py.lfp.spectral import event_triggered_wavelet
 
-    basepath = r"Z:\Data\hpc_ctx_project\HP04\day_34_20240503"
+    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_34_20240503"
 
-    # load lfp
-    nChannels, fs, _, _ = loading.loadXML(basepath)
-    # Load the LFP data
-    lfp, ts = loading.loadLFP(basepath, n_channels=nChannels,
-                    channel=23,
-                    frequency=fs)
-    # load events
-    opto = loading.load_events(basepath, epoch_name="optoStim")
-    opto = opto.merge(gap=.1)
+    >>> # load lfp
+    >>> nChannels, fs, _, _ = loading.loadXML(basepath)
+    >>> # Load the LFP data
+    >>> lfp, ts = loading.loadLFP(basepath, n_channels=nChannels,
+    >>>                channel=23,
+    >>>                frequency=fs)
+    >>> # load events
+    >>> opto = loading.load_events(basepath, epoch_name="optoStim")
+    >>> opto = opto.merge(gap=.1)
 
-    # compute event triggered averate
-    mwt, sigs, times, freqs = event_triggered_wavelet(
-        lfp,
-        ts,
-        opto.starts,
-    )
+    >>> # compute event triggered averate
+    >>> mwt, sigs, times, freqs = event_triggered_wavelet(
+    >>>    lfp,
+    >>>    ts,
+    >>>    opto.starts,
+    >>> )
 
-    # plot
-    plt.figure(figsize=set_size("thesis", fraction=1, subplots=(1, 1)))
+    >>> # plot
+    >>> plt.figure(figsize=set_size("thesis", fraction=1, subplots=(1, 1)))
 
-    im = plt.imshow(
-        abs(mwt),
-        aspect="auto",
-        extent=[times[0], times[-1], freqs[-1], freqs[0]],
-        cmap="magma",
-        vmax=600,
-        vmin=50,
-    )
-    plt.axhline(23, color="orange", linestyle="--", label="23hz")
+    >>> im = plt.imshow(
+    >>>     abs(mwt),
+    >>>     aspect="auto",
+    >>>     extent=[times[0], times[-1], freqs[-1], freqs[0]],
+    >>>     cmap="magma",
+    >>>     vmax=600,
+    >>>     vmin=50,
+    >>> )
+    >>> plt.axhline(23, color="orange", linestyle="--", label="23hz")
 
-    plt.yscale("log")
-    # move legend outside of plot
-    plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1.1), frameon=False)
+    >>> plt.yscale("log")
+    >>> # move legend outside of plot
+    >>> plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1.1), frameon=False)
 
-    plt.gca().invert_yaxis()
+    >>> plt.gca().invert_yaxis()
 
-    plt.colorbar(location="top", label="Power (uV^2)")
-    # move colorbar more to the left
-    plt.gcf().axes[1].set_position([0.5, 0.8, 0.4, 0.6])
-
-
-    plt.gca().set_ylabel("Frequency (Hz)")
-
-    plt.gca().set_xlabel("Time from opto stim (s)")
-
-    plt.twinx()
-    plt.yscale("linear")
-    plt.axvline(0, color="k", linestyle="--")
-    plt.axvline(0.5, color="k", linestyle="--")
-    plt.plot(times, sigs, "w", linewidth=0.5)
+    >>> plt.colorbar(location="top", label="Power (uV^2)")
+    >>> # move colorbar more to the left
+    >>> plt.gcf().axes[1].set_position([0.5, 0.8, 0.4, 0.6])
 
 
-    # plt.gca().set_xlabel('Time (s)')
-    plt.gca().set_ylabel("Voltage (uV)")
-    plt.gca().set_title("PFC during 23Hz stim in behavior", y=1)
+    >>> plt.gca().set_ylabel("Frequency (Hz)")
+
+    >>> plt.gca().set_xlabel("Time from opto stim (s)")
+
+    >>> plt.twinx()
+    >>> plt.yscale("linear")
+    >>> plt.axvline(0, color="k", linestyle="--")
+    >>> plt.axvline(0.5, color="k", linestyle="--")
+    >>> plt.plot(times, sigs, "w", linewidth=0.5)
+
+
+    >>> # plt.gca().set_xlabel('Time (s)')
+    >>> plt.gca().set_ylabel("Voltage (uV)")
+    >>> plt.gca().set_title("PFC during 23Hz stim in behavior", y=1)
     """
 
     signal_ = signal.copy()

@@ -127,7 +127,7 @@ def compute_psth(
     -----
     If the specified window is not symmetric around 0, it is adjusted to be symmetric.
 
-    Example
+    Examples
     -------
     >>> spikes = np.array([[0.1, 0.15, 0.2], [0.1, 0.12, 0.13]])
     >>> event = np.array([0.1, 0.3])
@@ -190,31 +190,31 @@ def joint_peth(
     difference : np.ndarray
         The difference between the joint and expected histograms of the two PETH signals (n_time, n_time).
 
-    Example
+    Examples
     -------
-    from neuro_py.process.peri_event import joint_peth, peth_matrix, joint_peth
-    from neuro_py.spikes.spike_tools import get_spindices
-    from neuro_py.io import loading
+    >>> from neuro_py.process.peri_event import joint_peth, peth_matrix, joint_peth
+    >>> from neuro_py.spikes.spike_tools import get_spindices
+    >>> from neuro_py.io import loading
 
-    # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
+    >>> # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
 
-    basepath = r"Z:\Data\HMC1\day8"
+    >>> basepath = r"Z:\Data\HMC1\day8"
 
-    ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
-    delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
-    st,cm = loading.load_spikes(basepath,brainRegion="PFC",putativeCellType="Pyr")
+    >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
+    >>> delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
+    >>> st,cm = loading.load_spikes(basepath,brainRegion="PFC",putativeCellType="Pyr")
 
-    # flatten spikes (nelpy has .flatten(), but get_spindices is much faster)
-    spikes = get_spindices(st.data)
+    >>> # flatten spikes (nelpy has .flatten(), but get_spindices is much faster)
+    >>> spikes = get_spindices(st.data)
 
-    # create peri-event time histograms (PETHs) for the three signals
-    window=[-1,1]
-    labels = ["spikes", "ripple", "delta"]
-    peth_1,ts = peth_matrix(spikes.spike_times.values, delta_waves.starts, bin_width=0.02, n_bins=101)
-    peth_2,ts = peth_matrix(ripples.starts, delta_waves.starts, bin_width=0.02, n_bins=101)
+    >>> # create peri-event time histograms (PETHs) for the three signals
+    >>> window=[-1,1]
+    >>> labels = ["spikes", "ripple", "delta"]
+    >>> peth_1,ts = peth_matrix(spikes.spike_times.values, delta_waves.starts, bin_width=0.02, n_bins=101)
+    >>> peth_2,ts = peth_matrix(ripples.starts, delta_waves.starts, bin_width=0.02, n_bins=101)
 
-    # calculate the joint, expected, and difference histograms
-    joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=2)
+    >>> # calculate the joint, expected, and difference histograms
+    >>> joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=2)
 
     Notes
     -----
@@ -1185,7 +1185,7 @@ def event_spiking_threshold(
     np.ndarray
         Boolean array indicating valid events that meet the spiking threshold.
 
-    Example
+    Examples
     -------
     >>> basepath = r"U:\\data\\hpc_ctx_project\\HP04\\day_32_20240430"
     >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=False)

@@ -18,10 +18,10 @@ def get_spindices(data: np.ndarray) -> pd.DataFrame:
     pd.DataFrame
         A DataFrame containing sorted spike times and the corresponding spike IDs.
 
-    Example
+    Examples
     -------
-    spike_trains = [np.array([0.1, 0.2, 0.4]), np.array([0.15, 0.35])]
-    spikes = get_spindices(spike_trains)
+    >>> spike_trains = [np.array([0.1, 0.2, 0.4]), np.array([0.15, 0.35])]
+    >>> spikes = get_spindices(spike_trains)
     """
     spikes_id = []
     for spk_i, spk in enumerate(data):
@@ -53,9 +53,9 @@ def spindices_to_ndarray(
     List[np.ndarray]
         A list of arrays, each containing the spike times for a corresponding spike train.
 
-    Example
+    Examples
     -------
-    spike_trains = spindices_to_ndarray(spikes_df, spike_id=[0, 1, 2])
+    >>> spike_trains = spindices_to_ndarray(spikes_df, spike_id=[0, 1, 2])
     """
     if spike_id is None:
         spike_id = np.unique(spikes["spike_id"])
@@ -89,9 +89,9 @@ def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
     - Peak is calculated as the maximum value of the autocorrelogram between 2-9 ms.
     - Baseline is calculated as the mean value of the autocorrelogram between 40-50 ms.
 
-    Example
+    Examples
     -------
-    burst_idx = BurstIndex_Royer_2012(autocorr_df)
+    >>> burst_idx = BurstIndex_Royer_2012(autocorr_df)
     """
     # peak range 2 - 9 ms
     peak = autocorrs.loc[0.002:0.009].max()

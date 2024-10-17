@@ -76,7 +76,7 @@ def pairwise_corr(
     ValueError
         If the method is not 'pearson', 'spearman', or 'kendall'.
 
-    Example
+    Examples
     -------
     >>> X = np.random.rand(10, 5)
     >>> rho, pval, pairs = pairwise_corr(X, method="spearman")
@@ -135,7 +135,7 @@ def pairwise_cross_corr(
     pairs : np.ndarray, optional
         The pairs of cells for which cross-correlations were computed. Returned only if `return_index` is True.
 
-    Example
+    Examples
     -------
     >>> spks = np.array([np.random.rand(100), np.random.rand(100)])
     >>> crosscorrs, pairs = pairwise_cross_corr(spks, binsize=0.01, nbins=50, return_index=True)

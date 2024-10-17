@@ -197,7 +197,7 @@ def spatial_phase_precession(
     where one or both variables may follow a uniform distribution. It differs from
     the linear-circular correlation used in other studies (e.g., https://science.sciencemag.org/content/340/6138/1342).
 
-    Example
+    Examples
     -------
     >>> circ = np.random.uniform(0, 2 * np.pi, 100)
     >>> lin = np.random.uniform(0, 1, 100)

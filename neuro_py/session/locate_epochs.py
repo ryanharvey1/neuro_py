@@ -27,7 +27,7 @@ def find_pre_task_post(
     indices : list or None
         A list of indices where the pre/task/post epochs are found. If no pattern is found, returns None.
 
-    Example
+    Examples
     -------
     >>> env = ['sleep', 'wmaze', 'sleep']
     >>> find_pre_task_post(env)
@@ -75,7 +75,7 @@ def compress_repeated_epochs(epoch_df, epoch_name=None):
     pd.DataFrame
         A DataFrame where consecutive epochs with the same name are compressed into a single epoch.
 
-    Example
+    Examples
     -------
     >>> epoch_df = pd.DataFrame({
     ...     'environment': ['sleep', 'sleep', 'wmaze', 'wmaze', 'sleep'],
@@ -170,7 +170,7 @@ def find_multitask_pre_post(
         A list of indices for pre-task, task, and post-task epochs in the format [pre_task, task, post_task].
         If no such sequence is found, returns None.
 
-    Example
+    Examples
     -------
     >>> epoch_df = pd.DataFrame({
     ...     'environment': ['sleep', 'linear', 'sleep', 'box', 'sleep']
@@ -243,7 +243,7 @@ def find_epoch_pattern(
         and the second element is an array of indices where the pattern occurs.
         If the pattern is not found, returns (None, None).
 
-    Example
+    Examples
     -------
     >>> epoch_df = loading.load_epoch(basepath)
     >>> pattern_idx,_ = find_epoch_pattern(epoch_df.environment,['sleep','linear','sleep'])
@@ -292,7 +292,7 @@ def find_env_paradigm_pre_task_post(
         A boolean array where `True` indicates that the epoch is part of a pre-task-post sequence
         (i.e., sleep-task-sleep) based on the provided environment and paradigm.
 
-    Example
+    Examples
     -------
     >>> epoch_df = pd.DataFrame({
     ...     'name': ['EE.042', 'EE.045', 'EE.046', 'EE.049', 'EE.050'],
@@ -351,10 +351,10 @@ def find_pre_task_post_optimize_novel(
     pd.DataFrame or None
         A DataFrame with pre-task-post epochs, or None if no such pattern is found.
 
-    Example
+    Examples
     -------
-    epoch_df = loading.load_epoch(basepath)
-    epoch_df = find_pre_task_post_optimize_novel(epoch_df)
+    >>> epoch_df = loading.load_epoch(basepath)
+    >>> epoch_df = find_pre_task_post_optimize_novel(epoch_df)
     """
     # set sleep to nan
     epoch_df.loc[epoch_df.environment == "sleep", "behavioralParadigm"] = np.nan
@@ -404,7 +404,7 @@ def get_experience_level(behavioralParadigm: pd.Series) -> int:
 
     Examples
     --------
-    experience = get_experience_level(current_epoch_df.iloc[1].behavioralParadigm)
+    >>> experience = get_experience_level(current_epoch_df.iloc[1].behavioralParadigm)
     """
     if behavioralParadigm == "novel":
         experience = 1

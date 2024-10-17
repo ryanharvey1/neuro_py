@@ -211,7 +211,7 @@ class LFPLoader(object):
     nelpy.AnalogSignalArray
         Analog signal array of shape (n_channels, n_samples).
 
-    Example:
+    Examples:
     # load lfp file
     >>> basepath = r"X:/data/Barrage/NN10/day10"
     >>> lfp = loading.LFPLoader(basepath,ext="lfp")
@@ -1598,7 +1598,7 @@ def load_brain_regions(
     Union[dict, pd.DataFrame]
         Dictionary or DataFrame with brain region information.
 
-    Example
+    Examples
     -------
     >>> brainRegions = load_epoch("Z:\\Data\\GirardeauG\\Rat09\\Rat09-20140327")
     >>> print(brainRegions.keys())
@@ -2055,7 +2055,7 @@ def load_manipulation(
     Union[pd.DataFrame, nel.EpochArray]
         DataFrame or EpochArray with the manipulation data.
 
-    Example
+    Examples
     -------
     >> basepath = r"Z:\Data\Can\OML22\day8"
     >> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)

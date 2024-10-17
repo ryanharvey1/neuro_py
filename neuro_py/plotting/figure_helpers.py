@@ -108,7 +108,7 @@ def lighten_color(color: str, amount: float = 0.5) -> str:
     ValueError
         If the color string is not a valid hex code.
 
-    Example
+    Examples
     -------
     >>> lighten_color("#AABBCC", 0.3)
     '#c3cfdb'
@@ -137,7 +137,7 @@ def set_equal_axis_range(ax1: plt.Axes, ax2: plt.Axes) -> None:
     ax2 : matplotlib.axes.Axes
         The second axis to synchronize.
 
-    Example
+    Examples
     -------
     >>> fig, (ax1, ax2) = plt.subplots(1, 2)
     >>> ax1.plot([1, 2, 3], [4, 5, 6])
@@ -189,7 +189,7 @@ def restore_natural_scale(
     None
         This function modifies the axis ticks in place.
 
-    Example
+    Examples
     -------
     >>> import matplotlib.pyplot as plt
     >>> fig, ax = plt.subplots()
@@ -228,7 +228,7 @@ def adjust_box_widths(g: sns.axisgrid.FacetGrid, fac: float) -> None:
     None
         The function modifies the box widths in place.
 
-    Example
+    Examples
     -------
     >>> import seaborn as sns
     >>> import matplotlib.pyplot as plt
@@ -294,7 +294,7 @@ def plot_joint_peth(
     Tuple[plt.Figure, np.ndarray]
         Figure and axes objects for the plot.
 
-    Example
+    Examples
     -------
     >>> peth_1 = np.random.rand(10, 100)  # Example data for peth_1
     >>> peth_2 = np.random.rand(10, 100)  # Example data for peth_2
