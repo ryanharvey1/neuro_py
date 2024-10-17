@@ -38,13 +38,6 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
         - The sampling frequency of the dat file (int)
         - The sampling frequency of the eeg file (int)
         - The mappings shanks to channels as a dict (Dict[int, list])
-
-    Notes
-    -----
-    If both dat and eeg files are present, eeg file is prioritized.
-    If neither are present, returns None.
-
-    by Guillaume Viejo
     """
     # check if saved file exists
     try:
