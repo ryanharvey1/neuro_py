@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -121,6 +121,8 @@ def get_tapers(
         )
 
     tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
+
+    tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
     mask = lambdas > min_lambda
     if not np.sum(mask) > 0:
         raise ValueError(
@@ -180,8 +182,8 @@ def mtfftpt(
 
     Notes
     -----
-    The function computes the multitaper FFT of spike times using 
-    the specified tapers and returns the FFT result, mean spikes, 
+    The function computes the multitaper FFT of spike times using
+    the specified tapers and returns the FFT result, mean spikes,
     and total spike count.
     """
     K = tapers.shape[1]
@@ -270,7 +272,8 @@ def mtspectrumpt(
     if tapers is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
         N = len(tapers_ts)
-        tapers, eigens = dpss(N, NW, n_tapers)
+        tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
+        tapers = tapers.T
 
     N = len(tapers_ts)
     # number of points in fft of prolates
@@ -306,7 +309,7 @@ def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarr
     -------
     J : np.ndarray
         FFT of the data with shape (nfft, K).
-    
+
     Raises
     ------
     AssertionError
@@ -321,7 +324,9 @@ def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarr
     return J
 
 
-def mtspectrumc(data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray) -> pd.Series:
+def mtspectrumc(
+    data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray
+) -> pd.Series:
     """
     Compute the multitaper power spectrum for continuous data.
 
@@ -340,7 +345,7 @@ def mtspectrumc(data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray) -> p
     -------
     S : pd.Series
         Power spectrum with frequencies as the index.
-    
+
     Notes
     -----
     This function utilizes the multitaper method for spectral estimation
@@ -363,7 +368,7 @@ def point_spectra(
     Fs: int = 1250,
     freq_range: List[float] = [1, 20],
     tapers0: List[int] = [3, 5],
-    pad: int = 0
+    pad: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute point spectra for a set of spike times.
@@ -404,7 +409,7 @@ def point_spectra(
     fAll = np.linspace(0, Fs, int(nfft))
     ok = (fAll >= freq_range[0]) & (fAll <= freq_range[1])
     Nf = sum(ok)
-    tapers, _ = dpss(nSamplesPerWindow, tapers0[0], tapers0[1])
+    tapers, _ = dpss(nSamplesPerWindow, tapers0[0], tapers0[1], return_ratios=True)
     tapers = tapers * np.sqrt(Fs)
     spectra = np.zeros(Nf)
     H = np.fft.fft(tapers.T, int(nfft), 1)  # fft of tapers
