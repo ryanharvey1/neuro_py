@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import nelpy as nel
 import numpy as np
@@ -7,28 +7,34 @@ import pandas as pd
 from neuro_py.process.intervals import truncate_epoch
 
 
-def circular_shift(m: np.ndarray, s: np.ndarray):
+def circular_shift(m: np.ndarray, s: np.ndarray) -> np.ndarray:
     """
-    CircularShift - Shift matrix rows or columns circularly.
+    Circularly shift matrix rows or columns by specified amounts.
 
-    Shift each matrix row (or column) circularly by a different amount.
-
-    USAGE
-
-    shifted = circular_shift(m,s)
+    Each matrix row (or column) is circularly shifted by a different amount.
 
     Parameters
     ----------
-    m: matrix to rotate
-    s: shift amount for each row (horizontal vector) or column (vertical vector)
+    m : np.ndarray
+        Matrix to rotate. Should be a 2D array.
+    s : np.ndarray
+        Shift amounts for each row (horizontal vector) or column (vertical vector).
+        Should be a 1D array.
 
     Returns
     -------
-    shifted: matrix m with rows (or columns) circularly shifted by the amounts in s
+    shifted : np.ndarray
+        Matrix `m` with rows (or columns) circularly shifted by the amounts in `s`.
 
+    Raises
+    ------
+    ValueError
+        If `s` is not a vector of integers or if `m` is not a 2D matrix.
+        If the sizes of `m` and `s` are incompatible.
 
-    adapted from  CircularShift.m  Copyright (C) 2012 by Michaël Zugaro
-
+    Notes
+    -----
+    This function is adapted from CircularShift.m, Copyright (C) 2012 by Michaël Zugaro.
     """
     # Check number of parameters
     if len(s.shape) != 1:
@@ -82,21 +88,29 @@ def circular_shift(m: np.ndarray, s: np.ndarray):
     return shifted
 
 
-def avgerage_diagonal(mat):
+def average_diagonal(mat: np.ndarray) -> np.ndarray:
     """
-    Average values over all offset diagonals
+    Average values over all offset diagonals of a 2D array.
 
     Parameters
     ----------
-    mat: 2D array
+    mat : np.ndarray
+        2D array from which to compute the average values over diagonals.
 
     Returns
     -------
-    output: 1D array
-            Average values over all offset diagonals
+    output : np.ndarray
+        1D array containing the average values over all offset diagonals.
 
+    Notes
+    -----
+    The method used for computing averages is based on the concept of
+    accumulating values along each diagonal offset and then dividing by
+    the number of elements in each diagonal.
+
+    Reference
+    ---------
     https://stackoverflow.com/questions/71362928/average-values-over-all-offset-diagonals
-
     """
     n = mat.shape[0]
     output = np.zeros(n * 2 - 1, dtype=np.float64)
@@ -109,88 +123,92 @@ def avgerage_diagonal(mat):
 
 def remove_inactive_cells(
     st: nel.core._eventarray.SpikeTrainArray,
-    cell_metrics: Union[pd.core.frame.DataFrame, None] = None,
+    cell_metrics: Union[pd.DataFrame, None] = None,
     epochs: Union[
-        List[nel.core._intervalarray.EpochArray], nel.core._intervalarray.EpochArray
+        List[nel.core._intervalarray.EpochArray],
+        nel.core._intervalarray.EpochArray,
+        None,
     ] = None,
     min_spikes: int = 100,
-) -> tuple:
+) -> Tuple[nel.core._eventarray.SpikeTrainArray, Union[pd.DataFrame, None]]:
     """
     remove_inactive_cells: Remove cells with fewer than min_spikes spikes per sub-epoch
 
     Parameters
     ----------
-    st: SpikeTrainArray
-        SpikeTrainArray object
+    st : SpikeTrainArray
+        SpikeTrainArray object containing spike times for multiple cells.
 
-    cell_metrics: DataFrame
-        DataFrame containing cell metrics
-    epochs: EpochArray
-        list of EpochArray objects or a single EpochArray object
-        If a list of EpochArray objects is provided, each EpochArray object is treated as a sub-epoch
-        If a single EpochArray object is provided, each interval in the EpochArray object is treated as a sub-epoch
-    min_spikes: int
-        Minimum number of spikes per sub-epoch
+    cell_metrics : pd.DataFrame, optional
+        DataFrame containing metrics for each cell (e.g., quality metrics).
+
+    epochs : EpochArray or list of EpochArray, optional
+        If a list of EpochArray objects is provided, each EpochArray object
+        is treated as a sub-epoch. If a single EpochArray object is provided,
+        each interval in the EpochArray object is treated as a sub-epoch.
+
+    min_spikes : int, optional
+        Minimum number of spikes required per sub-epoch to retain a cell.
+        Default is 100.
 
     Returns
     -------
-    st: SpikeTrainArray
-        SpikeTrainArray object with inactive cells removed
-    cell_metrics: DataFrame
-        DataFrame containing cell metrics with inactive cells removed
+    Tuple[SpikeTrainArray, Union[pd.DataFrame, None]]
+        A tuple containing:
+        - SpikeTrainArray object with inactive cells removed.
+        - DataFrame containing cell metrics with inactive cells removed (if provided).
 
     Example
     -------
-    from neuro_py.process.intervals import truncate_epoch
-    from neuro_py.session.locate_epochs import (
-        find_multitask_pre_post,
-        compress_repeated_epochs,
-    )
-    from neuro_py.io import loading
-    import nelpy as nel
-    from neuro_py.process.utils import remove_inactive_cells
+    >>> from neuro_py.process.intervals import truncate_epoch
+    >>> from neuro_py.session.locate_epochs import (
+    >>>     find_multitask_pre_post,
+    >>>     compress_repeated_epochs,
+    >>> )
+    >>> from neuro_py.io import loading
+    >>> import nelpy as nel
+    >>> from neuro_py.process.utils import remove_inactive_cells
 
-    # load data from session
-    basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+    >>> # load data from session
+    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
 
-    # load spikes and cell metrics (cm)
-    st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
+    >>> # load spikes and cell metrics (cm)
+    >>> st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
 
-    # load epochs and apply multitask epoch restrictions
-    epoch_df = loading.load_epoch(basepath)
-    epoch_df = compress_repeated_epochs(epoch_df)
-    pre_task_post = find_multitask_pre_post(
-        epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
-    )
+    >>> # load epochs and apply multitask epoch restrictions
+    >>> epoch_df = loading.load_epoch(basepath)
+    >>> epoch_df = compress_repeated_epochs(epoch_df)
+    >>> pre_task_post = find_multitask_pre_post(
+    >>>     epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
+    >>> )
 
-    beh_epochs = nel.EpochArray(
-        epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
-    )
-    # load sleep states to restrict to NREM and theta
-    state_dict = loading.load_SleepState_states(basepath)
-    nrem_epochs = nel.EpochArray(
-        state_dict["NREMstate"],
-    )
-    theta_epochs = nel.EpochArray(
-        state_dict["THETA"],
-    )
-    # create list of restricted epochs
-    restict_epochs = []
-    for epoch, epoch_label in zip(beh_epochs, ["pre", "task", "post"]):
-        if epoch_label in "pre":
-            # get cumulative hours of sleep
-            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
-        elif epoch_label in "post":
-            # get cumulative hours of sleep
-            epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
-        else:
-            # get theta during task
-            epoch_restrict = epoch & theta_epochs
-        restict_epochs.append(epoch_restrict)
+    >>> beh_epochs = nel.EpochArray(
+    >>>     epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
+    >>> )
+    >>> # load sleep states to restrict to NREM and theta
+    >>> state_dict = loading.load_SleepState_states(basepath)
+    >>> nrem_epochs = nel.EpochArray(
+    >>>     state_dict["NREMstate"],
+    >>> )
+    >>> theta_epochs = nel.EpochArray(
+    >>>     state_dict["THETA"],
+    >>> )
+    >>> # create list of restricted epochs
+    >>> restict_epochs = []
+    >>> for epoch, epoch_label in zip(beh_epochs, ["pre", "task", "post"]):
+    >>>     if epoch_label in "pre":
+    >>>         # get cumulative hours of sleep
+    >>>         epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
+    >>>     elif epoch_label in "post":
+    >>>         # get cumulative hours of sleep
+    >>>         epoch_restrict = truncate_epoch(epoch & nrem_epochs, time=3600)
+    >>>     else:
+    >>>         # get theta during task
+    >>>         epoch_restrict = epoch & theta_epochs
+    >>>     restict_epochs.append(epoch_restrict)
 
-    # remove inactive cells
-    st, cm = remove_inactive_cells(st, cm, restict_epochs)
-
+    >>> # remove inactive cells
+    >>> st, cm = remove_inactive_cells(st, cm, restict_epochs)
     """
 
     def return_results(st, cell_metrics):
@@ -270,65 +288,71 @@ def remove_inactive_cells_pre_task_post(
 
     Parameters
     ----------
-    st: SpikeTrainArray
-        SpikeTrainArray object
-    cell_metrics: DataFrame
-        DataFrame containing cell metrics
-    beh_epochs: EpochArray
-        EpochArray object containing pre/task/post epochs
-    nrem_epochs: EpochArray
-        EpochArray object containing NREM epochs
-    theta_epochs: EpochArray
-        EpochArray object containing theta epochs
-    min_spikes: int
-        Minimum number of spikes per pre/task/post
-    nrem_time: int or float
-        Time in seconds to truncate NREM epochs
+    st : SpikeTrainArray
+        SpikeTrainArray object containing spike times for multiple cells.
+
+    cell_metrics : pd.DataFrame, optional
+        DataFrame containing metrics for each cell (e.g., quality metrics).
+
+    beh_epochs : EpochArray
+        EpochArray object containing pre/task/post epochs.
+
+    nrem_epochs : EpochArray
+        EpochArray object containing NREM epochs.
+
+    theta_epochs : EpochArray
+        EpochArray object containing theta epochs.
+
+    min_spikes : int, optional
+        Minimum number of spikes required per pre/task/post. Default is 100.
+
+    nrem_time : int or float, optional
+        Time in seconds to truncate NREM epochs. Default is 3600 seconds.
 
     Returns
     -------
-    st: SpikeTrainArray
-        SpikeTrainArray object with inactive cells removed
-    cell_metrics: DataFrame
-        DataFrame containing cell metrics with inactive cells removed
+    Tuple[nel.core._eventarray.SpikeTrainArray, Union[pd.DataFrame, None]]
+        A tuple containing:
+        - SpikeTrainArray object with inactive cells removed.
+        - DataFrame containing cell metrics with inactive cells removed (if provided).
 
     Example
     -------
-    from neuro_py.process.utils import remove_inactive_cells_pre_task_post
-    from neuro_py.io import loading
-    from neuro_py.session.locate_epochs import (
-        find_multitask_pre_post,
-        compress_repeated_epochs,
-    )
-    import nelpy as nel
+    >>> from neuro_py.process.utils import remove_inactive_cells_pre_task_post
+    >>> from neuro_py.io import loading
+    >>> from neuro_py.session.locate_epochs import (
+    >>>     find_multitask_pre_post,
+    >>>     compress_repeated_epochs,
+    >>> )
+    >>> mport nelpy as nel
 
-    # load data from session
-    basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+    >>> # load data from session
+    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
 
-    # load spikes and cell metrics (cm)
-    st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
+    >>> # load spikes and cell metrics (cm)
+    >>> st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
 
-    # load epochs and apply multitask epoch restrictions
-    epoch_df = loading.load_epoch(basepath)
-    epoch_df = compress_repeated_epochs(epoch_df)
-    pre_task_post = find_multitask_pre_post(
-        epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
-    )
+    >>> # load epochs and apply multitask epoch restrictions
+    >>> epoch_df = loading.load_epoch(basepath)
+    >>> epoch_df = compress_repeated_epochs(epoch_df)
+    >>> pre_task_post = find_multitask_pre_post(
+    >>>     epoch_df.environment, post_sleep_flank=True, pre_sleep_common=True
+    >>> )
 
-    beh_epochs = nel.EpochArray(
-        epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
-    )
+    >>> beh_epochs = nel.EpochArray(
+    >>>     epoch_df.iloc[pre_task_post[0]][["startTime", "stopTime"]].values
+    >>> )
 
-    # load sleep states to restrict to NREM and theta
-    state_dict = loading.load_SleepState_states(basepath)
-    nrem_epochs = nel.EpochArray(
-        state_dict["NREMstate"],
-    )
-    theta_epochs = nel.EpochArray(
-        state_dict["THETA"],
-    )
+    >>> # load sleep states to restrict to NREM and theta
+    >>> state_dict = loading.load_SleepState_states(basepath)
+    >>> nrem_epochs = nel.EpochArray(
+    >>>     state_dict["NREMstate"],
+    >>> )
+    >>> theta_epochs = nel.EpochArray(
+    >>>     state_dict["THETA"],
+    >>> )
 
-    st,cm = remove_inactive_cells_pre_task_post(st,cm,beh_epochs,nrem_epochs,theta_epochs)
+    >>> st,cm = remove_inactive_cells_pre_task_post(st,cm,beh_epochs,nrem_epochs,theta_epochs)
     """
 
     # check data types (further checks are done in remove_inactive_cells)

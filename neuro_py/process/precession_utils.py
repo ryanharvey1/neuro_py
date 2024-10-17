@@ -1,8 +1,10 @@
 import multiprocessing
+from typing import Union, List, Tuple
 
 import numba
 import numpy as np
 import pyfftw
+from pyparsing import Optional
 import scipy as sp
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
@@ -14,31 +16,49 @@ import neuro_py.stats.circ_stats as pcs
 # https://doi.org/10.1016/j.cell.2021.04.017
 
 
-def corrcc(alpha1, alpha2, axis=None):
+def corrcc(
+    alpha1: np.ndarray, alpha2: np.ndarray, axis: Optional[int] = None
+) -> Tuple[float, float]:
     """
     Circular correlation coefficient for two circular random variables.
 
     Parameters
     ----------
-    alpha1: 1d array
-        sample of angles in radians
-    alpha2: 1d array
-        sample of angles in radians
-    axis: int
-        correlation coefficient is computed along this dimension
-                 (default axis=None, across all dimensions)
+    alpha1 : np.ndarray
+        Sample of angles in radians.
+    alpha2 : np.ndarray
+        Sample of angles in radians.
+    axis : Optional[int], optional
+        The axis along which to compute the correlation coefficient.
+        If None, compute over the entire array (default is None).
+
     Returns
+    -------
+    rho : float
+        Circular-circular correlation coefficient.
+    pval : float
+        p-value for testing the significance of the correlation coefficient.
+
+    Examples
+    --------
+    >>> alpha1 = np.array([0.1, 0.2, 0.4, 0.5])
+    >>> alpha2 = np.array([0.3, 0.6, 0.2, 0.8])
+    >>> rho, pval = corrcc(alpha1, alpha2)
+    >>> print(f"Circular correlation: {rho}, p-value: {pval}")
+
+    Notes
+    -----
+    The function computes the correlation between two sets of angles using a
+    method that adjusts for circular data. The significance of the correlation
+    coefficient is tested using the fact that the test statistic is approximately
+    normally distributed.
+
+    References
     ----------
-    rho: float
-        Circular-circular correlation coefficient
-    pval: float
-        Circular-circular correlation p-value
+    Jammalamadaka et al (2001)
 
-
-    References: [Jammalamadaka2001]_
-    Original: https://github.com/circstat/pycircstat
-    modified by: Salman Qasim, 11/12/2018
-
+    Original code: https://github.com/circstat/pycircstat
+    Modified by: Salman Qasim, 11/12/2018
     """
     assert alpha1.shape == alpha2.shape, "Input dimensions do not match."
 
@@ -67,36 +87,52 @@ def corrcc(alpha1, alpha2, axis=None):
     return rho, pval
 
 
-def corrcc_uniform(alpha1, alpha2, axis=None):
+def corrcc_uniform(
+    alpha1: np.ndarray, alpha2: np.ndarray, axis: Optional[int] = None
+) -> Tuple[float, float]:
     """
     Circular correlation coefficient for two circular random variables.
-    Use if at least one of our variables may be a uniform distribution
+    Use this function if at least one of the variables may follow a uniform distribution.
 
     Parameters
     ----------
-    alpha1: 1d array
-        sample of angles in radians
-    alpha2: 1d array
-        sample of angles in radians
-    axis: int
-        correlation coefficient is computed along this dimension
-                (default axis=None, across all dimensions)
+    alpha1 : np.ndarray
+        Sample of angles in radians.
+    alpha2 : np.ndarray
+        Sample of angles in radians.
+    axis : Optional[int], optional
+        The axis along which to compute the correlation coefficient.
+        If None, compute over the entire array (default is None).
+
     Returns
+    -------
+    rho : float
+        Circular-circular correlation coefficient.
+    pval : float
+        p-value for testing the significance of the correlation coefficient.
+
+    Notes
+    -----
+    This method accounts for cases where one or both of the circular variables
+    may follow a uniform distribution. The significance of the correlation coefficient
+    is tested using a normal approximation of the Z statistic.
+
+    References
     ----------
-    rho: float
-        Circular-circular correlation coefficient
-    pval: float
-        Circular-circular correlation p-value
+    Jammalamadaka, et al (2001).
 
-
-    References: [Jammalamadaka2001]_
-
-    Original: https://github.com/circstat/pycircstat
+    Original code: https://github.com/circstat/pycircstat
+    Modified by: Salman Qasim, 11/12/2018
     https://github.com/HoniSanders/measure_phaseprec/blob/master/cl_corr.m
 
-    modified by: Salman Qasim, 11/12/2018
-
+    Examples
+    --------
+    >>> alpha1 = np.array([0.1, 0.2, 0.4, 0.5])
+    >>> alpha2 = np.array([0.3, 0.6, 0.2, 0.8])
+    >>> rho, pval = corrcc_uniform(alpha1, alpha2)
+    >>> print(f"Circular correlation: {rho}, p-value: {pval}")
     """
+
     assert alpha1.shape == alpha2.shape, "Input dimensions do not match."
 
     n = len(alpha1)
@@ -107,9 +143,9 @@ def corrcc_uniform(alpha1, alpha2, axis=None):
     # One of the sample means is not well defined due to uniform distribution of data
     # so take the difference of the resultant vector length for the sum and difference
     # of the alphas
-    num = pcs.resultant_vector_length(
-        alpha1 - alpha2
-    ) - pcs.resultant_vector_length(alpha1 + alpha2)
+    num = pcs.resultant_vector_length(alpha1 - alpha2) - pcs.resultant_vector_length(
+        alpha1 + alpha2
+    )
     den = 2 * np.sqrt(
         np.sum(np.sin(alpha1_centered) ** 2, axis=axis)
         * np.sum(np.sin(alpha2_centered) ** 2, axis=axis)
@@ -127,37 +163,46 @@ def corrcc_uniform(alpha1, alpha2, axis=None):
     return rho, pval
 
 
-def spatial_phase_precession(circ, lin, slope_bounds=[-3 * np.pi, 3 * np.pi]):
+def spatial_phase_precession(
+    circ: np.ndarray,
+    lin: np.ndarray,
+    slope_bounds: Union[List[float], Tuple[float, float]] = [-3 * np.pi, 3 * np.pi],
+) -> Tuple[float, float, float, float]:
     """
-    Compute the circular-linear correlation as in: https://pubmed.ncbi.nlm.nih.gov/22487609/
+    Compute the circular-linear correlation as described in https://pubmed.ncbi.nlm.nih.gov/22487609/.
 
     Parameters
     ----------
-    circ : 1d array
-        Circular data in radians (i.e. spike phases)
-    lin : 1d array
-        Linear data (i.e. spike positions)
-    slope_bounds: 1d array, or tuple
-        Slope range has to be restricted for optimization
+    circ : np.ndarray
+        Circular data in radians (e.g., spike phases).
+    lin : np.ndarray
+        Linear data (e.g., spike positions).
+    slope_bounds : Union[List[float], Tuple[float, float]], optional
+        The slope range for optimization (default is [-3 * np.pi, 3 * np.pi]).
+
     Returns
-    ----------
-    rho: float
-        Circular-linear correlation coefficient
-    pval: float
-        Circular-linear correlation p-value
-    sl: float
-        Circular-linear correlation slope
-    offs: float
-        Circular-linear correlation offset
+    -------
+    rho : float
+        Circular-linear correlation coefficient.
+    pval : float
+        p-value for testing the significance of the correlation coefficient.
+    sl : float
+        Slope of the circular-linear correlation.
+    offs : float
+        Offset of the circular-linear correlation.
 
     Notes
     -----
-    This is different from the linear-circular correlation used in:
-        https://science.sciencemag.org/content/340/6138/1342
+    This method computes a circular-linear correlation and can handle cases
+    where one or both variables may follow a uniform distribution. It differs from
+    the linear-circular correlation used in other studies (e.g., https://science.sciencemag.org/content/340/6138/1342).
 
-    I've modified the pcs.descriptive.corrcc function above to compute a p-value
-        in two different scenarios
-
+    Example
+    -------
+    >>> circ = np.random.uniform(0, 2 * np.pi, 100)
+    >>> lin = np.random.uniform(0, 1, 100)
+    >>> rho, pval, sl, offs = spatial_phase_precession(circ, lin)
+    >>> print(f"Correlation: {rho}, p-value: {pval}, slope: {sl}, offset: {offs}")
     """
 
     # Get rid of all the nans in this data
@@ -219,33 +264,38 @@ def spatial_phase_precession(circ, lin, slope_bounds=[-3 * np.pi, 3 * np.pi]):
 
 
 @numba.jit(nopython=True)
-def pcorrelate(t, u, bins):
+def pcorrelate(t: np.ndarray, u: np.ndarray, bins: np.ndarray) -> np.ndarray:
     """
-    From : https://github.com/OpenSMFS/pycorrelate
+    Compute the correlation of two arrays of discrete events (point-process).
 
-    Compute correlation of two arrays of discrete events (Point-process).
+    This function computes the correlation of two time series of events
+    using an arbitrary array of lag-bins. It implements the algorithm described
+    in Laurence (2006) (https://doi.org/10.1364/OL.31.000829).
 
-    The input arrays need to be values of a point process, such as
-    photon arrival times or positions. The correlation is efficiently
-    computed on an arbitrary array of lag-bins. As an example, bins can be
-    uniformly spaced in log-space and span several orders of magnitudes.
-    (you can use :func:`make_loglags` to creat log-spaced bins).
-    This function implements the algorithm described in
-    `(Laurence 2006) <https://doi.org/10.1364/OL.31.000829>`__.
+    Parameters
+    ----------
+    t : np.ndarray
+        First array of "points" to correlate. The array needs to be monotonically increasing.
+    u : np.ndarray
+        Second array of "points" to correlate. The array needs to be monotonically increasing.
+    bins : np.ndarray
+        Array of bin edges where correlation is computed.
 
-    Arguments:
-        t (array): first array of "points" to correlate. The array needs
-            to be monothonically increasing.
-        u (array): second array of "points" to correlate. The array needs
-            to be monothonically increasing.
-        bins (array): bin edges for lags where correlation is computed.
-        normalize (bool): if True, normalize the correlation function
-            as typically done in FCS using :func:`pnormalize`. If False,
-            return the unnormalized correlation function.
+    Returns
+    -------
+    G : np.ndarray
+        Array containing the correlation of `t` and `u`. The size is `len(bins) - 1`.
 
-    Returns:
-        Array containing the correlation of `t` and `u`.
-        The size is `len(bins) - 1`.
+    Notes
+    -----
+    - This method is designed for efficiently computing the correlation between
+      two point processes, such as photon arrival times or event positions.
+    - The algorithm is implemented with a focus on performance, leveraging
+      Numba for JIT compilation.
+
+    References
+    ----------
+    Laurence, T., et al. (2006).
     """
     nbins = len(bins) - 1
 
@@ -284,30 +334,39 @@ def pcorrelate(t, u, bins):
     return G
 
 
-def fast_acf(counts, width, bin_width, cut_peak=True):
+def fast_acf(
+    counts: np.ndarray, width: float, bin_width: float, cut_peak: bool = True
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Super fast ACF function relying on numba (above).
+    Compute the Auto-Correlation Function (ACF) in a fast manner using Numba.
+
+    This function calculates the ACF of a given variable of interest, such as
+    spike times or spike phases, leveraging the `pcorrelate` function for efficiency.
 
     Parameters
     ----------
-    cut_peak : bool
-        Whether or not the largest central peak should be replaced for subsequent fitting
-    counts : 1d array
-        Variable of interest (i.e. spike times or spike phases)
-    width: float
-        Time window for ACF
-    bin_width: float
-        Width of bins
+    counts : np.ndarray
+        1D array of the variable of interest (e.g., spike times or spike phases).
+    width : float
+        Time window for the ACF computation.
+    bin_width : float
+        Width of the bins for the ACF.
+    cut_peak : bool, optional
+        If True, the largest central peak will be replaced for subsequent fitting. Default is True.
 
     Returns
-    ----------
-    acf: 1d array
-        Counts for ACF
-    bins: 1d array
-        Lag bins for ACF
+    -------
+    acf : np.ndarray
+        1D array of counts for the ACF.
+    bins : np.ndarray
+        1D array of lag bins for the ACF.
 
     Notes
     -----
+    - The ACF is calculated over a specified time window and returns the
+      counts of the ACF along with the corresponding bins.
+    - The `cut_peak` parameter allows for the adjustment of the ACF peak, which
+      can be useful for fitting processes.
     """
 
     n_b = int(np.ceil(width / bin_width))  # Num. edges per side
@@ -325,25 +384,27 @@ def fast_acf(counts, width, bin_width, cut_peak=True):
     return acf, bins
 
 
-def acf_power(acf, norm=True):
+def acf_power(acf: np.ndarray, norm: Optional[bool] = True) -> np.ndarray:
     """
-    Compute the power spectrum of the signal by computing the FFT of the autocorrelation.
+    Compute the power spectrum of the signal by calculating the FFT of the autocorrelation function (ACF).
 
     Parameters
     ----------
-    acf: 1d array
-        Counts for ACF
-
-    norm: bool
-        To normalize or not
+    acf : np.ndarray
+        1D array of counts for the ACF.
+    norm : bool, optional
+        If True, normalize the power spectrum. Default is True.
 
     Returns
-    ----------
-    psd: 1d array
-        Power spectrum
+    -------
+    psd : np.ndarray
+        1D array representing the power spectrum of the signal.
 
     Notes
     -----
+    The power spectrum is computed by taking the Fourier Transform of the ACF,
+    then squaring the absolute values of the FFT result.
+    The Nyquist frequency is accounted for by returning only the first half of the spectrum.
     """
 
     # Take the FFT
@@ -368,39 +429,49 @@ def nonspatial_phase_precession(
     bin_width: float = np.pi / 3,
     cut_peak: bool = True,
     norm: bool = True,
-    psd_lims: list = [0.65, 1.55],
+    psd_lims: List[float] = [0.65, 1.55],
     upsample: int = 4,
-    smooth_sigma=1,
-):
+    smooth_sigma: float = 1,
+) -> Tuple[float, float, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute the nonspatial spike-LFP relationship modulation index.
 
     Parameters
     ----------
-    unwrapped_spike_phases : 1d array
-        Spike phases that have been linearly unwrapped
-    width: float
-        Time window for ACF in cycles (default = 4 cycles)
-    bin_width: float
-        Width of bins in radians (default = 60 degrees)
+    unwrapped_spike_phases : np.ndarray
+        1D array of spike phases that have been linearly unwrapped.
+    width : float
+        Time window for ACF in cycles (default = 4 cycles).
+    bin_width : float
+        Width of bins in radians (default = pi/3 radians).
     cut_peak : bool
-        Whether or not the largest central peak should be replaced for
-        subsequent fitting
-    norm: bool
-        To normalize the ACF or not
-    psd_lims: list
-        Limits of the PSD to consider for peak finding (default = [0.65, 1.55])
+        Whether or not the largest central peak should be replaced for subsequent fitting.
+    norm : bool
+        To normalize the ACF or not.
+    psd_lims : List[float]
+        Limits of the PSD to consider for peak finding (default = [0.65, 1.55]).
+    upsample : int
+        Upsampling factor (default = 4).
+    smooth_sigma : float
+        Standard deviation for Gaussian smoothing of the PSD (default = 1).
+
     Returns
-    ----------
-    max_freq: float
-        Relative spike-LFP frequency of PSD peak
-
-    MI: float
-        Modulation index of non-spatial phase relationship
-
+    -------
+    max_freq : float
+        Relative spike-LFP frequency of the PSD peak.
+    MI : float
+        Modulation index of non-spatial phase relationship.
+    psd : np.ndarray
+        Power spectral density of interest.
+    frequencies : np.ndarray
+        Frequencies corresponding to the PSD.
+    acf : np.ndarray
+        Autocorrelation function.
 
     Notes
     -----
+    The modulation index (MI) is computed based on the maximum peak of the power 
+    spectral density (PSD) within specified frequency limits.
     """
 
     frequencies = (

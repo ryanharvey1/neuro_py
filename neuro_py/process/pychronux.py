@@ -1,20 +1,34 @@
-from typing import Union
+from typing import Optional, Tuple, Union, List
 
 import numpy as np
 import pandas as pd
 from scipy.signal.windows import dpss
 
 
-def getfgrid(Fs: int, nfft: int, fpass: list):
+def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.ndarray]:
     """
-    get frequency grid for evaluation
-    Inputs:
-        Fs: sampling frequency
-        nfft: number of points for fft
-        fpass: frequency range to evaluate
-    Outputs:
-        f: frequency vector
-        findx: frequency index
+    Get frequency grid for evaluation.
+
+    Parameters
+    ----------
+    Fs : int
+        Sampling frequency.
+    nfft : int
+        Number of points for FFT.
+    fpass : List[float]
+        Frequency range to evaluate (as [fmin, fmax]).
+
+    Returns
+    -------
+    f : np.ndarray
+        Frequency vector within the specified range.
+    findx : np.ndarray
+        Boolean array indicating the indices of the frequency vector that fall within the specified range.
+
+    Notes
+    -----
+    The frequency vector is computed based on the sampling frequency and the number of FFT points.
+    Only frequencies within the range defined by `fpass` are returned.
     """
     df = Fs / nfft
     f = np.arange(0, Fs + df, df)
@@ -25,49 +39,75 @@ def getfgrid(Fs: int, nfft: int, fpass: list):
     return f, findx
 
 
-def dpsschk(tapers, N, Fs):
+def dpsschk(
+    tapers: Union[np.ndarray, Tuple[float, int]], N: int, Fs: float
+) -> np.ndarray:
     """
-    check tapers
-    Inputs:
-        tapers: [NW, K] or [tapers, eigenvalues]
-        N: number of points for fft
-        Fs: sampling frequency
-    Outputs:
-        tapers: [tapers, eigenvalues]
+    Check and generate DPSS tapers.
+
+    Parameters
+    ----------
+    tapers : Union[np.ndarray, Tuple[float, int]]
+        Input can be either an array representing [NW, K] or a tuple with
+        the number of tapers and the maximum number of tapers.
+    N : int
+        Number of points for FFT.
+    Fs : float
+        Sampling frequency.
+
+    Returns
+    -------
+    tapers : np.ndarray
+        Tapers matrix, shape [tapers, eigenvalues].
+
+    Notes
+    -----
+    The function computes DPSS (Discrete Prolate Spheroidal Sequences) tapers
+    and scales them by the square root of the sampling frequency.
     """
-    tapers, eigs = dpss(
-        N, NW=tapers[0], Kmax=tapers[1], sym=False, return_ratios=True
-    )
+    tapers, eigs = dpss(N, NW=tapers[0], Kmax=tapers[1], sym=False, return_ratios=True)
     tapers = tapers * np.sqrt(Fs)
     tapers = tapers.T
     return tapers
 
 
-def get_tapers(N, bandwidth, *, fs=1, min_lambda=0.95, n_tapers=None):
+def get_tapers(
+    N: int,
+    bandwidth: float,
+    *,
+    fs: float = 1.0,
+    min_lambda: float = 0.95,
+    n_tapers: Optional[int] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute tapers and associated energy concentrations for the Thomson
-    multitaper method
+    multitaper method.
+
     Parameters
     ----------
     N : int
-        Length of taper
+        Length of taper.
     bandwidth : float
-        Bandwidth of taper, in Hz
+        Bandwidth of taper, in Hz.
     fs : float, optional
-        Sampling rate, in Hz.
-        Default is 1 Hz.
+        Sampling rate, in Hz. Default is 1 Hz.
     min_lambda : float, optional
-        Minimum energy concentration that each taper must satisfy.
-        Default is 0.95.
-    n_tapers : int, optional
-        Number of tapers to compute
-        Default is to use all tapers that satisfied 'min_lambda'.
+        Minimum energy concentration that each taper must satisfy. Default is 0.95.
+    n_tapers : Optional[int], optional
+        Number of tapers to compute. Default is to use all tapers that satisfy 'min_lambda'.
 
     Returns
     -------
-    tapers : np.ndarray, with shape (n_tapers, N)
-    lambdas : np.ndarray, with shape (n_tapers, )
-        Energy concentrations for each taper
+    tapers : np.ndarray
+        Array of tapers with shape (n_tapers, N).
+    lambdas : np.ndarray
+        Energy concentrations for each taper with shape (n_tapers,).
+
+    Raises
+    ------
+    ValueError
+        If not enough tapers are available or if none of the tapers satisfy the
+        minimum energy concentration criteria.
     """
 
     NW = bandwidth * N / fs
@@ -79,10 +119,8 @@ def get_tapers(N, bandwidth, *, fs=1, min_lambda=0.95, n_tapers=None):
             f"Not enough tapers, with 'NW' of {NW}. Increase the bandwidth or "
             "use more data points"
         )
-    
-    tapers, lambdas  = dpss(
-        N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True
-    )
+
+    tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
     mask = lambdas > min_lambda
     if not np.sum(mask) > 0:
         raise ValueError(
@@ -111,21 +149,40 @@ def mtfftpt(
     nfft: int,
     t: np.ndarray,
     f: np.ndarray,
-    findx: list,
-):
+    findx: List[bool],
+) -> Tuple[np.ndarray, float, float]:
     """
-    mt fft for point process times
-    Inputs:
-        data: 1d array of spike times (in seconds)
-        tapers: tapers from dpss
-        nfft: number of points for fft
-        t: time vector
-        f: frequency vector
-        findx: frequency index
-    Outputs:
-        J: fft of data
-        Msp: number of spikes in data
-        Nsp: number of spikes in data
+    Multitaper FFT for point process times.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D array of spike times (in seconds).
+    tapers : np.ndarray
+        Tapers from the DPSS method.
+    nfft : int
+        Number of points for FFT.
+    t : np.ndarray
+        Time vector.
+    f : np.ndarray
+        Frequency vector.
+    findx : list of bool
+        Frequency index.
+
+    Returns
+    -------
+    J : np.ndarray
+        FFT of the data.
+    Msp : float
+        Mean spikes per time.
+    Nsp : float
+        Total number of spikes in data.
+
+    Notes
+    -----
+    The function computes the multitaper FFT of spike times using 
+    the specified tapers and returns the FFT result, mean spikes, 
+    and total spike count.
     """
     K = tapers.shape[1]
     nfreq = len(f)
@@ -165,27 +222,43 @@ def mtspectrumpt(
     tapers_ts: Union[np.ndarray, None] = None,
 ) -> pd.DataFrame:
     """
-    mtspectrumpt from chronux toolbox
-    Inputs:
-        data: array of spike times (in seconds)
-        Fs: sampling frequency
-        fpass: frequency range to evaluate
-        NW: time-bandwidth product
-        n_tapers: number of tapers
-        tapers: [NW, K] or [tapers, eigenvalues]
-        time_support: time range to evaluate
-    Outputs:
-        S: power spectrum
+    Multitaper power spectrum estimation for point process data.
 
-    example:
-        spec = pychronux.mtspectrumpt(
-            st.data,
-            1250,
-            [1, 20],
-            NW=3,
-            n_tapers=5,
-            time_support=[st.support.start, st.support.stop],
-        )
+    Parameters
+    ----------
+    data : np.ndarray
+        Array of spike times (in seconds).
+    Fs : int
+        Sampling frequency.
+    fpass : list of float
+        Frequency range to evaluate.
+    NW : Union[int, float], optional
+        Time-bandwidth product (default is 2.5).
+    n_tapers : int, optional
+        Number of tapers (default is 4).
+    time_support : Union[list, None], optional
+        Time range to evaluate (default is None).
+    tapers : Union[np.ndarray, None], optional
+        Precomputed tapers, given as [NW, K] or [tapers, eigenvalues] (default is None).
+    tapers_ts : Union[np.ndarray, None], optional
+        Taper time series (default is None).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the power spectrum.
+
+
+    Example
+    -------
+    >>> spec = pychronux.mtspectrumpt(
+    >>>    st.data,
+    >>>    1250,
+    >>>    [1, 20],
+    >>>    NW=3,
+    >>>    n_tapers=5,
+    >>>    time_support=[st.support.start, st.support.stop],
+    >>> )
     """
     if time_support is not None:
         mintime, maxtime = time_support
@@ -204,7 +277,6 @@ def mtspectrumpt(
     nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
     f, findx = getfgrid(Fs, nfft, fpass)
 
-
     spec = np.zeros((len(f), len(data)))
     for i, d in enumerate(data):
         J, Msp, Nsp = mtfftpt(d, tapers, nfft, tapers_ts, f, findx)
@@ -215,16 +287,30 @@ def mtspectrumpt(
     return spectrum_df
 
 
-def mtfftc(data, tapers, nfft, Fs):
+def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarray:
     """
-    mt fft for continuous data
-    Inputs:
-        data: 1d array
-        tapers: [NW, K] or [tapers, eigenvalues]
-        nfft: number of points for fft
-        Fs: sampling frequency
-    Outputs:
-        J: fft of data
+    Multitaper FFT for continuous data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D array of continuous data (e.g., LFP).
+    tapers : np.ndarray
+        Tapers array with shape [NW, K] or [tapers, eigenvalues].
+    nfft : int
+        Number of points for FFT.
+    Fs : int
+        Sampling frequency.
+
+    Returns
+    -------
+    J : np.ndarray
+        FFT of the data with shape (nfft, K).
+    
+    Raises
+    ------
+    AssertionError
+        If the length of tapers is incompatible with the length of data.
     """
     NC = len(data)
     NK, K = tapers.shape
@@ -235,16 +321,30 @@ def mtfftc(data, tapers, nfft, Fs):
     return J
 
 
-def mtspectrumc(data, Fs, fpass, tapers):
+def mtspectrumc(data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray) -> pd.Series:
     """
-    mtspectrumc from chronux toolbox
-    Inputs:
-        data: 1d array
-        Fs: sampling frequency
-        fpass: frequency range to evaluate
-        tapers: [NW, K] or [tapers, eigenvalues]
-    Outputs:
-        S: power spectrum
+    Compute the multitaper power spectrum for continuous data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D array of continuous data (e.g., LFP).
+    Fs : int
+        Sampling frequency in Hz.
+    fpass : list
+        Frequency range to evaluate as [min_freq, max_freq].
+    tapers : np.ndarray
+        Tapers array with shape [NW, K] or [tapers, eigenvalues].
+
+    Returns
+    -------
+    S : pd.Series
+        Power spectrum with frequencies as the index.
+    
+    Notes
+    -----
+    This function utilizes the multitaper method for spectral estimation
+    and returns the power spectrum as a pandas Series.
     """
     N = len(data)
     nfft = np.max(
@@ -258,20 +358,41 @@ def mtspectrumc(data, Fs, fpass, tapers):
     return pd.Series(index=f, data=S)
 
 
-def point_spectra(times, Fs=1250, freq_range=[1, 20], tapers0=[3, 5], pad=0):
+def point_spectra(
+    times: np.ndarray,
+    Fs: int = 1250,
+    freq_range: List[float] = [1, 20],
+    tapers0: List[int] = [3, 5],
+    pad: int = 0
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Compute point spectra for a set of spike times
-    Inputs:
-        times: array of spike times (in seconds)
-        Fs: sampling frequency
-        freq_range: frequency range to evaluate
-        tapers0: [NW, K] or [tapers, eigenvalues]
-        pad: number of points to pad
-    Outputs:
-        spectra: power spectrum
-        f: frequencies
+    Compute point spectra for a set of spike times.
 
-    By Ryan H, converted from PointSpectra.m by Ralitsa Todorova
+    Parameters
+    ----------
+    times : np.ndarray
+        Array of spike times (in seconds).
+    Fs : int, optional
+        Sampling frequency in Hz (default is 1250).
+    freq_range : list, optional
+        Frequency range to evaluate as [min_freq, max_freq] (default is [1, 20]).
+    tapers0 : list, optional
+        Tapers configuration as [NW, K] or [tapers, eigenvalues] (default is [3, 5]).
+    pad : int, optional
+        Number of points to pad for FFT (default is 0).
+
+    Returns
+    -------
+    spectra : np.ndarray
+        Power spectrum.
+    f : np.ndarray
+        Frequencies corresponding to the power spectrum.
+
+    Notes
+    -----
+    This function computes the point spectra for spike times using the multitaper method.
+    The power spectrum is returned along with the associated frequencies.
+    By Ryan H, converted from PointSpectra.m by Ralitsa Todorova.
     """
 
     timesRange = [min(times), max(times)]

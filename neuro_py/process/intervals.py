@@ -1,29 +1,41 @@
 import random
-from typing import List, Union
+from typing import List, Optional, Tuple, Union
 
 import nelpy as nel
 import numba
 import numpy as np
 from nelpy import core
+from nelpy.core import EpochArray
 from numba import jit
 
 
-def randomize_epochs(epoch, randomize_each=True, start_stop=None):
-    """Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
+def randomize_epochs(
+    epoch: EpochArray,
+    randomize_each: bool = True,
+    start_stop: Optional[np.ndarray] = None,
+) -> EpochArray:
+    """
+    Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
 
     This method takes a EpochArray object as input, and can either randomly shift each epoch by a different amount
     (if `randomize_each` is True) or shift all the epochs by the same amount (if `randomize_each` is False).
     In either case, the method wraps the shifted epochs around the original time boundaries to make sure they remain
     within the original time range. It then returns the modified EpochArray object.
 
-    Args:
-        epoch (EpochArray): The EpochArray object whose epochs should be shifted and wrapped.
-        randomize_each (bool, optional): If True, each epoch will be shifted by a different random amount.
-            If False, all the epochs will be shifted by the same random amount. Defaults to True.
-        start_stop (array, optional): If not None, time support will be taken from start_stop
+    Parameters
+    ----------
+    epoch : EpochArray
+        The EpochArray object whose epochs should be shifted and wrapped.
+    randomize_each : bool, optional
+        If True, each epoch will be shifted by a different random amount.
+        If False, all the epochs will be shifted by the same random amount. Defaults to True.
+    start_stop : array, optional
+        If not None, time support will be taken from start_stop
 
-    Returns:
-        new_epochs: The modified EpochArray object with the shifted and wrapped epochs.
+    Returns
+    -------
+    new_epochs : EpochArray
+        The modified EpochArray object with the shifted and wrapped epochs.
     """
 
     def wrap_intervals(intervals, start, stop):
@@ -71,16 +83,20 @@ def split_epoch_equal_parts(
 ) -> Union[np.ndarray, nel.EpochArray]:
     """
     Split multiple intervals into equal parts.
-    Input:
-        intervals: array-like (n_intervals, 2)
-            The intervals to split
-        n_parts: int
-            The number of parts to split each interval into
-        return_epoch_array: bool
-            If True, returns the intervals as a nelpy.EpochArray object
-    Output:
-        split_intervals: array-like (n_intervals * n_parts, 2)
-            The split intervals
+
+    Parameters
+    ----------
+    intervals : array-like, shape (n_intervals, 2)
+        The intervals to split.
+    n_parts : int
+        The number of parts to split each interval into.
+    return_epoch_array : bool, optional
+        If True, returns the intervals as a nelpy.EpochArray object. Defaults to True.
+
+    Returns
+    -------
+    split_intervals : array-like, shape (n_intervals * n_parts, 2) or nelpy.EpochArray
+        The split intervals.
     """
     # Ensure intervals is a numpy array
     intervals = np.asarray(intervals)
@@ -102,19 +118,27 @@ def split_epoch_equal_parts(
     return split_intervals
 
 
-def overlap_intersect(epoch, interval, return_indices=True):
+def overlap_intersect(
+    epoch: nel.EpochArray, interval: nel.IntervalArray, return_indices: bool = True
+) -> Union[nel.EpochArray, Tuple[nel.EpochArray, np.ndarray]]:
     """
-    Returns the epochs with overlap with interval
-    Input:
-        epoch: nelpy.EpochArray
-            The epochs to check
-        interval: nelpy.IntervalArray
-            The interval to check for overlap
-        return_indices: bool
-            If True, returns the indices of the epochs (interval) that overlap
-    Output:
-        epoch: nelpy.EpochArray
-            The epochs with overlap with interval
+    Returns the epochs with overlap with the given interval.
+
+    Parameters
+    ----------
+    epoch : nelpy.EpochArray
+        The epochs to check.
+    interval : nelpy.IntervalArray
+        The interval to check for overlap.
+    return_indices : bool, optional
+        If True, returns the indices of the overlapping epochs. Default is True.
+
+    Returns
+    -------
+    nelpy.EpochArray
+        The epochs with overlap with the interval.
+    Tuple[nelpy.EpochArray, np.ndarray], optional
+        If `return_indices` is True, also returns the indices of the overlapping epochs.
     """
     new_intervals = []
     indices = []
@@ -133,9 +157,9 @@ def overlap_intersect(epoch, interval, return_indices=True):
 
 
 @jit(nopython=True)
-def find_intersecting_intervals_(set1, set2):
+def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[float]:
     """
-    Find the amount of time two sets of intervals are intersecting each other for each intersection.
+    Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
     Parameters
     ----------
@@ -146,9 +170,9 @@ def find_intersecting_intervals_(set1, set2):
 
     Returns
     -------
-    list
+    list of float
         A list of floats, where each float represents the amount of time the
-            corresponding interval in set1 intersects with any interval in set2.
+        corresponding interval in set1 intersects with any interval in set2.
     """
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
@@ -166,7 +190,7 @@ def find_intersecting_intervals_(set1, set2):
 
 
 def find_intersecting_intervals(
-    set1, set2, return_indices: bool = True
+    set1: nel.EpochArray, set2: nel.EpochArray, return_indices: bool = True
 ) -> Union[np.ndarray, List[bool]]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each intersection.
@@ -174,15 +198,18 @@ def find_intersecting_intervals(
     Parameters
     ----------
     set1 : nelpy EpochArray
+        The first set of intervals to check for intersections.
     set2 : nelpy EpochArray
-    return_indices : bool, optional (default=True)
-        if True, return the indices of the intervals in set2 that intersect with each interval in set1.
+        The second set of intervals to check for intersections.
+    return_indices : bool, optional
+        If True, return the indices of the intervals in set2 that intersect with each interval in set1.
         If False, return the amount of time each interval in set1 intersects with any interval in set2.
 
     Returns
     -------
-    list
-        A list of floats, where each float represents the amount of time the corresponding interval in set1 intersects with any interval in set2.
+    Union[np.ndarray, List[bool]]
+        If return_indices is True, returns a boolean array indicating whether each interval in set1 intersects with any interval in set2.
+        If return_indices is False, returns a NumPy array with the amount of time each interval in set1 intersects with any interval in set2.
 
     Examples
     --------
@@ -196,25 +223,32 @@ def find_intersecting_intervals(
     if not isinstance(set1, core.IntervalArray) & isinstance(set2, core.IntervalArray):
         raise ValueError("only EpochArrays are supported")
 
-    intersection = np.array(find_intersecting_intervals_(set1.data, set2.data))
+    intersection = np.array(_find_intersecting_intervals(set1.data, set2.data))
     if return_indices:
         return intersection > 0
     return intersection
 
 
-def find_interval(logical):
+def find_interval(logical: List[bool]) -> List[Tuple[int, int]]:
     """
     Find consecutive intervals of True values in a list of boolean values.
 
-    Parameters:
-    logical (List[bool]): The list of boolean values.
+    Parameters
+    ----------
+    logical : List[bool]
+        The list of boolean values.
 
-    Returns:
-    List[Tuple[int, int]]: A list of tuples representing the start and end indices of each consecutive interval of True values in the logical list.
+    Returns
+    -------
+    List[Tuple[int, int]]
+        A list of tuples representing the start and end indices of each consecutive interval of True values in the logical list.
 
-    Example:
-    find_interval([0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1]) -> [(2, 4), (6, 7), (10, 11)]
-    find_interval([1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1]) -> [(0, 2), (4, 5), (9, 10)]
+    Examples
+    --------
+    >>> find_interval([0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1])
+    [(2, 4), (6, 7), (10, 11)]
+    >>> find_interval([1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1])
+    [(0, 2), (4, 5), (9, 10)]
     """
     intervals = []
     start = None
@@ -231,8 +265,11 @@ def find_interval(logical):
 
 # @njit(parallel=True)
 def in_intervals(
-    timestamps: np.ndarray, intervals: np.ndarray, return_interval=False, shift=False
-) -> np.ndarray:
+    timestamps: np.ndarray,
+    intervals: np.ndarray,
+    return_interval: bool = False,
+    shift: bool = False,
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
     """
     Find which timestamps fall within the given intervals.
 
@@ -363,32 +400,35 @@ def truncate_epoch(
     the desired cumulative time duration in seconds. It returns a new EpochArray
     containing intervals that cumulatively match the specified time.
 
-    Parameters:
-        epoch (nel.EpochArray): The input EpochArray containing intervals to be truncated.
-        time (float, optional): The desired cumulative time in seconds (default is 3600).
+    Parameters
+    ----------
+    epoch : nel.EpochArray
+        The input EpochArray containing intervals to be truncated.
+    time : Union[int, float], optional
+        The desired cumulative time in seconds (default is 3600).
 
-    Returns:
-        nel.EpochArray: A new EpochArray containing intervals that cumulatively match
+    Returns
+    -------
+    nel.EpochArray
+        A new EpochArray containing intervals that cumulatively match
         the specified time.
 
-    Algorithm:
-        1. Calculate the cumulative lengths of intervals in the 'epoch'.
-        2. If the cumulative time of the 'epoch' is already less than or equal to 'time',
-            return the original 'epoch'.
-        3. Find the last interval that fits within the specified 'time' and create a new EpochArray
-            'truncated_intervals' with intervals up to that point.
-        4. To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.
-        5. Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached
-            or all intervals are used.
+    Algorithm
+    ---------
+    1. Calculate the cumulative lengths of intervals in the 'epoch'.
+    2. If the cumulative time of the 'epoch' is already less than or equal to 'time',
+        return the original 'epoch'.
+    3. Find the last interval that fits within the specified 'time' and create a new EpochArray
+        'truncated_intervals' with intervals up to that point.
+    4. To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.
+    5. Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached
+        or all intervals are used.
 
-    Example:
-        # Create an EpochArray with intervals
-        epoch_data = [(0, 2), (3, 6), (8, 10)]
-        epoch = nel.EpochArray(epoch_data)
-
-        # Truncate the epoch to achieve a cumulative time of 7 seconds
-        truncated_epoch = truncate_epoch(epoch, time=7)
-
+    Examples
+    --------
+    >>> epoch_data = [(0, 2), (3, 6), (8, 10)]
+    >>> epoch = nel.EpochArray(epoch_data)
+    >>> truncated_epoch = truncate_epoch(epoch, time=7)
     """
 
     if epoch.isempty:
@@ -431,20 +471,27 @@ def shift_epoch_array(
     epoch: nel.EpochArray, epoch_shift: nel.EpochArray
 ) -> nel.EpochArray:
     """
-    shift an epoch array by another epoch array
+    Shift an EpochArray by another EpochArray.
 
-    Shifting means that intervals in epoch will be relative to
-        intervals in epoch_shift as if epoch_shift intervals were without gaps
+    Shifting means that intervals in 'epoch' will be relative to
+    intervals in 'epoch_shift' as if 'epoch_shift' intervals were without gaps.
 
-    Inputs:
-        epoch: nelpy EpochArray, intervals to shift
-        epoch_shift: nelpy EpochArray, intervals to shift by
+    Parameters
+    ----------
+    epoch : nel.EpochArray
+        The intervals to shift.
+    epoch_shift : nel.EpochArray
+        The intervals to shift by.
 
-    Returns:
-        epoch_shifted: nelpy EpochArray
+    Returns
+    -------
+    nel.EpochArray
+        The shifted EpochArray.
 
-    Note: this function restricts epoch to those within epoch_shift as
-            epochs between epoch_shift intervals would result in a duration of 0.
+    Notes
+    -----
+    This function restricts 'epoch' to those within 'epoch_shift' as
+    epochs between 'epoch_shift' intervals would result in a duration of 0.
 
     Visual representation:
     inputs:
