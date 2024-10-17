@@ -31,6 +31,8 @@ def clean_lfp(
     np.ndarray
         The cleaned LFP signal.
 
+    Notes
+    -----
     Based on https://github.com/ayalab1/neurocode/blob/master/lfp/CleanLFP.m by Ralitsa Todorova
 
     Examples
