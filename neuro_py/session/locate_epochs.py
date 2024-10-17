@@ -1,28 +1,46 @@
 import logging
 import re
-from typing import Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 
-def find_pre_task_post(env, pre_post_label="sleep"):
+def find_pre_task_post(
+    env: Union[List[str], np.ndarray], pre_post_label: str = "sleep"
+) -> Tuple[Union[np.ndarray, None], Union[List[int], None]]:
     """
-    given list of environment, finds first contigous epochs that meet pre/task/post
+    Finds the first contiguous epochs that meet the pre/task/post pattern in the environment list.
 
-    Input:
-        environment list, can be pandas column
-    Output:
-        indices of where pre-sleep/task/post-sleep exist
+    Parameters
+    ----------
+    env : list or np.ndarray
+        List or array of environment labels (e.g., 'sleep', 'wmaze', etc.).
+    pre_post_label : str, optional
+        Label used to identify pre and post sleep epochs (default is 'sleep').
 
-    example:
-    pre_task_post = find_pre_task_post(epoch_df.environment)
-    epoch_df.loc[pre_task_post]
+    Returns
+    -------
+    dummy : np.ndarray or None
+        A boolean array where the identified pre/task/post epochs are marked as True.
+        If no pattern is found, returns None.
+    indices : list or None
+        A list of indices where the pre/task/post epochs are found. If no pattern is found, returns None.
 
-            name	                        startTime	stopTime	environment
-        1	OR15day1_sleep1_180116_110120	2001.600	8087.29195	sleep
-        2	OR15day1_2_180116_171020	    8087.292	9952.05995	wmaze
-        3	OR15day1_sleep2_180116_181618	9952.060	10182.92795	sleep
+    Example
+    -------
+    >>> env = ['sleep', 'wmaze', 'sleep']
+    >>> find_pre_task_post(env)
+    (array([ True,  True,  True]), [0, 1, 2])
+
+    Notes
+    -----
+    This function identifies a pattern where the pre-task-post epochs are of the form:
+    - pre-sleep (pre_post_label)
+    - task (any label other than pre_post_label)
+    - post-sleep (pre_post_label)
+
+    The function returns the indices of the first occurrence of such a pattern.
     """
     if len(env) < 3:
         return None, None
@@ -42,13 +60,33 @@ def find_pre_task_post(env, pre_post_label="sleep"):
 
 def compress_repeated_epochs(epoch_df, epoch_name=None):
     """
-    compress_repeated_epochs: Compresses epoch_df loaded by loading.load_epoch()
-    If there are back to back epochs of the same name, it will combine them
+    Compress repeated epochs in an epoch DataFrame. If consecutive epochs have the same name,
+    they will be combined into a single epoch with the earliest startTime and the latest stopTime.
 
-    Input: epoch_df (uses: loading.load_epoch(basepath)), epoch_name (optional: string of epoch environment to compress)
-    Output: Compressed epoch_df
+    Parameters
+    ----------
+    epoch_df : pd.DataFrame
+        A DataFrame containing epoch information. Must have columns `environment`, `startTime`, and `stopTime`.
+    epoch_name : str, optional
+        If provided, only compress epochs with this specific name. If None, compress all consecutive epochs with the same name.
 
-    Ryan H, Laura B
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame where consecutive epochs with the same name are compressed into a single epoch.
+
+    Example
+    -------
+    >>> epoch_df = pd.DataFrame({
+    ...     'environment': ['sleep', 'sleep', 'wmaze', 'wmaze', 'sleep'],
+    ...     'startTime': [0, 100, 200, 300, 400],
+    ...     'stopTime': [99, 199, 299, 399, 499]
+    ... })
+    >>> compress_repeated_epochs(epoch_df)
+      environment  startTime  stopTime
+    0       sleep          0       199
+    1       wmaze        200       399
+    2       sleep        400       499
     """
     if epoch_name is None:
         match = np.zeros([epoch_df.environment.shape[0]])
@@ -110,19 +148,35 @@ def find_multitask_pre_post(
     task_tag: Union[None, str] = None,
     post_sleep_flank: bool = False,
     pre_sleep_common: bool = False,
-) -> list:
+) -> Union[List[List[int]], None]:
     """
-    Find the row index for pre_task/post_task sleep for a given enviornment from cell explorer session.epochs dataframe
-    Returns list of pre/task_post epochs for each task.
-    input:
-        env: column from data frame consisting of cell explorer session.epochs data
-        task_tag: string that indicates a task/s ("linear" or "linear|box"), or None for all tasks
-        post_sleep_flank: True/False to make post sleep directly follows task
-        pre_sleep_common: True/False to make first pre sleep is common to all tasks
-    output:
-        list of epoch indicies [pre_task, task, post_task] of size n = # of task epochs
+    Find the row indices for pre-task/post-task sleep epochs in the given environment from a DataFrame column.
 
-    LB/RH 1/5/2022
+    Parameters
+    ----------
+    env : pd.Series
+        Column from the DataFrame representing the session epochs data.
+    task_tag : str, optional
+        A string indicating the task(s) (e.g., "linear", "linear|box") to filter for.
+        If None, all non-sleep epochs are considered as task epochs.
+    post_sleep_flank : bool, optional
+        If True, ensure that the post-task sleep epoch directly follows the task.
+    pre_sleep_common : bool, optional
+        If True, use the first pre-task sleep epoch as the pre-task sleep for all tasks.
+
+    Returns
+    -------
+    list of list of int, or None
+        A list of indices for pre-task, task, and post-task epochs in the format [pre_task, task, post_task].
+        If no such sequence is found, returns None.
+
+    Example
+    -------
+    >>> epoch_df = pd.DataFrame({
+    ...     'environment': ['sleep', 'linear', 'sleep', 'box', 'sleep']
+    ... })
+    >>> find_multitask_pre_post(epoch_df['environment'], task_tag='linear')
+    [[0, 1, 2]]
     """
     # Find the row indices that contain the search string in the specified column
     if task_tag is None:
@@ -169,23 +223,31 @@ def find_multitask_pre_post(
     return pre_task_post
 
 
-def find_epoch_pattern(env, pattern):
+def find_epoch_pattern(
+    env: Union[List[str], pd.Series], pattern: List[str]
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[None, None]]:
     """
-    given list of environment, finds contigous epochs that meet pattern
+    Finds the first occurrence of a contiguous pattern of epochs in the environment list.
 
-    Limitation: stops on the first instance of finding the pattern
+    Parameters
+    ----------
+    env : list or pd.Series
+        The environment list or pandas Series representing the epochs.
+    pattern : list of str
+        The pattern to search for in the environment list.
 
-    Input:
-        env: environment list, can be pandas column
-        pattern: pattern you are searching for
-    Output:
-        indices of where pattern exist
+    Returns
+    -------
+    tuple of (np.ndarray, np.ndarray) or (None, None)
+        Returns a tuple where the first element is a boolean mask indicating the positions of the found pattern,
+        and the second element is an array of indices where the pattern occurs.
+        If the pattern is not found, returns (None, None).
 
-    example:
-    epoch_df = loading.load_epoch(basepath)
-    pattern_idx,_ = find_epoch_pattern(epoch_df.environment,['sleep','linear','sleep'])
-    epoch_df.loc[pattern_idx]
-
+    Example
+    -------
+    >>> epoch_df = loading.load_epoch(basepath)
+    >>> pattern_idx,_ = find_epoch_pattern(epoch_df.environment,['sleep','linear','sleep'])
+    >>> epoch_df.loc[pattern_idx]
         name	                startTime	stopTime	environment	behavioralParadigm	notes
     0	preSleep_210411_064951	0.0000	    9544.56315	sleep	    NaN	                NaN
     1	maze_210411_095201	    9544.5632	11752.80635	linear	    novel	            novel
@@ -208,25 +270,43 @@ def find_epoch_pattern(env, pattern):
     return None, None
 
 
-def find_env_paradigm_pre_task_post(epoch_df, env="sleep", paradigm="memory"):
+def find_env_paradigm_pre_task_post(
+    epoch_df: pd.DataFrame, env: str = "sleep", paradigm: str = "memory"
+) -> np.ndarray:
     """
-    find_env_paradigm_pre_task_post: use env and paradigm to find pre task post
-    Made because: FujisawaS data has Spontaneous alternation task & Working memory task
-        both flanked by sleep. We want to locate the working memory task pre/task/post
-    ex.
+    Find indices of epochs that match a sequence of environment and paradigm
+    patterns, specifically looking for a pre-task-post structure.
 
-    >> epoch_df
-        name	startTime	stopTime	environment	behavioralParadigm	            notes
-    0	EE.042	0.0	        995.9384	sleep	    NaN	                            NaN
-    1	EE.045	995.9384	3336.3928	tmaze	    Spontaneous alternation task	NaN
-    2	EE.046	3336.3928	5722.444	sleep	    NaN	                            NaN
-    3	EE.049	5722.444	7511.244	tmaze	    Working memory task	            NaN
-    4	EE.050	7511.244	9387.644	sleep	    NaN	                            NaN
+    Parameters
+    ----------
+    epoch_df : pd.DataFrame
+        DataFrame containing epoch information with columns such as 'environment' and 'behavioralParadigm'.
+    env : str, optional
+        The environment pattern to search for (default is "sleep").
+    paradigm : str, optional
+        The behavioral paradigm pattern to search for (default is "memory").
 
-    >> idx = find_env_paradigm_pre_task_post(epoch_df)
-    >> idx
-    array([False, False,  True,  True,  True])
+    Returns
+    -------
+    np.ndarray
+        A boolean array where `True` indicates that the epoch is part of a pre-task-post sequence
+        (i.e., sleep-task-sleep) based on the provided environment and paradigm.
 
+    Example
+    -------
+    >>> epoch_df = pd.DataFrame({
+    ...     'name': ['EE.042', 'EE.045', 'EE.046', 'EE.049', 'EE.050'],
+    ...     'startTime': [0.0, 995.9384, 3336.3928, 5722.444, 7511.244],
+    ...     'stopTime': [995.9384, 3336.3928, 5722.444, 7511.244, 9387.644],
+    ...     'environment': ['sleep', 'tmaze', 'sleep', 'tmaze', 'sleep'],
+    ...     'behavioralParadigm': [np.nan, 'Spontaneous alternation task', np.nan, 'Working memory task', np.nan]
+    ... })
+    >>> idx = find_env_paradigm_pre_task_post(epoch_df)
+    >>> epoch_df[idx]
+          name  startTime   stopTime environment        behavioralParadigm
+    2  EE.046   3336.3928  5722.444       sleep                        NaN
+    3  EE.049   5722.444   7511.244      tmaze         Working memory task
+    4  EE.050   7511.244   9387.644       sleep                        NaN
     """
     # compress back to back sleep epochs
     epoch_df_ = compress_repeated_epochs(epoch_df, epoch_name="sleep")
@@ -254,18 +334,25 @@ def find_env_paradigm_pre_task_post(epoch_df, env="sleep", paradigm="memory"):
 
 
 def find_pre_task_post_optimize_novel(
-    epoch_df: pd.DataFrame, novel_indicators: list = [1, "novel", "1"]
-) -> pd.DataFrame:
+    epoch_df: pd.DataFrame, novel_indicators: List[Union[int, str]] = [1, "novel", "1"]
+) -> Union[pd.DataFrame, None]:
     """
-    find_pre_task_post_optimize_novel: find pre task post epochs in epoch_df
+    Find pre-task-post epochs in the DataFrame, optimizing for novel epochs.
 
-    Input:
-        epoch_df: epoch_df
-        novel_indicators: list of indicators for novel epochs
-    Output:
-        epoch_df: epoch_df with pre task post epochs
+    Parameters
+    ----------
+    epoch_df : pd.DataFrame
+        DataFrame containing epochs information with 'environment' and 'behavioralParadigm' columns.
+    novel_indicators : list of [int, str], optional
+        List of indicators used to identify novel epochs in the 'behavioralParadigm' column (default is [1, "novel", "1"]).
 
-    ex.
+    Returns
+    -------
+    pd.DataFrame or None
+        A DataFrame with pre-task-post epochs, or None if no such pattern is found.
+
+    Example
+    -------
     epoch_df = loading.load_epoch(basepath)
     epoch_df = find_pre_task_post_optimize_novel(epoch_df)
     """
@@ -300,19 +387,24 @@ def find_pre_task_post_optimize_novel(
 
 def get_experience_level(behavioralParadigm: pd.Series) -> int:
     """
-    Extract experience level from behavioralParadigm column
+    Extract the experience level from the behavioralParadigm column.
 
-    Experience level is the number of times the animal has run the task and is
-        located within behavioralParadigm column
+    The experience level is the number of times the animal has run the task,
+    inferred from the behavioralParadigm column.
 
-    Input:
-        behavioralParadigm: pd.Series indexed by a single epoch
-    Output:
-        experience: int
+    Parameters
+    ----------
+    behavioralParadigm : pd.Series
+        A single entry or value from the behavioralParadigm column of an epoch.
 
-    Example:
-        experience = get_experience_level(current_epoch_df.iloc[1].behavioralParadigm)
+    Returns
+    -------
+    int
+        The experience level as an integer. Returns NaN if experience cannot be determined.
 
+    Examples
+    --------
+    experience = get_experience_level(current_epoch_df.iloc[1].behavioralParadigm)
     """
     if behavioralParadigm == "novel":
         experience = 1
