@@ -1,5 +1,6 @@
+from ast import List
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,34 +9,53 @@ import pandas as pd
 import seaborn as sns
 
 from neuro_py.stats.stats import confidence_intervals
+from nelpy.core import EpochArray
 
 
-def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=None):
+def plot_events(
+    events: List[EpochArray],
+    labels: List[str],
+    cmap: str = "tab20",
+    gridlines: bool = True,
+    alpha: float = 0.75,
+    ax: Union[plt.Axes, None] = None,
+) -> plt.Axes:
     """
-    events: nested list of nelpy EpochArrays
-    labels: labels related to each event
+    Plot multiple event epochs as colored spans on a time axis.
 
-    example:
+    Parameters
+    ----------
+    events : list of nelpy EpochArray
+        List of EpochArrays representing events.
+    labels : list of str
+        List of labels for each event type.
+    cmap : str, optional
+        Colormap for the event spans, by default 'tab20'.
+    gridlines : bool, optional
+        Whether to plot horizontal gridlines, by default True.
+    alpha : float, optional
+        Transparency of event spans, by default 0.75.
+    ax : plt.Axes or None, optional
+        Matplotlib Axes to plot on. If None, the current axis will be used, by default None.
 
-        # load sleep states
-        state_dict = loading.load_SleepState_states(basepath)
+    Returns
+    -------
+    plt.Axes
+        The axis with the plotted events.
 
-        # make nelpy epoch arrays
-        nrem_epochs = nel.EpochArray(state_dict['NREMstate'])
-        wake_epochs = nel.EpochArray(state_dict['WAKEstate'])
-        rem_epochs = nel.EpochArray(state_dict['REMstate'])
-
-        # add to list
-        events = []
-        events.append(nrem_epochs)
-        events.append(wake_epochs)
-        events.append(rem_epochs)
-
-        # plot
-        plt.figure(figsize=(20,5))
-        plot_events(events,['nrem','wake','rem'])
-
-    Ryan H 2022
+    Example
+    -------
+    >>> # load sleep states
+    >>> state_dict = loading.load_SleepState_states(basepath)
+    >>> # make nelpy epoch arrays
+    >>> nrem_epochs = nel.EpochArray(state_dict['NREMstate'])
+    >>> wake_epochs = nel.EpochArray(state_dict['WAKEstate'])
+    >>> rem_epochs = nel.EpochArray(state_dict['REMstate'])
+    >>> # add to list
+    >>> events = [nrem_epochs, wake_epochs, rem_epochs]
+    >>> # plot
+    >>> plt.figure(figsize=(20, 5))
+    >>> plot_events(events, ['nrem', 'wake', 'rem'])
     """
     # get colormap
     cmap = matplotlib.cm.get_cmap(cmap)
@@ -70,47 +90,53 @@ def plot_events(events, labels, cmap="tab20", gridlines=True, alpha=0.75, ax=Non
 
 def plot_peth(
     peth: pd.DataFrame,
-    ax=None,
+    ax: Optional[plt.Axes] = None,
     smooth: bool = False,
     smooth_window: float = 0.30,
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
-    **kwargs
-) -> matplotlib.axes.Axes:
+    **kwargs,
+) -> plt.Axes:
     """
-    Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
+    Plot a peri-event time histogram (PETH). 
+    Assumes that the index is time and the columns are trials/cells/etc.
 
     Parameters
     ----------
     peth : pd.DataFrame
-        Peth to plot
+        Peri-event time histogram to plot.
     ax : matplotlib.axes.Axes, optional
-        Axis to plot on, by default None
+        Axis to plot on, by default None.
+    smooth : bool, optional
+        Whether to apply smoothing to the data, by default False.
+    smooth_window : float, optional
+        Window size for smoothing (in the same units as the index), by default 0.30.
+    smooth_std : int, optional
+        Standard deviation of the smoothing window, by default 5.
+    smooth_win_type : str, optional
+        The type of smoothing window to use, by default 'gaussian'.
     **kwargs
-        Keyword arguments to pass to seaborn.lineplot
+        Additional keyword arguments to pass to seaborn.lineplot.
 
     Returns
     -------
     matplotlib.axes.Axes
-        Axis with plot
+        Axis with the plotted PETH.
 
     Raises
     ------
     TypeError
-        If peth is not a pandas dataframe
+        If peth is not a pandas DataFrame.
 
     Example
     -------
     >>> from neuro_py.plotting.events import plot_peth
     >>> from neuro_py.process import peri_event
     >>> from neuro_py.io import loading
-
     >>> st, cm = loading.load_spikes(basepath)
-    >>> rippple_epochs = loading.load_ripples_events(basepath, return_epoch_array=True)
-
-    >>> ripple_peth = peri_event.compute_psth(st.data, rippple_epochs.starts)
+    >>> ripple_epochs = loading.load_ripples_events(basepath, return_epoch_array=True)
+    >>> ripple_peth = peri_event.compute_psth(st.data, ripple_epochs.starts)
     >>> plot_peth(ripple_peth)
-
     """
     if ax is None:
         fig, ax = plt.subplots()
@@ -149,15 +175,15 @@ def plot_peth(
 
 def plot_peth_fast(
     peth: Union[pd.DataFrame, np.ndarray],
-    ts=None,
-    ax=None,
+    ts: Union[np.ndarray, None] = None,
+    ax: Union[plt.Axes, None] = None,
     ci: float = 0.95,
     smooth: bool = False,
     smooth_window: float = 0.30,
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
     alpha: float = 0.2,
-    **kwargs
+    **kwargs,
 ) -> plt.Axes:
     """
     Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
