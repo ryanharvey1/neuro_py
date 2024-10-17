@@ -1,5 +1,6 @@
 import itertools
 import multiprocessing
+from typing import Tuple
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -7,7 +8,9 @@ from joblib import Parallel, delayed
 from neuro_py.stats.stats import get_significant_events
 
 
-def similarity_index(patterns, n_shuffles=1000, parallel=True):
+def similarity_index(
+    patterns: np.ndarray, n_shuffles: int = 1000, parallel: bool = True
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculate the similarity index of a set of patterns.
 
@@ -20,10 +23,18 @@ def similarity_index(patterns, n_shuffles=1000, parallel=True):
     attribute large weights to the same neurons, SI will be large;
     if assemblies are orthogonal, SI will be zero.
 
-    Input:
-        patterns: list of patterns (n patterns x n neurons)
-        n_shuffles: number of shuffles to calculate the similarity index
-    Output:
+    Parameters
+    ----------
+    patterns : np.ndarray
+        List of patterns (n patterns x n neurons).
+    n_shuffles : int, optional
+        Number of shuffles to calculate the similarity index, by default 1000.
+    parallel : bool, optional
+        Whether to run in parallel, by default True.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
         si: similarity index: float (0-1)
         combos: list of all possible combinations of patterns
         pvalues: list of p-values for each pattern combination

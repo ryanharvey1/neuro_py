@@ -1,12 +1,12 @@
 """
-	Codes for PCA/ICA methods described in Detecting cell assemblies in large neuronal populations, Lopes-dos-Santos et al (2013).
-											https://doi.org/10.1016/j.jneumeth.2013.04.010
-	This implementation was written in Feb 2019.
-	Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
+Codes for PCA/ICA methods described in Detecting cell assemblies in large neuronal populations, Lopes-dos-Santos et al (2013). 
+https://doi.org/10.1016/j.jneumeth.2013.04.010
+This implementation was written in Feb 2019.
+Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
 """
 
 import warnings
-from typing import Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import stats
@@ -17,7 +17,31 @@ __author__ = "Vítor Lopes dos Santos"
 __version__ = "2019.1"
 
 
-def toyExample(assemblies, nneurons=10, nbins=1000, rate=1.0):
+def toyExample(
+    assemblies: "ToyAssemblies",
+    nneurons: int = 10,
+    nbins: int = 1000,
+    rate: float = 1.0,
+) -> np.ndarray:
+    """
+    Generate a toy example activity matrix with assemblies.
+
+    Parameters
+    ----------
+    assemblies : ToyAssemblies
+        The toy assemblies.
+    nneurons : int, optional
+        Number of neurons, by default 10.
+    nbins : int, optional
+        Number of time bins, by default 1000.
+    rate : float, optional
+        Poisson rate, by default 1.0.
+
+    Returns
+    -------
+    np.ndarray
+        Activity matrix.
+    """
     np.random.seed(42)
 
     actmat = np.random.poisson(rate, nneurons * nbins).reshape(nneurons, nbins)
@@ -39,13 +63,43 @@ def toyExample(assemblies, nneurons=10, nbins=1000, rate=1.0):
 
 
 class ToyAssemblies:
-    def __init__(self, membership, actrate, actstrength):
+    def __init__(
+        self,
+        membership: List[List[int]],
+        actrate: List[float],
+        actstrength: List[float],
+    ):
+        """
+        Initialize ToyAssemblies.
+
+        Parameters
+        ----------
+        membership : List[List[int]]
+            List of lists containing neuron memberships for each assembly.
+        actrate : List[float]
+            List of activation rates for each assembly.
+        actstrength : List[float]
+            List of activation strengths for each assembly.
+        """
         self.membership = membership
         self.actrate = actrate
         self.actstrength = actstrength
 
 
-def marcenkopastur(significance: object):
+def marcenkopastur(significance: object) -> float:
+    """
+    Calculate statistical threshold from Marcenko-Pastur distribution.
+
+    Parameters
+    ----------
+    significance : object
+        Object containing significance parameters.
+
+    Returns
+    -------
+    float
+        Statistical threshold.
+    """
     nbins = significance.nbins
     nneurons = significance.nneurons
     tracywidom = significance.tracywidom
@@ -58,7 +112,20 @@ def marcenkopastur(significance: object):
     return lambdaMax
 
 
-def getlambdacontrol(zactmat_: np.ndarray):
+def getlambdacontrol(zactmat_: np.ndarray) -> float:
+    """
+    Get the maximum eigenvalue from PCA.
+
+    Parameters
+    ----------
+    zactmat_ : np.ndarray
+        Z-scored activity matrix.
+
+    Returns
+    -------
+    float
+        Maximum eigenvalue.
+    """
     significance_ = PCA()
     significance_.fit(zactmat_.T)
     lambdamax_ = np.max(significance_.explained_variance_)
@@ -66,7 +133,22 @@ def getlambdacontrol(zactmat_: np.ndarray):
     return lambdamax_
 
 
-def binshuffling(zactmat: np.ndarray, significance: object):
+def binshuffling(zactmat: np.ndarray, significance: object) -> float:
+    """
+    Perform bin shuffling to generate statistical threshold.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix.
+    significance : object
+        Object containing significance parameters.
+
+    Returns
+    -------
+    float
+        Statistical threshold.
+    """
     np.random.seed()
 
     lambdamax_ = np.zeros(significance.nshu)
@@ -82,7 +164,22 @@ def binshuffling(zactmat: np.ndarray, significance: object):
     return lambdaMax
 
 
-def circshuffling(zactmat: np.ndarray, significance: object):
+def circshuffling(zactmat: np.ndarray, significance: object) -> float:
+    """
+    Perform circular shuffling to generate statistical threshold.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix.
+    significance : object
+        Object containing significance parameters.
+
+    Returns
+    -------
+    float
+        Statistical threshold.
+    """
     np.random.seed()
 
     lambdamax_ = np.zeros(significance.nshu)
@@ -98,7 +195,22 @@ def circshuffling(zactmat: np.ndarray, significance: object):
     return lambdaMax
 
 
-def runSignificance(zactmat: np.ndarray, significance: object):
+def runSignificance(zactmat: np.ndarray, significance: object) -> object:
+    """
+    Run significance tests to estimate the number of assemblies.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix.
+    significance : object
+        Object containing significance parameters.
+
+    Returns
+    -------
+    object
+        Updated significance object with the number of assemblies.
+    """
     if significance.nullhyp == "mp":
         lambdaMax = marcenkopastur(significance)
     elif significance.nullhyp == "bin":
@@ -119,6 +231,25 @@ def runSignificance(zactmat: np.ndarray, significance: object):
 def extractPatterns(
     actmat: np.ndarray, significance: object, method: str, whiten: str = "unit-variance"
 ) -> np.ndarray:
+    """
+    Extract co-activation patterns (assemblies).
+
+    Parameters
+    ----------
+    actmat : np.ndarray
+        Activity matrix.
+    significance : object
+        Object containing significance parameters.
+    method : str
+        Method to extract assembly patterns (ica, pca).
+    whiten : str, optional
+        Whitening method, by default "unit-variance".
+
+    Returns
+    -------
+    np.ndarray
+        Co-activation patterns (assemblies).
+    """
     nassemblies = significance.nassemblies
 
     if method == "pca":
@@ -154,32 +285,38 @@ def runPatterns(
     nassemblies: int = None,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
-    INPUTS
+    Run pattern detection to identify cell assemblies.
 
-        actmat:     activity matrix - numpy array (neurons, time bins)
+    Parameters
+    ----------
+    actmat : np.ndarray
+        Activity matrix (neurons, time bins).
+    method : str, optional
+        Method to extract assembly patterns (ica, pca), by default "ica".
+    nullhyp : str, optional
+        Null hypothesis method (bin, circ, mp), by default "mp".
+    nshu : int, optional
+        Number of shuffling controls, by default 1000.
+    percentile : int, optional
+        Percentile for shuffling methods, by default 99.
+    tracywidom : bool, optional
+        Use Tracy-Widom correction, by default False.
+    whiten : str, optional
+        Whitening method, by default "unit-variance".
+    nassemblies : Optional[int], optional
+        Number of assemblies, by default None.
 
-        method:     defines how to extract assembly patterns (ica,pca).
+    Returns
+    -------
+    Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]
+        Patterns, significance object, and z-scored activity matrix.
 
-        nullhyp:    defines how to generate statistical threshold for assembly detection.
-                        'bin' - bin shuffling, will shuffle time bins of each neuron independently
-                        'circ' - circular shuffling, will shift time bins of each neuron independently
-                                                            obs: mantains (virtually) autocorrelations
-                        'mp' - Marcenko-Pastur distribution - analytical threshold
-
-        nshu:       defines how many shuffling controls will be done (n/a if nullhyp is 'mp')
-
-        percentile: defines which percentile to be used use when shuffling methods are employed.
-                                                                    (n/a if nullhyp is 'mp')
-
-        tracywidow: determines if Tracy-Widom is used. See Peyrache et al 2010.
-                                                (n/a if nullhyp is NOT 'mp')
-
-    OUTPUTS
-
-        patterns:     co-activation patterns (assemblies) - numpy array (assemblies, neurons)
-        significance: object containing general information about significance tests
-        zactmat:      returns z-scored actmat
-
+    Notes
+    -----
+    nullhyp
+        'bin' - bin shuffling, will shuffle time bins of each neuron independently
+        'circ' - circular shuffling, will shift time bins of each neuron independently
+        'mp' - Marcenko-Pastur distribution - analytical threshold
     """
 
     nneurons = np.size(actmat, 0)
@@ -235,17 +372,24 @@ def computeAssemblyActivity(
     patterns: np.ndarray,
     zactmat: np.ndarray,
     zerodiag: bool = True,
-) -> np.ndarray:
+) -> Optional[np.ndarray]:
     """
-    INPUTS
-        patterns:   co-activation patterns - numpy array (assemblies, neurons)
-        zactmat:    z-scored activity matrix - numpy array (neurons, time bins)
-        zerodiag:   if True, diagonal of projection matrix is set to zero
+    Compute assembly activity.
 
-    OUTPUTS
-        assemblyAct: assembly activity matrix - numpy array (assemblies, time bins)
+    Parameters
+    ----------
+    patterns : np.ndarray
+        Co-activation patterns (assemblies, neurons).
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    zerodiag : bool, optional
+        If True, diagonal of projection matrix is set to zero, by default True.
+
+    Returns
+    -------
+    Optional[np.ndarray]
+        Assembly activity matrix (assemblies, time bins).
     """
-
     # check if patterns is empty (no assembly detected) and return None if so
     if len(patterns) == 0:
         return None

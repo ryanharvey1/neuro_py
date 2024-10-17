@@ -12,19 +12,26 @@ from tqdm import tqdm
 
 def encode_file_path(basepath: str, save_path: str) -> str:
     """
-    encode_file_path: encode file path to be used as a file name
+    Encode file path to be used as a filename.
 
-    Inputs:
-        basepath: str path to session
+    Parameters
+    ----------
+    basepath : str
+        Path to the session to be encoded.
+    save_path : str
+        Directory where the encoded file will be saved.
 
-    Returns:
-        save_file: str encoded file path
+    Returns
+    -------
+    str
+        Encoded file path suitable for use as a filename.
 
-    example:
-        basepath = r"Z:\\Data\\AYAold\\AB3\\AB3_38_41"
-        save_path = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23"
-        batch_analysis.encode_file_path(basepath,save_path)
-        >> "Z:\home\ryanh\projects\ripple_heterogeneity\replay_02_17_23\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
+    Example
+    -------
+    >>> basepath = r"Z:\\Data\\AYAold\\AB3\\AB3_38_41"
+    >>> save_path = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23"
+    >>> encode_file_path(basepath, save_path)
+    "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
     # normalize paths
     basepath = os.path.normpath(basepath)
@@ -38,18 +45,23 @@ def encode_file_path(basepath: str, save_path: str) -> str:
 
 def decode_file_path(save_file: str) -> str:
     """
-    decode_file_path: decode file path to be used as a file name
+    Decode an encoded file path to retrieve the original session path.
 
-    Inputs:
-        save_file: str encoded file path
+    Parameters
+    ----------
+    save_file : str
+        Encoded file path that includes the original session path.
 
-    Returns:
-        basepath: str path to session
+    Returns
+    -------
+    str
+        Original session path before encoding.
 
-    example:
-        save_file = r"Z:\home\ryanh\projects\ripple_heterogeneity\replay_02_17_23\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
-        batch_analysis.decode_file_path(save_file)
-        >> "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
+    Example
+    -------
+    >>> save_file = r"Z:\home\ryanh\projects\ripple_heterogeneity\replay_02_17_23\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
+    >>> decode_file_path(save_file)
+    "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     """
 
     # get basepath from save_file
@@ -64,19 +76,31 @@ def main_loop(
     basepath: str,
     save_path: str,
     func: Callable,
-    overwrite: bool,
-    skip_if_error: bool,
+    overwrite: bool = False,
+    skip_if_error: bool = False,
     **kwargs,
 ) -> None:
     """
     main_loop: file management & run function
-    Inputs:
-        basepath: str path to session
-        save_path: str path to save results to (will be created if it doesn't exist)
-        func: function to run on each basepath in df (see run)
-        overwrite: bool whether to overwrite existing files in save_path
-        skip_if_error: bool whether to skip if an error occurs
-        kwargs: dict of keyword arguments to pass to func (see run)
+
+    Parameters
+    ----------
+    basepath : str
+        Path to session.
+    save_path : str
+        Path to save results to (will be created if it doesn't exist).
+    func : Callable
+        Function to run on each basepath in df (see run).
+    overwrite : bool, optional
+        Whether to overwrite existing files in save_path. Defaults to False.
+    skip_if_error : bool, optional
+        Whether to skip if an error occurs. Defaults to False.
+    kwargs : dict
+        Keyword arguments to pass to func (see run).
+
+    Returns
+    -------
+    None
     """
     # get file name from basepath
     save_file = encode_file_path(basepath, save_path)
@@ -102,7 +126,7 @@ def main_loop(
 
 
 def run(
-    df: pd.core.frame.DataFrame,
+    df: pd.DataFrame,
     save_path: str,
     func: Callable,
     parallel: bool = True,
@@ -113,16 +137,32 @@ def run(
     **kwargs,
 ) -> None:
     """
-    Inputs:
-        df: pandas dataframe with basepath column
-        save_path: str path to save results to (will be created if it doesn't exist)
-        func: function to run on each basepath in df (see main_loop)
-        parallel: bool whether to run in parallel or not
-        verbose: bool whether to print progress
-        overwrite: bool whether to overwrite existing files in save_path
-        skip_if_error: bool whether to skip if an error occurs
-        num_cores: int number of cores to use (if None, will use all cores)
-        kwargs: dict of keyword arguments to pass to func
+    Run a function on each basepath in the DataFrame and save results.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing a 'basepath' column.
+    save_path : str
+        Path to save results to (will be created if it doesn't exist).
+    func : Callable
+        Function to run on each basepath (see main_loop).
+    parallel : bool, optional
+        Whether to run in parallel. Defaults to True.
+    verbose : bool, optional
+        Whether to print progress. Defaults to False.
+    overwrite : bool, optional
+        Whether to overwrite existing files in save_path. Defaults to False.
+    skip_if_error : bool, optional
+        Whether to skip processing if an error occurs. Defaults to False.
+    num_cores : int, optional
+        Number of CPU cores to use (if None, will use all available cores). Defaults to None.
+    kwargs : dict
+        Additional keyword arguments to pass to func.
+
+    Returns
+    -------
+    None
     """
     # find sessions to run
     basepaths = pd.unique(df.basepath)
@@ -152,23 +192,28 @@ def run(
 
 def load_results(
     save_path: str, verbose: bool = False, add_save_file_name: bool = False
-) -> pd.core.frame.DataFrame:
+) -> pd.DataFrame:
     """
-    load_results: load results (pandas dataframe) from a pickle file
+    Load results from pickled pandas DataFrames in the specified directory.
 
-    This is the most basic results loader and
-        **will only work if your output was a pandas dataframe (long format)**
+    Parameters
+    ----------
+    save_path : str
+        Path to the folder containing pickled results.
+    verbose : bool, optional
+        Whether to print progress for each file. Defaults to False.
+    add_save_file_name : bool, optional
+        Whether to add a column with the name of the save file. Defaults to False.
 
-    This will have to be adapted if your output was more complicated, but you can
-        use this function as an example.
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated pandas DataFrame with all results.
 
-    Inputs:
-        save_path: str path to save results
-        verbose: bool whether to print progress
-        add_save_file_name: bool whether to add a column with the save file name
-
-    Returns:
-        results: pandas dataframe with results
+    Raises
+    ------
+    ValueError
+        If the specified folder does not exist or is empty.
     """
 
     if not os.path.exists(save_path):

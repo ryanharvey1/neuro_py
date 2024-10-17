@@ -1,3 +1,4 @@
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import warnings
 from collections import namedtuple
 
@@ -10,13 +11,30 @@ from scipy import stats
 CI = namedtuple("confidence_interval", ["lower", "upper"])
 
 
-def nd_bootstrap(data, iterations, axis=None, strip_tuple_if_one=True):
+def nd_bootstrap(
+    data: Iterable[np.ndarray], 
+    iterations: int, 
+    axis: Union[int, None] = None, 
+    strip_tuple_if_one: bool = True
+) -> Generator[Union[np.ndarray, Tuple[np.ndarray, ...]], None, None]:
     """
     Bootstrap iterator for several n-dimensional data arrays.
 
-    :param data: Iterable containing the data arrays
-    :param iterations: Number of bootstrap iterations.
-    :param axis: Bootstrapping is performed along this axis.
+    Parameters
+    ----------
+    data : Iterable[np.ndarray]
+        Iterable containing the data arrays.
+    iterations : int
+        Number of bootstrap iterations.
+    axis : Union[int, None], optional
+        Bootstrapping is performed along this axis. If None, the data is flattened.
+    strip_tuple_if_one : bool, optional
+        If True, return a single array without tuple if only one data array is provided.
+
+    Yields
+    ------
+    Tuple[np.ndarray, ...]
+        Bootstrapped data arrays for each iteration.
     """
     shape0 = data[0].shape
     if axis is None:
@@ -47,12 +65,22 @@ def nd_bootstrap(data, iterations, axis=None, strip_tuple_if_one=True):
                 )
 
 
-def mod2pi(f):
+def mod2pi(f: Callable) -> Callable:
     """
     Decorator to apply modulo 2*pi on the output of the function.
 
     The decorated function must either return a tuple of numpy.ndarrays or a
     numpy.ndarray itself.
+
+    Parameters
+    ----------
+    f : Callable
+        The function to be decorated.
+
+    Returns
+    -------
+    Callable
+        A wrapper function that applies modulo 2*pi on the output.
     """
 
     def wrapper(f, *args, **kwargs):
@@ -83,10 +111,13 @@ class bootstrap:
     The argument scale determines whether the percentile is taken on a circular
     scale or on a linear scale.
 
-    :param no_bootstrap: the number of arguments that are bootstrapped
-                        (e.g. for correlation it would be two, for median it
-                        would be one)
-    :param scale: linear or ciruclar scale (default is 'linear')
+    Parameters
+    ----------
+    no_bootstrap : int
+        The number of arguments that are bootstrapped
+        (e.g., for correlation it would be two, for median it would be one).
+    scale : str, optional
+        Linear or circular scale (default is 'linear').
     """
 
     def __init__(self, no_bootstrap, scale="linear"):
@@ -165,19 +196,28 @@ class bootstrap:
 @bootstrap(1, "circular")
 def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
     """
-    Computes circular percentiles
+    Computes circular percentiles.
 
-    :param alpha: array with circular samples
-    :param q: percentiles in [0,100] (single number or iterable)
-    :param q0: value of the 0 percentile
-    :param axis: percentiles will be computed along this axis.
-                 If None percentiles will be computed over the entire array
-    :param ci: if not None, confidence level is bootstrapped
-    :param bootstrap_iter: number of bootstrap iterations
-                           (number of samples if None)
+    Parameters
+    ----------
+    alpha : np.ndarray
+        Array with circular samples.
+    q : float or iterable of float
+        Percentiles in [0, 100] (single number or iterable).
+    q0 : float
+        Value of the 0 percentile.
+    axis : int, optional
+        Percentiles will be computed along this axis. 
+        If None, percentiles will be computed over the entire array.
+    ci : float, optional
+        If not None, confidence level is bootstrapped.
+    bootstrap_iter : int, optional
+        Number of bootstrap iterations (number of samples if None).
 
-    :return: percentiles
-
+    Returns
+    -------
+    np.ndarray
+        Computed percentiles.
     """
     if axis is None:
         alpha = (alpha.ravel() - q0) % (2 * np.pi)
@@ -209,7 +249,26 @@ def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
         return np.asarray(ret)
 
 
-def _complex_mean(alpha, w=None, axis=None, axial_correction=1):
+def _complex_mean(alpha: np.ndarray, w: Optional[np.ndarray] = None, axis: Optional[int] = None, axial_correction: float = 1) -> np.ndarray:
+    """
+    Compute the weighted mean of complex values.
+
+    Parameters
+    ----------
+    alpha : np.ndarray
+        Array of angles (in radians) representing complex values.
+    w : np.ndarray, optional
+        Array of weights corresponding to the alpha values. If None, uniform weights are used.
+    axis : int, optional
+        Axis along which the mean is computed. If None, the mean is computed over the entire array.
+    axial_correction : float, optional
+        Correction factor for the angles (default is 1).
+
+    Returns
+    -------
+    np.ndarray
+        Weighted mean of the complex values.
+    """
     if w is None:
         w = np.ones_like(alpha)
     alpha = np.asarray(alpha)
@@ -229,28 +288,47 @@ def _complex_mean(alpha, w=None, axis=None, axial_correction=1):
 
 @bootstrap(1, "linear")
 def resultant_vector_length(
-    alpha, w=None, d=None, axis=None, axial_correction=1, ci=None, bootstrap_iter=None
-):
+    alpha: np.ndarray,
+    w: Optional[np.ndarray] = None,
+    d: Optional[float] = None,
+    axis: Optional[int] = None,
+    axial_correction: int = 1,
+    ci: Optional[float] = None,
+    bootstrap_iter: Optional[int] = None
+) -> float:
     """
-    Computes mean resultant vector length for circular data.
+    Computes the mean resultant vector length for circular data.
 
     This statistic is sometimes also called vector strength.
 
-    :param alpha: sample of angles in radians
-    :param w: number of incidences in case of binned angle data
-    :param ci: ci-confidence limits are computed via bootstrapping,
-               default None.
-    :param d: spacing of bin centers for binned data, if supplied
-              correction factor is used to correct for bias in
-              estimation of r, in radians (!)
-    :param axis: compute along this dimension, default is None
-                 (across all dimensions)
-    :param axial_correction: axial correction (2,3,4,...), default is 1
-    :param bootstrap_iter: number of bootstrap iterations
-                          (number of samples if None)
-    :return: mean resultant length
+    Parameters
+    ----------
+    alpha : np.ndarray
+        Sample of angles in radians.
+    w : np.ndarray, optional
+        Number of incidences in case of binned angle data.
+    ci : float, optional
+        Confidence limits computed via bootstrapping. Default is None.
+    d : float, optional
+        Spacing of bin centers for binned data. If supplied,
+        correction factor is used to correct for bias in
+        estimation of r, in radians.
+    axis : int, optional
+        Dimension along which to compute the result. Default is None
+        (across all dimensions).
+    axial_correction : int, optional
+        Axial correction factor (2, 3, 4,...). Default is 1.
+    bootstrap_iter : int, optional
+        Number of bootstrap iterations (number of samples if None).
 
-    References: [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
+    Returns
+    -------
+    float
+        Mean resultant vector length.
+
+    References
+    ----------
+    [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
     """
     if axis is None:
         axis = 0
@@ -276,23 +354,41 @@ def resultant_vector_length(
 vector_strength = resultant_vector_length
 
 
-def mean_ci_limits(alpha, ci=0.95, w=None, d=None, axis=None):
+def mean_ci_limits(
+    alpha: np.ndarray,
+    ci: float = 0.95,
+    w: Optional[np.ndarray] = None,
+    d: Optional[float] = None,
+    axis: Optional[int] = None
+) -> np.ndarray:
     """
     Computes the confidence limits on the mean for circular data.
 
-    :param alpha: sample of angles in radians
-    :param ci: ci-confidence limits are computed, default 0.95
-    :param w: number of incidences in case of binned angle data
-    :param d: spacing of bin centers for binned data, if supplied
-              correction factor is used to correct for bias in
-              estimation of r, in radians (!)
-    :param axis: compute along this dimension, default is None
-                 (across all dimensions)
+    Parameters
+    ----------
+    alpha : np.ndarray
+        Sample of angles in radians.
+    ci : float, optional
+        Confidence interval limits are computed. Default is 0.95.
+    w : np.ndarray, optional
+        Number of incidences in case of binned angle data.
+    d : float, optional
+        Spacing of bin centers for binned data. If supplied,
+        correction factor is used to correct for bias in
+        estimation of r, in radians.
+    axis : int, optional
+        Dimension along which to compute the result. Default is None
+        (across all dimensions).
 
-    :return: confidence limit width d; mean +- d yields upper/lower
-             (1-xi)% confidence limit
+    Returns
+    -------
+    np.ndarray
+        Confidence limit width d; mean ± d yields upper/lower
+        (1 - xi)% confidence limit.
 
-    References: [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
+    References
+    ----------
+    [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
     """
 
     if w is None:
@@ -328,28 +424,47 @@ def mean_ci_limits(alpha, ci=0.95, w=None, d=None, axis=None):
 
 
 @mod2pi
-def mean(alpha, w=None, ci=None, d=None, axis=None, axial_correction=1):
+def mean(
+    alpha: np.ndarray,
+    w: Optional[np.ndarray] = None,
+    ci: Optional[float] = None,
+    d: Optional[float] = None,
+    axis: Optional[int] = None,
+    axial_correction: int = 1
+) -> Union[float, Tuple[float, CI]]:
     """
     Compute mean direction of circular data.
 
-    :param alpha: circular data
-    :param w: 	 weightings in case of binned angle data
-    :param ci: if not None, the upper and lower 100*ci% confidence
-               interval is returned as well
-    :param d: spacing of bin centers for binned data, if supplied
-              correction factor is used to correct for bias in
-              estimation of r, in radians (!)
-    :param axis: compute along this dimension, default is None
-                 (across all dimensions)
-    :param axial_correction: axial correction (2,3,4,...), default is 1
-    :return: circular mean if ci=None, or circular mean as well as lower and
-             upper confidence interval limits
+    Parameters
+    ----------
+    alpha : np.ndarray
+        Circular data.
+    w : np.ndarray, optional
+        Weightings in case of binned angle data.
+    ci : float, optional
+        If not None, the upper and lower 100*ci% confidence
+        interval is returned as well.
+    d : float, optional
+        Spacing of bin centers for binned data. If supplied,
+        correction factor is used to correct for bias in
+        estimation of r, in radians.
+    axis : int, optional
+        Compute along this dimension. Default is None
+        (across all dimensions).
+    axial_correction : int, optional
+        Axial correction (2,3,4,...). Default is 1.
 
-    Example
+    Returns
+    -------
+    float or Tuple[float, CI]
+        Circular mean if ci is None, or circular mean as well as lower and
+        upper confidence interval limits.
+
+    Examples
+    --------
     >>> import numpy as np
-    >>> data = 2*np.pi*np.random.rand(10)
+    >>> data = 2 * np.pi * np.random.rand(10)
     >>> mu, (ci_l, ci_u) = mean(data, ci=0.95)
-
     """
 
     cmean = _complex_mean(alpha, w=w, axis=axis, axial_correction=axial_correction)
@@ -366,16 +481,22 @@ def mean(alpha, w=None, ci=None, d=None, axis=None, axial_correction=1):
 
 
 @mod2pi
-def center(*args, **kwargs):
+def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...]:
     """
     Centers the data on its circular mean.
 
     Each non-keyword argument is another data array that is centered.
 
-    :param axis: the mean is computed along this dimension (default axis=None).
-                **Must be used as a keyword argument!**
-    :return: tuple of centered data arrays
+    Parameters
+    ----------
+    axis : int, optional
+        The mean is computed along this dimension (default is None).
+        **Must be used as a keyword argument!**
 
+    Returns
+    -------
+    tuple of np.ndarray
+        Tuple of centered data arrays.
     """
 
     axis = kwargs.pop("axis", None)
@@ -399,7 +520,33 @@ def center(*args, **kwargs):
         )
 
 
-def get_var(f, varnames, args, kwargs):
+def get_var(f: Callable, varnames: List[str], args: List[Any], kwargs: Dict[str, Any]) -> Tuple[List[int], List[str]]:
+    """
+    Retrieve indices of specified variables from a function's argument list.
+
+    Parameters
+    ----------
+    f : Callable
+        The function from which to retrieve variable information.
+    varnames : list of str
+        The names of the variables to retrieve.
+    args : list
+        Positional arguments passed to the function.
+    kwargs : dict
+        Keyword arguments passed to the function.
+
+    Returns
+    -------
+    tuple of (list of int, list of str)
+        A tuple containing two elements:
+        - A list of indices of the specified variables in the function's argument list.
+        - A list of keys for the keyword arguments that correspond to the specified variables.
+    
+    Raises
+    ------
+    ValueError
+        If a specified variable is not found in the function's argument list.
+    """
     fvarnames = f.__code__.co_varnames
 
     var_idx = []
@@ -423,28 +570,42 @@ def get_var(f, varnames, args, kwargs):
 
 class swap2zeroaxis:
     """
-    This decorator is best explained by an example::
+    Decorator to swap specified axes of input arguments to zero and swap them back in output.
 
-        @swap2zeroaxis(['x','y'], [0, 1])
-        def dummy(x,y,z, axis=None):
-            return np.mean(x[::2,...], axis=0), np.mean(y[::2, ...], axis=0), z
+    Parameters
+    ----------
+    inputs : list of str
+        The names of the input arguments for which the axes are swapped.
+    out_idx : list of int
+        The indices of the output arguments whose axes will be swapped back.
 
-    This creates a new function that
+    Raises
+    ------
+    ValueError
+        If a specified output index is inconsistent with a single output argument.
 
-    - either swaps the axes axis to zero for the arguments x and y if axis
-      is specified in dummy or ravels x and y
-    - swaps back the axes from the output arguments 0 and 1. Here it is
-      assumed that the outputs lost one dimension during the function
-      (e.g. like numpy.mean(x, axis=1) looses one axis).
+    Examples
+    --------
+
+    >>> @swap2zeroaxis(['x', 'y'], [0, 1])
+    >>> def dummy(x, y, z, axis=None):
+    >>>    return np.mean(x[::2, ...], axis=0), np.mean(y[::2, ...], axis=0), z
+
+    This creates a new function that:
+    
+    - Either swaps the specified axes to zero for the arguments `x` and `y` 
+      if `axis` is specified in the wrapped function, or flattens `x` and `y`.
+    - Swaps back the axes from the output arguments, assuming the outputs lost 
+      one dimension during the function (e.g., like `numpy.mean(x, axis=1)`).
     """
 
-    def __init__(self, inputs, out_idx):
+    def __init__(self, inputs: list[str], out_idx: list[int]):
         self.inputs = inputs
         self.out_idx = out_idx
 
-    def __call__(self, f):
+    def __call__(self, f: callable) -> callable:
 
-        def _deco(f, *args, **kwargs):
+        def _deco(f: callable, *args: tuple, **kwargs: dict) -> tuple:
 
             to_swap_idx, to_swap_keys = get_var(f, self.inputs, args, kwargs)
             args = list(args)
@@ -505,27 +666,38 @@ class swap2zeroaxis:
 
 
 @swap2zeroaxis(["alpha", "w"], [0, 1])
-def rayleigh(alpha, w=None, d=None, axis=None):
+def rayleigh(alpha: np.ndarray, w: np.ndarray = None, d: float = None, axis: int = None) -> Tuple[float, float]:
     """
     Computes Rayleigh test for non-uniformity of circular data.
 
     H0: the population is uniformly distributed around the circle
-    HA: the populatoin is not distributed uniformly around the circle
+    HA: the population is not distributed uniformly around the circle
 
     Assumption: the distribution has maximally one mode and the data is
     sampled from a von Mises distribution!
 
-    :param alpha: sample of angles in radian
-    :param w:       number of incidences in case of binned angle data
-    :param d:     spacing of bin centers for binned data, if supplied
-                  correction factor is used to correct for bias in
-                  estimation of r
-    :param axis:  compute along this dimension, default is None
-                  if axis=None, array is raveled
-    :return pval: two-tailed p-value
-    :return z:    value of the z-statistic
+    Parameters
+    ----------
+    alpha : ndarray
+        Sample of angles in radians.
+    w : ndarray, optional
+        Number of incidences in case of binned angle data.
+    d : float, optional
+        Spacing of bin centers for binned data, if supplied.
+        Correction factor is used to correct for bias in estimation of r.
+    axis : int, optional
+        Compute along this dimension, default is None; if None, the array is raveled.
 
-    References: [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
+    Returns
+    -------
+    pval : float
+        Two-tailed p-value.
+    z : float
+        Value of the z-statistic.
+
+    References
+    ----------
+    [Fisher1995]_, [Jammalamadaka2001]_, [Zar2009]_
     """
 
     if w is None:

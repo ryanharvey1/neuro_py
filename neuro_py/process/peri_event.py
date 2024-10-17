@@ -1,8 +1,9 @@
 import warnings
-from typing import Union
+from typing import Optional, Tuple, Union, List
 
 import numpy as np
 import pandas as pd
+from nelpy import EpochArray
 from nelpy.core._eventarray import SpikeTrainArray
 from numba import jit, prange
 from scipy import stats
@@ -17,19 +18,16 @@ def crossCorr(
     nbins: int,
 ) -> np.ndarray:
     """
-    Performs the discrete cross-correlogram of two time series.
-    The units should be in s for all arguments.
-    Return the firing rate of the series t2 relative to the timings of t1.
+    Perform the discrete cross-correlogram of two time series.
 
-    crossCorr functions from Guillaume Viejo of Peyrache Lab
-    https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py
-    https://github.com/pynapple-org/pynapple/blob/main/pynapple/process/correlograms.py
+    This function calculates the firing rate of the series 't2' relative to the timings of 't1'.
+    The units should be in seconds for all arguments.
 
     Parameters
     ----------
-    t1 : array
+    t1 : np.ndarray
         First time series.
-    t2 : array
+    t2 : np.ndarray
         Second time series.
     binsize : float
         Size of the bin in seconds.
@@ -38,9 +36,15 @@ def crossCorr(
 
     Returns
     -------
-    C : array
+    np.ndarray
         Cross-correlogram of the two time series.
 
+    Notes
+    -----
+    This implementation is based on the work of Guillaume Viejo.
+    References:
+    - https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py
+    - https://github.com/pynapple-org/pynapple/blob/main/pynapple/process/correlograms.py
     """
     # Calculate the length of the input time series
     nt1 = len(t1)
@@ -94,7 +98,41 @@ def compute_psth(
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: list = None,
-):
+) -> pd.DataFrame:
+    """
+    Compute the Peri-Stimulus Time Histogram (PSTH) from spike trains.
+
+    This function calculates the PSTH for a given set of spike times aligned to specific events.
+    The PSTH provides a histogram of spike counts in response to the events over a defined time window.
+
+    Parameters
+    ----------
+    spikes : np.ndarray
+        An array of spike times for multiple trials, with each trial in a separate row.
+    event : np.ndarray
+        An array of event times to which the spikes are aligned.
+    bin_width : float, optional
+        Width of each time bin in seconds (default is 0.002 seconds).
+    n_bins : int, optional
+        Number of bins to create for the histogram (default is 100).
+    window : list, optional
+        Time window around each event to consider for the PSTH. If None, a symmetric window is created based on `n_bins` and `bin_width`.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the PSTH, indexed by time bins and columns representing each trial's PSTH.
+
+    Notes
+    -----
+    If the specified window is not symmetric around 0, it is adjusted to be symmetric.
+
+    Example
+    -------
+    >>> spikes = np.array([[0.1, 0.15, 0.2], [0.1, 0.12, 0.13]])
+    >>> event = np.array([0.1, 0.3])
+    >>> psth = compute_psth(spikes, event)
+    """
     if window is not None:
         window_original = None
         # check if window is symmetric around 0, if not make it so
@@ -123,42 +161,34 @@ def compute_psth(
     return ccg
 
 
-def joint_peth(peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2):
+def joint_peth(
+    peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     joint_peth - produce a joint histogram for the co-occurrence of two sets of signals around events.
-    PETH1 and PETH2 should be in the format of PETH, see example usage below.
+
     This analysis tests for interactions. For example, the interaction of
     ripples and spindles around the occurrence of delta waves. It is a good way
     to control whether the relationships between two variables is entirely explained
-    by a third variable (the events serving as basis for the PETHs). See Sirota et al. (2003)
-
-    % Note: sometimes the difference between "joint" and "expected" may be dominated due to
-    % brain state effects (e.g. if both ripples are spindles are more common around delta
-    % waves taking place in early SWS and have decreased rates around delta waves in late
-    % SWS, then all the values of "joint" would be larger than the value of "expected".
-    % In such a case, to investigate the timing effects in particular and ignore such
-    % global changes (correlations across the rows of "PETH1" and "PETH2"), consider
-    % normalizing the rows of the PETHs before calling joint_peth.
-
-    Adapted from JointPETH.m, Copyright (C) 2018-2022 by Ralitsa Todorova
+    by a third variable (the events serving as basis for the PETHs).
 
     Parameters
     ----------
-    peth_1 : array
-        The first peri-event time histogram (PETH) signal, (n events x time).
-    peth_2 : array
-        The second peri-event time histogram (PETH) signal, (n events x time).
+    peth_1 : np.ndarray
+        The first peri-event time histogram (PETH) signal, shape (n_events, n_time).
+    peth_2 : np.ndarray
+        The second peri-event time histogram (PETH) signal, shape (n_events, n_time).
     smooth_std : float, optional
-        The standard deviation of the Gaussian smoothing kernel (default value is 2).
+        The standard deviation of the Gaussian smoothing kernel (default is 2).
 
     Returns
     -------
-    joint : array
-        The joint histogram of the two PETH signals (time x time).
-    expected : array
-        The expected histogram of the two PETH signals (time x time).
-    difference : array
-        The difference between the joint and expected histograms of the two PETH signals (time x time).
+    joint : np.ndarray
+        The joint histogram of the two PETH signals (n_time, n_time).
+    expected : np.ndarray
+        The expected histogram of the two PETH signals (n_time, n_time).
+    difference : np.ndarray
+        The difference between the joint and expected histograms of the two PETH signals (n_time, n_time).
 
     Example
     -------
@@ -186,8 +216,19 @@ def joint_peth(peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2):
     # calculate the joint, expected, and difference histograms
     joint, expected, difference = joint_peth(peth_1.T, peth_2.T, smooth_std=2)
 
+    Notes
+    -----
+    Note: sometimes the difference between "joint" and "expected" may be dominated due to
+    brain state effects (e.g. if both ripples are spindles are more common around delta
+    waves taking place in early SWS and have decreased rates around delta waves in late
+    SWS, then all the values of "joint" would be larger than the value of "expected".
+    In such a case, to investigate the timing effects in particular and ignore such
+    global changes (correlations across the rows of "PETH1" and "PETH2"), consider
+    normalizing the rows of the PETHs before calling joint_peth.
 
-    also see plot_joint_peth in figure_helpers.py
+    See Sirota et al. (2003)
+
+    Adapted from JointPETH.m, Copyright (C) 2018-2022 by Ralitsa Todorova
     """
     from scipy.ndimage import gaussian_filter
 
@@ -223,20 +264,34 @@ def joint_peth(peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2):
     return joint, expected, difference
 
 
-def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
+def deconvolve_peth(
+    signal: np.ndarray, events: np.ndarray, bin_width: float = 0.002, n_bins: int = 100
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    This function performs deconvolution of a peri-event time histogram (PETH) signal.
+    Perform deconvolution of a peri-event time histogram (PETH) signal.
 
-    Parameters:
-    signal (array): An array representing the discrete events.
-    events (array): An array representing the discrete events.
-    bin_width (float, optional): The width of a time bin in seconds (default value is 0.002 seconds).
-    n_bins (int, optional): The number of bins to use in the PETH (default value is 100 bins).
+    This function calculates the deconvolved signal based on the input signal and events.
 
-    Returns:
-    deconvolved (array): An array representing the deconvolved signal.
-    times (array): An array representing the time points corresponding to the bins.
+    Parameters
+    ----------
+    signal : np.ndarray
+        An array representing the discrete events.
+    events : np.ndarray
+        An array representing the discrete events.
+    bin_width : float, optional
+        The width of a time bin in seconds (default is 0.002 seconds).
+    n_bins : int, optional
+        The number of bins to use in the PETH (default is 100 bins).
 
+    Returns
+    -------
+    deconvolved : np.ndarray
+        An array representing the deconvolved signal.
+    times : np.ndarray
+        An array representing the time points corresponding to the bins.
+
+    Notes
+    -----
     Based on DeconvolvePETH.m from https://github.com/ayalab1/neurocode/blob/master/spikes/DeconvolvePETH.m
     """
 
@@ -272,7 +327,13 @@ def deconvolve_peth(signal, events, bin_width=0.002, n_bins=100):
 
 
 @jit(nopython=True)
-def get_raster_points(data, time_ref, bin_width=0.002, n_bins=100, window=None):
+def get_raster_points(
+    data: np.ndarray,
+    time_ref: np.ndarray,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+    window: Optional[Tuple[float, float]] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate points for a raster plot centered around each reference time in the `time_ref` array.
 
@@ -324,7 +385,7 @@ def peth_matrix(
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: Union[list, None] = None,
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate a peri-event time histogram (PETH) matrix.
 
@@ -369,35 +430,38 @@ def peth_matrix(
 
 
 def event_triggered_average_irregular_sample(
-    timestamps, data, time_ref, bin_width=0.002, n_bins=100, window=None
-):
+    timestamps: np.ndarray,
+    data: np.ndarray,
+    time_ref: np.ndarray,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+    window: Union[tuple, None] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Compute the average and standard deviation of data values within a window around
-    each reference time.
-
-    Specifically for irregularly sampled data
+    each reference time, specifically for irregularly sampled data.
 
     Parameters
     ----------
-    timestamps : ndarray
+    timestamps : np.ndarray
         A 1D array of times associated with data.
-    data : ndarray
+    data : np.ndarray
         A 1D array of data values.
-    time_ref : ndarray
+    time_ref : np.ndarray
         A 1D array of reference times.
     bin_width : float, optional
         The width of each bin in the window, in seconds. Default is 0.002 seconds.
     n_bins : int, optional
         The number of bins in the window. Default is 100.
-    window : tuple, optional
+    window : Union[tuple, None], optional
         A tuple containing the start and end times of the window to be plotted around each reference time.
         If not provided, the window will be centered around each reference time and have a
         width of `n_bins * bin_width` seconds.
 
     Returns
     -------
-    pd.DataFrame, pd.DataFrame
-        two dataframes, the first containing the average values, the second the
+    Tuple[pd.DataFrame, pd.DataFrame]
+        Two DataFrames: the first containing the average values, the second the
         standard deviation of data values within the window around each reference time.
     """
 
@@ -441,45 +505,43 @@ def event_triggered_average_irregular_sample(
 def event_triggered_average(
     timestamps: np.ndarray,
     signal: np.ndarray,
-    events: np.ndarray,
-    sampling_rate=None,
-    window=[-0.5, 0.5],
+    events: Union[np.ndarray, List[np.ndarray]],
+    sampling_rate: Union[float, None] = None,
+    window: List[float] = [-0.5, 0.5],
     return_pandas: bool = False,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculates the spike-triggered averages of signals in a time window
-    relative to the event times of a corresponding events for multiple
-    signals each. The function receives n signals and either one or
-    n events. In case it is one event this one is muliplied n-fold
-    and used for each of the n signals.
-
-    adapted from elephant.sta.spike_triggered_average to be used with ndarray
+    relative to the event times of corresponding events for multiple signals.
 
     Parameters
     ----------
-    timestamps : ndarray (n samples)
+    timestamps : np.ndarray
+        A 1D array of timestamps corresponding to the signal samples.
 
-    signal : ndarray (n samples x n signals)
+    signal : np.ndarray
+        A 2D array of shape (n_samples, n_signals) containing the signal values.
 
-    events : one numpy ndarray or a list of n of either of these.
+    events : Union[np.ndarray, List[np.ndarray]]
+        One or more 1D arrays of event times. If a single array is provided,
+        it will be multiplied n-fold to match the number of signals.
 
-    window : tuple of 2.
-        'window' is the start time and the stop time, relative to a event, of
-        the time interval for signal averaging.
-        If the window size is not a multiple of the sampling interval of the
-        signal the window will be extended to the next multiple.
+    sampling_rate : Union[float, None], optional
+        The sampling rate of the signal. If not provided, it will be calculated
+        based on the timestamps.
+
+    window : List[float], optional
+        A list containing two elements: the start and stop times relative to an event
+        for the time interval of signal averaging. Default is [-0.5, 0.5].
+
+    return_pandas : bool, optional
+        If True, return the result as a Pandas DataFrame. Default is False.
 
     Returns
     -------
-    result_sta : ndarray
-        'result_sta' contains the event-triggered averages of each of the
-        signals with respect to the event in the corresponding
-        events. The length of 'result_sta' is calculated as the number
-        of bins from the given start and stop time of the averaging interval
-        and the sampling rate of the signal. If for an signal
-        no event was either given or all given events had to be ignored
-        because of a too large averaging interval, the corresponding returned
-        signal has all entries as nan.
+    Tuple[np.ndarray, np.ndarray]
+        A tuple containing the event-triggered averages of the signals and the
+        corresponding time lags.
 
 
     Examples
@@ -497,6 +559,10 @@ def event_triggered_average(
 
     >>> plt.plot(time_lags,peth_avg)
     >>> plt.show()
+
+    Notes
+    -----
+    The function is adapted from elephant.sta.spike_triggered_average to be used with ndarray.
     """
 
     # check inputs
@@ -592,26 +658,49 @@ def event_triggered_average_fast(
     signal: np.ndarray,
     events: np.ndarray,
     sampling_rate: int,
-    window=[-0.5, 0.5],
+    window: Union[list, Tuple[float, float]] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
-):
+) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
     """
-    event_triggered_average: Calculate the event triggered average of a signal
+    Calculate the event-triggered average of a signal.
 
-    Args:
-        signal (np.ndarray): 2D array of signal data (channels x timepoints)
-        events (np.ndarray): 1D array of event times
-        sampling_rate (int): Sampling rate of signal.
-        window (list, optional): Time window (seconds) to average signal around event. Defaults to [-0.5, 0.5].
-        return_average (bool, optional): Whether to return the average of the event triggered average. Defaults to True.
-            if False, returns the full event triggered average matrix (channels x timepoints x events)
+    Parameters
+    ----------
+    signal : np.ndarray
+        A 2D array of signal data with shape (channels, timepoints).
 
-    Returns:
-        np.ndarray: Event triggered average of signal
-        np.ndarray: Time lags of event triggered average
+    events : np.ndarray
+        A 1D array of event times.
 
-    note: This version assumes constant sampling rate, no missing data (time gaps), signal start time at 0
+    sampling_rate : int
+        The sampling rate of the signal in Hz.
+
+    window : Union[list, Tuple[float, float]], optional
+        A list or tuple specifying the time window (in seconds) to average the signal
+        around each event. Defaults to [-0.5, 0.5].
+
+    return_average : bool, optional
+        Whether to return the average of the event-triggered average. Defaults to True.
+        If False, returns the full event-triggered average matrix (channels x timepoints x events).
+
+    return_pandas : bool, optional
+        If True, returns the average as a Pandas DataFrame. Defaults to False.
+
+    Returns
+    -------
+    Union[np.ndarray, pd.DataFrame]
+        If `return_average` is True, returns the event-triggered average of the signal
+        (channels x timepoints) or a Pandas DataFrame if `return_pandas` is True.
+        If `return_average` is False, returns the full event-triggered average matrix.
+
+    np.ndarray
+        An array of time lags corresponding to the event-triggered averages.
+
+    Notes
+    -----
+    - The function filters out events that do not fit within the valid range of the signal
+      considering the specified window size.
     """
 
     window_starttime, window_stoptime = window
@@ -653,19 +742,32 @@ def count_in_interval(
     par_type: str = "binary",
 ) -> np.ndarray:
     """
-    count_in_interval: count timestamps in intervals
-    make matrix n rows (units) by n cols (ripple epochs)
-    Input:
-        st: spike train list
-        event_starts: event starts
-        event_stops: event stops
-        par_type: count type (counts, binary (default), firing_rate)
+    Count timestamps in specified intervals and return a matrix where each
+    column represents the counts for each spike train over given event epochs.
 
-        quick binning solution using searchsorted from:
-        https://stackoverflow.com/questions/57631469/extending-histogram-function-to-overlapping-bins-and-bins-with-arbitrary-gap
+    Parameters
+    ----------
+    st : np.ndarray
+        A 1D array where each element is a spike train for a unit.
 
-    Output:
-        unit_mat: matrix (n cells X n epochs) each column shows count per cell per epoch
+    event_starts : np.ndarray
+        A 1D array containing the start times of events.
+
+    event_stops : np.ndarray
+        A 1D array containing the stop times of events.
+
+    par_type : str, optional
+        The type of count calculation to perform:
+        - 'counts': returns raw counts of spikes in the intervals.
+        - 'binary': returns a binary matrix indicating presence (1) or absence (0) of spikes.
+        - 'firing_rate': returns the firing rate calculated as counts divided by the interval duration.
+        Defaults to 'binary'.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array (n units x n epochs) where each column shows the counts (or binary values or firing rates)
+        per unit for each epoch.
     """
     # convert to numpy array
     event_starts, event_stops = np.array(event_starts), np.array(event_stops)
@@ -695,33 +797,61 @@ get_participation = count_in_interval
 
 
 def get_rank_order(
-    st,
-    epochs,
-    method="peak_fr",  # 'first_spike' or 'peak_fr'
-    ref="cells",  # 'cells' or 'epochs'
-    padding=0.05,
-    dt=0.001,
-    sigma=0.01,
-    min_units=5,
-):
+    st: SpikeTrainArray,  # Assuming 'nelpy.array' is a custom type
+    epochs: EpochArray,
+    method: str = "peak_fr",  # 'first_spike' or 'peak_fr'
+    ref: str = "cells",  # 'cells' or 'epoch'
+    padding: float = 0.05,
+    dt: float = 0.001,
+    sigma: float = 0.01,
+    min_units: int = 5,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    get rank order of spike train within epoch
-    Input:
-        st: spike train nelpy array
-        epochs: epoch array, windows in which to calculate rank order
-        method: method of rank order 'first_spike' or 'peak_fr' (default: peak_fr)
-        ref: frame of reference for rank order ('cells' or 'epoch') (default: cells)
-        padding: +- padding for epochs
-        dt: bin width (s) for finding relative time (epoch ref)
-        sigma: smoothing sigma (s) (peak_fr method)
-    Output:
-        median_rank: median rank order over all epochs (0-1)
-        rank_order: matrix (n cells X n epochs) each column shows rank per cell per epoch (0-1)
+    Calculate the rank order of spike trains within specified epochs.
 
-    Example:
-        st,_ = loading.load_spikes(basepath,putativeCellType='Pyr')
-        forward_replay = nel.EpochArray(np.array([starts,stops]).T)
-        median_rank,rank_order = get_rank_order(st,forward_replay)
+    Parameters
+    ----------
+    st : np.ndarray or nelpy.array
+        Spike train data. Can be a nelpy array containing spike times.
+
+    epochs : nelpy.EpochArray
+        An object containing the epochs (windows) in which to calculate the rank order.
+
+    method : str, optional
+        Method to calculate rank order. Choices are 'first_spike' or 'peak_fr'.
+        Defaults to 'peak_fr'.
+
+    ref : str, optional
+        Reference frame for rank order. Choices are 'cells' or 'epoch'.
+        Defaults to 'cells'.
+
+    padding : float, optional
+        Padding (in seconds) to apply to the epochs. Defaults to 0.05 seconds.
+
+    dt : float, optional
+        Bin width (in seconds) for finding relative time in the epoch reference.
+        Defaults to 0.001 seconds.
+
+    sigma : float, optional
+        Smoothing sigma (in seconds) for the 'peak_fr' method. Defaults to 0.01 seconds.
+
+    min_units : int, optional
+        Minimum number of active units required to compute the rank order. Defaults to 5.
+
+    Returns
+    -------
+    median_rank : np.ndarray
+        The median rank order across all epochs, normalized between 0 and 1.
+
+    rank_order : np.ndarray
+        A 2D array of rank orders, where each column corresponds to an epoch,
+        and each row corresponds to a cell, normalized between 0 and 1.
+
+    Examples
+    --------
+    >>> st, _ = loading.load_spikes(basepath, putativeCellType='Pyr')
+    >>> forward_replay = nel.EpochArray(np.array([starts, stops]).T)
+    >>> median_rank, rank_order = get_rank_order(st, forward_replay)
     """
     # filter out specific warnings
     warnings.filterwarnings(
@@ -838,21 +968,25 @@ def get_rank_order(
     return np.nanmedian(rank_order, axis=1), rank_order
 
 
-def count_events(events, time_ref, time_range):
+def count_events(
+    events: np.ndarray, time_ref: np.ndarray, time_range: Tuple[float, float]
+) -> np.ndarray:
     """
     Count the number of events that occur within a given time range after each reference event.
+
     Parameters
     ----------
-    events : ndarray
+    events : np.ndarray
         A 1D array of event times.
-    time_ref : ndarray
+    time_ref : np.ndarray
         A 1D array of reference times.
-    time_range : tuple
+    time_range : tuple of (float, float)
         A tuple containing the start and end times of the time range.
+
     Returns
     -------
-    counts : ndarray
-        A 1D array of event counts, one for each reference time (same len as time_ref).
+    counts : np.ndarray
+        A 1D array of event counts, one for each reference time (same length as time_ref).
     """
     # Initialize an array to store the event counts
     counts = np.zeros_like(time_ref)
@@ -868,26 +1002,26 @@ def count_events(events, time_ref, time_range):
 
 
 @jit(nopython=True)
-def relative_times(t, intervals, values=np.array([0, 1])):
+def relative_times(
+    t: np.ndarray, intervals: np.ndarray, values: np.ndarray = np.array([0, 1])
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate relative times and interval IDs for a set of time points.
-    Intervals are defined as pairs of start and end times. The relative time is the time
-    within the interval, normalized to the interval duration. The interval ID is the index
-    of the interval in the intervals array. The values array can be used to assign a value
-    to each interval.
+
     Parameters
     ----------
-    t : ndarray
+    t : np.ndarray
         An array of time points.
-    intervals : ndarray
+    intervals : np.ndarray
         An array of time intervals, represented as pairs of start and end times.
-    values : ndarray, optional
+    values : np.ndarray, optional
         An array of values to assign to interval bounds. The default is [0,1].
+
     Returns
     -------
-    rt : ndarray
+    rt : np.ndarray
         An array of relative times, one for each time point (same len as t).
-    intervalID : ndarray
+    intervalID : np.ndarray
         An array of interval IDs, one for each time point (same len as t).
 
     Examples
@@ -905,6 +1039,13 @@ def relative_times(t, intervals, values=np.array([0, 1])):
         (array([       nan, 0.        , 3.14159265, 6.28318531, 0.        ,
                 3.14159265, 6.28318531, 0.        , 3.14159265, 6.28318531]),
         array([nan,  0.,  0.,  0.,  1.,  1.,  1.,  2.,  2.,  2.]))
+
+    Notes
+    -----
+    Intervals are defined as pairs of start and end times. The relative time is the time
+    within the interval, normalized to the interval duration. The interval ID is the index
+    of the interval in the intervals array. The values array can be used to assign a value
+    to each interval.
 
     By Ryan H, based on RelativeTimes.m by Ralitsa Todorova
 
@@ -935,24 +1076,36 @@ def relative_times(t, intervals, values=np.array([0, 1])):
     return rt, intervalID
 
 
-def nearest_event_delay(ts_1: np.ndarray, ts_2: np.ndarray) -> np.ndarray:
+def nearest_event_delay(
+    ts_1: np.ndarray, ts_2: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Return for each timestamp in ts_1 the nearest timestamp in ts_2 and the delay between the two
+    Return for each timestamp in ts_1 the nearest timestamp in ts_2 and the delay between the two.
 
     Parameters
     ----------
-    ts_1 : array-like
-        timestamps
-    ts_2 : array-like
-        timestamps
+    ts_1 : np.ndarray
+        1D array of timestamps.
+    ts_2 : np.ndarray
+        1D array of timestamps (must be monotonically increasing).
+
     Returns
     -------
-    nearest_ts : array-like
-        nearest timestamps in ts_2
-    delays : array-like
-        delays between ts_1 and nearest_ts
-    nearest_index : array-like
-        index of nearest_ts in ts_2
+    nearest_ts : np.ndarray
+        Nearest timestamps in ts_2 for each timestamp in ts_1.
+    delays : np.ndarray
+        Delays between ts_1 and nearest_ts.
+    nearest_index : np.ndarray
+        Index of nearest_ts in ts_2.
+
+    Raises
+    ------
+    ValueError
+        If ts_1 or ts_2 are empty or not monotonically increasing.
+
+    Notes
+    -----
+    Both ts_1 and ts_2 must be monotonically increasing arrays of timestamps.
     """
     ts_1, ts_2 = np.array(ts_1), np.array(ts_2)
 
@@ -1002,48 +1155,48 @@ def event_spiking_threshold(
     sigma: float = 0.02,
     min_units: int = 6,
     show_fig: bool = False,
-):
+) -> np.ndarray:
     """
     event_spiking_threshold: filter events based on spiking threshold
+
     Parameters
     ----------
     spikes : nel.SpikeTrainArray
-        spike train array
+        Spike train array of neurons.
     events : np.ndarray
-        event times
-    window : list, optional
-        window to compute the event triggered average, by default [-0.5, 0.5]
+        Event times in seconds.
+    window : list of float, optional
+        Time window (in seconds) to compute event-triggered average, by default [-0.5, 0.5].
     event_size : float, optional
-        event size in seconds (assumed firing increase location, +-), by default 0.1
+        Time window (in seconds) around event to measure firing response, by default 0.1.
     spiking_thres : float, optional
-        spiking threshold in zscore units, by default 0
+        Spiking threshold in z-score units, by default 0.
     binsize : float, optional
-        bin size, by default 0.01
+        Bin size (in seconds) for time-binning the spike trains, by default 0.01.
     sigma : float, optional
-        sigma for smoothing binned spike train, by default 0.02
+        Standard deviation (in seconds) for Gaussian smoothing of spike counts, by default 0.02.
     min_units : int, optional
-        minimum number of units to compute the event triggered average, by default 6
+        Minimum number of units required to compute event-triggered average, by default 6.
     show_fig : bool, optional
-        show figure, by default False
+        If True, plots the figure of event-triggered spiking activity, by default False.
+
     Returns
     -------
     np.ndarray
-        valid events
+        Boolean array indicating valid events that meet the spiking threshold.
 
     Example
     -------
-    basepath = r"U:\data\hpc_ctx_project\HP04\day_32_20240430"
-    ripples = loading.load_ripples_events(basepath, return_epoch_array=False)
-
-    st, cell_metrics = loading.load_spikes(
-        basepath,
-        brainRegion="CA1",
-        support=nel.EpochArray([0, loading.load_epoch(basepath).iloc[-1].stopTime]),
-    )
-    idx = event_spiking_threshold(st, ripples.peaks.values, show_fig=True)
-    print(f"Number of valid ripples: {idx.sum()} out of {len(ripples)}")
-
-    >>> Number of valid ripples: 9244 out of 12655
+    >>> basepath = r"U:\\data\\hpc_ctx_project\\HP04\\day_32_20240430"
+    >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=False)
+    >>> st, cell_metrics = loading.load_spikes(
+            basepath,
+            brainRegion="CA1",
+            support=nel.EpochArray([0, loading.load_epoch(basepath).iloc[-1].stopTime])
+        )
+    >>> idx = event_spiking_threshold(st, ripples.peaks.values, show_fig=True)
+    >>> print(f"Number of valid ripples: {idx.sum()} out of {len(ripples)}")
+    Number of valid ripples: 9244 out of 12655
 
     """
 
@@ -1074,6 +1227,7 @@ def event_spiking_threshold(
     if show_fig:
         import matplotlib.pyplot as plt
         import seaborn as sns
+
         sorted_idx = np.argsort(event_response)
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5), sharey=True)

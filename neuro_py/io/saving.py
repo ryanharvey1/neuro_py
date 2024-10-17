@@ -1,5 +1,3 @@
-""" Loading functions for cell explorer format"""
-
 import os
 from typing import Union
 
@@ -15,7 +13,7 @@ def epoch_to_mat(
     detection_name: Union[None, str] = None,
 ) -> None:
     """
-    Save an EpochArray to a .mat file in the cell explorer format.
+    Save an EpochArray to a .mat file in the Cell Explorer format.
 
     Parameters
     ----------
@@ -26,7 +24,7 @@ def epoch_to_mat(
     epoch_name : str
         Name of the epoch.
     detection_name : Union[None, str], optional
-        Name of the detection, by default None
+        Name of the detection, by default None.
     """
     filename = os.path.join(
         basepath, os.path.basename(basepath) + "." + epoch_name + ".events.mat"

@@ -15,14 +15,41 @@ Also assume the system state evolves after every input:
 This is a linear dynamical system.
 """
 
+from typing import Tuple, Union
 import numpy as np
 import scipy as sp
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
 
 
-def ideal_data(num, dimU, dimY, dimX, noise=1):
-    """Linear system data"""
+def ideal_data(num: int, dimU: int, dimY: int, dimX: int, noise: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate linear system data.
+
+    This function creates randomized linear system matrices and simulates a linear
+    system with specified dimensions. The resulting output data includes added noise.
+
+    Parameters
+    ----------
+    num : int
+        Number of time points (samples).
+    dimU : int
+        Dimensionality of the input (control inputs).
+    dimY : int
+        Dimensionality of the output.
+    dimX : int
+        Dimensionality of the state.
+    noise : float
+        Standard deviation of the noise added to the output (default: 1.0).
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        U : np.ndarray
+            Random input data of shape (num, dimU).
+        Y : np.ndarray
+            Output data of shape (num, dimY) with added noise.
+    """
     # generate randomized linear system matrices
     A = np.random.randn(dimX, dimX)
     B = np.random.randn(dimX, dimU)
@@ -59,14 +86,34 @@ def ideal_data(num, dimU, dimY, dimX, noise=1):
 
 class SystemIdentifier(object):
     """
-    Simple Subspace System Identifier
-    - U is an n-by-d matrix of "control inputs".
-    - Y is an n-by-D matrix of output observations.
-    - statedim is the dimension of the internal state variable.
-    - reg is a regularization parameter (optional).
+    Simple Subspace System Identifier.
+
+    This class identifies a linear dynamical system based on given input and output data using subspace methods.
+    
+    Parameters
+    ----------
+    U : np.ndarray
+        An n-by-d matrix of control inputs.
+    Y : np.ndarray
+        An n-by-D matrix of output observations.
+    statedim : int
+        The dimension of the internal state variable.
+    reg : float, optional
+        Regularization parameter (default is None, which is set to 0).
+
+    Attributes
+    ----------
+    A : np.ndarray
+        State transition matrix.
+    B : np.ndarray
+        Control input matrix.
+    C : np.ndarray
+        Output matrix.
+    D : np.ndarray
+        Feedforward matrix.
     """
 
-    def __init__(self, U, Y, statedim, reg=None):
+    def __init__(self, U: np.ndarray, Y: np.ndarray, statedim: int, reg: Union[float, None] = None):
         if np.size(np.shape(U)) == 1:
             U = np.reshape(U, (-1, 1))
         if np.size(np.shape(Y)) == 1:
@@ -134,10 +181,23 @@ class SystemIdentifier(object):
         self.C = Sys[statedim:, :statedim]
         self.D = Sys[statedim:, statedim:]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Linear Dynamical System"
 
-    def predict(self, U):
+    def predict(self, U: np.ndarray) -> np.ndarray:
+        """
+        Predict output given the control inputs.
+
+        Parameters
+        ----------
+        U : np.ndarray
+            Control inputs, shape (n_samples, n_controls).
+
+        Returns
+        -------
+        np.ndarray
+            Predicted outputs, shape (n_samples, n_outputs).
+        """
         # If U is a vector, reshape it
         if np.size(np.shape(U)) == 1:
             U = np.reshape(U, (-1, 1))

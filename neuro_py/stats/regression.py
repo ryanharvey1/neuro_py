@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import numpy as np
 import scipy
 from scipy import sparse
@@ -5,36 +7,64 @@ from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score
 
 
+def ideal_data(
+    num: int, dimX: int, dimY: int, rrank: int, noise: float = 1
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Generate low-rank data.
 
-def ideal_data(num, dimX, dimY, rrank, noise=1):
-    """Low rank data"""
+    Parameters
+    ----------
+    num : int
+        Number of samples.
+    dimX : int
+        Dimensionality of the input data.
+    dimY : int
+        Dimensionality of the output data.
+    rrank : int
+        Rank of the low-rank structure.
+    noise : float, optional
+        Standard deviation of the noise added to the output data (default is 1).
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        A tuple containing:
+        - X : np.ndarray
+            The generated input data of shape (num, dimX).
+        - Y : np.ndarray
+            The generated output data of shape (num, dimY).
+
+    """
     X = np.random.randn(num, dimX)
     W = np.random.randn(dimX, rrank) @ np.random.randn(rrank, dimY)
     Y = X @ W + np.random.randn(num, dimY) * noise
     return X, Y
 
 
-"""
-Reduced rank regression class.
-Requires scipy to be installed.
-
-Implemented by Chris Rayner (2015)
-dchrisrayner AT gmail DOT com
-
-Optimal linear 'bottlenecking' or 'multitask learning'.
-"""
-
-
 class ReducedRankRegressor(object):
     """
-    Reduced Rank Regressor (linear 'bottlenecking' or 'multitask learning')
-    - X is an n-by-d matrix of features.
-    - Y is an n-by-D matrix of targets.
-    - rrank is a rank constraint.
-    - reg is a regularization parameter (optional).
+    Reduced Rank Regressor (linear 'bottlenecking' or 'multitask learning').
+
+    Parameters
+    ----------
+    X : np.ndarray
+        An n-by-d matrix of features.
+    Y : np.ndarray
+        An n-by-D matrix of targets.
+    rank : int
+        A rank constraint.
+    reg : Optional[float], optional
+        A regularization parameter (default is None).
+
+    References
+    ----
+    Implemented by Chris Rayner (2015).
+    dchrisrayner AT gmail DOT com
     """
 
-    def __init__(self, X, Y, rank, reg=None):
+    def __init__(
+        self, X: np.ndarray, Y: np.ndarray, rank: int, reg: Optional[float] = None
+    ):
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         if np.size(np.shape(Y)) == 1:
@@ -49,16 +79,16 @@ class ReducedRankRegressor(object):
         self.W = V[0:rank, :].T
         self.A = (np.linalg.pinv(CXX) @ (CXY @ self.W)).T
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Reduced Rank Regressor (rank = {})".format(self.rank)
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict Y from X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         return X @ (self.A.T @ self.W.T)
 
-    def score(self, X, Y):
+    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         """Score the model."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
@@ -69,26 +99,21 @@ class ReducedRankRegressor(object):
         return r2_score(Y, y_pred)
 
 
-"""
-Multivariate linear regression
-Requires scipy to be installed.
-
-Implemented by Chris Rayner (2015)
-dchrisrayner AT gmail DOT com
-
-Just simple linear regression with regularization - nothing new here
-"""
-
-
 class MultivariateRegressor(object):
     """
     Multivariate Linear Regressor.
-    - X is an n-by-d matrix of features.
-    - Y is an n-by-D matrix of targets.
-    - reg is a regularization parameter (optional).
+
+    Parameters
+    ----------
+    X : np.ndarray
+        An n-by-d matrix of features.
+    Y : np.ndarray
+        An n-by-D matrix of targets.
+    reg : Optional[float], optional
+        A regularization parameter (default is None).
     """
 
-    def __init__(self, X, Y, reg=None):
+    def __init__(self, X: np.ndarray, Y: np.ndarray, reg: Optional[float] = None):
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         if np.size(np.shape(Y)) == 1:
@@ -100,52 +125,64 @@ class MultivariateRegressor(object):
         W2 = np.dot(X, W1)
         self.W = np.dot(Y.T, W2)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Multivariate Linear Regression"
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """Return the predicted Y for input X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         return np.array(np.dot(X, self.W.T))
 
-    def score(self, X, Y):
+    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         """Return the coefficient of determination R^2 of the prediction."""
         y_pred = self.predict(X)
         return r2_score(Y, y_pred)
 
 
-"""
-kernel Reduced Rank Ridge Regression by Mukherjee
-    DOI:10.1002/sam.10138
-
-Code by Michele Svanera (2017-June)
-
-"""
-
-
 class kernelReducedRankRegressor(BaseEstimator):
     """
-    kernel Reduced Rank Ridge Regression
-    - X is an n-by-P matrix of features (n-time points).
-    - Y is an n-by-Q matrix of targets (n-time points).
-    - rank is a rank constraint.
-    - reg is a regularization parameter.
+    Kernel Reduced Rank Ridge Regression.
+
+    Parameters
+    ----------
+    rank : int, optional
+        The rank constraint (default is 10).
+    reg : float, optional
+        The regularization parameter (default is 1).
+    P_rr : Optional[np.ndarray], optional
+        The P matrix for reduced rank (default is None).
+    Q_fr : Optional[np.ndarray], optional
+        The Q matrix for fitted values (default is None).
+    trainX : Optional[np.ndarray], optional
+        The training features (default is None).
+
+    References
+    ----------
+    Mukherjee, S. (DOI:10.1002/sam.10138)
+    Code by Michele Svanera (2017-June).
     """
 
-    def __init__(self, rank=10, reg=1, P_rr=None, Q_fr=None, trainX=None):
+    def __init__(
+        self,
+        rank: int = 10,
+        reg: float = 1,
+        P_rr: Optional[np.ndarray] = None,
+        Q_fr: Optional[np.ndarray] = None,
+        trainX: Optional[np.ndarray] = None,
+    ):
         self.rank = rank
         self.reg = reg
         self.P_rr = P_rr
         self.Q_fr = Q_fr
         self.trainX = trainX
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "kernel Reduced Rank Ridge Regression by Mukherjee (rank = {})".format(
             self.rank
         )
 
-    def fit(self, X, Y):
+    def fit(self, X: np.ndarray, Y: np.ndarray) -> None:
         # use try/except blog with exceptions!
         self.rank = int(self.rank)
 
@@ -159,7 +196,7 @@ class kernelReducedRankRegressor(BaseEstimator):
         self.P_rr = P_rr
         self.trainX = X
 
-    def predict(self, testX):
+    def predict(self, testX: np.ndarray) -> np.ndarray:
         # use try/except blog with exceptions!
 
         K_Xx = scipy.dot(testX, self.trainX.T)
@@ -167,12 +204,12 @@ class kernelReducedRankRegressor(BaseEstimator):
 
         return Yhat
 
-    def rrr_scorer(self, Yhat, Ytest):
+    def rrr_scorer(self, Yhat: np.ndarray, Ytest: np.ndarray) -> float:
         diag_corr = (np.diag(np.corrcoef(Ytest, Yhat))).mean()
         return diag_corr
 
     ## Optional
-    def get_params(self, deep=True):
+    def get_params(self, deep: bool = True) -> dict:
         return {"rank": self.rank, "reg": self.reg}
 
     #
@@ -181,15 +218,27 @@ class kernelReducedRankRegressor(BaseEstimator):
     #            self.setattr(parameter, value)
     #        return self
 
-    def mse(self, X, y_true):
+    def mse(self, X: np.ndarray, y_true: np.ndarray) -> float:
         """
         Score the model on test data.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            The test data features.
+        y_true : np.ndarray
+            The true target values.
+
+        Returns
+        -------
+        float
+            The mean squared error of the predictions.
         """
         Yhat = self.predict(X).real
         MSE = (np.power((y_true - Yhat), 2) / np.prod(y_true.shape)).mean()
         return MSE
 
-    def score(self, X, Y):
+    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         """Score the model."""
 
         y_pred = self.predict(X)

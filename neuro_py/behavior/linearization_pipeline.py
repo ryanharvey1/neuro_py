@@ -2,13 +2,13 @@ import glob
 import os
 import pickle
 import sys
+from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat, savemat
 from track_linearization import get_linearized_position, make_track_graph
-
 
 """
 TODO: 
@@ -23,8 +23,29 @@ class NodePicker:
     """Interactive creation of track graph by looking at video frames."""
 
     def __init__(
-        self, ax=None, basepath=None, node_color="#177ee6", node_size=100, epoch=None
+        self,
+        ax: Optional[plt.Axes] = None,
+        basepath: Optional[str] = None,
+        node_color: str = "#177ee6",
+        node_size: int = 100,
+        epoch: Optional[int] = None,
     ):
+        """
+        Initialize the NodePicker.
+
+        Parameters
+        ----------
+        ax : plt.Axes, optional
+            The matplotlib axes to draw on, by default None.
+        basepath : str, optional
+            The base path for saving data, by default None.
+        node_color : str, optional
+            The color of the nodes, by default "#177ee6".
+        node_size : int, optional
+            The size of the nodes, by default 100.
+        epoch : int, optional
+            The epoch number, by default None.
+        """
         if ax is None:
             ax = plt.gca()
         self.ax = ax
@@ -53,24 +74,54 @@ class NodePicker:
         self.connect()
 
     @property
-    def node_positions(self):
+    def node_positions(self) -> np.ndarray:
+        """
+        Get the positions of the nodes.
+
+        Returns
+        -------
+        np.ndarray
+            An array of node positions.
+        """
         return np.asarray(self._nodes)
 
-    def connect(self):
+    def connect(self) -> None:
+        """
+        Connect the event handlers.
+        """
         if self.cid is None:
             self.cid = self.canvas.mpl_connect("button_press_event", self.click_event)
             self.canvas.mpl_connect("key_press_event", self.process_key)
 
-    def disconnect(self):
+    def disconnect(self) -> None:
+        """
+        Disconnect the event handlers.
+        """
         if self.cid is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.cid = None
 
-    def process_key(self, event):
+    def process_key(self, event: Any) -> None:
+        """
+        Process key press events.
+
+        Parameters
+        ----------
+        event : Any
+            The key press event.
+        """
         if event.key == "enter":
             self.format_and_save()
 
-    def click_event(self, event):
+    def click_event(self, event: Any) -> None:
+        """
+        Process mouse click events.
+
+        Parameters
+        ----------
+        event : Any
+            The mouse click event.
+        """
         if not event.inaxes:
             return
         if (event.key not in ["control", "shift"]) & (event.button == 1):  # left click
@@ -92,7 +143,10 @@ class NodePicker:
 
         self.redraw()
 
-    def redraw(self):
+    def redraw(self) -> None:
+        """
+        Redraw the nodes and edges.
+        """
         # Draw Node Circles
         if len(self.node_positions) > 0:
             self._nodes_plot.set_offsets(self.node_positions)
@@ -123,18 +177,32 @@ class NodePicker:
                 )
         self.canvas.draw()
 
-    def remove_point(self, point):
+    def remove_point(self, point: Tuple[float, float]) -> None:
+        """
+        Remove a point from the nodes.
+
+        Parameters
+        ----------
+        point : Tuple[float, float]
+            The point to remove.
+        """
         if len(self._nodes) > 0:
             distance_to_nodes = np.linalg.norm(self.node_positions - point, axis=1)
             closest_node_ind = np.argmin(distance_to_nodes)
             self._nodes.pop(closest_node_ind)
 
-    def clear(self):
+    def clear(self) -> None:
+        """
+        Clear all nodes and edges.
+        """
         self._nodes = []
         self.edges = [[]]
         self.redraw()
 
-    def format_and_save(self):
+    def format_and_save(self) -> None:
+        """
+        Format the data and save it to disk.
+        """
         behave_df = load_animal_behavior(self.basepath)
 
         if self.epoch is not None:
@@ -193,17 +261,32 @@ class NodePicker:
         self.disconnect()
         plt.close()
 
-    def save_nodes_edges(self):
+    def save_nodes_edges(self) -> None:
+        """
+        Save the nodes and edges to a pickle file.
+        """
         results = {"node_positions": self.node_positions, "edges": self.edges}
         save_file = os.path.join(self.basepath, "linearization_nodes_edges.pkl")
         with open(save_file, "wb") as f:
             pickle.dump(results, f)
 
-    def save_nodes_edges_to_behavior(self, data, behave_df):
+    def save_nodes_edges_to_behavior(self, data: dict, behave_df: pd.DataFrame) -> dict:
         """
-        Store nodes and edges into behavior file
-        Searches to find epochs with valid linearized coords
+        Store nodes and edges into behavior file.
+        Searches to find epochs with valid linearized coords.
         Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}
+
+        Parameters
+        ----------
+        data : dict
+            The behavior data dictionary.
+        behave_df : pd.DataFrame
+            The DataFrame containing behavior data.
+
+        Returns
+        -------
+        dict
+            The updated behavior data dictionary.
         """
         if self.epoch is None:
             # load epochs
@@ -231,7 +314,20 @@ class NodePicker:
         return data
 
 
-def load_animal_behavior(basepath):
+def load_animal_behavior(basepath: str) -> pd.DataFrame:
+    """
+    Load animal behavior data from a .mat file.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path where the .mat file is located.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the animal behavior data.
+    """
     filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
     data = loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
@@ -248,9 +344,19 @@ def load_animal_behavior(basepath):
     return df
 
 
-def load_epoch(basepath):
+def load_epoch(basepath: str) -> pd.DataFrame:
     """
-    Loads epoch info from cell explorer basename.session and stores in df
+    Load epoch info from cell explorer basename.session and store in a DataFrame.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path where the .session.mat file is located.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the epoch information.
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
@@ -261,24 +367,38 @@ def load_epoch(basepath):
         return pd.DataFrame([data["session"]["epochs"]])
 
 
-def run(basepath, epoch=None):
+def run(basepath: str, epoch: Optional[int] = None) -> None:
+    """
+    Run the linearization pipeline.
+
+    Parameters
+    ----------
+    basepath : str
+        The base path where the data files are located.
+    epoch : int, optional
+        The epoch number to process, by default None.
+
+    Returns
+    -------
+    None
+    """
     print("here is the file,", basepath)
-    
-    with plt.style.context('dark_background'):
+
+    with plt.style.context("dark_background"):
         plt.ion()
         fig, ax = plt.subplots(figsize=(5, 5))
-    
+
         behave_df = load_animal_behavior(basepath)
-    
+
         if epoch is not None:
             epochs = load_epoch(basepath)
-    
+
             behave_df = behave_df[
                 behave_df["time"].between(
                     epochs.iloc[epoch].startTime, epochs.iloc[epoch].stopTime
                 )
             ]
-    
+
         ax.scatter(behave_df.x, behave_df.y, color="white", s=0.5, alpha=0.5)
         ax.axis("equal")
         ax.set_axisbelow(True)
@@ -286,9 +406,9 @@ def run(basepath, epoch=None):
         ax.xaxis.grid(color="gray", linestyle="dashed")
         ax.set_ylabel("y (cm)")
         ax.set_xlabel("x (cm)")
-    
+
         NodePicker(ax=ax, basepath=basepath, epoch=epoch)
-    
+
         plt.show(block=True)
 
 

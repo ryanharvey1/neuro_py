@@ -1,4 +1,5 @@
 import sys
+from typing import Tuple
 
 import nelpy as nel
 import numpy as np
@@ -6,20 +7,22 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 
-def linearize_position(x, y):
+def linearize_position(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
-    use PCA (a dimensionality reduction technique) to find
-    the direction of maximal variance in our position data,
-    and we use this as our new 1D linear track axis.
+    Use PCA (a dimensionality reduction technique) to find the direction of maximal variance
+    in our position data, and use this as the new 1D linear track axis.
 
-    Input:
-        x: numpy array of shape (n,1)
-        y: numpy array of shape (n,1)
-    Output:
-        x_lin: numpy array of shape (n,1)
-        y_lin: numpy array of shape (n,1)
+    Parameters
+    ----------
+    x : numpy.ndarray
+        x-coordinates of shape (n, 1)
+    y : numpy.ndarray
+        y-coordinates of shape (n, 1)
 
-    -Ryan H
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray]
+        Linearized x and y coordinates, both of shape (n, 1).
     """
     # locate and remove nans (sklearn pca does not like nans)
     badidx = (np.isnan(x)) | (np.isnan(y))
@@ -52,41 +55,40 @@ def linearize_position(x, y):
 
 
 def find_laps(
-    Vts,
-    Vdata,
-    newLapThreshold=15,
-    good_laps=True,
-    edgethresh=0.1,
-    completeprop=0.2,
-    posbins=50,
-):
+    Vts: np.ndarray,
+    Vdata: np.ndarray,
+    newLapThreshold: float = 15,
+    good_laps: bool = True,
+    edgethresh: float = 0.1,
+    completeprop: float = 0.2,
+    posbins: int = 50,
+) -> pd.DataFrame:
     """
-    Find Laps in linear track
+    Find laps in a linear track.
 
-    INPUT:
-    Vts: timestamps
-    Vdata: x coords
+    Parameters
+    ----------
+    Vts : numpy.ndarray
+        Timestamps.
+    Vdata : numpy.ndarray
+        X coordinates representing position.
+    newLapThreshold : float, optional
+        Endpoint proximity threshold in percent of track length (default is 15%).
+    good_laps : bool, optional
+        If True, run find_good_laps to remove laps with excess NaNs and parts where the rat
+        turns around in the middle of the track (default is True).
+    edgethresh : float, optional
+        Threshold for detecting turn-around points as a proportion of track length (default is 0.1).
+    completeprop : float, optional
+        Proportion of lap allowed to be missing (NaNs) and still be considered complete (default is 0.2).
+    posbins : int, optional
+        Number of bins to divide the track into for position coverage (default is 50).
 
-    newLapThreshold: endpoint proximity threshold in percent of track length (default = 15%);
-                    whenever rat enters the proximity zone of e.g. 15% of tracklength near a end, a new lap
-                    is started and the maximum (or minimum) is searched
-                    for a Lap-Top  or Lap-Bottom (around 0 end).
-
-    good_laps: run find_good_laps to remove laps with excess nans and
-                parts of laps where rat turns around in middle of track
-
-    OUTPUT:
-    laps  .... 1*nLaps struct array with fields
-    laps(i).start_ts  ... start timestamp of i-th lap
-    laps(i).pos       ... the value of input position V at lap start point
-    laps(i).start_idx ... the index of the new lap start frame in input V
-    laps(i).direction ... +1/-1 for up/down laps
-
-    From NSMA toolbox
-    Author: PL
-    Version: 0.9  05/12/2005
-    edited by Ryan Harvey to work with standard linear track
-    edited for use in python by Ryan h 2022
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing lap information with fields such as start timestamp, position,
+        start index, and direction.
     """
 
     TL = np.abs(np.nanmax(Vdata) - np.nanmin(Vdata))  # % track length
@@ -171,28 +173,31 @@ def find_laps(
     return laps
 
 
-def peakdetz(v, delta, lookformax=1, backwards=0):
+def peakdetz(
+    v: np.ndarray, 
+    delta: float, 
+    lookformax: int = 1, 
+    backwards: int = 0
+) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
     """
-    %PEAKDET Detect peaks in a vector
-    %        [MAXTAB, MINTAB] = PEAKDETZ(V, DELTA, lookformax, backwards) finds
-    %        the local maxima and minima ("peaks") in the vector V.
-    %        A point is considered a maximum peak if it has the maximal
-    %        value, and was preceded (to the left) by a value lower by
-    %        DELTA. MAXTAB and MINTAB consists of two columns. Column 1
-    %        contains indices in V, and column 2 the found values.
-    %
-    % Eli Billauer, 3.4.05 (Explicitly not copyrighted).
-    % This function is released to the public domain; Any use is allowed.
-    %
-    % ZN edit 04/2010: added option to specify looking for troughs or peaks
-    % first (lookformax variable: if 1, will look for peaks first, if 0 will
-    % look for troughs; default is look for peaks); and option to go backwards
-    % (so that find last instance of a peak/trough value instead of the first
-    % instance: backwards variable: if 1 will go backwards, if 0 or absent,
-    % will go forwards); and changed it so that last min/max value will be
-    % assigned
+    Detect peaks in a vector.
 
-    edited for use in python by Ryan H 2022
+    Parameters
+    ----------
+    v : numpy.ndarray
+        Input vector in which peaks are detected.
+    delta : float
+        Threshold value for detecting peaks.
+    lookformax : int, optional
+        If 1, will look for peaks first. If 0, will look for troughs (default is 1).
+    backwards : int, optional
+        If 1, search is conducted backwards in the vector (default is 0).
+
+    Returns
+    -------
+    tuple[list[tuple[int, float]], list[tuple[int, float]]]
+        A tuple containing the maxima and minima found in the input vector. Each list contains tuples of 
+        the form (index, value).
     """
 
     maxtab = []
@@ -263,33 +268,36 @@ def peakdetz(v, delta, lookformax=1, backwards=0):
     return maxtab, mintab
 
 
-def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=50):
+def find_good_laps(
+    ts: np.ndarray, 
+    V_rest: np.ndarray, 
+    laps: pd.DataFrame, 
+    edgethresh: float = 0.1, 
+    completeprop: float = 0.2, 
+    posbins: int = 50
+) -> pd.DataFrame:
     """
-    % [startgoodlaps, stopgoodlaps, laps] =
-    %        find_good_laps(V_rest,laps,edgethresh,completeprop,posbins)
-    %
-    % find and eliminate laps which have too many NaNs (because rat was off
-    % track), and parts of laps where rat turns around in middle of track
-    %
-    % inputs: V_rest: V coordinates of rat with off track periods masked out
-    %                 (as NaNs)
-    %         laps: struct with lap start and end times (generated by
-    %               find_laps)
-    %         edgethresh: threshold for detection of a turn around point
-    %                     (proportion of length of track) (default = 0.1)
-    %         completeprop: the amount of lap that can be missing (NaNs) to
-    %                       still be considered a lap (default = 0.2).
-    %         plotlaps: flag for making plots of each lap, and pause for user
-    %                   to hit key to continue (default = 1)
-    %         posbins: number of bins to divide the track into to determine
-    %                  position coverage percentage; at 60frames/s want at
-    %                  least 2cm/bin (default = 50bins; this works for 100+ cm
-    %                  track, as long as V_rest is in cm)
-    % outputs:
-    %          laps: a new laps struct, with the bad laps removed
-    %
-    % ZN 04/2011
-    Edited for use in python by Ryan H 2022
+    Find and eliminate laps that have too many NaNs or laps where the rat turns around in the middle.
+
+    Parameters
+    ----------
+    ts : numpy.ndarray
+        Timestamps.
+    V_rest : numpy.ndarray
+        X coordinates of the rat with off-track periods masked out as NaNs.
+    laps : pd.DataFrame
+        DataFrame containing lap information.
+    edgethresh : float, optional
+        Threshold for detection of a turn-around point (default is 0.1).
+    completeprop : float, optional
+        The proportion of a lap that can be missing (NaNs) to still be considered valid (default is 0.2).
+    posbins : int, optional
+        Number of bins to divide the track into to determine position coverage percentage (default is 50).
+
+    Returns
+    -------
+    pd.DataFrame
+        Updated DataFrame with bad laps removed.
     """
 
     if (
@@ -464,17 +472,45 @@ def find_good_laps(ts, V_rest, laps, edgethresh=0.1, completeprop=0.2, posbins=5
 
 
 def get_linear_track_lap_epochs(
-    ts,
-    x,
-    newLapThreshold=15,
-    good_laps=False,
-    edgethresh=0.1,
-    completeprop=0.2,
-    posbins=50,
-):
+    ts: np.ndarray,
+    x: np.ndarray,
+    newLapThreshold: float = 15,
+    good_laps: bool = False,
+    edgethresh: float = 0.1,
+    completeprop: float = 0.2,
+    posbins: int = 50
+) -> Tuple[nel.EpochArray, nel.EpochArray]:
     """
-    get_linear_track_lap_epochs: def that calls find_laps and outputs nelpy epochs
-        for out and inbound running directions
+    Identifies lap epochs on a linear track and classifies them into outbound and inbound directions.
+    
+    Parameters:
+    ----------
+    ts : np.ndarray
+        Array of timestamps corresponding to position data.
+    x : np.ndarray
+        Array of position data along the linear track.
+    newLapThreshold : float, optional
+        Minimum distance between laps to define a new lap, by default 15.
+    good_laps : bool, optional
+        If True, filter out laps that do not meet certain quality criteria, by default False.
+    edgethresh : float, optional
+        Threshold proportion of the track edge to identify potential boundary errors, by default 0.1.
+    completeprop : float, optional
+        Minimum proportion of the track that must be traversed for a lap to be considered complete, by default 0.2.
+    posbins : int, optional
+        Number of bins to divide the track into for analysis, by default 50.
+
+    Returns:
+    -------
+    Tuple[nel.EpochArray, nel.EpochArray]
+        A tuple containing two nelpy EpochArray objects:
+        - outbound_epochs: Epochs representing outbound runs (towards the far end of the track).
+        - inbound_epochs: Epochs representing inbound runs (back towards the start).
+
+    Notes:
+    ------
+    - This function calls `find_laps` to determine the lap structure, then segregates epochs into outbound and inbound directions.
+    - The EpochArray objects represent the start and stop timestamps for each identified lap.
     """
     laps = find_laps(
         np.array(ts),
@@ -506,17 +542,41 @@ def get_linear_track_lap_epochs(
     return outbound_epochs, inbound_epochs
 
 
-def find_good_lap_epochs(pos, dir_epoch, thres=0.5, binsize=6, min_laps=10):
+def find_good_lap_epochs(
+    pos: nel.AnalogSignalArray, 
+    dir_epoch: nel.EpochArray, 
+    thres: float = 0.5, 
+    binsize: int = 6, 
+    min_laps: int = 10
+) -> nel.EpochArray:
     """
-    find_good_laps: finds good laps in behavior data
-        Made to find good laps in nelpy array for replay analysis
-    input:
-        pos: nelpy analog array with single dim
-        dir_epoch: EpochArray to find good lap
-        thres: occupancy threshold for good lap
-        binsize: size of bins to calculate occupancy
-    output:
-        good_laps: epoch array of good laps
+    Find good laps in behavior data for replay analysis.
+    
+    Parameters
+    ----------
+    pos : nelpy.AnalogSignalArray
+        A nelpy AnalogSignalArray containing the position data with a single dimension.
+    dir_epoch : nelpy.EpochArray
+        EpochArray defining the laps to analyze for good laps.
+    thres : float, optional
+        Occupancy threshold to determine good laps, by default 0.5.
+    binsize : int, optional
+        Size of the bins for calculating occupancy, by default 6.
+    min_laps : int, optional
+        Minimum number of laps required to consider laps as 'good', by default 10.
+    
+    Returns
+    -------
+    nelpy.EpochArray
+        An EpochArray containing the good laps based on the occupancy threshold.
+        Returns an empty EpochArray if no good laps are found or if the number 
+        of laps is less than `min_laps`.
+    
+    Notes
+    -----
+    The function calculates the percent occupancy over position bins per lap, 
+    and identifies laps that meet the occupancy threshold criteria. The laps 
+    that meet this condition are returned as an EpochArray.
     """
     # make bin edges to calc occupancy
     x_edges = np.arange(np.nanmin(pos.data[0]), np.nanmax(pos.data[0]), binsize)

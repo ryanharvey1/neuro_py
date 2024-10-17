@@ -1,17 +1,35 @@
+from typing import Tuple, Union
+
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from matplotlib.patches import PathPatch
 
+from neuro_py.process.peri_event import joint_peth
+from neuro_py.process.utils import avgerage_diagonal
 
-def set_plotting_defaults():
+
+def set_plotting_defaults() -> None:
+    """
+    Set default plotting parameters for matplotlib with LaTeX-style fonts.
+
+    This function updates matplotlib's plotting style to use serif fonts,
+    sets font sizes for various elements, and ensures that SVG output uses
+    non-embedded fonts for better compatibility.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    """
     tex_fonts = {
-        #     # Use LaTeX to write all text
         "font.family": "serif",
-        # Use 10pt font in plots
         "axes.labelsize": 10,
         "font.size": 10,
-        # Make the legend/label fonts a little smaller
         "legend.fontsize": 8,
         "xtick.labelsize": 8,
         "ytick.labelsize": 8,
@@ -22,20 +40,26 @@ def set_plotting_defaults():
     plt.rcParams.update(tex_fonts)
 
 
-def set_size(width, fraction=1, subplots=(1, 1)):
-    """Set figure dimensions to avoid scaling in LaTeX.
+def set_size(
+    width: Union[float, str], fraction: float = 1, subplots: Tuple[int, int] = (1, 1)
+) -> Tuple[float, float]:
+    """
+    Set figure dimensions to avoid scaling in LaTeX.
+
     Parameters
     ----------
-    width: float or string
-            Document width in points, or string of predined document type
-    fraction: float, optional
-            Fraction of the width which you wish the figure to occupy
-    subplots: array-like, optional
-            The number of rows and columns of subplots.
+    width : float or str
+        Document width in points (float) or predefined document type (str).
+        Supported types: 'thesis', 'beamer', 'paper'.
+    fraction : float, optional
+        Fraction of the width which you wish the figure to occupy, by default 1.
+    subplots : tuple of int, optional
+        Number of rows and columns of subplots, by default (1, 1).
+
     Returns
     -------
-    fig_dim: tuple
-            Dimensions of figure in inches
+    tuple of float
+        Dimensions of the figure in inches (width, height).
     """
     if width == "thesis":
         width_pt = 426.79135
@@ -63,13 +87,31 @@ def set_size(width, fraction=1, subplots=(1, 1)):
     return (fig_width_in, fig_height_in)
 
 
-def lighten_color(color, amount=0.5):
+def lighten_color(color: str, amount: float = 0.5) -> str:
     """
-    Lightens a color by a certain percentage.
-    This is useful for adjusting colors for a particular element of a page.
-    :param color: The hex color code, e.g. #AABBCC
-    :param amount: The amount to lighten the color by.
-    :return: The lightened color code in hex, e.g. #FFFFFF
+    Lightens a hex color by blending it with white by a given percentage.
+
+    Parameters
+    ----------
+    color : str
+        Hex color code (e.g., '#AABBCC').
+    amount : float, optional
+        Fraction of the lightening, where 0 is no change and 1 is white, by default 0.5.
+
+    Returns
+    -------
+    str
+        Lightened hex color code (e.g., '#FFFFFF').
+
+    Raises
+    ------
+    ValueError
+        If the color string is not a valid hex code.
+
+    Example
+    -------
+    >>> lighten_color("#AABBCC", 0.3)
+    '#c3cfdb'
     """
     try:
         c = color.lstrip("#")
@@ -84,24 +126,76 @@ def lighten_color(color, amount=0.5):
         return color
 
 
-def set_equal_axis_range(ax1, ax2):
+def set_equal_axis_range(ax1: plt.Axes, ax2: plt.Axes) -> None:
     """
-    Makes x and y min and max the same between two plots
+    Synchronizes the x and y axis ranges between two matplotlib axes.
+
+    Parameters
+    ----------
+    ax1 : matplotlib.axes.Axes
+        The first axis to synchronize.
+    ax2 : matplotlib.axes.Axes
+        The second axis to synchronize.
+
+    Example
+    -------
+    >>> fig, (ax1, ax2) = plt.subplots(1, 2)
+    >>> ax1.plot([1, 2, 3], [4, 5, 6])
+    >>> ax2.plot([1, 2, 3], [2, 3, 4])
+    >>> set_equal_axis_range(ax1, ax2)
     """
+    # Get x and y axis limits for both axes
     axis_x_values = np.hstack(np.array((ax1.get_xlim(), ax2.get_xlim())))
     axis_y_values = np.hstack(np.array((ax1.get_ylim(), ax2.get_ylim())))
+
     ax1.set_xlim(axis_x_values.min(), axis_x_values.max())
     ax1.set_ylim(axis_y_values.min(), axis_y_values.max())
     ax2.set_xlim(axis_x_values.min(), axis_x_values.max())
     ax2.set_ylim(axis_y_values.min(), axis_y_values.max())
 
 
-def restore_natural_scale(ax, min_, max_, n_steps=4, x_axis=True, y_axis=True):
+def restore_natural_scale(
+    ax: matplotlib.axes.Axes,
+    min_: float,
+    max_: float,
+    n_steps: int = 4,
+    x_axis: bool = True,
+    y_axis: bool = True,
+) -> None:
     """
-    takes x and y ax that are in log10 and puts them into natural scale
+    Converts logarithmic scale ticks to natural scale (base 10) for the specified axes.
 
-    By default, it adjusts both x and y, but you can run this on a single
-    axis or two times if you have different scales for x and y
+    This function sets the ticks on the specified axes to be evenly spaced
+    in the logarithmic scale and converts them back to the natural scale
+    for display.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis to modify.
+    min_ : float
+        The minimum value for the ticks in logarithmic scale.
+    max_ : float
+        The maximum value for the ticks in logarithmic scale.
+    n_steps : int, optional
+        The number of ticks to create, by default 4.
+    x_axis : bool, optional
+        If True, adjust the x-axis, by default True.
+    y_axis : bool, optional
+        If True, adjust the y-axis, by default True.
+
+    Returns
+    -------
+    None
+        This function modifies the axis ticks in place.
+
+    Example
+    -------
+    >>> import matplotlib.pyplot as plt
+    >>> fig, ax = plt.subplots()
+    >>> ax.set_xscale('log10')
+    >>> ax.plot(np.log10([1, 10, 100]), np.log10([1, 10, 100]))
+    >>> restore_natural_scale(ax, 0, 2)
     """
     ticks = np.linspace(min_, max_, n_steps)
 
@@ -114,9 +208,33 @@ def restore_natural_scale(ax, min_, max_, n_steps=4, x_axis=True, y_axis=True):
         ax.set_yticklabels(np.round(10**ticks, 3))
 
 
-def adjust_box_widths(g, fac):
+def adjust_box_widths(g: sns.axisgrid.FacetGrid, fac: float) -> None:
     """
-    Adjust the widths of a seaborn-generated boxplot.
+    Adjust the widths of boxes in a Seaborn-generated boxplot.
+
+    This function iterates through the axes of the provided FacetGrid
+    and modifies the widths of the boxplot boxes by a specified factor.
+
+    Parameters
+    ----------
+    g : seaborn.axisgrid.FacetGrid
+        The FacetGrid object containing the boxplot.
+    fac : float
+        The factor by which to adjust the box widths.
+        A value < 1 will narrow the boxes, while > 1 will widen them.
+
+    Returns
+    -------
+    None
+        The function modifies the box widths in place.
+
+    Example
+    -------
+    >>> import seaborn as sns
+    >>> import matplotlib.pyplot as plt
+    >>> tips = sns.load_dataset("tips")
+    >>> g = sns.boxplot(x="day", y="total_bill", data=tips)
+    >>> adjust_box_widths(g, 0.5)  # Narrow the boxes by 50%
     """
 
     # iterating through Axes instances
@@ -154,34 +272,36 @@ def plot_joint_peth(
     ts: np.ndarray,
     smooth_std: float = 2,
     labels: list = ["peth_1", "peth_2", "event"],
-):
+) -> Tuple[plt.Figure, np.ndarray]:
     """
-    Plot joint peri-event time histograms (PETHs) and the difference between the observed and expected response.
+    Plot joint peri-event time histograms (PETHs) and the difference between the observed and expected responses.
 
     Parameters
     ----------
     peth_1 : np.ndarray
-        Peri-event time histogram (PETH) for the first event. (n events x time).
+        Peri-event time histogram (PETH) for the first event. Shape: (n_events, n_time_points).
     peth_2 : np.ndarray
-        Peri-event time histogram (PETH) for the second event. (n events x time).
+        Peri-event time histogram (PETH) for the second event. Shape: (n_events, n_time_points).
     ts : np.ndarray
         Time vector for the PETHs.
     smooth_std : float, optional
-        Standard deviation of the Gaussian kernel used to smooth the PETHs.
-    labels : list, optional
-        Labels for the PETHs.
+        Standard deviation of the Gaussian kernel used to smooth the PETHs. Default is 2.
+    labels : List[str], optional
+        Labels for the PETHs. Default is ["peth_1", "peth_2", "event"].
 
     Returns
     -------
-    fig : plt.Figure
-        Figure object.
-    ax : np.ndarray
-        Axes objects.
+    Tuple[plt.Figure, np.ndarray]
+        Figure and axes objects for the plot.
 
+    Example
+    -------
+    >>> peth_1 = np.random.rand(10, 100)  # Example data for peth_1
+    >>> peth_2 = np.random.rand(10, 100)  # Example data for peth_2
+    >>> ts = np.linspace(-1, 1, 100)  # Example time vector
+    >>> plot_joint_peth(peth_1, peth_2, ts)
 
     """
-    from neuro_py.process.peri_event import joint_peth
-    from neuro_py.process.utils import avgerage_diagonal
 
     window = [ts[0], ts[-1]]
 

@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -7,24 +8,23 @@ from scipy import signal
 from statsmodels.regression import yule_walker
 
 
-def whiten_lfp(lfp, order=2):
+def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
     """
     Perform temporal whitening of Local Field Potential (LFP) data using an Autoregressive (AR) model.
 
     This function applies temporal whitening to LFP data by fitting an AR model of the specified order
     and using the model to remove temporal correlations, resulting in a 'whitened' signal.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     lfp : ndarray
         A 1D numpy array containing the LFP data.
-
     order : int, optional (default=2)
         The order of the AR model to be used for whitening the LFP data.
 
-    Returns:
-    --------
-    whitened_lfp : ndarray
+    Returns
+    -------
+    ndarray
         The temporally whitened LFP data as a 1D numpy array.
     """
 
@@ -48,7 +48,7 @@ def event_triggered_wavelet(
     parallel: bool = True,
     whiten: bool = True,
     whiten_order: int = 2,
-):
+) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], Tuple[pd.DataFrame, pd.Series]]:
     """
     Compute the event-triggered wavelet transform of a signal.
 

@@ -1,21 +1,28 @@
 # https://github.com/Eden-Kramer-Lab/loren_frank_data_processing/blob/master/loren_frank_data_processing/well_traversal_classification.py
+from typing import Dict, Tuple, Union
+
 import numpy as np
 import pandas as pd
-
 from scipy.ndimage.measurements import label
 
 
-def paired_distances(x, y):
-    """Euclidean distance between x and y at each time point.
+def paired_distances(
+    x: Union[np.ndarray, list], y: Union[np.ndarray, list]
+) -> np.ndarray:
+    """
+    Euclidean distance between x and y at each time point.
 
     Parameters
     ----------
-    x,y : ndarray, shape (n_time, n_space)
+    x : Union[np.ndarray, list]
+        Array or list of shape (n_time, n_space).
+    y : Union[np.ndarray, list]
+        Array or list of shape (n_time, n_space).
 
     Returns
     -------
-    distance : ndarray, shape (n_time,)
-
+    np.ndarray
+        Array of shape (n_time,) containing the distances.
     """
     x, y = np.array(x), np.array(y)
     x = np.atleast_2d(x).T if x.ndim < 2 else x
@@ -23,9 +30,13 @@ def paired_distances(x, y):
     return np.linalg.norm(x - y, axis=1)
 
 
-def enter_exit_target(position, target, max_distance=1):
-    """Marks when a position has reached a target ("enter")
-    and when it has left a target ("exit").
+def enter_exit_target(
+    position: Union[np.ndarray, list],
+    target: Union[np.ndarray, list],
+    max_distance: float = 1.0,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Marks when a position has reached a target ("enter") and when it has left a target ("exit").
 
     The position is considered to have reached a target when it is less than
     the `max_distance` from the target.
@@ -39,16 +50,19 @@ def enter_exit_target(position, target, max_distance=1):
 
     Parameters
     ----------
-    position : ndarray, shape (n_time, n_space)
-    target : ndarray, shape (1, n_space)
+    position : Union[np.ndarray, list]
+        Array or list of shape (n_time, n_space).
+    target : Union[np.ndarray, list]
+        Array or list of shape (1, n_space).
     max_distance : float, optional
-        How close the position is to the target to be considered at the target.
+        How close the position is to the target to be considered at the target, by default 1.0.
 
     Returns
     -------
-    enter_exit : ndarray, shape (n_time,)
-    at_target : ndarray, shape (n_time,)
-
+    Tuple[np.ndarray, np.ndarray]
+        Tuple of two arrays:
+        - The first array contains the enter/exit times.
+        - The second array contains the times when the position is at the target.
     """
     distance_from_target = paired_distances(position, target)
     at_target = distance_from_target < max_distance
@@ -56,14 +70,43 @@ def enter_exit_target(position, target, max_distance=1):
     return enter_exit, at_target
 
 
-def enter_exit_target_dio(dio_indicator):
+def enter_exit_target_dio(dio_indicator: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Marks when a digital input/output (DIO) indicator has entered or exited a target state.
+
+    Parameters
+    ----------
+    dio_indicator : np.ndarray
+        Array of DIO indicator values.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        A tuple containing:
+        - enter_exit: np.ndarray
+            Array indicating enter (1) and exit (-1) events.
+        - at_target: np.ndarray
+            Array indicating whether the target is active (1) or not (0).
+    """
     at_target = (dio_indicator > 0).astype(np.float16)
     enter_exit = np.r_[0, np.diff(at_target)]
     return enter_exit, at_target
 
 
-def shift_well_enters(enter_exit):
-    """Shifts the enter times back one time point."""
+def shift_well_enters(enter_exit: np.ndarray) -> np.ndarray:
+    """
+    Shifts the enter times back one time point.
+
+    Parameters
+    ----------
+    enter_exit : np.ndarray
+        Array indicating enter (positive values) and exit (negative values) events.
+
+    Returns
+    -------
+    np.ndarray
+        Array with enter times shifted back by one time point.
+    """
     shifted_enter_exit = enter_exit.copy()
     old_ind = np.where(enter_exit > 0)[0]  # positive entries are well-entries
     new_ind = old_ind - 1
@@ -72,23 +115,32 @@ def shift_well_enters(enter_exit):
     return shifted_enter_exit
 
 
-def segment_path(time, position, well_locations, max_distance_from_well=10):
-    """Label traversals between each well location.
+def segment_path(
+    time: np.ndarray,
+    position: np.ndarray,
+    well_locations: np.ndarray,
+    max_distance_from_well: float = 10,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Label traversals between each well location.
 
     Parameters
     ----------
-    time : ndarray, shape (n_time,)
-    position : ndarray, shape (n_time, n_space)
-    well_locations : array_like, shape (n_wells, n_space)
+    time : np.ndarray, shape (n_time,)
+        Array of time points.
+    position : np.ndarray, shape (n_time, n_space)
+        Array of positions at each time point.
+    well_locations : np.ndarray, shape (n_wells, n_space)
+        Array of well locations.
     max_distance_from_well : float, optional
         The animal is considered at a well location if its position is closer
-        than this value.
+        than this value, by default 10.
 
     Returns
     -------
-    segments_df : pandas DataFrame, shape (n_segments, 6)
-    labeled_segments : pandas DataFrame, shape (n_time,)
-
+    Tuple[pd.DataFrame, pd.DataFrame]
+        - segments_df: DataFrame of shape (n_segments, 6) containing segment information.
+        - labeled_segments: DataFrame of shape (n_time,) containing labeled segments.
     """
 
     well_enter_exit, at_target = np.stack(
@@ -140,7 +192,25 @@ def segment_path(time, position, well_locations, max_distance_from_well=10):
     )
 
 
-def find_last_non_center_well(segments_df, segment_ind):
+def find_last_non_center_well(
+    segments_df: pd.DataFrame, segment_ind: int
+) -> Union[str, int]:
+    """
+    Find the last non-center well before the given segment index.
+
+    Parameters
+    ----------
+    segments_df : pd.DataFrame
+        DataFrame containing segment information.
+    segment_ind : int
+        The segment index to search up to.
+
+    Returns
+    -------
+    Union[str, int]
+        The last non-center well before the given segment index. If no non-center wells are found,
+        returns an empty string.
+    """
     last_wells = segments_df.iloc[:segment_ind].to_well
     try:
         return last_wells[last_wells != "Center"].iloc[-1]
@@ -149,7 +219,20 @@ def find_last_non_center_well(segments_df, segment_ind):
         return ""
 
 
-def get_correct_inbound_outbound(segments_df):
+def get_correct_inbound_outbound(segments_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Determine the task type (inbound or outbound), correctness, and turn direction for each segment.
+
+    Parameters
+    ----------
+    segments_df : pd.DataFrame
+        DataFrame containing segment information.
+
+    Returns
+    -------
+    pd.DataFrame
+        Updated DataFrame with additional columns for task type, correctness, and turn direction.
+    """
     n_segments = segments_df.shape[0]
     task = np.empty((n_segments,), dtype=object)
     turn = np.empty((n_segments,), dtype=object)
@@ -188,25 +271,28 @@ def get_correct_inbound_outbound(segments_df):
 
 
 def score_inbound_outbound(
-    segments_df,
-    min_distance_traveled=50,
-    well_names={1: "Center", 2: "Left", 3: "Right"},
-):
-    """In the alternating arm task, determines whether the trial should be
+    segments_df: pd.DataFrame,
+    min_distance_traveled: float = 50,
+    well_names: Dict[int, str] = {1: "Center", 2: "Left", 3: "Right"},
+) -> pd.DataFrame:
+    """
+    In the alternating arm task, determines whether the trial should be
     inbound (running to the center arm) or outbound (running to the opposite
     outer arm as before) and if the trial was performed correctly.
 
     Parameters
     ----------
-    segments_df : pandas DataFrame
+    segments_df : pd.DataFrame
         Output of `segment_path` function.
     min_distance_traveled : float, optional
         Minimum path length (in cm) while outside of the well radius for
-        a segment to be considered as a trial.
+        a segment to be considered as a trial, by default 50.
+    well_names : Dict[int, str], optional
+        Dictionary mapping well indices to well names, by default {1: "Center", 2: "Left", 3: "Right"}.
 
     Returns
     -------
-    segments_df : pandas DataFrame
+    pd.DataFrame
         Same as the input dataframe but with the wells labeled
         (left, right, center) and columns for `task` (inbound/outbound) and
         `is_correct` (True/False).
