@@ -1,15 +1,14 @@
-from ast import List
 import warnings
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from nelpy.core import EpochArray
 
 from neuro_py.stats.stats import confidence_intervals
-from nelpy.core import EpochArray
 
 
 def plot_events(
