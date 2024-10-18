@@ -17,14 +17,6 @@ def set_plotting_defaults() -> None:
     This function updates matplotlib's plotting style to use serif fonts,
     sets font sizes for various elements, and ensures that SVG output uses
     non-embedded fonts for better compatibility.
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
     """
     tex_fonts = {
         "font.family": "serif",

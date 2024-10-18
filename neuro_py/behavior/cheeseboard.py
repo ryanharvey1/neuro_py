@@ -12,14 +12,6 @@ def plot_grid_with_circle_and_random_dots():
     colored red and slightly enlarged. Additionally, a grey box is drawn at the 
     bottom of the plot.
 
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    None
-
     Notes
     -----
     - The grid is plotted on a 15x15 layout, with points that fall within the 
