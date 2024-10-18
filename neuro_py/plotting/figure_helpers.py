@@ -7,7 +7,7 @@ import seaborn as sns
 from matplotlib.patches import PathPatch
 
 from neuro_py.process.peri_event import joint_peth
-from neuro_py.process.utils import avgerage_diagonal
+from neuro_py.process.utils import average_diagonal
 
 
 def set_plotting_defaults() -> None:
@@ -300,7 +300,7 @@ def plot_joint_peth(
     joint, expected, difference = joint_peth(peth_1, peth_2, smooth_std=smooth_std)
 
     # get average of diagonals
-    corrected = avgerage_diagonal(difference.T)
+    corrected = average_diagonal(difference.T)
     # get center values of corrected_2
     corrected = corrected[
         difference.shape[1] // 2 : (difference.shape[1] // 2) + difference.shape[1]

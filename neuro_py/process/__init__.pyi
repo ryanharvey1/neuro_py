@@ -47,7 +47,7 @@ __all__ = (
     "mtspectrumc",
     "point_spectra",
     "circular_shift",
-    "avgerage_diagonal",
+    "average_diagonal",
     "remove_inactive_cells",
     "remove_inactive_cells_pre_task_post",
 )
@@ -108,7 +108,7 @@ from .pychronux import (
     point_spectra,
 )
 from .utils import (
-    avgerage_diagonal,
+    average_diagonal,
     circular_shift,
     remove_inactive_cells,
     remove_inactive_cells_pre_task_post,
