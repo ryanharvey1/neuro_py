@@ -85,6 +85,7 @@ plugins:
     htmlmin_opts:
       remove_comments: true
     cache_safe: true
+- git-revision-date-localized
 
 nav:
 - Home: index.md
