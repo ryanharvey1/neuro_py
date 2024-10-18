@@ -158,7 +158,7 @@ def remove_inactive_cells(
         - SpikeTrainArray object with inactive cells removed.
         - DataFrame containing cell metrics with inactive cells removed (if provided).
 
-    Example
+    Examples
     -------
     >>> from neuro_py.process.intervals import truncate_epoch
     >>> from neuro_py.session.locate_epochs import (
@@ -316,7 +316,7 @@ def remove_inactive_cells_pre_task_post(
         - SpikeTrainArray object with inactive cells removed.
         - DataFrame containing cell metrics with inactive cells removed (if provided).
 
-    Example
+    Examples
     -------
     >>> from neuro_py.process.utils import remove_inactive_cells_pre_task_post
     >>> from neuro_py.io import loading
