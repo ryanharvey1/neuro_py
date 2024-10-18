@@ -50,6 +50,7 @@ dependencies = [
     "mkdocs-section-index>=0.3.9",
     "mkdocs-include-markdown-plugin>=6.2.2",
     "mkdocs-jupyter>=0.24.8",
+    "mkdocs-minify-plugin>=0.8.0",
 ]
 
 [project.urls]
