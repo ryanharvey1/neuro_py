@@ -33,7 +33,7 @@ dependencies = [
     "dill>=0.3.8",
     "seaborn>=0.11.2",
     "scikit-image>=0.21.0",
-    "nelpy @ git+https://github.com/ryanharvey1/nelpy.git",
+    "nelpy @ git+https://github.com/nelpy/nelpy.git",
     "lazy-loader>=0.4",
     "elephant>=1.1.0",
     "neo>=0.13.3",
