@@ -1731,13 +1731,13 @@ def load_basic_data(basepath: str) -> Tuple[pd.DataFrame, dict, pd.DataFrame, fl
 
 def load_spikes(
     basepath: str,
-    putativeCellType: List[str] = [],  
-    brainRegion: List[str] = [],  
-    remove_bad_unit: bool = True,  
-    brain_state: List[str] = [],  
-    other_metric: Union[str, None] = None,  
-    other_metric_value: Union[str, None] = None,  
-    support: Union[nel.EpochArray, None] = None,  
+    putativeCellType: List[str] = [],
+    brainRegion: List[str] = [],
+    remove_bad_unit: bool = True,
+    brain_state: List[str] = [],
+    other_metric: Union[str, None] = None,
+    other_metric_value: Union[str, None] = None,
+    support: Union[nel.EpochArray, None] = None,
 ) -> Tuple[Union[nel.SpikeTrainArray, None], Union[pd.DataFrame, None]]:
     """
     Load specific cells' spike times.
@@ -1775,7 +1775,10 @@ def load_spikes(
     try:
         _, _, fs_dat, _ = loadXML(basepath)
     except Exception:
-        fs_dat = load_extracellular_metadata(basepath).get("sr")
+        fs_dat = load_extracellular_metadata(basepath).get("sr", None)
+
+    if fs_dat is None:
+        return None, None
 
     # load cell metrics and spike data
     cell_metrics, data = load_cell_metrics(basepath)
@@ -1858,7 +1861,9 @@ def load_spikes(
     return st, cell_metrics
 
 
-def load_deepSuperficialfromRipple(basepath: str, bypass_mismatch_exception: bool = False) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+def load_deepSuperficialfromRipple(
+    basepath: str, bypass_mismatch_exception: bool = False
+) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
     """
     Load deepSuperficialfromRipple file created by classification_DeepSuperficial.m.
 
@@ -2025,7 +2030,10 @@ def load_mua_events(basepath: str) -> pd.DataFrame:
 
 
 def load_manipulation(
-    basepath: str, struct_name: Union[str, None] = None, return_epoch_array: bool = True, merge_gap: Union[int, None] = None
+    basepath: str,
+    struct_name: Union[str, None] = None,
+    return_epoch_array: bool = True,
+    merge_gap: Union[int, None] = None,
 ) -> Union[pd.DataFrame, nel.EpochArray]:
     """
     Loads the data from the basename.eventName.manipulations.mat file and returns a pandas dataframe.
@@ -2182,7 +2190,10 @@ def load_extracellular_metadata(basepath: str) -> dict:
     dict
         A dictionary of extracellular metadata from the session file.
     """
-    filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
+    # check if filename exist
+    if not os.path.exists(filename):
+        return {}
     data = sio.loadmat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
 
@@ -2240,7 +2251,9 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
     return probe_layout
 
 
-def load_emg(basepath: str, threshold: float = 0.9) -> Tuple[nel.AnalogSignalArray, nel.EpochArray, nel.EpochArray]:
+def load_emg(
+    basepath: str, threshold: float = 0.9
+) -> Tuple[nel.AnalogSignalArray, nel.EpochArray, nel.EpochArray]:
     """
     Load EMG data from basename.EMGFromLFP.LFP.mat.
 
