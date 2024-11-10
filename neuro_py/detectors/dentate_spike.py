@@ -481,7 +481,7 @@ class DetectDS(object):
         self.filtered_lfp = None
         self.lfp = None
         self.mol_hilus_diff = None
-    
+
     def save(self, filename: str):
         """
         Save the DetectDS object as a pickle file
