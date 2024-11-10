@@ -1,6 +1,7 @@
 
 __all__ = [
     "behavior",
+    "detectors",
     "ensemble",
     "io",
     "lfp",
@@ -15,6 +16,7 @@ __all__ = [
 
 from . import (
     behavior,
+    detectors,
     ensemble,
     io,
     lfp,
