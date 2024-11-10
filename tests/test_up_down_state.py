@@ -5,7 +5,7 @@ from neuro_py.detectors.up_down_state import detect_up_down_states
 
 
 def test_detect_up_down_states_detection():
-    
+
     # Mock data generation
     down_state_times = [4, 7, 15]
 
@@ -41,3 +41,23 @@ def test_detect_up_down_states_detection():
             (down_state_time >= down_state_intervals[:, 0])
             & (down_state_time <= down_state_intervals[:, 1])
         ), f"DOWN state at {down_state_time} not detected."
+
+    # Check UP states detected in high activity periods
+    up_state_intervals = up_state_epochs.time
+    for down_state_time in down_state_times:
+        assert not any(
+            (down_state_time >= up_state_intervals[:, 0])
+            & (down_state_time <= up_state_intervals[:, 1])
+        ), f"UP state at {down_state_time} detected."
+
+    # Check that DOWN states are not detected in UP states
+    for up_state_interval in up_state_intervals:
+        assert not any(
+            (up_state_interval[0] >= down_state_intervals[:, 0])
+            & (up_state_interval[0] <= down_state_intervals[:, 1])
+        ), f"DOWN state detected in UP state {up_state_interval}."
+
+    # Check that DOWN states are not detected in UP states
+    assert (
+        up_state_epochs & down_state_epochs
+    ).isempty, "DOWN state detected in UP state."
