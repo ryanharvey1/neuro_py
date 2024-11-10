@@ -11,8 +11,8 @@ from neuro_py.process.intervals import find_interval
 
 
 def detect_up_down_states(
-    basepath: str,
-    st: Optional[nel.SpikeTrain] = None,
+    basepath: Optional[str] = None,
+    st: Optional[nel.SpikeTrainArray] = None,
     nrem_epochs: Optional[nel.EpochArray] = None,
     region: str = "ILA|PFC|PL|EC1|EC2|EC3|EC4|EC5|MEC",
     min_dur: float = 0.03,
