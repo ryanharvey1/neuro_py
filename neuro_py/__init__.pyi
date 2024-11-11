@@ -10,6 +10,7 @@ __all__ = [
     "spikes",
     "stats",
     "tuning",
+    "util",
 ]
 
 
@@ -24,4 +25,5 @@ from . import (
     spikes,
     stats,
     tuning,
+    util,
 )

@@ -10,6 +10,8 @@ __all__ = [
     "computeAssemblyActivity",
     "AssemblyReact",
     "ExplainedVariance",
+    "potential_landscape",
+    "potential_landscape_nd",
     "similarity_index",
     "similaritymat",
     "WeightedCorr",
@@ -32,6 +34,10 @@ from .assembly import (
 )
 from .assembly_reactivation import AssemblyReact
 from .explained_variance import ExplainedVariance
+from .geodyn import (
+    potential_landscape,
+    potential_landscape_nd,
+)
 from .similarity_index import similarity_index
 from .similaritymat import similaritymat
 from .replay import (
