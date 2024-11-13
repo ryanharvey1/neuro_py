@@ -1,4 +1,7 @@
-from typing import Tuple
+import os
+import warnings
+from typing import List, Tuple, Union
+
 import nelpy as nel
 import numpy as np
 
@@ -6,10 +9,12 @@ from neuro_py.process import intervals
 
 
 def clean_lfp(
-    lfp: nel.AnalogSignalArray,
+    lfp: Union[nel.AnalogSignalArray, np.ndarray],
+    t: np.ndarray = None,
     thresholds: Tuple[float, float] = (5, 10),
     artifact_time_expand: Tuple[float, float] = (0.25, 0.1),
-) -> np.ndarray:
+    return_bad_intervals: bool = False,
+) -> Union[np.ndarray, Tuple[np.ndarray, nel.EpochArray]]:
     """
     Remove artefacts and noise from a local field potential (LFP) signal.
 
@@ -25,11 +30,14 @@ def clean_lfp(
     artifact_time_expand : tuple of float, optional
         A tuple of two time intervals around detected artefacts and noise. The first interval is used to expand the detected
         large global artefacts. The second interval is used to expand the detected noise. Default is (0.25, 0.1).
+    return_bad_intervals : bool, optional
+        If True, also returns intervals of artefacts and noise as an `nel.EpochArray`. Default is False.
 
     Returns
     -------
-    np.ndarray
-        The cleaned LFP signal.
+    Union[np.ndarray, Tuple[np.ndarray, nel.EpochArray]]
+        The cleaned LFP signal. If `return_bad_intervals` is True, also returns an `nel.EpochArray`
+        representing the intervals of artefacts and noise.
 
     Notes
     -----
@@ -50,9 +58,18 @@ def clean_lfp(
     threshold2 = thresholds[1]  # for derivative of z-scored signal
     aroundArtefact2 = artifact_time_expand[1]  # interval to expand detected noise
 
-    t = lfp.time  # time points of LFP signal
-    values = lfp.copy().data.flatten()  # values of LFP signal
-    z = lfp.zscore().data.flatten()  # z-scored values of LFP signal
+    if isinstance(lfp, nel.AnalogSignalArray):
+        t = lfp.time  # time points of LFP signal
+        values = lfp.copy().data.flatten()  # values of LFP signal
+        z = lfp.zscore().data.flatten()  # z-scored values of LFP signal
+    elif isinstance(lfp, np.ndarray):
+        if t is None:
+            raise ValueError("t must be provided when lfp is np.ndarray")
+        values = lfp.flatten()
+        z = (values - np.mean(values)) / np.std(values)
+    else:
+        raise ValueError("lfp must be nel.AnalogSignalArray or np.ndarray")
+
     d = np.append(np.diff(z), 0)  # derivative of z-scored LFP signal
 
     # Detect large global artefacts [0]
@@ -85,4 +102,7 @@ def clean_lfp(
         t[in_interval], t[~in_interval], values[~in_interval]
     )
 
-    return values
+    return (values, bad) if return_bad_intervals else values
+
+
+
