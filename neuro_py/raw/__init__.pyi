@@ -1,3 +1,3 @@
-__all__ = ["zero_intervals_in_file"]
+__all__ = ["remove_artifacts"]
 
-from .preprocessing import zero_intervals_in_file
+from .preprocessing import remove_artifacts

@@ -5,7 +5,7 @@ from typing import List, Tuple
 import numpy as np
 
 
-def zero_intervals_in_file(
+def remove_artifacts(
     filepath: str,
     n_channels: int,
     zero_intervals: List[Tuple[int, int]],
@@ -13,7 +13,7 @@ def zero_intervals_in_file(
     mode: str = "linear",
 ) -> None:
     """
-    Zero out specified intervals in a binary file.
+    Silence user-defined periods from recordings in a binary file.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def zero_intervals_in_file(
     Examples
     --------
     >>> fs = 20_000
-    >>> zero_intervals_in_file(
+    >>> remove_artifacts(
     >>>     "U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
     >>>     n_channels=128,
     >>>     zero_intervals = (bad_intervals.data * fs).astype(int)
@@ -64,6 +64,10 @@ def zero_intervals_in_file(
     data = np.memmap(
         filepath, dtype=precision, mode="r+", shape=(n_samples, n_channels)
     )
+
+    # if shape is (2,) then it is a single interval, then add dimension
+    if zero_intervals.shape == (2,):
+        zero_intervals = zero_intervals[np.newaxis, :]
 
     # Zero out the specified intervals
     if mode == "zeros":
