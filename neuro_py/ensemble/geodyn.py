@@ -139,12 +139,6 @@ def potential_landscape_nd(X_dyn, projbins, domainbins=None, nanborderempty=True
     latentedges_nrns = []
     domainedges_nrns = []
     for nnrn in range(nnrns):
-        if isinstance(projbins, int):
-            nprojbins = projbins
-        elif isinstance(projbins[nnrn], int):
-            nprojbins = projbins[nnrn]
-        else:
-            nprojbins = len(projbins[nnrn]) - 1  # bin edges
         # 1D state space binning of time derivatives across domain
         # assumes landscape may morph across domain
         H, bin_edges, _ = binned_statistic_dd(  # (nnrns times projbins) x time
@@ -171,35 +165,6 @@ def potential_landscape_nd(X_dyn, projbins, domainbins=None, nanborderempty=True
         if nanborderempty:
             nonzero_mask = H != 0
 
-            # # shape: projbins x 2 x nbins_domain
-            # idx_terminal_nonzero = np.asarray(list(zip(*find_terminal_masked_indices(
-            #     nonzero_mask, axis=nnrn))))  # unzip the list
-
-            # # along axis 0 set all values from start to idx_first_nonzero to nan
-            # if nnrns == 1:
-            #     for t in range(H.shape[1]):
-            #         potential_pos_t[:idx_terminal_nonzero[t][0], t] = np.nan
-            #         potential_pos_t[idx_terminal_nonzero[t][1] + 1:, t] = np.nan
-            # else:
-            #     for pb in range(nprojbins):
-            #         nrndimslices = [pb] * nnrns
-            #         nrndimslices.append(0)
-            #         for t in range(nbins_domain):
-            #             idx_first_nonzero = idx_terminal_nonzero[pb][0][t]
-            #             idx_last_nonzero = idx_terminal_nonzero[pb][1][t]
-
-            #             nrndimslices[-1] = t
-            #             nrndimslices[nnrn] = slice(0, idx_first_nonzero)
-
-            #             potential_pos_t[tuple(nrndimslices)] = np.nan
-            #             nrndimslices[nnrn] = slice(idx_last_nonzero + 1, None)
-            #             # print(nrndimslices, potential_pos_t.shape)
-            #             potential_pos_t[tuple(nrndimslices)] = np.nan
-
-            #             # if idx_first_nonzero and idx_last_nonzero take up whole axis, then set all values to nan
-            #             if idx_first_nonzero == 0 and idx_last_nonzero == nprojbins - 1:
-            #                 nrndimslices[nnrn] = slice(None)
-            #                 potential_pos_t[tuple(nrndimslices)] = np.nan
             for t in range(nbins_domain):
                 nrndimslices = [slice(None)] * nnrns
                 nrndimslices.append(t)
