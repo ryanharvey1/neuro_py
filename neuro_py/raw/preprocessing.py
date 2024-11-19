@@ -44,7 +44,7 @@ def remove_artifacts(
     --------
     >>> fs = 20_000
     >>> remove_artifacts(
-    >>>     "U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
+    >>>     r"U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
     >>>     n_channels=128,
     >>>     zero_intervals = (bad_intervals.data * fs).astype(int)
     >>>     )
