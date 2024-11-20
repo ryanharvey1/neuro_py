@@ -1,7 +1,7 @@
 import gc
 import os
 import warnings
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 
@@ -12,6 +12,7 @@ def remove_artifacts(
     zero_intervals: List[Tuple[int, int]],
     precision: str = "int16",
     mode: str = "linear",
+    channels_to_remove: Optional[List[int]] = None,
 ) -> None:
     """
     Silence user-defined periods from recordings in a binary file.
@@ -28,13 +29,12 @@ def remove_artifacts(
         Data precision, by default "int16".
     mode : str, optional
         Mode of interpolation,"zeros", "linear", "gaussian", default: "linear"
-
         - "zeros": zero out the interval
-
         - "linear": interpolate linearly between the start and end of the interval
-
         - "gaussian": [Not implemented, TBD] interpolate using a gaussian function that has the same
             variance that the one in the recordings, on a per channel basis
+    channels_to_remove : List[int], optional
+        List of channels (0-based indices) to remove artifacts from. If None, remove artifacts from all channels.
 
     Returns
     -------
@@ -46,8 +46,9 @@ def remove_artifacts(
     >>> remove_artifacts(
     >>>     r"U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
     >>>     n_channels=128,
-    >>>     zero_intervals = (bad_intervals.data * fs).astype(int)
-    >>>     )
+    >>>     zero_intervals = (bad_intervals.data * fs).astype(int),
+    >>>     channels_to_remove=[0, 1, 2]  # Only remove artifacts from channels 0, 1, and 2
+    >>> )
     """
     # Check if file exists
     if not os.path.exists(filepath):
@@ -67,15 +68,20 @@ def remove_artifacts(
     )
     try:
         # if shape is (2,) then it is a single interval, then add dimension
-        if zero_intervals.shape == (2,):
-            zero_intervals = zero_intervals[np.newaxis, :]
+        if np.shape(zero_intervals) == (2,):
+            zero_intervals = np.expand_dims(zero_intervals, axis=0)
+
+        # If no specific channels are provided, process all channels
+        channels_to_remove = channels_to_remove or list(range(n_channels))
 
         # Zero out the specified intervals
         if mode == "zeros":
             zero_value = np.zeros((1, n_channels), dtype=precision)
             for start, end in zero_intervals:
                 if 0 <= start < n_samples and 0 < end <= n_samples:
-                    data[start:end, :] = zero_value
+                    data[start:end, channels_to_remove] = zero_value[
+                        0, channels_to_remove
+                    ]
                 else:
                     warnings.warn(
                         f"Interval ({start}, {end}) is out of bounds and was skipped."
@@ -83,7 +89,7 @@ def remove_artifacts(
         elif mode == "linear":
             for start, end in zero_intervals:
                 if 0 <= start < n_samples and 0 < end <= n_samples:
-                    for ch in range(n_channels):
+                    for ch in channels_to_remove:
                         # Compute float interpolation and round before casting
                         interpolated = np.linspace(
                             data[start, ch],

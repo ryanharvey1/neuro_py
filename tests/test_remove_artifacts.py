@@ -1,7 +1,6 @@
 import os
 import tempfile
 import warnings
-
 import numpy as np
 from neuro_py.raw.preprocessing import remove_artifacts
 
@@ -11,6 +10,7 @@ def test_remove_artifacts():
     n_samples = 100
     precision = "int16"
     zero_intervals = np.array([[20, 30], [50, 60]])
+    channels_to_remove = [1, 3]  # Only remove artifacts from channels 1 and 3
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".dat") as tmpfile:
         filepath = tmpfile.name
@@ -24,12 +24,14 @@ def test_remove_artifacts():
             original_data.tofile(f)
 
         # Test mode "zeros"
-        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="zeros")
+        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="zeros", channels_to_remove=channels_to_remove)
         data = np.memmap(
             filepath, dtype=precision, mode="r", shape=(n_samples, n_channels)
         )
         for start, end in zero_intervals:
-            assert np.all(data[start:end, :] == 0)
+            # Ensure only the selected channels are zeroed
+            for ch in channels_to_remove:
+                assert np.all(data[start:end, ch] == 0)
         del data
         os.remove(filepath)
 
@@ -37,13 +39,13 @@ def test_remove_artifacts():
         with open(filepath, "wb") as f:
             original_data.tofile(f)
 
-        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="linear")
+        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="linear", channels_to_remove=channels_to_remove)
 
         data = np.memmap(
             filepath, dtype=precision, mode="r", shape=(n_samples, n_channels)
         )
         for start, end in zero_intervals:
-            for ch in range(n_channels):
+            for ch in channels_to_remove:
                 # Perform float interpolation with rounding before casting
                 expected = np.linspace(
                     original_data[start, ch],
@@ -61,13 +63,13 @@ def test_remove_artifacts():
         #     original_data.tofile(f)
 
         # remove_artifacts(
-        #     filepath, n_channels, zero_intervals, precision, mode="gaussian"
+        #     filepath, n_channels, zero_intervals, precision, mode="gaussian", channels_to_remove=channels_to_remove
         # )
         # data = np.memmap(
         #     filepath, dtype=precision, mode="r", shape=(n_samples, n_channels)
         # )
         # for start, end in zero_intervals:
-        #     for ch in range(n_channels):
+        #     for ch in channels_to_remove:
         #         segment = data[start:end, ch]
         #         channel_mean = np.mean(original_data[:, ch])
         #         channel_std = np.std(original_data[:, ch])
