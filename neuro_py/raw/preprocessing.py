@@ -33,7 +33,7 @@ def remove_artifacts(
 
         - "linear": interpolate linearly between the start and end of the interval
 
-        - "gaussian": interpolate using a gaussian function that has the same
+        - "gaussian": [Not implemented, TBD] interpolate using a gaussian function that has the same
             variance that the one in the recordings, on a per channel basis
 
     Returns
@@ -98,43 +98,60 @@ def remove_artifacts(
                         f"Interval ({start}, {end}) is out of bounds and was skipped."
                     )
         elif mode == "gaussian":
-            # Initialize arrays to store mean and std for each channel
-            means = np.zeros(n_channels, dtype=np.float64)
-            stds = np.zeros(n_channels, dtype=np.float64)
+            # not implemented error message
+            raise NotImplementedError("Gaussian mode not implemented.")
 
-            # Calculate mean and variance for each channel outside the intervals
-            for ch in range(n_channels):
-                channel_data = data[:, ch]
-                valid_samples = []
+            # max_samples = 10_000
+            # rng = np.random.default_rng()
 
-                for start, end in zero_intervals:
-                    # Append valid data chunks before and after each interval
-                    if start > 0:
-                        valid_samples.append(channel_data[:start])
-                    if end < n_samples:
-                        valid_samples.append(channel_data[end:])
+            # # Compute valid regions and sample
+            # valid_mask = np.ones(n_samples, dtype=bool)
+            # for start, end in zero_intervals:
+            #     valid_mask[start:end] = False
 
-                # Concatenate all valid samples for this channel
-                valid_data = (
-                    np.concatenate(valid_samples) if valid_samples else channel_data
-                )
+            # valid_indices = np.flatnonzero(valid_mask)
+            # sampled_indices = rng.choice(
+            #     valid_indices, size=min(max_samples, len(valid_indices)), replace=False
+            # )
+            # sampled_data = data[sampled_indices, :]
 
-                # Calculate mean and std for the channel
-                means[ch] = np.mean(valid_data)
-                stds[ch] = np.std(valid_data)
+            # # Compute mean and std for each channel
+            # means = np.mean(sampled_data, axis=0)
+            # stds = np.std(sampled_data, axis=0)
 
-            # Fill intervals with Gaussian random values
-            for start, end in zero_intervals:
-                if 0 <= start < n_samples and 0 < end <= n_samples:
-                    for ch in range(n_channels):
-                        gaussian_values = np.random.normal(
-                            means[ch], stds[ch], end - start
-                        ).astype(precision)
-                        data[start:end, ch] = gaussian_values
-                else:
-                    warnings.warn(
-                        f"Interval ({start}, {end}) is out of bounds and was skipped."
-                    )
+            # from scipy.signal import butter, filtfilt
+
+            # def bandpass_filter(signal, lowcut, highcut, fs, order=4):
+            #     nyquist = 0.5 * fs
+            #     low = lowcut / nyquist
+            #     high = highcut / nyquist
+            #     b, a = butter(order, [low, high], btype="band")
+            #     return filtfilt(b, a, signal, axis=0)
+
+            # # Parameters for bandpass filter
+            # lowcut = 0.5
+            # highcut = 100
+
+            # for start, end in zero_intervals:
+            #     if 0 <= start < n_samples and 0 < end <= n_samples:
+            #         interval_length = end - start
+            #         raw_noise = rng.normal(
+            #             loc=means, scale=stds, size=(interval_length, n_channels)
+            #         ).astype(precision)
+
+            #         # Apply bandpass filter with handling for potential issues
+            #         try:
+            #             filtered_noise = bandpass_filter(raw_noise, lowcut, highcut, fs)
+            #             filtered_noise = np.nan_to_num(filtered_noise, nan=0.0)
+            #         except ValueError:
+            #             warnings.warn(f"Filtering failed for interval ({start}, {end}), skipping.")
+            #             continue
+
+            #         # Prevent overwriting with unexpected data types
+            #         data[start:end, :] = filtered_noise.astype(data.dtype)
+            #     else:
+            #         warnings.warn(f"Interval ({start}, {end}) is out of bounds and was skipped.")
+
     finally:
         # Explicitly flush and release the memory-mapped object
         data.flush()
