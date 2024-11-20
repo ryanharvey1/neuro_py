@@ -28,11 +28,12 @@ def remove_artifacts(
     precision : str, optional
         Data precision, by default "int16".
     mode : str, optional
-        Mode of interpolation,"zeros", "linear", "gaussian", default: "linear"
-        - "zeros": zero out the interval
-        - "linear": interpolate linearly between the start and end of the interval
-        - "gaussian": [Not implemented, TBD] interpolate using a gaussian function that has the same
-            variance that the one in the recordings, on a per channel basis
+        Mode of interpolation. Options are:
+
+        - **"zeros"**: Zero out the interval.
+        - **"linear"**: Interpolate linearly between the start and end of the interval (default).
+        - **"gaussian"**: *(Not implemented, TBD)* Interpolate using a Gaussian function with the same variance as in the recordings, on a per-channel basis.
+
     channels_to_remove : List[int], optional
         List of channels (0-based indices) to remove artifacts from. If None, remove artifacts from all channels.
 
@@ -44,11 +45,11 @@ def remove_artifacts(
     --------
     >>> fs = 20_000
     >>> remove_artifacts(
-    >>>     r"U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
-    >>>     n_channels=128,
-    >>>     zero_intervals = (bad_intervals.data * fs).astype(int),
-    >>>     channels_to_remove=[0, 1, 2]  # Only remove artifacts from channels 0, 1, and 2
-    >>> )
+    ...     r"U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
+    ...     n_channels=128,
+    ...     zero_intervals=(bad_intervals.data * fs).astype(int),
+    ...     channels_to_remove=[0, 1, 2]  # Only remove artifacts from channels 0, 1, and 2
+    ... )
     """
     # Check if file exists
     if not os.path.exists(filepath):
