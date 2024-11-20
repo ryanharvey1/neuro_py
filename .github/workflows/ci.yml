@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - 31-drop-support-for-python-38
   pull_request:
     branches:
-      - main
+      - 31-drop-support-for-python-38
 
 jobs:
   test:
