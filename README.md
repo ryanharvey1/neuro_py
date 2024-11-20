@@ -20,12 +20,6 @@ Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials
 ## Installation
 
 ```bash
-pip install neuro-analysis-py
-```
-
-## Development
-
-```bash
 git clone
 cd neuro_py
 pip install -e .
