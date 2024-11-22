@@ -34,7 +34,7 @@ from .assembly import (
 )
 from .assembly_reactivation import AssemblyReact
 from .explained_variance import ExplainedVariance
-from .geodyn import (
+from .dynamics import (
     potential_landscape,
     potential_landscape_nd,
 )

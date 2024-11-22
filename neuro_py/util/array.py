@@ -1,11 +1,14 @@
+from typing import Tuple
+
 import numpy as np
 
 
-def find_terminal_masked_indices(mask, axis):
+def find_terminal_masked_indices(mask: np.ndarray, axis: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the first and last indices of non-masked values along an axis.
 
-    Only tested upto 2D arrays.
+    Only tested upto 2D arrays. If `mask` is empty along `axis`, the first and
+    last indices are set to 0 and the last index along the axis, respectively.
 
     Parameters
     ----------
@@ -20,6 +23,24 @@ def find_terminal_masked_indices(mask, axis):
         First index of non-masked values along `axis`.
     np.ndarray
         Last index of non-masked values along `axis`.
+
+    Examples
+    --------
+    1D Example:
+    >>> mask = np.array([0, 0, 1, 1, 0])
+    >>> find_terminal_masked_indices(mask, axis=0)
+    (2, 3)
+
+    2D Example (along rows):
+    >>> mask = np.array([[0, 0, 1],
+    ...                  [1, 1, 0],
+    ...                  [0, 0, 0]])
+    >>> find_terminal_masked_indices(mask, axis=1)
+    (array([2, 0, 0]), array([2, 1, -1]))
+
+    2D Example (along columns):
+    >>> find_terminal_masked_indices(mask, axis=0)
+    (array([1, 1, 0]), array([1, 1, 0]))
     """
     first_idx = np.argmax(mask, axis=axis)
     reversed_mask = np.flip(mask, axis=axis)
@@ -27,7 +48,7 @@ def find_terminal_masked_indices(mask, axis):
 
     return first_idx, last_idx
 
-def replace_border_zeros_with_nan(arr):
+def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
     """Replace zero values at the borders of each dimension of a n-dimensional
     array with NaN.
 
