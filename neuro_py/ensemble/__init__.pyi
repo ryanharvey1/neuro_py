@@ -17,6 +17,7 @@ __all__ = [
     "weighted_correlation",
     "shuffle_and_score",
     "trajectory_score_bst",
+    "PairwiseBias"
 ]
 
 from .assembly import (
@@ -39,5 +40,6 @@ from .replay import (
     WeightedCorrCirc,
     weighted_correlation,
     shuffle_and_score,
-    trajectory_score_bst
+    trajectory_score_bst,
+    PairwiseBias
 )

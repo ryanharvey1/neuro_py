@@ -7,6 +7,9 @@ from nelpy.analysis import replay
 from nelpy.decoding import decode1D as decode
 from nelpy.core import BinnedSpikeTrainArray
 from nelpy import TuningCurve1D
+from scipy.spatial.distance import cosine
+from numba import jit
+from neuro_py.process.peri_event import crossCorr
 
 
 def WeightedCorr(
@@ -317,17 +320,11 @@ def trajectory_score_bst(
 
     posterior, bdries, _, _ = decode(bst=bst, ratemap=tuningcurve)
 
-    # scores = np.zeros(bst.n_epochs)
-    # weighted_corr = np.zeros(bst.n_epochs)
-
-    # if n_shuffles > 0:
-    #     scores_time_swap = np.zeros((n_shuffles, bst.n_epochs))
-    #     scores_col_cycle = np.zeros((n_shuffles, bst.n_epochs))
-    #     weighted_corr_time_swap = np.zeros((n_shuffles, bst.n_epochs))
-    #     weighted_corr_col_cycle = np.zeros((n_shuffles, bst.n_epochs))
+    num_cores = 1
 
     if parallel:
-        num_cores = multiprocessing.cpu_count()
+        # all but one core
+        num_cores = multiprocessing.cpu_count() - 1
 
     ds, dp = bst.ds, np.diff(tuningcurve.bins)[0]
 
@@ -352,41 +349,6 @@ def trajectory_score_bst(
             for idx in range(bst.n_epochs)
         )
     )
-    # for idx in range(bst.n_epochs):
-    #     posterior_array = posterior[:, bdries[idx] : bdries[idx + 1]]
-    #     scores[idx] = replay.trajectory_score_array(
-    #         posterior=posterior_array, w=w, normalize=normalize
-    #     )
-    #     weighted_corr[idx] = weighted_correlation(posterior_array)
-
-    #     if parallel:
-    #         (
-    #             scores_time_swap[:, idx],
-    #             scores_col_cycle[:, idx],
-    #             weighted_corr_time_swap[:, idx],
-    #             weighted_corr_col_cycle[:, idx],
-    #         ) = zip(
-    #             *Parallel(n_jobs=num_cores)(
-    #                 delayed(shuffle_and_score)(
-    #                     posterior_array, w, normalize, tuningcurve, ds, dp
-    #                 )
-    #                 for _ in range(n_shuffles)
-    #             )
-    #         )
-    #     else:
-    #         (
-    #             scores_time_swap[:, idx],
-    #             scores_col_cycle[:, idx],
-    #             weighted_corr_time_swap[:, idx],
-    #             weighted_corr_col_cycle[:, idx],
-    #         ) = zip(
-    #             *[
-    #                 shuffle_and_score(
-    #                     posterior_array, w, normalize, tuningcurve, ds, dp
-    #                 )
-    #                 for _ in range(n_shuffles)
-    #             ]
-    #         )
 
     if n_shuffles > 0:
         return (
@@ -398,3 +360,478 @@ def trajectory_score_bst(
             np.array(weighted_corr_col_cycle).T,
         )
     return scores, weighted_corr
+
+
+# class PairwiseBiasAnalysis:
+#     def __init__(self, total_neurons, num_shuffles=100, n_jobs=-1):
+#         self.total_neurons = total_neurons
+#         self.num_shuffles = num_shuffles
+#         self.n_jobs = n_jobs
+
+#     @staticmethod
+#     def compute_bias_matrix_optimized(spike_times, neuron_ids, total_neurons):
+#         """
+#         Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
+
+#         Parameters:
+#         - spike_times: list or array of spike times for the sequence.
+#         - neuron_ids: list or array of neuron identifiers corresponding to spike_times.
+#         - total_neurons: total number of neurons being considered.
+
+#         Returns:
+#         - bias_matrix: A matrix of size (total_neurons, total_neurons) representing the bias.
+#         """
+#         bias_matrix = np.zeros((total_neurons, total_neurons))
+
+#         # Create boolean masks for all neurons in advance
+#         masks = [neuron_ids == i for i in range(total_neurons)]
+
+#         for i in range(total_neurons):
+#             spikes_i = spike_times[masks[i]]
+#             size_i = spikes_i.size
+#             for j in range(total_neurons):
+#                 if i != j:
+#                     spikes_j = spike_times[masks[j]]
+#                     size_j = spikes_j.size
+
+#                     if size_i > 0 and size_j > 0:
+#                         # Count how many times neuron i spikes before neuron j using broadcasting
+#                         count_ij = np.sum(spikes_i[:, np.newaxis] < spikes_j)
+#                         bias_matrix[i, j] = count_ij / (size_i * size_j)
+#                     else:
+#                         bias_matrix[i, j] = 0.5  # Neutral bias if no spikes
+
+#         return bias_matrix
+
+#     @staticmethod
+#     def normalize_bias_matrix(bias_matrix):
+#         """
+#         Normalize the bias matrix values to fall between -1 and 1.
+
+#         Parameters:
+#         - bias_matrix: A bias matrix of shape (n, n).
+
+#         Returns:
+#         - normalized_matrix: Normalized matrix with values between -1 and 1.
+#         """
+#         return 2 * bias_matrix - 1
+
+#     @staticmethod
+#     def compute_cosine_similarity(matrix1, matrix2):
+#         """
+#         Computes the cosine similarity between two flattened bias matrices.
+
+#         Parameters:
+#         - matrix1: A normalized bias matrix.
+#         - matrix2: Another normalized bias matrix.
+
+#         Returns:
+#         - cosine_similarity: The cosine similarity between the two matrices.
+#         """
+#         vec1 = matrix1.flatten()
+#         vec2 = matrix2.flatten()
+#         return 1 - cosine(vec1, vec2)
+
+#     def observed_and_shuffled_correlation(
+#         self, post_spikes, post_neurons, task_normalized, post_intervals, interval_i
+#     ):
+#         idx = (post_spikes > post_intervals[interval_i][0]) & (
+#             post_spikes < post_intervals[interval_i][1]
+#         )
+
+#         post_bias_matrix = self.compute_bias_matrix_optimized(
+#             post_spikes[idx], post_neurons[idx], self.total_neurons
+#         )
+#         post_normalized = self.normalize_bias_matrix(post_bias_matrix)
+
+#         # Compute cosine similarity between task and post-task bias matrices
+#         observed_correlation = self.compute_cosine_similarity(
+#             task_normalized, post_normalized
+#         )
+
+#         # Shuffle post-task spikes and compute bias matrix
+#         shuffled_correlation = [
+#             self.compute_cosine_similarity(
+#                 task_normalized,
+#                 self.normalize_bias_matrix(
+#                     self.compute_bias_matrix_optimized(
+#                         post_spikes[idx],
+#                         np.random.permutation(post_neurons[idx]),
+#                         self.total_neurons,
+#                     )
+#                 ),
+#             )
+#             for _ in range(self.num_shuffles)
+#         ]
+
+#         return observed_correlation, shuffled_correlation
+
+#     def shuffled_significance(
+#         self, task_spikes, task_neurons, post_spikes, post_neurons, post_intervals
+#     ):
+#         """
+#         Computes the significance of the task-post correlation by comparing against shuffled distributions.
+
+#         Parameters:
+#         - task_spikes: list or array of spike times during the task.
+#         - task_neurons: list or array of neuron identifiers for task spikes.
+#         - post_spikes: list or array of spike times during post-task (e.g., sleep).
+#         - post_neurons: list or array of neuron identifiers for post-task spikes.
+#         - post_intervals: list or array of intervals for post-task epochs.
+
+#         Returns:
+#         - z_score: The z-score of the observed correlation compared to the shuffled distribution.
+#         - p_value: p-value for significance test.
+#         """
+#         # Compute bias matrices for task epochs
+#         task_bias_matrix = self.compute_bias_matrix_optimized(
+#             task_spikes, task_neurons, self.total_neurons
+#         )
+#         # Normalize the bias matrices
+#         task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+
+#         # Get shuffled and observed correlations using parallel processing
+#         observed_correlation, shuffled_correlations = zip(
+#             *Parallel(n_jobs=self.n_jobs)(
+#                 delayed(self.observed_and_shuffled_correlation)(
+#                     post_spikes,
+#                     post_neurons,
+#                     task_normalized,
+#                     post_intervals,
+#                     interval_i,
+#                 )
+#                 for interval_i in range(post_intervals.shape[0])
+#             )
+#         )
+#         observed_correlation, shuffled_correlations = (
+#             np.array(observed_correlation),
+#             np.array(shuffled_correlations),
+#         )
+
+#         # Compute z-score
+#         shuffled_mean = np.mean(shuffled_correlations, axis=1)
+#         shuffled_std = np.std(shuffled_correlations, axis=1)
+#         z_score = (observed_correlation - shuffled_mean) / shuffled_std
+
+#         # Significance test between the observed correlation and the shuffled distribution
+#         p_value = (np.sum(shuffled_correlations.T > observed_correlation, axis=0) + 1) / (
+#             self.num_shuffles + 1
+#         )
+
+#         return z_score, p_value
+
+# @jit(nopython=True)
+# def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
+#     """
+#     Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
+
+#     Parameters:
+#     - spike_times: list or array of spike times for the sequence.
+#     - neuron_ids: list or array of neuron identifiers corresponding to spike_times.
+#     - total_neurons: total number of neurons being considered.
+
+#     Returns:
+#     - bias_matrix: A matrix of size (total_neurons, total_neurons) representing the bias.
+#     """
+
+#     # Create an empty bias matrix
+#     bias_matrix = np.full((total_neurons, total_neurons), 0.5)
+
+#     # Create boolean masks for all neurons in advance
+#     masks = [neuron_ids == i for i in range(total_neurons)]
+
+#     # Iterate over each pair of neurons
+#     for i in range(total_neurons):
+#         spikes_i = spike_times[masks[i]]
+#         size_i = spikes_i.size
+
+#         if size_i == 0:
+#             continue  # Skip if neuron i has no spikes
+
+#         for j in range(total_neurons):
+#             if i == j:
+#                 continue  # Skip self-correlation
+
+#             spikes_j = spike_times[masks[j]]
+#             size_j = spikes_j.size
+
+#             if size_j == 0:
+#                 continue  # Skip if neuron j has no spikes
+
+#             # Count how many times neuron i spikes before neuron j
+#             count_ij = np.sum(spikes_i[:, np.newaxis] < spikes_j)
+#             bias_matrix[i, j] = count_ij / (size_i * size_j)
+
+#     return bias_matrix
+@jit(nopython=True)
+def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
+    """
+    Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
+
+    Parameters:
+    - spike_times: list or array of spike times for the sequence.
+    - neuron_ids: list or array of neuron identifiers corresponding to spike_times.
+    - total_neurons: total number of neurons being considered.
+
+    Returns:
+    - bias_matrix: A matrix of size (total_neurons, total_neurons) representing the bias.
+    """
+
+    # Create an empty bias matrix
+    bias_matrix = np.full((total_neurons, total_neurons), 0.5)
+
+    # Create boolean masks for all neurons in advance
+    masks = [neuron_ids == i for i in range(total_neurons)]
+
+    # Iterate over each pair of neurons
+    for i in range(total_neurons):
+        spikes_i = spike_times[masks[i]]
+        size_i = spikes_i.size
+
+        if size_i == 0:
+            continue  # Skip if neuron i has no spikes
+
+        for j in range(total_neurons):
+            if i == j:
+                continue  # Skip self-correlation
+
+            spikes_j = spike_times[masks[j]]
+            size_j = spikes_j.size
+
+            if size_j == 0:
+                continue  # Skip if neuron j has no spikes
+
+            crosscorr = crossCorr(spikes_i, spikes_j, 0.001, 100)
+
+            # Count how many times neuron i spikes before neuron j
+            bias_matrix[i, j] = np.divide(crosscorr[:50].sum(), crosscorr[51:].sum())
+            
+    return bias_matrix
+
+class PairwiseBias(object):
+    """
+    Pairwise bias analysis for comparing task and post-task spike sequences.
+
+    Parameters:
+    - num_shuffles: Number of shuffles to perform for significance testing.
+    - n_jobs: Number of parallel jobs to run for computing correlations.
+
+    Attributes:
+
+    - total_neurons: Total number of neurons in the dataset.
+    - task_normalized: Normalized bias matrix for the task data.
+    - observed_correlation_: Observed cosine similarity between task and post-task bias matrices.
+    - shuffled_correlations_: Shuffled cosine similarities for significance testing.
+    - z_score_: Z-score of the observed correlation compared to the shuffled distribution.
+    - p_value_: p-value for significance test.
+
+    Methods:
+    - fit: Fit the model using the task spike data.
+    - transform: Transform the post-task data to compute z-scores and p-values.
+    - fit_transform: Fit the model with task data and transform the post-task data.
+
+
+    """
+    def __init__(self, num_shuffles=300, n_jobs=10):
+        self.num_shuffles = num_shuffles
+        self.n_jobs = n_jobs
+        self.total_neurons = None
+        self.task_normalized = None
+        self.observed_correlation_ = None
+        self.shuffled_correlations_ = None
+        self.z_score_ = None
+        self.p_value_ = None
+
+
+    @staticmethod
+    def compute_bias_matrix_optimized(spike_times, neuron_ids, total_neurons):
+        """
+        Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
+
+        Parameters:
+        - spike_times: list or array of spike times for the sequence.
+        - neuron_ids: list or array of neuron identifiers corresponding to spike_times.
+        - total_neurons: total number of neurons being considered.
+
+        Returns:
+        - bias_matrix: A matrix of size (total_neurons, total_neurons) representing the bias.
+        """
+        return compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons)
+
+
+    @staticmethod
+    def normalize_bias_matrix(bias_matrix):
+        """
+        Normalize the bias matrix values to fall between -1 and 1.
+
+        Parameters:
+        - bias_matrix: A bias matrix of shape (n, n).
+
+        Returns:
+        - normalized_matrix: Normalized matrix with values between -1 and 1.
+        """
+        return 2 * bias_matrix - 1
+
+    @staticmethod
+    def compute_cosine_similarity(matrix1, matrix2):
+        """
+        Computes the cosine similarity between two flattened bias matrices.
+
+        Parameters:
+        - matrix1: A normalized bias matrix.
+        - matrix2: Another normalized bias matrix.
+
+        Returns:
+        - cosine_similarity: The cosine similarity between the two matrices.
+        """
+
+        vec1 = matrix1.flatten()
+        vec2 = matrix2.flatten()
+
+
+        # make all nan values 0.5
+        vec1[np.isnan(vec1) | np.isinf(vec1)] = 0.5
+        vec2[np.isnan(vec2) | np.isinf(vec2)] = 0.5
+        return 1 - cosine(vec1, vec2)
+
+    def observed_and_shuffled_correlation(
+        self, post_spikes, post_neurons, task_normalized, post_intervals, interval_i
+    ):
+        post_neurons = np.asarray(post_neurons, dtype=int)
+
+        idx = (post_spikes > post_intervals[interval_i][0]) & (
+            post_spikes < post_intervals[interval_i][1]
+        )
+
+        post_bias_matrix = self.compute_bias_matrix_optimized(
+            post_spikes[idx], post_neurons[idx], self.total_neurons
+        )
+        post_normalized = self.normalize_bias_matrix(post_bias_matrix)
+
+        observed_correlation = self.compute_cosine_similarity(
+            task_normalized, post_normalized
+        )
+
+        shuffled_correlation = [
+            self.compute_cosine_similarity(
+                task_normalized,
+                self.normalize_bias_matrix(
+                    self.compute_bias_matrix_optimized(
+                        post_spikes[idx],
+                        np.random.permutation(post_neurons[idx]),
+                        self.total_neurons,
+                    )
+                ),
+            )
+            for _ in range(self.num_shuffles)
+        ]
+
+        return observed_correlation, shuffled_correlation
+
+    def fit(self, task_spikes, task_neurons):
+        """
+        Fit the model using the task spike data.
+
+        Parameters:
+        - task_spikes: list or array of spike times during the task.
+        - task_neurons: list or array of neuron identifiers for task spikes.
+
+        Returns:
+        - self: Returns the instance itself.
+        """
+        # Convert task_neurons to numpy array of integers
+        task_neurons = np.asarray(task_neurons, dtype=int)
+
+        # Calculate the total number of neurons based on unique entries in task_neurons
+        self.total_neurons = len(np.unique(task_neurons))
+
+        # Compute bias matrix for task data and normalize
+        task_bias_matrix = self.compute_bias_matrix_optimized(
+            task_spikes, task_neurons, self.total_neurons
+        )
+        self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+        return self
+
+    def transform(self, post_spikes, post_neurons, post_intervals):
+        """
+        Transform the post-task data to compute z-scores and p-values.
+
+        Parameters:
+        - post_spikes: list or array of spike times during post-task (e.g., sleep).
+        - post_neurons: list or array of neuron identifiers for post-task spikes.
+        - post_intervals: list or array of intervals for post-task epochs.
+
+        Returns:
+        - z_score: The z-score of the observed correlation compared to the shuffled distribution.
+        - p_value: p-value for significance test.
+        """
+
+        # Check if the number of jobs is less than the number of intervals
+        if post_intervals.shape[0] < self.n_jobs:
+            self.n_jobs = post_intervals.shape[0]
+
+        observed_correlation, shuffled_correlations = zip(
+            *Parallel(n_jobs=self.n_jobs)(
+                delayed(self.observed_and_shuffled_correlation)(
+                    post_spikes,
+                    post_neurons,
+                    self.task_normalized,
+                    post_intervals,
+                    interval_i,
+                )
+                for interval_i in range(post_intervals.shape[0])
+            )
+        )
+        # non parallel version
+        # observed_correlation, shuffled_correlations = zip(
+        #     *[
+        #         self.observed_and_shuffled_correlation(
+        #             post_spikes,
+        #             post_neurons,
+        #             self.task_normalized,
+        #             post_intervals,
+        #             interval_i,
+        #         )
+        #         for interval_i in range(post_intervals.shape[0])
+        #     ]
+        # )
+
+        self.observed_correlation_ = np.array(observed_correlation)
+        self.shuffled_correlations_ = np.array(shuffled_correlations)
+
+        shuffled_mean = np.mean(self.shuffled_correlations_, axis=1)
+        shuffled_std = np.std(self.shuffled_correlations_, axis=1)
+        self.z_score_ = (
+            shuffled_mean - self.observed_correlation_ 
+        ) / shuffled_std
+
+        self.p_value_ = (
+            np.sum(
+                self.shuffled_correlations_.T
+                < self.observed_correlation_,
+                axis=0,
+            )
+            + 1
+        ) / (self.num_shuffles + 1)
+
+        return self.z_score_, self.p_value_, self.observed_correlation_
+
+    def fit_transform(
+        self, task_spikes, task_neurons, post_spikes, post_neurons, post_intervals
+    ):
+        """
+        Fit the model with task data and transform the post-task data.
+
+        Parameters:
+        - task_spikes: list or array of spike times during the task.
+        - task_neurons: list or array of neuron identifiers for task spikes.
+        - post_spikes: list or array of spike times during post-task (e.g., sleep).
+        - post_neurons: list or array of neuron identifiers for post-task spikes.
+        - post_intervals: list or array of intervals for post-task epochs.
+
+        Returns:
+        - z_score: The z-score of the observed correlation compared to the shuffled distribution.
+        - p_value: p-value for significance test.
+        """
+        self.fit(task_spikes, task_neurons)
+        return self.transform(post_spikes, post_neurons, post_intervals)
