@@ -1,9 +1,11 @@
-from neuro_py.ensemble.replay import PairwiseBias
 import numpy as np
+
+from neuro_py.ensemble.replay import PairwiseBias
+
 
 def test_bayesian_replay():
     pass
-    
+
 def test_bias_matrix():
     # set random seed for reproducibility
     np.random.seed(0)
@@ -54,7 +56,6 @@ def test_bias_matrix():
 
     assert z_score.size == post_intervals.shape[0]
     assert p_value.size == post_intervals.shape[0]
-    assert z_score.size == p_value.size
     assert (p_value < 0.05).all()
 
 
@@ -78,5 +79,4 @@ def test_bias_matrix():
 
     assert z_score.size == post_intervals.shape[0]
     assert p_value.size == post_intervals.shape[0]
-    assert z_score.size == p_value.size
     assert (p_value > 0.05).all()

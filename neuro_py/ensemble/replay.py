@@ -2,13 +2,20 @@ import multiprocessing
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import scipy.stats as stats
+
 from joblib import Parallel, delayed
 from nelpy.analysis import replay
 from nelpy.decoding import decode1D as decode
 from nelpy.core import BinnedSpikeTrainArray
 from nelpy import TuningCurve1D
-from scipy.spatial.distance import cosine
 from numba import jit
+
+from neuro_py.ensemble.pairwise_bias_correlation import (
+    bias_matrix_fast,
+    cosine_similarity_matrices,
+    normalize_bias_matrix,
+)
 from neuro_py.process.peri_event import crossCorr
 
 
@@ -612,27 +619,38 @@ class PairwiseBias(object):
     """
     Pairwise bias analysis for comparing task and post-task spike sequences.
 
-    Parameters:
-    - num_shuffles: Number of shuffles to perform for significance testing.
-    - n_jobs: Number of parallel jobs to run for computing correlations.
+    Parameters
+    ----------
+    num_shuffles : int, optional
+        Number of shuffles to perform for significance testing. Default is 300.
+    n_jobs : int, optional
+        Number of parallel jobs to run for computing correlations. Default is 10.
 
-    Attributes:
+    Attributes
+    ----------
+    total_neurons : int, or None
+        Total number of neurons in the dataset.
+    task_normalized : np.ndarray, or None
+        Normalized bias matrix for the task data.
+    observed_correlation_ : np.ndarray, or None
+        Observed cosine similarity between task and post-task bias matrices.
+    shuffled_correlations_ : np.ndarray, or None
+        Shuffled cosine similarities for significance testing.
+    z_score_ : np.ndarray, or None
+        Z-score of the observed correlation compared to the shuffled distribution.
+    p_value_ : np.ndarray, or None
+        p-value for significance test.
 
-    - total_neurons: Total number of neurons in the dataset.
-    - task_normalized: Normalized bias matrix for the task data.
-    - observed_correlation_: Observed cosine similarity between task and post-task bias matrices.
-    - shuffled_correlations_: Shuffled cosine similarities for significance testing.
-    - z_score_: Z-score of the observed correlation compared to the shuffled distribution.
-    - p_value_: p-value for significance test.
-
-    Methods:
-    - fit: Fit the model using the task spike data.
-    - transform: Transform the post-task data to compute z-scores and p-values.
-    - fit_transform: Fit the model with task data and transform the post-task data.
-
-
+    Methods
+    -------
+    fit(task_spikes: Union[List[float], np.ndarray], task_neurons: Union[List[int], np.ndarray]) -> 'PairwiseBias'
+        Fit the model using the task spike data.
+    transform(post_spikes: Union[List[float], np.ndarray], post_neurons: Union[List[int], np.ndarray], post_intervals: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Transform the post-task data to compute z-scores and p-values.
+    fit_transform(task_spikes: Union[List[float], np.ndarray], task_neurons: Union[List[int], np.ndarray], post_spikes: Union[List[float], np.ndarray], post_neurons: Union[List[int], np.ndarray], post_intervals: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Fit the model with task data and transform the post-task data.
     """
-    def __init__(self, num_shuffles=300, n_jobs=10):
+    def __init__(self, num_shuffles: int = 300, n_jobs: int = 10):
         self.num_shuffles = num_shuffles
         self.n_jobs = n_jobs
         self.total_neurons = None
@@ -644,79 +662,116 @@ class PairwiseBias(object):
 
 
     @staticmethod
-    def compute_bias_matrix_optimized(spike_times, neuron_ids, total_neurons):
+    def bias_matrix(
+        spike_times: np.ndarray, 
+        neuron_ids: np.ndarray, 
+        total_neurons: int
+    ) -> np.ndarray:
         """
         Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
 
-        Parameters:
-        - spike_times: list or array of spike times for the sequence.
-        - neuron_ids: list or array of neuron identifiers corresponding to spike_times.
-        - total_neurons: total number of neurons being considered.
+        Parameters
+        ----------
+        spike_times : np.ndarray
+            Spike times for the sequence.
+        neuron_ids : np.ndarray
+            Neuron identifiers corresponding to spike_times.
+        total_neurons : int
+            Total number of neurons being considered.
 
-        Returns:
-        - bias_matrix: A matrix of size (total_neurons, total_neurons) representing the bias.
+        Returns
+        -------
+        np.ndarray
+            A matrix of size (total_neurons, total_neurons) representing the bias.
         """
-        return compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons)
+        return bias_matrix_fast(spike_times, neuron_ids, total_neurons)
 
 
     @staticmethod
-    def normalize_bias_matrix(bias_matrix):
+    def normalize_bias_matrix(bias_matrix: np.ndarray) -> np.ndarray:
         """
         Normalize the bias matrix values to fall between -1 and 1.
 
-        Parameters:
-        - bias_matrix: A bias matrix of shape (n, n).
+        Parameters
+        ----------
+        bias_matrix : np.ndarray
+            A bias matrix of shape (n, n).
 
-        Returns:
-        - normalized_matrix: Normalized matrix with values between -1 and 1.
+        Returns
+        -------
+        np.ndarray
+            Normalized matrix with values between -1 and 1.
         """
-        return 2 * bias_matrix - 1
+        return normalize_bias_matrix(bias_matrix)
 
     @staticmethod
-    def compute_cosine_similarity(matrix1, matrix2):
+    def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
         """
         Computes the cosine similarity between two flattened bias matrices.
 
-        Parameters:
-        - matrix1: A normalized bias matrix.
-        - matrix2: Another normalized bias matrix.
+        Parameters
+        ----------
+        matrix1 : np.ndarray
+            A normalized bias matrix.
+        matrix2 : np.ndarray
+            Another normalized bias matrix.
 
-        Returns:
-        - cosine_similarity: The cosine similarity between the two matrices.
+        Returns
+        -------
+        float
+            The cosine similarity between the two matrices.
         """
-
-        vec1 = matrix1.flatten()
-        vec2 = matrix2.flatten()
-
-
-        # make all nan values 0.5
-        vec1[np.isnan(vec1) | np.isinf(vec1)] = 0.5
-        vec2[np.isnan(vec2) | np.isinf(vec2)] = 0.5
-        return 1 - cosine(vec1, vec2)
+        return cosine_similarity_matrices(matrix1, matrix2)
 
     def observed_and_shuffled_correlation(
-        self, post_spikes, post_neurons, task_normalized, post_intervals, interval_i
-    ):
+        self,
+        post_spikes: np.ndarray,
+        post_neurons: np.ndarray,
+        task_normalized: np.ndarray,
+        post_intervals: np.ndarray,
+        interval_i: int
+    ) -> Tuple[float, List[float]]:
+        """
+        Compute observed and shuffled correlation for a given post-task interval.
+
+        Parameters
+        ----------
+        post_spikes : np.ndarray
+            Spike times during post-task (e.g., sleep).
+        post_neurons : np.ndarray
+            Neuron identifiers for post-task spikes.
+        task_normalized : np.ndarray
+            Normalized task bias matrix.
+        post_intervals : np.ndarray
+            Intervals for post-task epochs.
+        interval_i : int
+            Index of the current post-task interval.
+
+        Returns
+        -------
+        Tuple[float, List[float]]
+            The observed correlation and a list of shuffled correlations.
+        """
         post_neurons = np.asarray(post_neurons, dtype=int)
 
         idx = (post_spikes > post_intervals[interval_i][0]) & (
             post_spikes < post_intervals[interval_i][1]
         )
 
-        post_bias_matrix = self.compute_bias_matrix_optimized(
+        post_bias_matrix = self.bias_matrix(
             post_spikes[idx], post_neurons[idx], self.total_neurons
         )
         post_normalized = self.normalize_bias_matrix(post_bias_matrix)
 
-        observed_correlation = self.compute_cosine_similarity(
+        observed_correlation = self.cosine_similarity_matrices(
             task_normalized, post_normalized
         )
 
         shuffled_correlation = [
-            self.compute_cosine_similarity(
+            self.cosine_similarity_matrices(
                 task_normalized,
                 self.normalize_bias_matrix(
-                    self.compute_bias_matrix_optimized(
+                    self.bias_matrix(
                         post_spikes[idx],
                         np.random.permutation(post_neurons[idx]),
                         self.total_neurons,
@@ -728,16 +783,25 @@ class PairwiseBias(object):
 
         return observed_correlation, shuffled_correlation
 
-    def fit(self, task_spikes, task_neurons):
+    def fit(
+        self, 
+        task_spikes: np.ndarray, 
+        task_neurons: np.ndarray
+    ) -> 'PairwiseBias':
         """
         Fit the model using the task spike data.
 
-        Parameters:
-        - task_spikes: list or array of spike times during the task.
-        - task_neurons: list or array of neuron identifiers for task spikes.
+        Parameters
+        ----------
+        task_spikes : np.ndarray
+            Spike times during the task.
+        task_neurons : np.ndarray
+            Neuron identifiers for task spikes.
 
-        Returns:
-        - self: Returns the instance itself.
+        Returns
+        -------
+        PairwiseBias
+            Returns the instance itself.
         """
         # Convert task_neurons to numpy array of integers
         task_neurons = np.asarray(task_neurons, dtype=int)
@@ -746,26 +810,37 @@ class PairwiseBias(object):
         self.total_neurons = len(np.unique(task_neurons))
 
         # Compute bias matrix for task data and normalize
-        task_bias_matrix = self.compute_bias_matrix_optimized(
+        task_bias_matrix = self.bias_matrix(
             task_spikes, task_neurons, self.total_neurons
         )
         self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
         return self
 
-    def transform(self, post_spikes, post_neurons, post_intervals):
+    def transform(
+        self, 
+        post_spikes: np.ndarray, 
+        post_neurons: np.ndarray, 
+        post_intervals: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Transform the post-task data to compute z-scores and p-values.
 
-        Parameters:
-        - post_spikes: list or array of spike times during post-task (e.g., sleep).
-        - post_neurons: list or array of neuron identifiers for post-task spikes.
-        - post_intervals: list or array of intervals for post-task epochs.
+        Parameters
+        ----------
+        post_spikes : np.ndarray
+            Spike times during post-task (e.g., sleep).
+        post_neurons : np.ndarray
+            Neuron identifiers for post-task spikes.
+        post_intervals : np.ndarray
+            Intervals for post-task epochs.
 
-        Returns:
-        - z_score: The z-score of the observed correlation compared to the shuffled distribution.
-        - p_value: p-value for significance test.
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            z_score: The z-score of the observed correlation compared to the shuffled distribution.
+            p_value: p-value for significance test.
+            observed_correlation_: The observed correlation for each interval.
         """
-
         # Check if the number of jobs is less than the number of intervals
         if post_intervals.shape[0] < self.n_jobs:
             self.n_jobs = post_intervals.shape[0]
@@ -805,33 +880,41 @@ class PairwiseBias(object):
             shuffled_mean - self.observed_correlation_ 
         ) / shuffled_std
 
-        self.p_value_ = (
-            np.sum(
-                self.shuffled_correlations_.T
-                < self.observed_correlation_,
-                axis=0,
-            )
-            + 1
-        ) / (self.num_shuffles + 1)
+        # Compute two-tailed p-values
+        self.p_value_ = 2 * (1 - stats.norm.cdf(np.abs(self.z_score_)))  # Shape: (n_intervals,)
 
         return self.z_score_, self.p_value_, self.observed_correlation_
 
     def fit_transform(
-        self, task_spikes, task_neurons, post_spikes, post_neurons, post_intervals
-    ):
+        self, 
+        task_spikes: np.ndarray, 
+        task_neurons: np.ndarray, 
+        post_spikes: np.ndarray, 
+        post_neurons: np.ndarray, 
+        post_intervals: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Fit the model with task data and transform the post-task data.
 
-        Parameters:
-        - task_spikes: list or array of spike times during the task.
-        - task_neurons: list or array of neuron identifiers for task spikes.
-        - post_spikes: list or array of spike times during post-task (e.g., sleep).
-        - post_neurons: list or array of neuron identifiers for post-task spikes.
-        - post_intervals: list or array of intervals for post-task epochs.
+        Parameters
+        ----------
+        task_spikes : np.ndarray
+            Spike times during the task.
+        task_neurons : np.ndarray
+            Neuron identifiers for task spikes.
+        post_spikes : np.ndarray
+            Spike times during post-task (e.g., sleep).
+        post_neurons : np.ndarray
+            Neuron identifiers for post-task spikes.
+        post_intervals : np.ndarray
+            Intervals for post-task epochs.
 
-        Returns:
-        - z_score: The z-score of the observed correlation compared to the shuffled distribution.
-        - p_value: p-value for significance test.
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            z_score: The z-score of the observed correlation compared to the shuffled distribution.
+            p_value: p-value for significance test.
+            observed_correlation_: The observed correlation for each interval.
         """
         self.fit(task_spikes, task_neurons)
         return self.transform(post_spikes, post_neurons, post_intervals)
