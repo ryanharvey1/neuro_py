@@ -1,7 +1,7 @@
 import gc
 import os
 import warnings
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -172,3 +172,85 @@ def remove_artifacts(
             f.write(f"Zeroed intervals: {zero_intervals.tolist()}\n")
     except Exception as e:
         warnings.warn(f"Failed to create log file: {e}")
+
+
+def fill_missing_channels(
+    basepath: str,
+    n_channels: int,
+    filename: str,
+    missing_channels: List[int],
+    precision: str = "int16",
+    chunk_size: int = 10_000,
+) -> str:
+    """
+    Fill missing channels in a large binary file with zeros, processing in chunks.
+    This function is useful when some channels were accidently deactivated during recording.
+
+    Parameters
+    ----------
+    basepath : str
+        Path to the folder containing the binary file.
+    n_channels : int
+        Total number of channels in the binary file (including the missing ones).
+    filename : str
+        Name of the binary file to modify.
+    missing_channels : List[int]
+        List of missing channel indices to be filled with zeros.
+    precision : str, optional
+        Data precision, by default "int16".
+    chunk_size : int, optional
+        Number of samples per chunk, by default 10,000.
+
+    Returns
+    -------
+    str
+        Path to the modified binary file.
+
+    Examples
+    --------
+    >>> fill_missing_channels(
+    ...    r"U:\data\hpc_ctx_project\HP13\HP13_day1_20241030\HP13_cheeseboard_241030_153710",
+    ...    128,
+    ...    'amplifier.dat',
+    ...    missing_channels = [0]
+    ... )
+    """
+    file_path = os.path.join(basepath, filename)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Binary file '{file_path}' does not exist.")
+
+    dtype = np.dtype(precision)
+    bytes_per_sample = dtype.itemsize
+    present_channels = [ch for ch in range(n_channels) if ch not in missing_channels]
+
+    # Calculate total number of samples
+    file_size = os.path.getsize(file_path)
+    n_samples = file_size // (bytes_per_sample * (n_channels - len(missing_channels)))
+    if file_size % (bytes_per_sample * (n_channels - len(missing_channels))) != 0:
+        raise ValueError("Data size is not consistent with expected shape.")
+
+    # Prepare output file path
+    new_file_path = os.path.join(basepath, f"corrected_{filename}")
+
+    # Process file in chunks
+    with open(file_path, "rb") as f_in, open(new_file_path, "wb") as f_out:
+        for start in range(0, n_samples, chunk_size):
+            # Read a chunk of data
+            chunk = np.fromfile(
+                f_in,
+                dtype=dtype,
+                count=chunk_size * (n_channels - len(missing_channels)),
+            )
+            chunk = chunk.reshape(-1, n_channels - len(missing_channels))
+
+            # Create a new array with missing channels filled with zeros
+            chunk_full = np.zeros((chunk.shape[0], n_channels), dtype=dtype)
+            chunk_full[:, present_channels] = chunk
+
+            # Write the chunk with missing channels added to the new file
+            chunk_full.tofile(f_out)
+
+    warnings.warn(
+        f"Missing channels {missing_channels} added. File saved to '{new_file_path}'."
+    )
+    return new_file_path
