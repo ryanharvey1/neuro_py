@@ -75,7 +75,7 @@ class TestPotentialLandscapeND(unittest.TestCase):
         domainbins = 5
         potential, _, _, hist, latentedges, domainedges = potential_landscape_nd(X_dyn, projbins, domainbins)
 
-        self.assertEqual(potential.shape, tuple([projbins for _ in range(nnrns)]))
+        self.assertEqual(potential.shape, (nnrns, *[projbins for _ in range(nnrns)]))
         self.assertEqual(hist.shape, (*[projbins for _ in range(nnrns)], domainbins, nnrns))
         self.assertEqual(len(latentedges), projbins+1)
         self.assertEqual(len(domainedges), domainbins+1)
