@@ -13,7 +13,7 @@ from ..util.array import (
 def potential_landscape(
     X_dyn: np.ndarray,
     projbins: Union[int, np.ndarray],
-    domainbins: Union[int, np.ndarray, None] = None
+    domainbins: Union[int, np.ndarray, None] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Compute numerical approximation of potential energy landscape across
     1D state and domain (e.g. time, position, etc.).
@@ -47,7 +47,7 @@ def potential_landscape(
     .. [1] Wang, S., Falcone, R., Richmond, B. et al. Attractor dynamics reflect
            decision confidence in macaque prefrontal cortex. Nat Neurosci 26,
            1970–1980 (2023).
-    
+
     Examples
     --------
     >>> X_dyn = np.array([[0.1, 0.2, 0.4], [0.0, 0.3, 0.6]])
@@ -71,22 +71,34 @@ def potential_landscape(
     ntrials, nbins = X_dyn.shape
     delta_t = np.diff(X_dyn, axis=1)  # time derivatives: ntrials x nbins-1 x nnrns
 
-    X_t_flat = np.reshape(X_dyn[:, :-1], (-1, nnrns), order='F').ravel()  # skip last bin as no displacement exists for last time point
-    delta_t_flat = np.reshape(delta_t, (-1, nnrns), order='F').ravel()  # column-major order
-    norm_tpts = np.repeat(np.arange(nbins-1), ntrials)
+    X_t_flat = np.reshape(
+        X_dyn[:, :-1], (-1, nnrns), order="F"
+    ).ravel()  # skip last bin as no displacement exists for last time point
+    delta_t_flat = np.reshape(
+        delta_t, (-1, nnrns), order="F"
+    ).ravel()  # column-major order
+    norm_tpts = np.repeat(np.arange(nbins - 1), ntrials)
 
-    nbins_domain = nbins - 1 if domainbins is None else domainbins  # downsample domain bins
+    nbins_domain = (
+        nbins - 1 if domainbins is None else domainbins
+    )  # downsample domain bins
 
     # 1D state space binning of time derivatives across domain
     # assumes landscape may morph across domain
     H, bin_edges, _ = binned_statistic_dd(  # posbins x time
-        np.asarray((X_t_flat, norm_tpts)).T, delta_t_flat, statistic='count',
-        bins=(projbins, nbins_domain))
+        np.asarray((X_t_flat, norm_tpts)).T,
+        delta_t_flat,
+        statistic="count",
+        bins=(projbins, nbins_domain),
+    )
     latentedges, domainedges = bin_edges
 
     grad_pos_t_svm = binned_statistic_dd(
-        np.asarray((X_t_flat, norm_tpts)).T, delta_t_flat, statistic='sum',
-        bins=(projbins, nbins_domain)).statistic
+        np.asarray((X_t_flat, norm_tpts)).T,
+        delta_t_flat,
+        statistic="sum",
+        bins=(projbins, nbins_domain),
+    ).statistic
     # average derivative, a.k.a. flow/vector field for dynamics underlying
     # population activity
     grad_pos_t_svm = np.divide(grad_pos_t_svm, H, where=H != 0)
@@ -99,14 +111,16 @@ def potential_landscape(
     potential_pos_t = potential_pos_t - offset  # potential difference
 
     nonzero_mask = H != 0
-    idx_first_nonzero, idx_last_nonzero = \
-        find_terminal_masked_indices(nonzero_mask, axis=0)  # each have shape: time
+    idx_first_nonzero, idx_last_nonzero = find_terminal_masked_indices(
+        nonzero_mask, axis=0
+    )  # each have shape: time
     # along axis 0 set all values from start to idx_first_nonzero to nan
     for t in range(H.shape[1]):
-        potential_pos_t[:idx_first_nonzero[t], t] = np.nan
-        potential_pos_t[idx_last_nonzero[t] + 1:, t] = np.nan
+        potential_pos_t[: idx_first_nonzero[t], t] = np.nan
+        potential_pos_t[idx_last_nonzero[t] + 1 :, t] = np.nan
 
     return potential_pos_t, grad_pos_t_svm, H, latentedges, domainedges
+
 
 def potential_landscape_nd(
     X_dyn: np.ndarray,
@@ -133,14 +147,17 @@ def potential_landscape_nd(
     Returns
     -------
     np.ndarray
+        Potential energy landscape across state averaged across domain for each
+        neuron. Shape: nnrns x projbins times nnrns
+    np.ndarray
         Potential energy landscape across state and domain for each neuron.
-        Shape: projbins x domainbins x nnrns
+        Shape: projbins times nnrns x domainbins x nnrns
     np.ndarray
         Temporal gradient of potential energy landscape across state and domain
-        for each neuron. Shape: projbins x domainbins x nnrns
+        for each neuron. Shape: projbins times nnrns x domainbins x nnrns
     np.ndarray
         Histogram of state vectors across state and domain for each neuron.
-        Shape: projbins x domainbins x nnrns
+        Shape: projbins times nnrns x domainbins x nnrns
     np.ndarray
         Bin edges of state vectors for each neuron
     np.ndarray
@@ -154,13 +171,19 @@ def potential_landscape_nd(
     """
     # _t suffix is following notation of paper but applicable across any domain
     ntrials, nbins, nnrns = X_dyn.shape
-    delta_t = np.diff(X_dyn, axis=1)  # time derivatives: ntrials x ndomainbins-1 x nnrns
+    delta_t = np.diff(
+        X_dyn, axis=1
+    )  # time derivatives: ntrials x ndomainbins-1 x nnrns
 
-    X_t_flat = np.reshape(X_dyn[:, :-1], (-1, nnrns), order='F')  # skip last bin as no displacement exists for last time point
-    delta_t_flat = np.reshape(delta_t, (-1, nnrns), order='F')  # column-major order
-    norm_tpts = np.repeat(np.arange(nbins-1), ntrials)
+    X_t_flat = np.reshape(
+        X_dyn[:, :-1], (-1, nnrns), order="F"
+    )  # skip last bin as no displacement exists for last time point
+    delta_t_flat = np.reshape(delta_t, (-1, nnrns), order="F")  # column-major order
+    norm_tpts = np.repeat(np.arange(nbins - 1), ntrials)
 
-    nbins_domain = nbins - 1 if domainbins is None else domainbins  # downsample domain bins
+    nbins_domain = (
+        nbins - 1 if domainbins is None else domainbins
+    )  # downsample domain bins
 
     potential_pos_t_nrns = []
     grad_pos_t_svm_nrns = []
@@ -171,20 +194,40 @@ def potential_landscape_nd(
         # 1D state space binning of time derivatives across domain
         # assumes landscape may morph across domain
         H, bin_edges, _ = binned_statistic_dd(  # (nnrns times projbins) x time
-            np.asarray((*X_t_flat.T, norm_tpts)).T, delta_t_flat[:, nnrn], statistic='count',
-            bins=(*[projbins if isinstance(projbins, int) else projbins[idx] for idx in range(nnrns)], nbins_domain))
-        latentedges= bin_edges[nnrn]
+            np.asarray((*X_t_flat.T, norm_tpts)).T,
+            delta_t_flat[:, nnrn],
+            statistic="count",
+            bins=(
+                *[
+                    projbins if isinstance(projbins, int) else projbins[idx]
+                    for idx in range(nnrns)
+                ],
+                nbins_domain,
+            ),
+        )
+        latentedges = bin_edges[nnrn]
         domainedges = bin_edges[-1]
 
         grad_pos_t_svm = binned_statistic_dd(
-            np.asarray((*X_t_flat.T, norm_tpts)).T, delta_t_flat[:, nnrn], statistic='sum',
-            bins=(*[projbins if isinstance(projbins, int) else projbins[idx] for idx in range(nnrns)], nbins_domain)).statistic
+            np.asarray((*X_t_flat.T, norm_tpts)).T,
+            delta_t_flat[:, nnrn],
+            statistic="sum",
+            bins=(
+                *[
+                    projbins if isinstance(projbins, int) else projbins[idx]
+                    for idx in range(nnrns)
+                ],
+                nbins_domain,
+            ),
+        ).statistic
         # average derivative, a.k.a. flow/vector field for dynamics underlying
         # population activity
         grad_pos_t_svm = np.divide(grad_pos_t_svm, H, where=H != 0)
         grad_pos_t_svm[H == 0] = np.nan  # crucial to handle division by zero
         # spatial integration via nnancumsum treats nan as zero for cumulative sum
-        potential_pos_t = -np.nancumsum(grad_pos_t_svm, axis=nnrn)  # (nnrns times projbins) x domainbins
+        potential_pos_t = -np.nancumsum(
+            grad_pos_t_svm, axis=nnrn
+        )  # (nnrns times projbins) x domainbins
 
         if nanborderempty:
             nonzero_mask = H != 0
@@ -193,11 +236,10 @@ def potential_landscape_nd(
                 nrndimslices = [slice(None)] * nnrns
                 nrndimslices.append(t)
                 peripheral_zeros_nanmask = ~np.isnan(
-                    replace_border_zeros_with_nan(nonzero_mask[tuple(nrndimslices)]))
+                    replace_border_zeros_with_nan(nonzero_mask[tuple(nrndimslices)])
+                )
                 peripheral_zeros_nanmask = np.where(
-                    peripheral_zeros_nanmask,
-                    peripheral_zeros_nanmask,
-                    np.nan
+                    peripheral_zeros_nanmask, peripheral_zeros_nanmask, np.nan
                 )
                 potential_pos_t[tuple(nrndimslices)] *= peripheral_zeros_nanmask
 
@@ -207,18 +249,32 @@ def potential_landscape_nd(
         latentedges_nrns.append(latentedges)
         domainedges_nrns.append(domainedges)
 
-    potential_pos_t_nrns = np.stack(potential_pos_t_nrns, axis=-1)  # projbins x domainbins x nnrns
-    grad_pos_t_svm_nrns = np.stack(grad_pos_t_svm_nrns, axis=-1)  # projbins x domainbins x nnrns
+    potential_pos_t_nrns = np.stack(
+        potential_pos_t_nrns, axis=-1
+    )  # projbins x domainbins x nnrns
+    grad_pos_t_svm_nrns = np.stack(
+        grad_pos_t_svm_nrns, axis=-1
+    )  # projbins x domainbins x nnrns
     hist = np.stack(hist_nrns, axis=-1)  # projbins x domainbins x nnrns
     latentedges_nrns = np.stack(latentedges_nrns, axis=-1)  # projbins x nnrns
     domainedges_nrns = np.stack(domainedges_nrns, axis=-1)  # domainbins x nnrns
-    potential_pos = np.nanmean(np.asarray([
-        np.nanmean(potential_pos_t_nrns.T[nrn], axis=0)  # average across domainbins
-        for nrn in range(nnrns)
-    ]), axis=0).T
+    nrndimslices = [slice(None)] * (nnrns + 1)
+    nrndimslices.append(0)
+    potential_nrns_pos = []
+    for nrn in range(nnrns):
+        nrndimslices[-1] = nrn
+        potential_nrns_pos.append(
+            np.nanmean(
+                potential_pos_t_nrns[tuple(nrndimslices)], axis=-1
+            )  # average across domainbins
+        )
+    potential_nrns_pos = np.asarray(potential_nrns_pos)  # nnrns x nnrns times projbins
 
     return (
-        potential_pos, potential_pos_t_nrns, grad_pos_t_svm_nrns, hist,
+        potential_nrns_pos,
+        potential_pos_t_nrns,
+        grad_pos_t_svm_nrns,
+        hist,
         latentedges_nrns,
         domainedges_nrns,
     )
