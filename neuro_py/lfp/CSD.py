@@ -1,7 +1,7 @@
 import numpy as np
 
 from neuro_py.io import loading
-from neuro_py.utils._dependencies import _check_dependency
+from neuro_py.util._dependencies import _check_dependency
 
 _check_dependency("neo", "csd")
 _check_dependency("elephant", "csd")
