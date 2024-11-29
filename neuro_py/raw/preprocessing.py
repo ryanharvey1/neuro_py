@@ -45,7 +45,7 @@ def remove_artifacts(
     --------
     >>> fs = 20_000
     >>> remove_artifacts(
-    ...     r"U:\data\hpc_ctx_project\HP13\HP13_day12_20241112\HP13_day12_20241112.dat",
+    ...     r"U:\\data\\hpc_ctx_project\\HP13\\HP13_day12_20241112\\HP13_day12_20241112.dat",
     ...     n_channels=128,
     ...     zero_intervals=(bad_intervals.data * fs).astype(int),
     ...     channels_to_remove=[0, 1, 2]  # Only remove artifacts from channels 0, 1, and 2
@@ -209,7 +209,7 @@ def fill_missing_channels(
     Examples
     --------
     >>> fill_missing_channels(
-    ...    r"U:\data\hpc_ctx_project\HP13\HP13_day1_20241030\HP13_cheeseboard_241030_153710",
+    ...    r"U:\\data\\hpc_ctx_project\\HP13\\HP13_day1_20241030\\HP13_cheeseboard_241030_153710",
     ...    128,
     ...    'amplifier.dat',
     ...    missing_channels = [0]
