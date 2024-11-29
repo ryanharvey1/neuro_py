@@ -1,3 +1,3 @@
-__all__ = ["remove_artifacts"]
+__all__ = ["remove_artifacts", "fill_missing_channels"]
 
-from .preprocessing import remove_artifacts
+from .preprocessing import remove_artifacts, fill_missing_channels

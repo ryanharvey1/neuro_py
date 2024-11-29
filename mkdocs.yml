@@ -94,3 +94,4 @@ nav:
   - Explained Variance: tutorials/explained_variance.ipynb
   - Reactivation: tutorials/reactivation.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb
+  - Attractor Estimation: tutorials/attractor_landscape.ipynb

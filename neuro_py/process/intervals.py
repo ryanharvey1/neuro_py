@@ -78,6 +78,35 @@ def randomize_epochs(
     return new_epochs
 
 
+def split_epoch_by_width(
+    intervals: List[Tuple[float, float]], bin_width: float = 0.001
+) -> np.ndarray:
+    """
+    Generate combined intervals (start, stop) at a specified width within given intervals.
+
+    Parameters
+    ----------
+    intervals : List[Tuple[float, float]]
+        A list of (start, end) tuples representing intervals.
+    bin_width : float
+        The width of each bin in seconds. Default is 0.001 (1 ms).
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array containing (start, stop) pairs for all bins across intervals.
+    """
+    bin_intervals = []
+    for start, end in intervals:
+        # Generate bin edges
+        edges = np.arange(start, end, bin_width)
+        edges = np.append(edges, end)  # Ensure the final end is included
+        # Generate intervals (start, stop) for each bin
+        intervals = np.stack((edges[:-1], edges[1:]), axis=1)
+        bin_intervals.append(intervals)
+    return np.vstack(bin_intervals)
+
+
 def split_epoch_equal_parts(
     intervals: np.ndarray, n_parts: int, return_epoch_array: bool = True
 ) -> Union[np.ndarray, nel.EpochArray]:

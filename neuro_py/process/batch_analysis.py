@@ -106,7 +106,7 @@ def main_loop(
     save_file = encode_file_path(basepath, save_path)
 
     # if file exists and overwrite is False, skip
-    if os.path.exists(save_file) & ~overwrite:
+    if os.path.exists(save_file) and not overwrite:
         return
 
     # calc some features

@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 
-def linearize_position(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Use PCA (a dimensionality reduction technique) to find the direction of maximal variance
     in our position data, and use this as the new 1D linear track axis.
@@ -178,7 +178,7 @@ def peakdetz(
     delta: float, 
     lookformax: int = 1, 
     backwards: int = 0
-) -> tuple[list[tuple[int, float]], list[tuple[int, float]]]:
+) -> Tuple[list[Tuple[int, float]], list[Tuple[int, float]]]:
     """
     Detect peaks in a vector.
 
