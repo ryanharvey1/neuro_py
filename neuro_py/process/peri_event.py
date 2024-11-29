@@ -201,7 +201,7 @@ def joint_peth(
 
     >>> # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
 
-    >>> basepath = r"Z:\Data\HMC1\day8"
+    >>> basepath = r"Z:\\Data\\HMC1\\day8"
 
     >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
     >>> delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
@@ -550,7 +550,7 @@ def event_triggered_average(
     Examples
     --------
 
-    >>> m1 = assembly_reactivation.AssemblyReact(basepath=r"Z:\Data\HMC2\day5")
+    >>> m1 = assembly_reactivation.AssemblyReact(basepath=r"Z:\\Data\\HMC2\\day5")
 
     >>> m1.load_data()
     >>> m1.get_weights(epoch=m1.epochs[1])
