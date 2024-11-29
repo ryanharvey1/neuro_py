@@ -1,10 +1,11 @@
-# CSD
-import neo
 import numpy as np
-import quantities as pq
-from elephant.current_source_density import estimate_csd
 
 from neuro_py.io import loading
+from neuro_py.utils._dependencies import check_dependency
+
+check_dependency("neo", "csd")
+check_dependency("elephant", "csd")
+check_dependency("quantities", "csd")
 
 
 def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
@@ -23,6 +24,8 @@ def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
     np.ndarray
         Coordinates of the channels.
     """
+    import quantities as pq
+
     # load the probe layout
     probe_layout = loading.load_probe_layout(basepath)
 
@@ -74,9 +77,14 @@ def get_csd(
     get_coords, estimate_csd (Elephant), neo, quantities
 
     """
+    import quantities as pq
+    from elephant.current_source_density import estimate_csd
+    from neo import AnalogSignal
+
+
     coords = get_coords(basepath, shank=shank)
 
-    signal = neo.AnalogSignal(
+    signal = AnalogSignal(
         data,
         units="mV",
         t_start=0 * pq.s,
@@ -88,7 +96,6 @@ def get_csd(
         csd = estimate_csd(signal, coordinates=coords, diam=diam * pq.mm, method=method)
 
     elif method == "StandardCSD":
-
         # create coordinates for the CSD
         coords = np.zeros(data.shape[1])
         for idx, i in enumerate(coords):
