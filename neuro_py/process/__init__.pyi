@@ -9,6 +9,7 @@ __all__ = (
     "pairwise_spatial_corr",
     "compute_cross_correlogram",
     "randomize_epochs",
+    "split_epoch_by_width",
     "split_epoch_equal_parts",
     "overlap_intersect",
     "find_intersecting_intervals",
@@ -69,6 +70,7 @@ from .intervals import (
     overlap_intersect,
     randomize_epochs,
     shift_epoch_array,
+    split_epoch_by_width,
     split_epoch_equal_parts,
     truncate_epoch,
 )
