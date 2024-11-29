@@ -250,7 +250,4 @@ def fill_missing_channels(
             # Write the chunk with missing channels added to the new file
             chunk_full.tofile(f_out)
 
-    warnings.warn(
-        f"Missing channels {missing_channels} added. File saved to '{new_file_path}'."
-    )
     return new_file_path
