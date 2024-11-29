@@ -38,6 +38,17 @@ dependencies = [
     "track-linearization>=2.3.1",
     "pyFFTW>=0.13.1",
     "statsmodels>=0.14.1",
+]
+
+[project.optional-dependencies]
+# For current source density (CSD) analysis
+csd = [
+    "elephant>=1.1.0",
+    "neo>=0.13.3",
+    "quantities>=0.15.0"
+]
+# For documentation generation
+docs = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.5.34",
     "mkdocstrings[python]>=0.26.1",
@@ -46,14 +57,22 @@ dependencies = [
     "mkdocs-section-index>=0.3.9",
     "mkdocs-include-markdown-plugin>=6.2.2",
     "mkdocs-jupyter>=0.24.8",
-    "mkdocs-minify-plugin>=0.8.0",
+    "mkdocs-minify-plugin>=0.8.0"
 ]
-
-[project.optional-dependencies]
-csd = [
+# An "all" group that combines all optional groups
+all = [
     "elephant>=1.1.0",
     "neo>=0.13.3",
-    "quantities>=0.15.0"
+    "quantities>=0.15.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.5.34",
+    "mkdocstrings[python]>=0.26.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-section-index>=0.3.9",
+    "mkdocs-include-markdown-plugin>=6.2.2",
+    "mkdocs-jupyter>=0.24.8",
+    "mkdocs-minify-plugin>=0.8.0"
 ]
 
 [project.urls]
