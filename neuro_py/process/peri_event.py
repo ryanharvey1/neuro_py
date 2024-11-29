@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -7,9 +7,11 @@ from nelpy import EpochArray
 from nelpy.core._eventarray import SpikeTrainArray
 from numba import jit, prange
 from scipy import stats
-from scipy.ndimage import gaussian_filter1d
 from scipy.linalg import toeplitz
-from neuro_py.process.intervals import split_epoch_by_width, in_intervals
+from scipy.ndimage import gaussian_filter1d
+
+from neuro_py.process.intervals import in_intervals, split_epoch_by_width
+
 
 @jit(nopython=True)
 def crossCorr(
@@ -861,9 +863,9 @@ def get_rank_order(
     warnings.filterwarnings("ignore", message="Mean of empty slice")
 
     if method not in ["first_spike", "peak_fr"]:
-        assert Exception("method " + method + " not implemented")
+        raise Exception("method " + method + " not implemented")
     if ref not in ["cells", "epoch"]:
-        assert Exception("ref " + ref + " not implemented")
+        raise Exception("ref " + ref + " not implemented")
 
     def get_min_ts(st_temp):
         min_ts = []
@@ -921,14 +923,14 @@ def get_rank_order(
 
         edges = split_epoch_by_width(epochs.data, dt)
 
-        z_t = count_in_interval(st.data, edges[:,0], edges[:,1], par_type="counts")
-        _,interval_id = in_intervals(edges[:,0],epochs.data,return_interval=True)
+        z_t = count_in_interval(st.data, edges[:, 0], edges[:, 1], par_type="counts")
+        _, interval_id = in_intervals(edges[:, 0], epochs.data, return_interval=True)
 
         # iter over epochs
         for event_i, epochs_temp in enumerate(epochs):
             # smooth spike train in order to estimate peak
             # z_t_temp.smooth(sigma=sigma, inplace=True)
-            z_t_temp = z_t[:,interval_id == event_i]
+            z_t_temp = z_t[:, interval_id == event_i]
             # smooth spike train in order to estimate peak
             z_t_temp = gaussian_filter1d(z_t_temp, sigma / dt, axis=1)
             if ref == "cells":
@@ -960,12 +962,22 @@ def get_rank_order(
     # expand epochs by padding amount
     epochs = epochs.expand(padding)
 
+    # check if no active cells
+    if st.n_active == 0:
+        return np.tile(np.nan, st.data.shape), np.tile(
+            np.nan, (st.data.shape[0], epochs.n_intervals)
+        )
+
     # check if there are any spikes in the epoch
-    st_epoch = count_in_interval(st.data, epochs.starts, epochs.stops, par_type="counts")
+    st_epoch = count_in_interval(
+        st.data, epochs.starts, epochs.stops, par_type="counts"
+    )
 
     # if no spikes in epoch, break out
     if (st_epoch == 0).all():
-        return np.tile(np.nan, st.data.shape), None
+        return np.tile(np.nan, st.data.shape), np.tile(
+            np.nan, (st.data.shape[0], epochs.n_intervals)
+        )
 
     # set up empty matrix for rank order
     if method == "peak_fr":
@@ -973,7 +985,7 @@ def get_rank_order(
     elif method == "first_spike":
         rank_order = rank_order_first_spike(st[epochs], epochs, dt, min_units, ref)
     else:
-        raise Exception("other method, " + method + " is not implemented")
+        raise Exception("method " + method + " not implemented")
 
     return np.nanmedian(rank_order, axis=1), rank_order
 
