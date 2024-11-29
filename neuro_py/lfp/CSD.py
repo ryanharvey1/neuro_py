@@ -1,11 +1,11 @@
 import numpy as np
 
 from neuro_py.io import loading
-from neuro_py.utils._dependencies import check_dependency
+from neuro_py.utils._dependencies import _check_dependency
 
-check_dependency("neo", "csd")
-check_dependency("elephant", "csd")
-check_dependency("quantities", "csd")
+_check_dependency("neo", "csd")
+_check_dependency("elephant", "csd")
+_check_dependency("quantities", "csd")
 
 
 def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
