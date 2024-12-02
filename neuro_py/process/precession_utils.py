@@ -1,11 +1,9 @@
-import multiprocessing
-from typing import Union, List, Tuple
+from typing import List, Tuple, Union
 
 import numba
 import numpy as np
-import pyfftw
-from pyparsing import Optional
 import scipy as sp
+from pyparsing import Optional
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
@@ -408,15 +406,15 @@ def acf_power(acf: np.ndarray, norm: Optional[bool] = True) -> np.ndarray:
     """
 
     # Take the FFT
-    fft = pyfftw.interfaces.numpy_fft.fft(acf, threads=multiprocessing.cpu_count())
+    fft = np.fft.fft(acf)
 
-    # Compute the power from the real component squared
+    # Compute the power spectrum
     pow = np.abs(fft) ** 2
 
-    # Account for nyquist
-    psd = pow[0 : round(pow.shape[0] / 2)]
+    # Account for Nyquist frequency
+    psd = pow[: pow.shape[0] // 2]
 
-    # normalize
+    # Normalize if required
     if norm:
         psd = psd / np.trapz(psd)
 
@@ -470,7 +468,7 @@ def nonspatial_phase_precession(
 
     Notes
     -----
-    The modulation index (MI) is computed based on the maximum peak of the power 
+    The modulation index (MI) is computed based on the maximum peak of the power
     spectral density (PSD) within specified frequency limits.
     """
 
