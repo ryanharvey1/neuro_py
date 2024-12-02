@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from neurodsp.timefrequency.wavelets import compute_wavelet_transform
+import pywt
 from scipy import signal
 from statsmodels.regression import yule_walker
 
@@ -48,7 +48,11 @@ def event_triggered_wavelet(
     parallel: bool = True,
     whiten: bool = True,
     whiten_order: int = 2,
-) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], Tuple[pd.DataFrame, pd.Series]]:
+    **kwargs,
+) -> Union[
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    Tuple[pd.DataFrame, pd.Series],
+]:
     """
     Compute the event-triggered wavelet transform of a signal.
 
@@ -70,6 +74,14 @@ def event_triggered_wavelet(
         Step size for frequency range, in Hz.
     return_pandas : bool
         If True, return the output as pandas objects.
+    parallel : bool
+        If True, use parallel processing to compute the wavelet transform.
+    whiten : bool
+        If True, whiten the signal before computing the wavelet transform.
+    whiten_order : int
+        Order of the autoregressive model used for whitening.
+    kwargs
+        Additional keyword arguments to pass to `compute_wavelet_transform`.
 
     Returns
     -------
@@ -86,7 +98,7 @@ def event_triggered_wavelet(
     -------
     >>> from neuro_py.lfp.spectral import event_triggered_wavelet
 
-    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_34_20240503"
+    >>> basepath = r"Z:\\Data\\hpc_ctx_project\\HP04\\day_34_20240503"
 
     >>> # load lfp
     >>> nChannels, fs, _, _ = loading.loadXML(basepath)
@@ -182,7 +194,9 @@ def event_triggered_wavelet(
 
         idx = (timestamps >= start - max_lag) & (timestamps <= start + max_lag)
 
-        mwt_partial = np.abs(compute_wavelet_transform(signal_[idx], fs, freqs=freqs))
+        mwt_partial = np.abs(
+            compute_wavelet_transform(sig=signal_[idx], fs=fs, freqs=freqs, **kwargs)
+        )
 
         return mwt_partial, signal[idx]
 
@@ -215,3 +229,74 @@ def event_triggered_wavelet(
         return mwt, sigs
     else:
         return mwt, sigs, times, freqs
+
+
+def compute_wavelet_transform(
+    sig: np.ndarray,
+    fs: float,
+    freqs: Union[np.ndarray, List[float], Tuple[float, float, Optional[float]]],
+    wavelet: str = "cmor",
+    center_frequency: float = 0.5,
+    bandwidth_frequency: float = 1.5,
+    method="conv",
+) -> np.ndarray:
+    """
+    Compute the time-frequency representation of a signal using Morlet wavelets via PyWavelets.
+
+    Parameters
+    ----------
+    sig : np.ndarray
+        Time series data (1D array).
+    fs : float
+        Sampling rate, in Hz.
+    freqs : Union[np.ndarray, List[float], Tuple[float, float, Optional[float]]]
+        Frequencies to analyze with Morlet wavelets.
+        - If an array or list, specifies exact frequency values.
+        - If a tuple, defines a frequency range as `(freq_start, freq_stop[, freq_step])`.
+            The `freq_step` is optional and defaults to 1. Range is inclusive of `freq_stop`.
+    wavelet : str, optional
+        The name of the wavelet to use for the CWT. Default is 'cmor'.
+        - wavelist = pywt.wavelist(kind='continuous') to get a list of available wavelets.
+    center_frequency : float, optional
+        The center frequency of the Morlet wavelet.
+    bandwidth_frequency : float, optional
+        The bandwidth of the Morlet wavelet.
+    method : {'conv', 'fft'}, optional
+        The method used to compute the CWT. Can be any of:
+            - ``conv`` uses ``numpy.convolve``.
+            - ``fft`` uses frequency domain convolution.
+            - ``auto`` uses automatic selection based on an estimate of the
+              computational complexity at each scale.
+    Returns
+    -------
+    np.ndarray
+        The time-frequency representation of the input signal. Shape is `(n_freqs, n_time_points)`.
+
+    Notes
+    -----
+    This function uses `pywt.cwt` with Morlet wavelets to compute the time-frequency representation.
+    """
+
+    # Convert the frequency range to an array if it is given as a list or tuple
+    if isinstance(freqs, (tuple, list)):
+        freqs = (
+            np.arange(*freqs)
+            if len(freqs) == 3
+            else np.linspace(freqs[0], freqs[1], 100)
+        )
+
+    # Time step
+    dt = 1 / fs
+
+    # Define the wavelet name
+    wavelet_name = f"{wavelet}{center_frequency}-{bandwidth_frequency}"
+
+    # Convert frequencies to scales
+    scales = pywt.frequency2scale(wavelet_name, freqs / fs)
+
+    # Perform the Continuous Wavelet Transform
+    coefficients, _ = pywt.cwt(
+        sig, scales, wavelet_name, sampling_period=dt, method=method
+    )
+
+    return coefficients
