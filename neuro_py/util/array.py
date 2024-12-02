@@ -3,7 +3,9 @@ from typing import Tuple
 import numpy as np
 
 
-def find_terminal_masked_indices(mask: np.ndarray, axis: int) -> Tuple[np.ndarray, np.ndarray]:
+def find_terminal_masked_indices(
+    mask: np.ndarray, axis: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the first and last indices of non-masked values along an axis.
 
@@ -48,6 +50,7 @@ def find_terminal_masked_indices(mask: np.ndarray, axis: int) -> Tuple[np.ndarra
 
     return first_idx, last_idx
 
+
 def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
     """Replace zero values at the borders of each dimension of a n-dimensional
     array with NaN.
@@ -61,7 +64,7 @@ def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
     -------
     np.ndarray
         Array with zero values at the borders replaced with NaN.
-    
+
     Examples
     --------
     >>> arr = np.arange(27).reshape(3, 3, 3)
@@ -82,11 +85,13 @@ def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
     arr = np.array(arr, dtype=float)
     dims = arr.shape
 
-    for axis in range(len(dims)):      
+    for axis in range(len(dims)):
         # Find indices where zero values start and stop
         for idx in np.ndindex(*[dims[i] for i in range(len(dims)) if i != axis]):
             slicer = list(idx)
-            slicer.insert(axis, slice(None))  # Insert the full slice along the current axis
+            slicer.insert(
+                axis, slice(None)
+            )  # Insert the full slice along the current axis
 
             # Check for first sequence of zeros
             subarray = arr[tuple(slicer)]
@@ -97,7 +102,7 @@ def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
             # Check for last sequence of zeros
             last_zero_indices = np.where(np.cumsum(subarray[::-1] != 0) == 0)[0]
             if len(last_zero_indices) > 0:
-                subarray[-last_zero_indices-1] = np.nan
+                subarray[-last_zero_indices - 1] = np.nan
 
             arr[tuple(slicer)] = subarray  # Replace modified subarray
 
