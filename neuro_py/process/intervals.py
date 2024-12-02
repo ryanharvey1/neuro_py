@@ -200,7 +200,7 @@ def _find_intersecting_intervals(
         An array of intervals represented as pairs of start and end times.
     allow_partial : bool
         If True, allow partial intersections between intervals. If False, only
-        full intersections of set2 lying within set1 are considered.
+        full intersections of set1 lying within set2 are considered.
 
     Returns
     -------
@@ -212,7 +212,7 @@ def _find_intersecting_intervals(
     def chk_intersect(start1, end1, start2, end2, allow_partial):
         if allow_partial:
             return start2 <= end1 and end2 >= start1
-        return start2 >= start1 and end2 <= end1  # set2 is within set1
+        return start1 >= start2 and end1 <= end2  # set1 is within set2
 
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
@@ -252,7 +252,7 @@ def find_intersecting_intervals(
         Default is True.
     allow_partial : bool, optional
         If True, allow partial intersections between intervals.
-        If False, only full intersections of set2 lying within set1 are
+        If False, only full intersections of set1 lying within set2 are
         considered.
         Default is True.
 
