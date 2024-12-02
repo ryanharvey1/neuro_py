@@ -186,7 +186,9 @@ def overlap_intersect(
 
 
 @jit(nopython=True)
-def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[float]:
+def _find_intersecting_intervals(
+    set1: np.ndarray, set2: np.ndarray, allow_partial: bool
+) -> List[float]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
@@ -196,6 +198,9 @@ def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[flo
         An array of intervals represented as pairs of start and end times.
     set2 : ndarray
         An array of intervals represented as pairs of start and end times.
+    allow_partial : bool
+        If True, allow partial intersections between intervals. If False, only
+        full intersections of set2 lying within set1 are considered.
 
     Returns
     -------
@@ -203,11 +208,17 @@ def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[flo
         A list of floats, where each float represents the amount of time the
         corresponding interval in set1 intersects with any interval in set2.
     """
+
+    def chk_intersect(start1, end1, start2, end2, allow_partial):
+        if allow_partial:
+            return start2 <= end1 and end2 >= start1
+        return start2 >= start1 and end2 <= end1  # set2 is within set1
+
     intersecting_intervals = []
     for i, (start1, end1) in enumerate(set1):
         # Check if any of the intervals in set2 intersect with the current interval in set1
         for start2, end2 in set2:
-            if start2 <= end1 and end2 >= start1:
+            if chk_intersect(start1, end1, start2, end2, allow_partial):
                 # Calculate the amount of intersection between the two intervals
                 intersection = min(end1, end2) - max(start1, start2)
                 intersecting_intervals.append(intersection)
@@ -219,7 +230,10 @@ def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[flo
 
 
 def find_intersecting_intervals(
-    set1: nel.EpochArray, set2: nel.EpochArray, return_indices: bool = True
+    set1: nel.EpochArray,
+    set2: nel.EpochArray,
+    return_indices: bool = True,
+    allow_partial: bool = True,
 ) -> Union[np.ndarray, List[bool]]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each intersection.
@@ -231,14 +245,24 @@ def find_intersecting_intervals(
     set2 : nelpy EpochArray
         The second set of intervals to check for intersections.
     return_indices : bool, optional
-        If True, return the indices of the intervals in set2 that intersect with each interval in set1.
-        If False, return the amount of time each interval in set1 intersects with any interval in set2.
+        If True, return the indices of the intervals in set2 that intersect with
+        each interval in set1.
+        If False, return the amount of time each interval in set1 intersects
+        with any interval in set2.
+        Default is True.
+    allow_partial : bool, optional
+        If True, allow partial intersections between intervals.
+        If False, only full intersections of set2 lying within set1 are
+        considered.
+        Default is True.
 
     Returns
     -------
     Union[np.ndarray, List[bool]]
-        If return_indices is True, returns a boolean array indicating whether each interval in set1 intersects with any interval in set2.
-        If return_indices is False, returns a NumPy array with the amount of time each interval in set1 intersects with any interval in set2.
+        If return_indices is True, returns a boolean array indicating whether
+        each interval in set1 intersects with any interval in set2.
+        If return_indices is False, returns a NumPy array with the amount of
+        time each interval in set1 intersects with any interval in set2.
 
     Examples
     --------
@@ -252,7 +276,9 @@ def find_intersecting_intervals(
     if not isinstance(set1, core.IntervalArray) & isinstance(set2, core.IntervalArray):
         raise ValueError("only EpochArrays are supported")
 
-    intersection = np.array(_find_intersecting_intervals(set1.data, set2.data))
+    intersection = np.array(
+        _find_intersecting_intervals(set1.data, set2.data, allow_partial)
+    )
     if return_indices:
         return intersection > 0
     return intersection
