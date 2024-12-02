@@ -8,11 +8,12 @@ __all__ = (
     "process_lfp",
     "save_theta_cycles",
     "get_theta_cycles",
+    "filter_signal"
 )
 
 from .CSD import get_coords, get_csd
 from .preprocessing import clean_lfp
-from .spectral import event_triggered_wavelet, whiten_lfp
+from .spectral import event_triggered_wavelet, whiten_lfp, filter_signal
 from .theta_cycles import (
     get_theta_channel,
     get_theta_cycles,

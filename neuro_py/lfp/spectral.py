@@ -5,7 +5,153 @@ import numpy as np
 import pandas as pd
 import pywt
 from scipy import signal
+from scipy.signal import butter, filtfilt, firwin
 from statsmodels.regression import yule_walker
+
+
+def filter_signal(
+    sig: np.ndarray,
+    fs: float,
+    pass_type: str,
+    f_range: Union[float, Tuple[float, float]],
+    filter_type: str = "fir",
+    n_cycles: int = 3,
+    n_seconds: Optional[float] = None,
+    butterworth_order: int = 4,
+    remove_edges: bool = True,
+) -> np.ndarray:
+    """
+    Filter a neural signal using an FIR or IIR filter.
+
+    Parameters
+    ----------
+    sig : np.ndarray
+        Time series to be filtered.
+    fs : float
+        Sampling rate, in Hz.
+    pass_type : {'bandpass', 'bandstop', 'lowpass', 'highpass'}
+        Type of filter to apply.
+    f_range : float or tuple of float
+        Frequency range for filtering. For 'lowpass' and 'highpass', a single float can be provided.
+        For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.
+    filter_type : {'fir', 'iir'}, optional
+        Type of filter to apply: 'fir' for FIR or 'iir' for IIR (Butterworth). Default is 'fir'.
+    n_cycles : int, optional
+        Number of cycles to define the kernel length for FIR filters. Default is 3.
+    n_seconds : float, optional
+        Length of the FIR filter in seconds. Overrides `n_cycles` if specified. Ignored for IIR.
+    butterworth_order : int, optional
+        Order of the Butterworth filter. Only applies to IIR filters. Default is 4.
+    remove_edges : bool, optional
+        If True, replace samples within half the kernel length with NaN (FIR filters only). Default is True.
+
+    Returns
+    -------
+    np.ndarray
+        Filtered time series.
+
+    Examples
+    --------
+    Apply a lowpass FIR filter to a signal:
+
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> from your_module import filter_signal
+    >>> fs = 1000  # Sampling rate (Hz)
+    >>> t = np.linspace(0, 1, fs, endpoint=False)
+    >>> sig = np.sin(2 * np.pi * 1 * t) + 0.5 * np.sin(2 * np.pi * 50 * t)  # Signal with 1Hz and 50Hz components
+    >>> pass_type = 'lowpass'
+    >>> f_range = 10  # Lowpass filter at 10 Hz
+    >>> filt_sig = filter_signal(sig, fs, pass_type, f_range, filter_type='fir')
+    >>> plt.plot(t, sig, label='Original Signal')
+    >>> plt.plot(t, filt_sig, label='Filtered Signal')
+    >>> plt.legend()
+    >>> plt.show()
+    """
+
+    # Validate pass_type
+    if pass_type not in ["bandpass", "bandstop", "lowpass", "highpass"]:
+        raise ValueError(
+            "`pass_type` must be one of: 'bandpass', 'bandstop', 'lowpass', 'highpass'."
+        )
+
+    # Ensure `f_range` is properly defined for the filter type
+    if isinstance(f_range, (int, float)):
+        if pass_type == "lowpass":
+            f_range = (None, f_range)  # Convert single value to tuple for lowpass
+        elif pass_type == "highpass":
+            f_range = (f_range, None)  # Convert single value to tuple for highpass
+        else:
+            raise ValueError(
+                "`f_range` must be a tuple for 'bandpass' or 'bandstop' filters."
+            )
+
+    # Validate bandpass/bandstop filters
+    if pass_type in ["bandpass", "bandstop"]:
+        if not isinstance(f_range, tuple) or f_range[0] is None or f_range[1] is None:
+            raise ValueError(
+                "Both frequencies must be specified for 'bandpass' and 'bandstop' filters."
+            )
+
+    # Nyquist frequency
+    nyquist = fs / 2
+
+    # FIR filter implementation
+    if filter_type == "fir":
+        # Compute filter kernel length
+        if n_seconds is not None:
+            kernel_len = int(n_seconds * fs)
+        else:
+            kernel_len = (
+                int((n_cycles / f_range[0]) * fs)
+                if f_range[0]
+                else int((n_cycles / f_range[1]) * fs)
+            )
+        if kernel_len % 2 == 0:
+            kernel_len += 1  # Ensure kernel length is odd
+
+        # Define FIR filter coefficients
+        if pass_type in ["bandpass", "bandstop"]:
+            fir_coefs = firwin(
+                kernel_len,
+                [f_range[0] / nyquist, f_range[1] / nyquist],
+                pass_zero=(pass_type == "bandstop"),
+            )
+        elif pass_type == "lowpass":
+            fir_coefs = firwin(kernel_len, f_range[1] / nyquist, pass_zero=True)
+        elif pass_type == "highpass":
+            fir_coefs = firwin(kernel_len, f_range[0] / nyquist, pass_zero=False)
+
+        # Apply the FIR filter
+        sig_filt = np.convolve(sig, fir_coefs, mode="same")
+
+    # IIR filter implementation
+    elif filter_type == "iir":
+        # Design a Butterworth filter
+        if pass_type in ["bandpass", "bandstop"]:
+            b, a = butter(
+                butterworth_order,
+                [f_range[0] / nyquist, f_range[1] / nyquist],
+                btype=pass_type,
+            )
+        elif pass_type == "lowpass":
+            b, a = butter(butterworth_order, f_range[1] / nyquist, btype="low")
+        elif pass_type == "highpass":
+            b, a = butter(butterworth_order, f_range[0] / nyquist, btype="high")
+
+        # Apply the IIR filter
+        sig_filt = filtfilt(b, a, sig)
+
+    else:
+        raise ValueError("`filter_type` must be 'fir' or 'iir'.")
+
+    # Optionally remove edges
+    if remove_edges and filter_type == "fir":
+        edge_len = kernel_len // 2
+        sig_filt[:edge_len] = np.nan
+        sig_filt[-edge_len:] = np.nan
+
+    return sig_filt
 
 
 def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
