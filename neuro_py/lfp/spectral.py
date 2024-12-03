@@ -1,3 +1,4 @@
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional, Tuple, Union
 
@@ -5,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pywt
 from scipy import signal
+from scipy.linalg import toeplitz
 from scipy.signal import butter, filtfilt, firwin
-from statsmodels.regression import yule_walker
 
 
 def filter_signal(
@@ -154,6 +155,86 @@ def filter_signal(
     return sig_filt
 
 
+def yule_walker(x, order=1, method="adjusted", df=None, inv=False, demean=True):
+    """
+    Estimate AR(p) parameters from a sequence using the Yule-Walker equations.
+
+    Adjusted or maximum-likelihood estimator (mle)
+
+    Parameters
+    ----------
+    x : array_like
+        A 1d array.
+    order : int, optional
+        The order of the autoregressive process.  Default is 1.
+    method : str, optional
+       Method can be 'adjusted' or 'mle' and this determines
+       denominator in estimate of autocorrelation function (ACF) at
+       lag k. If 'mle', the denominator is n=X.shape[0], if 'adjusted'
+       the denominator is n-k.  The default is adjusted.
+    df : int, optional
+       Specifies the degrees of freedom. If `df` is supplied, then it
+       is assumed the X has `df` degrees of freedom rather than `n`.
+       Default is None.
+    inv : bool
+        If inv is True the inverse of R is also returned.  Default is
+        False.
+    demean : bool
+        True, the mean is subtracted from `X` before estimation.
+
+    Returns
+    -------
+    rho : ndarray
+        AR(p) coefficients computed using the Yule-Walker method.
+    sigma : float
+        The estimate of the residual standard deviation.
+
+    Notes
+    -----
+    From statsmodels
+
+    See https://en.wikipedia.org/wiki/Autoregressive_moving_average_model for
+    further details.
+    """
+
+    if method not in ("adjusted", "mle"):
+        raise ValueError("ACF estimation method must be 'adjusted' or 'MLE'")
+    x = np.array(x, dtype=np.float64)
+    if demean:
+        x -= x.mean()
+    n = df or x.shape[0]
+
+    # this handles df_resid ie., n - p
+    adj_needed = method == "adjusted"
+
+    if x.ndim > 1 and x.shape[1] != 1:
+        raise ValueError("expecting a vector to estimate AR parameters")
+    r = np.zeros(order + 1, np.float64)
+    r[0] = (x**2).sum() / n
+    for k in range(1, order + 1):
+        r[k] = (x[0:-k] * x[k:]).sum() / (n - k * adj_needed)
+    R = toeplitz(r[:-1])
+
+    try:
+        rho = np.linalg.solve(R, r[1:])
+    except np.linalg.LinAlgError as err:
+        if "Singular matrix" in str(err):
+            warnings.warn("Matrix is singular. Using pinv.")
+            rho = np.linalg.pinv(R) @ r[1:]
+        else:
+            raise
+
+    sigmasq = r[0] - (r[1:] * rho).sum()
+    if not np.isnan(sigmasq) and sigmasq > 0:
+        sigma = np.sqrt(sigmasq)
+    else:
+        sigma = np.nan
+    if inv:
+        return rho, sigma, np.linalg.inv(R)
+    else:
+        return rho, sigma
+
+
 def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
     """
     Perform temporal whitening of Local Field Potential (LFP) data using an Autoregressive (AR) model.
@@ -174,9 +255,9 @@ def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
         The temporally whitened LFP data as a 1D numpy array.
     """
 
-    rho, sigma = yule_walker(lfp, order=order)
+    rho, _ = yule_walker(lfp, order=order)
 
-    _, a = np.array([1.0]), np.concatenate(([1.0], -rho))
+    a = np.concatenate(([1.0], -rho))
 
     # Apply the whitening filter to the LFP data and return the result as a 1D array
     return signal.convolve(lfp, a, "same")

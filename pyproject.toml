@@ -34,7 +34,6 @@ dependencies = [
     "lazy-loader>=0.4",
     "PyWavelets>=1.6.0",
     "track-linearization>=2.3.1",
-    "statsmodels>=0.14.1",
 ]
 
 [project.optional-dependencies]
