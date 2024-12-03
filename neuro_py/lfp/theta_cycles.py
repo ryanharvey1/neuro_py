@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 import nelpy as nel
 import numpy as np
 import pandas as pd
-from neurodsp.filt import filter_signal
+from neuro_py.lfp.spectral import filter_signal
 from scipy.io import savemat
 
 from neuro_py.io import loading

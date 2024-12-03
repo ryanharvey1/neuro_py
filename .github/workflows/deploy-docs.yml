@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Python libs
-        run: pip install .
+        run: pip install .[all]
       - name: Install Crystal libs
         run: |
           shards init

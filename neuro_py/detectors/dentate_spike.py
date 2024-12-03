@@ -3,7 +3,7 @@ import sys
 from copy import deepcopy
 from typing import Union
 
-import dill
+import pickle
 import nelpy as nel
 import numpy as np
 from scipy.io import savemat
@@ -498,7 +498,7 @@ class DetectDS(object):
         """
         self._detach()
         with open(filename, "wb") as f:
-            dill.dump(self, f)
+            pickle.dump(self, f)
 
     @classmethod
     def load(cls, filename: str):
@@ -517,7 +517,7 @@ class DetectDS(object):
 
         """
         with open(filename, "rb") as f:
-            return dill.load(f)
+            return pickle.load(f)
 
     def __repr__(self) -> str:
 
