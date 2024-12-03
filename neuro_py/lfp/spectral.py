@@ -155,46 +155,66 @@ def filter_signal(
     return sig_filt
 
 
-def yule_walker(x, order=1, method="adjusted", df=None, inv=False, demean=True):
+def yule_walker(
+    x: Union[np.ndarray, list],
+    order: int = 1,
+    method: str = "adjusted",
+    df: Optional[int] = None,
+    inv: bool = False,
+    demean: bool = True,
+) -> Union[Tuple[np.ndarray, float], Tuple[np.ndarray, float, np.ndarray]]:
     """
-    Estimate AR(p) parameters from a sequence using the Yule-Walker equations.
-
-    Adjusted or maximum-likelihood estimator (mle)
+    Estimate autoregressive (AR) parameters using the Yule-Walker equations.
 
     Parameters
     ----------
     x : array_like
-        A 1d array.
+        A 1D array containing the input sequence.
     order : int, optional
-        The order of the autoregressive process.  Default is 1.
-    method : str, optional
-       Method can be 'adjusted' or 'mle' and this determines
-       denominator in estimate of autocorrelation function (ACF) at
-       lag k. If 'mle', the denominator is n=X.shape[0], if 'adjusted'
-       the denominator is n-k.  The default is adjusted.
+        The order of the autoregressive process. Default is 1.
+    method : {"adjusted", "mle"}, optional
+        Determines the denominator in the estimate of the autocorrelation function (ACF) at lag `k`.
+        - If "mle", the denominator is `n = x.shape[0]`.
+        - If "adjusted", the denominator is `n - k`.
+        Default is "adjusted".
     df : int, optional
-       Specifies the degrees of freedom. If `df` is supplied, then it
-       is assumed the X has `df` degrees of freedom rather than `n`.
-       Default is None.
-    inv : bool
-        If inv is True the inverse of R is also returned.  Default is
-        False.
-    demean : bool
-        True, the mean is subtracted from `X` before estimation.
+        Specifies the degrees of freedom. If `df` is supplied, it is used in place of `n`. Default is None.
+    inv : bool, optional
+        If True, the inverse of the autocorrelation matrix is also returned. Default is False.
+    demean : bool, optional
+        If True, the mean is subtracted from `x` before estimation. Default is True.
 
     Returns
     -------
-    rho : ndarray
-        AR(p) coefficients computed using the Yule-Walker method.
+    rho : np.ndarray
+        AR coefficients of size `(order,)` computed using the Yule-Walker method.
     sigma : float
         The estimate of the residual standard deviation.
+    inv_matrix : np.ndarray, optional
+        The inverse of the autocorrelation matrix (only returned if `inv=True`).
 
     Notes
     -----
-    From statsmodels
+    The function solves the Yule-Walker equations to compute the autoregressive coefficients of an AR process.
 
-    See https://en.wikipedia.org/wiki/Autoregressive_moving_average_model for
-    further details.
+    - The Toeplitz matrix of autocorrelations is constructed for solving the equations.
+    - If the autocorrelation matrix is singular, the pseudoinverse (`pinv`) is used as a fallback.
+    - For further details, see the [AR model Wikipedia page](https://en.wikipedia.org/wiki/Autoregressive_moving_average_model).
+
+    See Also
+    --------
+    statsmodels.regression.linear_model.yule_walker : Original implementation in statsmodels.
+
+    Examples
+    --------
+    Estimate AR(2) coefficients from a time series:
+
+    >>> x = np.random.randn(1000)
+    >>> rho, sigma = yule_walker(x, order=2)
+
+    Estimate AR(3) coefficients and get the autocorrelation matrix inverse:
+
+    >>> rho, sigma, inv_matrix = yule_walker(x, order=3, inv=True)
     """
 
     if method not in ("adjusted", "mle"):
