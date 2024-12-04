@@ -379,24 +379,6 @@ def cut_artifacts_intan(
                 )
 
 
-if __name__ == "__main__":
-    folder_name = (
-        r"U:\data\hpc_ctx_project\HP13\cut_intan_test\HP13_probe_241111_091409"
-    )
-
-    fs = 20_000
-
-    cut_artifacts_intan(
-        folder_name,
-        128,
-        (np.array([[394.4, 394.836], [400, 401], [404, 405]]) * fs).astype(int),
-    )
-
-    # data = np.memmap(
-    #     r"U:\data\hpc_ctx_project\HP13\cut_intan_test\HP13_probe_241111_091409\time_cut.dat", dtype="int32", mode="r"
-    # )
-
-
 def fill_missing_channels(
     basepath: str,
     n_channels: int,
