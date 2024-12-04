@@ -850,7 +850,8 @@ class PairwiseBias(object):
         self,
         post_spikes: np.ndarray,
         post_neurons: np.ndarray,
-        post_intervals: np.ndarray
+        post_intervals: np.ndarray,
+        allow_reverse_replay: bool = False
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Transform the post-task data to compute z-scores and p-values.
@@ -862,7 +863,7 @@ class PairwiseBias(object):
         post_neurons : np.ndarray
             Neuron identifiers for post-task spikes.
         post_intervals : np.ndarray
-            Intervals for post-task epochs.
+            Intervals for post-task epochs. Shape: (n_intervals, 2).
 
         Returns
         -------
@@ -910,10 +911,16 @@ class PairwiseBias(object):
             self.observed_correlation_ - shuffled_mean
         ) / shuffled_std
 
+        observed_correlation = self.observed_correlation_
+        shuffled_correlations = self.shuffled_correlations_
+        if allow_reverse_replay:
+            observed_correlation = np.abs(observed_correlation)
+            shuffled_correlations = np.abs(shuffled_correlations)
+
         self.p_value_ = (
             np.sum(
-                self.shuffled_correlations_.T
-                > self.observed_correlation_,
+                shuffled_correlations.T
+                > observed_correlation,
                 axis=0,
             )
             + 1
@@ -939,12 +946,14 @@ class PairwiseBias(object):
             Spike times during the task.
         task_neurons : np.ndarray
             Neuron identifiers for task spikes.
+        task_intervals : np.ndarray
+            Intervals for task epochs. Shape: (n_intervals, 2).
         post_spikes : np.ndarray
             Spike times during post-task (e.g., sleep).
         post_neurons : np.ndarray
             Neuron identifiers for post-task spikes.
         post_intervals : np.ndarray
-            Intervals for post-task epochs.
+            Intervals for post-task epochs. Shape: (n_intervals, 2).
 
         Returns
         -------
