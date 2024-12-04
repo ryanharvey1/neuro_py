@@ -189,7 +189,7 @@ def cut_artifacts(
     n_channels : int
         Number of channels in the file.
     cut_intervals : List[Tuple[int, int]]
-        List of intervals (start, end) in sample indices to remove.
+        List of intervals (start, end) in sample indices to remove. Assumes sorted and non-overlapping.
     precision : str, optional
         Data precision, by default "int16".
     output_filepath : str, optional
@@ -208,7 +208,6 @@ def cut_artifacts(
         output_filepath = os.path.splitext(filepath)[0] + "_cut.dat"
 
     # Check for valid intervals
-    cut_intervals = sorted(cut_intervals)
     for start, end in cut_intervals:
         if start >= end:
             raise ValueError(
@@ -246,7 +245,10 @@ def cut_artifacts(
 
 
 def cut_artifacts_intan(
-    folder_name: str, n_channels_amplifier: int, cut_intervals: List[Tuple[int, int]]
+    folder_name: str,
+    n_channels_amplifier: int,
+    cut_intervals: List[Tuple[int, int]],
+    verbose: bool = True,
 ) -> None:
     """
     Cut specified artifact intervals from Intan data files.
@@ -264,15 +266,12 @@ def cut_artifacts_intan(
     cut_intervals : List[Tuple[int, int]]
         A list of intervals (start, end) in sample indices to remove artifacts.
         Each tuple represents the start and end sample index for an artifact to be cut.
+        Assumes sorted and non-overlapping intervals.
 
     Returns
     -------
     None
         This function modifies the files in place, so there is no return value.
-
-    Notes
-    -----
-    Does not correct the time.dat file, timestamps will be discontinuous after cutting artifacts.
 
     Raises
     ------
@@ -285,8 +284,9 @@ def cut_artifacts_intan(
     --------
     >>> fs = 20_000
     >>> cut_artifacts_intan(
-    ...     folder_name=r"path/to/data",
-    ...     128, [(np.array([394.4, 394.836]) * fs).astype(int)]
+    ...     folder_name = r"path/to/data",
+    ...     n_channels_amplifier = 128,
+    ...     cut_intervals = (np.array([[394.4, 394.836], [400, 401], [404, 405]]) * fs).astype(int)
     ... )
     """
 
@@ -323,14 +323,56 @@ def cut_artifacts_intan(
         file_path = os.path.join(folder_name, f"{file_name}.dat")
 
         if os.path.exists(file_path):
+            if verbose:
+                print(f"Processing {file_name}.dat file...")
+
             # get number of bytes per sample
             bytes_size = np.dtype(precision).itemsize
 
             # determine number of channels from n_samples
             n_channels = int(os.path.getsize(file_path) / n_samples / bytes_size)
 
-            # cut artifacts
-            cut_artifacts(file_path, n_channels, cut_intervals, precision)
+            # for time file, cut and offset timestamps
+            if file_name == "time":
+                output_filepath = os.path.splitext(file_path)[0] + "_cut.dat"
+
+                with open(output_filepath, "wb") as output_file:
+                    # time indices as continuous array
+                    filtered_time = np.arange(
+                        n_samples - sum(end - start for start, end in cut_intervals),
+                        dtype=np.int32,
+                    )
+
+                    # write to file
+                    output_file.write(filtered_time.tobytes())
+            else:
+                # cut artifacts
+                cut_artifacts(file_path, n_channels, cut_intervals, precision)
+
+    # Calculate the expected number of samples after cutting
+    total_samples_cut = sum(end - start for start, end in cut_intervals)
+    expected_n_samples = n_samples - total_samples_cut
+
+    # === Validation Section ===
+    # Verify all `_cut.dat` files have the correct number of samples
+    for file_name, precision in files_table.items():
+        output_file_path = os.path.join(folder_name, f"{file_name}_cut.dat")
+        original_file_path = os.path.join(folder_name, f"{file_name}.dat")
+
+        if os.path.exists(output_file_path) and os.path.exists(original_file_path):
+            # Dynamically calculate the number of channels
+            bytes_size = np.dtype(precision).itemsize
+            n_channels = os.path.getsize(original_file_path) // (n_samples * bytes_size)
+
+            # Calculate the expected file size
+            expected_size = expected_n_samples * n_channels * bytes_size
+            actual_size = os.path.getsize(output_file_path)
+
+            if actual_size != expected_size:
+                raise RuntimeError(
+                    f"{file_name}_cut.dat has an incorrect size. "
+                    f"Expected {expected_size} bytes but found {actual_size} bytes."
+                )
 
 
 def fill_missing_channels(
