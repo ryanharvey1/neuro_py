@@ -323,6 +323,9 @@ def cut_artifacts_intan(
         file_path = os.path.join(folder_name, f"{file_name}.dat")
 
         if os.path.exists(file_path):
+            # get number of bytes per sample
+            bytes_size = np.dtype(precision).itemsize
+
             # determine number of channels from n_samples
             n_channels = int(os.path.getsize(file_path) / n_samples / bytes_size)
 
