@@ -1,82 +1,129 @@
+import unittest
+
 import numpy as np
 
 from neuro_py.ensemble.replay import PairwiseBias
 
 
-def test_bayesian_replay():
-    pass
+class TestPairwiseBiasAnalysis(unittest.TestCase):
+    def setUp(self):
+        """Set up parameters for tests."""
+        self.nneurons = 15
+        self.minseqduration = 0.05
+        self.maxseqduration = 0.15
+        self.duration = 0.5
+        np.random.seed(0)  # Set seed for reproducibility
 
-def test_bias_matrix():
-    # set random seed for reproducibility
-    np.random.seed(0)
+    def simulate_sequential_spikes(
+        self,
+        nneurons=30,
+        minseqduration=0.05,
+        maxseqduration=0.15,
+        duration=1.0,
+        jitter=0.01,
+        random=False,
+    ):
+        spikes = []
+        neuron_ids = []
+        max_nsequences = np.ceil(duration / minseqduration)
+        sequence_durations = np.random.uniform(
+            minseqduration, maxseqduration, int(max_nsequences)
+        )
 
-    # test significant intervals
+        last_sequence = np.where(np.cumsum(sequence_durations) <= duration)[0][-1]
+        sequence_durations = sequence_durations[: last_sequence + 1]
+        sequence_epochs = np.cumsum(sequence_durations)
+        sequence_epochs = np.asarray(
+            (np.r_[0, sequence_epochs][:-1], sequence_epochs)
+        ).T  # shape (nsequences, 2)
 
-    transformer = PairwiseBias()
+        for seq_start, seq_end in sequence_epochs:
+            spike_ts = np.linspace(seq_start, seq_end, nneurons)
+            spike_ts += np.random.uniform(-jitter, jitter, nneurons)
+            spike_ts = np.sort(spike_ts)
+            spike_ts = np.clip(spike_ts, seq_start, seq_end)
+            spikes.append(spike_ts)
+            neuron_ids.append(np.arange(nneurons))
 
-    n_spikes = 1_000
-    n_neurons = 30
-    spk_1 = np.sort(np.random.rand(n_spikes))
-    task_spikes = []
-    task_neurons = []
-    for i_neurons in range(n_neurons):
-        task_spikes.append(spk_1 + i_neurons * 0.01)
-        task_neurons.append(np.ones(n_spikes) * i_neurons)
+        spikes = np.concatenate(spikes)
+        neuron_ids = np.concatenate(neuron_ids)
 
-    task_spikes = np.concatenate(task_spikes)
-    task_neurons = np.concatenate(task_neurons)
+        if random:
+            neuron_ids = np.random.permutation(neuron_ids)
 
-    # sort the task_spikes
-    idx = np.argsort(task_spikes)
-    task_spikes = task_spikes[idx]
-    task_neurons = task_neurons[idx]
+        return spikes, neuron_ids, sequence_epochs
 
-    n_spikes = 200
-    spk_1 = np.sort(np.random.rand(n_spikes))
-    post_spikes = []
-    post_neurons = []
-    for i_neurons in range(n_neurons):
-        post_spikes.append(spk_1 + i_neurons * 0.01)
-        post_neurons.append(np.ones(n_spikes) * i_neurons)
+    def test_simulate_sequential_spikes(self):
+        """Test the spike simulation function."""
+        task_spikes, task_neurons, task_seq_epochs = self.simulate_sequential_spikes(
+            nneurons=self.nneurons,
+            minseqduration=self.minseqduration,
+            maxseqduration=self.maxseqduration,
+            duration=self.duration,
+            random=False,
+        )
 
-    post_spikes = np.concatenate(post_spikes)
-    post_neurons = np.concatenate(post_neurons)
+        # Check if the number of spikes is correct
+        self.assertEqual(len(task_spikes), self.nneurons * len(task_seq_epochs))
 
-    # sort the post_spikes
-    idx = np.argsort(post_spikes)
-    post_spikes = post_spikes[idx]
-    post_neurons = post_neurons[idx]
+        # Check if neuron IDs are within expected range
+        self.assertTrue(np.all(np.isin(task_neurons, np.arange(self.nneurons))))
 
-    post_intervals = np.array([[0, 0.5], [0.5, 1], [1, 1.5]])
+    def test_pairwise_bias_analysis(self):
+        """Test the PairwiseBias analysis."""
+        task_spikes, task_neurons, task_seq_epochs = self.simulate_sequential_spikes(
+            nneurons=self.nneurons,
+            minseqduration=self.minseqduration,
+            maxseqduration=self.maxseqduration,
+            duration=self.duration,
+            random=False,
+        )
 
-    z_score, p_value, cosine_val = transformer.fit_transform(
-        task_spikes, task_neurons, post_spikes, post_neurons, post_intervals
-    )
-    print(f"Z-score: {z_score}, P-value: {p_value}")
+        post_spikes_sig, post_neurons_sig, post_sig_seq_epochs = (
+            self.simulate_sequential_spikes(
+                nneurons=self.nneurons,
+                minseqduration=self.minseqduration,
+                maxseqduration=self.maxseqduration,
+                duration=self.duration,
+                random=False,
+            )
+        )
 
-    assert z_score.size == post_intervals.shape[0]
-    assert p_value.size == post_intervals.shape[0]
-    assert (p_value < 0.05).all()
+        post_spikes_nonsig, post_neurons_nonsig, post_nonsig_seq_epochs = (
+            self.simulate_sequential_spikes(
+                nneurons=self.nneurons,
+                minseqduration=self.minseqduration,
+                maxseqduration=self.maxseqduration,
+                duration=self.duration,
+                random=True,
+            )
+        )
+
+        transformer = PairwiseBias()
+
+        # Analyze significant replay
+        z_score_sig, p_value_sig, cosine_val_sig = transformer.fit_transform(
+            task_spikes,
+            task_neurons,
+            task_seq_epochs,
+            post_spikes_sig,
+            post_neurons_sig,
+            post_sig_seq_epochs,
+        )
+
+        # Analyze non-significant replay
+        z_score_nonsig, p_value_nonsig, cosine_val_nonsig = transformer.transform(
+            post_spikes_nonsig, post_neurons_nonsig, post_nonsig_seq_epochs
+        )
+
+        # Check results are of expected shape and values are valid
+        self.assertEqual(len(z_score_sig), len(post_sig_seq_epochs))
+        self.assertEqual(len(z_score_nonsig), len(post_nonsig_seq_epochs))
+
+        # Check that significant replay has lower p-values than non-significant replay
+        self.assertTrue(np.all(p_value_sig < 0.05))
+        self.assertTrue(np.mean(p_value_sig) < np.mean(p_value_nonsig))
 
 
-    # test non significant intervals
-
-    n_spikes = 200
-    spk_1 = np.sort(np.random.rand(n_spikes))
-    post_spikes = []
-    post_neurons = []
-    for i_neurons in range(n_neurons):
-        post_spikes.append(spk_1 + np.sort(np.random.rand(n_spikes)))
-        post_neurons.append(np.ones(n_spikes) * i_neurons)
-
-    post_spikes = np.concatenate(post_spikes)
-    post_neurons = np.concatenate(post_neurons)
-
-    z_score, p_value, cosine_val = transformer.transform(
-        post_spikes, post_neurons, post_intervals
-    )
-    print(f"Z-score: {z_score}, P-value: {p_value}")
-
-    assert z_score.size == post_intervals.shape[0]
-    assert p_value.size == post_intervals.shape[0]
-    assert (p_value > 0.05).all()
+if __name__ == "__main__":
+    unittest.main()

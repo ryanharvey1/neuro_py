@@ -79,7 +79,8 @@ def bias_matrix_fast(
     spike_times: np.ndarray,
     neuron_ids: np.ndarray,
     total_neurons: int,
-    fillneutral: float = 0.5
+    fillneutral: float = 0.5,
+    return_counts: bool = False
 ) -> np.ndarray:
     r"""
     Compute the bias matrix for a given sequence of spikes.
@@ -98,9 +99,17 @@ def bias_matrix_fast(
 
     Returns
     -------
-    numpy.ndarray
+    bias : numpy.ndarray
         A bias matrix of size `(total_neurons, total_neurons)` where
         each entry represents the bias between neuron pairs.
+    ibeforej : numpy.ndarray, optional
+        A matrix of size `(total_neurons, total_neurons)` where
+        each entry represents the count of spikes from neuron \( i \) occurring
+        before spikes from neuron \( j \).
+    prod_nspikes_ij : numpy.ndarray, optional
+        A matrix of size `(total_neurons, total_neurons)` where
+        each entry represents the product of spikes from neurons \( i \) and
+        \( j \).
 
     Notes
     -----
@@ -112,7 +121,7 @@ def bias_matrix_fast(
     before spikes from neuron \( j \). If there are no spikes for either neuron,
     the bias is set to 0.5 (neutral bias).
     """
-    ibeforej = np.zeros((total_neurons, total_neurons))
+    ibeforej = np.zeros((total_neurons, total_neurons))  # rows: i, cols: j
     prod_nspikes_ij = np.zeros((total_neurons, total_neurons))
     bias = np.empty((total_neurons, total_neurons))
 
@@ -132,13 +141,16 @@ def bias_matrix_fast(
                     spikes_i, spikes_j, side='right').sum()
                 ibeforej[i, j] = nspikes_ij
                 prod_nspikes_ij[i, j] = nspikes_i * nspikes_j
-    
+
     jbeforei = prod_nspikes_ij - ibeforej
     prod_nspikes_ij = prod_nspikes_ij + prod_nspikes_ij.T  # symmetrize
     ibeforej = ibeforej + jbeforei.T
     np.divide(ibeforej, prod_nspikes_ij, out=bias, where=prod_nspikes_ij != 0)
     # set remaining values to fillneutral
     bias[prod_nspikes_ij == 0] = fillneutral
+
+    if return_counts:
+        return bias, ibeforej, prod_nspikes_ij
 
     return bias
 

@@ -784,9 +784,10 @@ class PairwiseBias(object):
         return observed_correlation, shuffled_correlation
 
     def fit(
-        self, 
-        task_spikes: np.ndarray, 
-        task_neurons: np.ndarray
+        self,
+        task_spikes: np.ndarray,
+        task_neurons: np.ndarray,
+        task_intervals: np.ndarray = None
     ) -> 'PairwiseBias':
         """
         Fit the model using the task spike data.
@@ -797,6 +798,10 @@ class PairwiseBias(object):
             Spike times during the task.
         task_neurons : np.ndarray
             Neuron identifiers for task spikes.
+        task_intervals : np.ndarray, optional
+            Intervals for task epochs, by default None. If None, the entire task
+            data is used. Otherwise, the average bias matrix is computed across
+            all task intervals. Shape: (n_intervals, 2).
 
         Returns
         -------
@@ -809,17 +814,42 @@ class PairwiseBias(object):
         # Calculate the total number of neurons based on unique entries in task_neurons
         self.total_neurons = len(np.unique(task_neurons))
 
-        # Compute bias matrix for task data and normalize
-        task_bias_matrix = self.bias_matrix(
-            task_spikes, task_neurons, self.total_neurons
-        )
-        self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+        if task_intervals is None:
+            # Compute bias matrix for task data and normalize
+            task_bias_matrix = self.bias_matrix(
+                task_spikes, task_neurons, self.total_neurons
+            )
+            self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+        else:
+            n_intervals = task_intervals.shape[0]
+            # Compute bias matrices for each task interval
+            task_bias_matrices = [
+                self.bias_matrix(
+                    task_spikes[
+                        (task_spikes > task_intervals[i][0])
+                        & (task_spikes <= task_intervals[i][1])
+                    ],
+                    task_neurons[
+                        (task_spikes > task_intervals[i][0])
+                        & (task_spikes <= task_intervals[i][1])
+                    ],
+                    self.total_neurons,
+                )
+                for i in range(n_intervals)
+            ]
+            # Normalize each bias matrix
+            task_normalized_matrices = [
+                self.normalize_bias_matrix(task_bias_matrices[i])
+                for i in range(n_intervals)
+            ]
+            # Average the normalized bias matrices
+            self.task_normalized = np.mean(task_normalized_matrices, axis=0)
         return self
 
     def transform(
-        self, 
-        post_spikes: np.ndarray, 
-        post_neurons: np.ndarray, 
+        self,
+        post_spikes: np.ndarray,
+        post_neurons: np.ndarray,
         post_intervals: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -871,26 +901,33 @@ class PairwiseBias(object):
         #     ]
         # )
 
-        self.observed_correlation_ = np.array(observed_correlation)
-        self.shuffled_correlations_ = np.array(shuffled_correlations)
+        self.observed_correlation_ = np.array(observed_correlation)  # Shape: (n_intervals,)
+        self.shuffled_correlations_ = np.array(shuffled_correlations)  # Shape: (n_intervals, n_shuffles)
 
         shuffled_mean = np.mean(self.shuffled_correlations_, axis=1)
         shuffled_std = np.std(self.shuffled_correlations_, axis=1)
         self.z_score_ = (
-            shuffled_mean - self.observed_correlation_ 
+            self.observed_correlation_ - shuffled_mean
         ) / shuffled_std
 
-        # Compute two-tailed p-values
-        self.p_value_ = 2 * (1 - stats.norm.cdf(np.abs(self.z_score_)))  # Shape: (n_intervals,)
+        self.p_value_ = (
+            np.sum(
+                self.shuffled_correlations_.T
+                > self.observed_correlation_,
+                axis=0,
+            )
+            + 1
+        ) / (self.num_shuffles + 1)
 
         return self.z_score_, self.p_value_, self.observed_correlation_
 
     def fit_transform(
-        self, 
-        task_spikes: np.ndarray, 
-        task_neurons: np.ndarray, 
-        post_spikes: np.ndarray, 
-        post_neurons: np.ndarray, 
+        self,
+        task_spikes: np.ndarray,
+        task_neurons: np.ndarray,
+        task_intervals: np.ndarray,
+        post_spikes: np.ndarray,
+        post_neurons: np.ndarray,
         post_intervals: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -916,5 +953,5 @@ class PairwiseBias(object):
             p_value: p-value for significance test.
             observed_correlation_: The observed correlation for each interval.
         """
-        self.fit(task_spikes, task_neurons)
+        self.fit(task_spikes, task_neurons, task_intervals)
         return self.transform(post_spikes, post_neurons, post_intervals)
