@@ -569,6 +569,7 @@ def trajectory_score_bst(
 #             count_ij = np.sum(spikes_i[:, np.newaxis] < spikes_j)
 #             bias_matrix[i, j] = count_ij / (size_i * size_j)
 
+
 #     return bias_matrix
 @jit(nopython=True)
 def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
@@ -612,8 +613,9 @@ def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
 
             # Count how many times neuron i spikes before neuron j
             bias_matrix[i, j] = np.divide(crosscorr[:50].sum(), crosscorr[51:].sum())
-            
+
     return bias_matrix
+
 
 class PairwiseBias(object):
     """
@@ -650,6 +652,7 @@ class PairwiseBias(object):
     fit_transform(task_spikes: Union[List[float], np.ndarray], task_neurons: Union[List[int], np.ndarray], post_spikes: Union[List[float], np.ndarray], post_neurons: Union[List[int], np.ndarray], post_intervals: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]
         Fit the model with task data and transform the post-task data.
     """
+
     def __init__(self, num_shuffles: int = 300, n_jobs: int = 10):
         self.num_shuffles = num_shuffles
         self.n_jobs = n_jobs
@@ -660,12 +663,9 @@ class PairwiseBias(object):
         self.z_score_ = None
         self.p_value_ = None
 
-
     @staticmethod
     def bias_matrix(
-        spike_times: np.ndarray, 
-        neuron_ids: np.ndarray, 
-        total_neurons: int
+        spike_times: np.ndarray, neuron_ids: np.ndarray, total_neurons: int
     ) -> np.ndarray:
         """
         Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
@@ -685,7 +685,6 @@ class PairwiseBias(object):
             A matrix of size (total_neurons, total_neurons) representing the bias.
         """
         return bias_matrix_fast(spike_times, neuron_ids, total_neurons)
-
 
     @staticmethod
     def normalize_bias_matrix(bias_matrix: np.ndarray) -> np.ndarray:
@@ -729,7 +728,7 @@ class PairwiseBias(object):
         post_neurons: np.ndarray,
         task_normalized: np.ndarray,
         post_intervals: np.ndarray,
-        interval_i: int
+        interval_i: int,
     ) -> Tuple[float, List[float]]:
         """
         Compute observed and shuffled correlation for a given post-task interval.
@@ -787,8 +786,8 @@ class PairwiseBias(object):
         self,
         task_spikes: np.ndarray,
         task_neurons: np.ndarray,
-        task_intervals: np.ndarray = None
-    ) -> 'PairwiseBias':
+        task_intervals: np.ndarray = None,
+    ) -> "PairwiseBias":
         """
         Fit the model using the task spike data.
 
@@ -851,7 +850,8 @@ class PairwiseBias(object):
         post_spikes: np.ndarray,
         post_neurons: np.ndarray,
         post_intervals: np.ndarray,
-        allow_reverse_replay: bool = False
+        allow_reverse_replay: bool = False,
+        parallel: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Transform the post-task data to compute z-scores and p-values.
@@ -864,6 +864,10 @@ class PairwiseBias(object):
             Neuron identifiers for post-task spikes.
         post_intervals : np.ndarray
             Intervals for post-task epochs. Shape: (n_intervals, 2).
+        allow_reverse_replay : bool, optional
+            Whether to allow reverse sequences, by default False.
+        parallel : bool, optional
+            Whether to run in parallel, by default True.
 
         Returns
         -------
@@ -876,40 +880,43 @@ class PairwiseBias(object):
         if post_intervals.shape[0] < self.n_jobs:
             self.n_jobs = post_intervals.shape[0]
 
-        observed_correlation, shuffled_correlations = zip(
-            *Parallel(n_jobs=self.n_jobs)(
-                delayed(self.observed_and_shuffled_correlation)(
-                    post_spikes,
-                    post_neurons,
-                    self.task_normalized,
-                    post_intervals,
-                    interval_i,
+        if parallel:
+            observed_correlation, shuffled_correlations = zip(
+                *Parallel(n_jobs=self.n_jobs)(
+                    delayed(self.observed_and_shuffled_correlation)(
+                        post_spikes,
+                        post_neurons,
+                        self.task_normalized,
+                        post_intervals,
+                        interval_i,
+                    )
+                    for interval_i in range(post_intervals.shape[0])
                 )
-                for interval_i in range(post_intervals.shape[0])
             )
-        )
-        # non parallel version
-        # observed_correlation, shuffled_correlations = zip(
-        #     *[
-        #         self.observed_and_shuffled_correlation(
-        #             post_spikes,
-        #             post_neurons,
-        #             self.task_normalized,
-        #             post_intervals,
-        #             interval_i,
-        #         )
-        #         for interval_i in range(post_intervals.shape[0])
-        #     ]
-        # )
+        else:  # Run in serial for debugging
+            observed_correlation, shuffled_correlations = zip(
+                *[
+                    self.observed_and_shuffled_correlation(
+                        post_spikes,
+                        post_neurons,
+                        self.task_normalized,
+                        post_intervals,
+                        interval_i,
+                    )
+                    for interval_i in range(post_intervals.shape[0])
+                ]
+            )
 
-        self.observed_correlation_ = np.array(observed_correlation)  # Shape: (n_intervals,)
-        self.shuffled_correlations_ = np.array(shuffled_correlations)  # Shape: (n_intervals, n_shuffles)
+        self.observed_correlation_ = np.array(
+            observed_correlation
+        )  # Shape: (n_intervals,)
+        self.shuffled_correlations_ = np.array(
+            shuffled_correlations
+        )  # Shape: (n_intervals, n_shuffles)
 
         shuffled_mean = np.mean(self.shuffled_correlations_, axis=1)
         shuffled_std = np.std(self.shuffled_correlations_, axis=1)
-        self.z_score_ = (
-            self.observed_correlation_ - shuffled_mean
-        ) / shuffled_std
+        self.z_score_ = (self.observed_correlation_ - shuffled_mean) / shuffled_std
 
         observed_correlation = self.observed_correlation_
         shuffled_correlations = self.shuffled_correlations_
@@ -919,8 +926,7 @@ class PairwiseBias(object):
 
         self.p_value_ = (
             np.sum(
-                shuffled_correlations.T
-                > observed_correlation,
+                shuffled_correlations.T > observed_correlation,
                 axis=0,
             )
             + 1
@@ -935,7 +941,9 @@ class PairwiseBias(object):
         task_intervals: np.ndarray,
         post_spikes: np.ndarray,
         post_neurons: np.ndarray,
-        post_intervals: np.ndarray
+        post_intervals: np.ndarray,
+        allow_reverse_replay: bool = False,
+        parallel: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Fit the model with task data and transform the post-task data.
@@ -954,6 +962,10 @@ class PairwiseBias(object):
             Neuron identifiers for post-task spikes.
         post_intervals : np.ndarray
             Intervals for post-task epochs. Shape: (n_intervals, 2).
+        allow_reverse_replay : bool, optional
+            Whether to allow reverse sequences, by default False.
+        parallel : bool, optional
+            Whether to run in parallel, by default True.
 
         Returns
         -------
@@ -963,4 +975,7 @@ class PairwiseBias(object):
             observed_correlation_: The observed correlation for each interval.
         """
         self.fit(task_spikes, task_neurons, task_intervals)
-        return self.transform(post_spikes, post_neurons, post_intervals)
+        return self.transform(
+            post_spikes, post_neurons, post_intervals, allow_reverse_replay,
+            parallel
+        )
