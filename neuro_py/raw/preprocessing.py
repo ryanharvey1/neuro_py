@@ -273,10 +273,6 @@ def cut_artifacts_intan(
     None
         This function modifies the files in place, so there is no return value.
 
-    Notes
-    -----
-    Does not correct the time.dat file, timestamps will be discontinuous after cutting artifacts.
-
     Raises
     ------
     FileNotFoundError
