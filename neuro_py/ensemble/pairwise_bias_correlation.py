@@ -1,4 +1,5 @@
 from joblib import Parallel, delayed
+from typing import List, Tuple
 
 import nelpy as nel
 import numpy as np
@@ -113,6 +114,8 @@ def bias_matrix_fast(
 
     Notes
     -----
+    Refer to the `bias_matrix` function for better code interpretability.
+
     The bias \( B_{ij} \) for neurons \( i \) and \( j \) is computed as:
     \[
     B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
@@ -206,15 +209,46 @@ def cosine_similarity_matrices(
 
 
 def observed_and_shuffled_correlation(
-    post_spikes,
-    post_neurons,
-    total_neurons,
-    task_normalized,
-    post_intervals,
-    interval_i,
-    num_shuffles=100,
-):
+    post_spikes: np.ndarray,
+    post_neurons: np.ndarray,
+    total_neurons: int,
+    task_normalized: np.ndarray,
+    post_intervals: np.ndarray,
+    interval_i: int,
+    num_shuffles: int = 100,
+) -> Tuple[float, List[float]]:
+    """
+    Calculate observed and shuffled correlations between task and post-task neural activity.
 
+    This function computes the correlation between normalized task bias matrix and
+    post-task bias matrix, as well as correlations with shuffled post-task data.
+
+    Parameters
+    ----------
+    post_spikes : np.ndarray
+        Array of post-task spike times.
+    post_neurons : np.ndarray
+        Array of neuron IDs corresponding to post_spikes.
+    total_neurons : int
+        Total number of neurons in the dataset.
+    task_normalized : np.ndarray
+        Normalized bias matrix from task period.
+    post_intervals : np.ndarray
+        Array of post-task intervals, shape (n_intervals, 2).
+    interval_i : int
+        Index of the current interval to analyze.
+    num_shuffles : int, optional
+        Number of times to shuffle post-task data for null distribution, by default 100.
+
+    Returns
+    -------
+    Tuple[float, List[float]]
+        A tuple containing:
+        - observed_correlation: float
+            Cosine similarity between task and post-task bias matrices.
+        - shuffled_correlation: List[float]
+            List of cosine similarities between task and shuffled post-task bias matrices.
+    """
     # for i_interval in range(post_intervals.shape[0]):
     idx = (post_spikes > post_intervals[interval_i][0]) & (
         post_spikes < post_intervals[interval_i][1]
