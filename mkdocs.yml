@@ -92,6 +92,7 @@ nav:
 - Tutorials:
   - Batch Analysis: tutorials/batch_analysis.ipynb
   - Explained Variance: tutorials/explained_variance.ipynb
+  - Bias Correlation: tutorials/bias_correlation.ipynb
   - Reactivation: tutorials/reactivation.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb
   - Attractor Estimation: tutorials/attractor_landscape.ipynb
