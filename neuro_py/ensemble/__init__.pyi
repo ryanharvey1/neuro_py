@@ -19,6 +19,8 @@ __all__ = [
     "weighted_correlation",
     "shuffle_and_score",
     "trajectory_score_bst",
+    "proximity",
+    "cosine_similarity",
 ]
 
 from .assembly import (
@@ -35,9 +37,11 @@ from .assembly import (
 from .assembly_reactivation import AssemblyReact
 from .explained_variance import ExplainedVariance
 from .dynamics import (
+    cosine_similarity,
     potential_landscape,
     potential_landscape_nd,
 )
+from .geometry import proximity
 from .similarity_index import similarity_index
 from .similaritymat import similaritymat
 from .replay import (
