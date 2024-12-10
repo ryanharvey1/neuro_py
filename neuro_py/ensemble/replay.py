@@ -2,7 +2,6 @@ import multiprocessing
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-import scipy.stats as stats
 
 from joblib import Parallel, delayed
 from nelpy.analysis import replay
@@ -12,7 +11,7 @@ from nelpy import TuningCurve1D
 from numba import jit
 
 from neuro_py.ensemble.pairwise_bias_correlation import (
-    bias_matrix_fast,
+    bias_matrix_njit,
     cosine_similarity_matrices,
     normalize_bias_matrix,
 )
@@ -369,7 +368,6 @@ def trajectory_score_bst(
     return scores, weighted_corr
 
 
-#     return bias_matrix
 @jit(nopython=True)
 def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
     """
@@ -464,7 +462,8 @@ class PairwiseBias(object):
 
     @staticmethod
     def bias_matrix(
-        spike_times: np.ndarray, neuron_ids: np.ndarray, total_neurons: int
+        spike_times: np.ndarray, neuron_ids: np.ndarray, total_neurons: int,
+        fillneutral: float = np.nan
     ) -> np.ndarray:
         """
         Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
@@ -477,13 +476,17 @@ class PairwiseBias(object):
             Neuron identifiers corresponding to spike_times.
         total_neurons : int
             Total number of neurons being considered.
+        fillneutral : float, optional
+            Value to fill the diagonal of the bias matrix and other empty
+            combinations, by default np.nan.
 
         Returns
         -------
         np.ndarray
             A matrix of size (total_neurons, total_neurons) representing the bias.
         """
-        return bias_matrix_fast(spike_times, neuron_ids, total_neurons)
+        return bias_matrix_njit(
+            spike_times, neuron_ids, total_neurons, fillneutral)
 
     @staticmethod
     def normalize_bias_matrix(bias_matrix: np.ndarray) -> np.ndarray:
@@ -552,32 +555,40 @@ class PairwiseBias(object):
         """
         post_neurons = np.asarray(post_neurons, dtype=int)
 
-        idx = (post_spikes > post_intervals[interval_i][0]) & (
-            post_spikes < post_intervals[interval_i][1]
-        )
+        start, end = post_intervals[interval_i]
+        start_idx = np.searchsorted(post_spikes, start, side='left')
+        end_idx = np.searchsorted(post_spikes, end, side='right')
+
+        filtered_spikes = post_spikes[start_idx:end_idx]
+        filtered_neurons = post_neurons[start_idx:end_idx]
 
         post_bias_matrix = self.bias_matrix(
-            post_spikes[idx], post_neurons[idx], self.total_neurons
+            filtered_spikes, filtered_neurons, self.total_neurons
         )
+
         post_normalized = self.normalize_bias_matrix(post_bias_matrix)
 
         observed_correlation = self.cosine_similarity_matrices(
             task_normalized, post_normalized
         )
 
-        shuffled_correlation = [
-            self.cosine_similarity_matrices(
-                task_normalized,
-                self.normalize_bias_matrix(
-                    self.bias_matrix(
-                        post_spikes[idx],
-                        np.random.permutation(post_neurons[idx]),
-                        self.total_neurons,
-                    )
-                ),
+        shuffled_correlation = []
+        for _ in range(self.num_shuffles):
+            shuffled_neurons = np.random.permutation(
+                filtered_neurons
             )
-            for _ in range(self.num_shuffles)
-        ]
+            shuffled_bias_matrix = self.bias_matrix(
+                filtered_spikes, shuffled_neurons, self.total_neurons
+            )
+            shuffled_normalized = self.normalize_bias_matrix(
+                shuffled_bias_matrix
+            )
+            shuffled_correlation.append(
+                self.cosine_similarity_matrices(
+                    task_normalized,
+                    shuffled_normalized
+                )
+            )
 
         return observed_correlation, shuffled_correlation
 
@@ -617,31 +628,38 @@ class PairwiseBias(object):
             task_bias_matrix = self.bias_matrix(
                 task_spikes, task_neurons, self.total_neurons
             )
-            self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+            self.task_normalized = self.normalize_bias_matrix(
+                task_bias_matrix
+            )
         else:
-            n_intervals = task_intervals.shape[0]
             # Compute bias matrices for each task interval
-            task_bias_matrices = [
-                self.bias_matrix(
-                    task_spikes[
-                        (task_spikes > task_intervals[i][0])
-                        & (task_spikes <= task_intervals[i][1])
-                    ],
-                    task_neurons[
-                        (task_spikes > task_intervals[i][0])
-                        & (task_spikes <= task_intervals[i][1])
-                    ],
-                    self.total_neurons,
+            task_normalized_matrices = []
+
+            for interval in task_intervals:
+                # find the indices of spikes within the interval
+                start_idx = np.searchsorted(
+                    task_spikes, interval[0], side='left')
+                end_idx = np.searchsorted(
+                    task_spikes, interval[1], side='right')
+
+                # Extract spikes and neurons within the interval
+                interval_spikes = \
+                    task_spikes[start_idx:end_idx]
+                interval_neurons = \
+                    task_neurons[start_idx:end_idx]
+
+                # Compute the bias matrix for the interval
+                bias_matrix = self.bias_matrix(
+                    interval_spikes, interval_neurons, self.total_neurons
                 )
-                for i in range(n_intervals)
-            ]
-            # Normalize each bias matrix
-            task_normalized_matrices = [
-                self.normalize_bias_matrix(task_bias_matrices[i])
-                for i in range(n_intervals)
-            ]
+                bias_matrix = self.normalize_bias_matrix(bias_matrix)
+                task_normalized_matrices.append(bias_matrix)
+
             # Average the normalized bias matrices
-            self.task_normalized = np.mean(task_normalized_matrices, axis=0)
+            self.task_normalized = np.nanmean(
+                task_normalized_matrices,
+                axis=0
+            )
         return self
 
     def transform(

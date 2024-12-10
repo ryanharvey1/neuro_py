@@ -24,6 +24,7 @@ __all__ = [
     "normalize_bias_matrix",
     "bias_matrix",
     "bias_matrix_fast",
+    "bias_matrix_njit",
     "observed_and_shuffled_correlation",
     "shuffled_significance",
 ]
@@ -52,6 +53,7 @@ from .pairwise_bias_correlation import (
     normalize_bias_matrix,
     bias_matrix,
     bias_matrix_fast,
+    bias_matrix_njit,
     observed_and_shuffled_correlation,
     shuffled_significance,
 )

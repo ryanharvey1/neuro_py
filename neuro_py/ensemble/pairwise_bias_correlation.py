@@ -6,6 +6,7 @@ import numpy as np
 import sklearn
 import sklearn.metrics
 
+from numba import njit
 from neuro_py.io import loading
 from neuro_py.process import intervals
 from neuro_py.session.locate_epochs import (
@@ -123,6 +124,11 @@ def bias_matrix_fast(
     where \( nspikes_{ij} \) is the count of spikes from neuron \( i \) occurring 
     before spikes from neuron \( j \). If there are no spikes for either neuron,
     the bias is set to 0.5 (neutral bias).
+
+    References
+    ----------
+    .. [1] Roth, Z. (2016). Analysis of neuronal sequences using pairwise
+        biases. arXiv, 65-67 (2016). https://arxiv.org/abs/1603.02916
     """
     ibeforej = np.zeros((total_neurons, total_neurons))  # rows: i, cols: j
     prod_nspikes_ij = np.zeros((total_neurons, total_neurons))
@@ -154,6 +160,80 @@ def bias_matrix_fast(
 
     if return_counts:
         return bias, ibeforej, prod_nspikes_ij
+
+    return bias
+
+
+@njit
+def bias_matrix_njit(
+    spike_times: np.ndarray,
+    neuron_ids: np.ndarray,
+    total_neurons: int,
+    fillneutral: float = 0.5
+) -> np.ndarray:
+    r"""
+    Compute the bias matrix for a given sequence of spikes.
+
+    Parameters
+    ----------
+    spike_times : numpy.ndarray
+        Spike times for the sequence, assumed to be sorted.
+    neuron_ids : numpy.ndarray
+        Neuron identifiers corresponding to `spike_times`.
+        Values should be integers between 0 and `total_neurons - 1`.
+    total_neurons : int
+        Total number of neurons being considered.
+    fillneutral : float, optional
+        Value to fill for neutral bias, by default 0.5
+
+    Returns
+    -------
+    numpy.ndarray
+        A bias matrix of size `(total_neurons, total_neurons)` where
+        each entry represents the bias between neuron pairs.
+
+    Notes
+    -----
+    Refer to the `bias_matrix` function for better code interpretability.
+
+    The bias \( B_{ij} \) for neurons \( i \) and \( j \) is computed as:
+    \[
+    B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
+    \]
+    where \( nspikes_{ij} \) is the count of spikes from neuron \( i \) occurring
+    before spikes from neuron \( j \). If there are no spikes for either neuron,
+    the bias is set to 0.5 (neutral bias).
+
+    References
+    ----------
+    .. [1] Roth, Z. (2016). Analysis of neuronal sequences using pairwise
+        biases. arXiv, 65-67 (2016). https://arxiv.org/abs/1603.02916
+    """
+    ibeforej = np.zeros((total_neurons, total_neurons))  # rows: i, cols: j
+    prod_nspikes_ij = np.zeros((total_neurons, total_neurons))
+    bias = np.empty((total_neurons, total_neurons))
+
+    # Create boolean masks for all neurons in advance
+    masks = [neuron_ids == i for i in range(total_neurons)]
+
+    for i in range(total_neurons):
+        spikes_i = spike_times[masks[i]]
+        nspikes_i = spikes_i.size
+        for j in range(i + 1, total_neurons):
+            spikes_j = spike_times[masks[j]]
+            nspikes_j = spikes_j.size
+
+            if nspikes_i > 0 and nspikes_j > 0:
+                nspikes_ij = np.searchsorted(
+                    spikes_i, spikes_j, side='right').sum()
+                ibeforej[i, j] = nspikes_ij
+                prod_nspikes_ij[i, j] = nspikes_i * nspikes_j
+
+    jbeforei = prod_nspikes_ij - ibeforej
+    prod_nspikes_ij = prod_nspikes_ij + prod_nspikes_ij.T
+    ibeforej = ibeforej + jbeforei.T
+    bias = ibeforej / prod_nspikes_ij
+    bias = np.where(prod_nspikes_ij == 0, fillneutral, bias)
 
     return bias
 
@@ -197,6 +277,9 @@ def cosine_similarity_matrices(
     # Flatten matrices
     x = matrix1.flatten().reshape(1, -1)
     y = matrix2.flatten().reshape(1, -1)
+
+    if np.all(np.isnan(x)) or np.all(np.isnan(y)):
+        return np.nan
 
     # handle nan values
     x = np.nan_to_num(x)
@@ -427,3 +510,4 @@ if __name__ == "__main__":
         st.n_active,
         post_intervals=(beh_epochs[2] & swr)[:10].data,
     )
+    print(z_score, p_value)
