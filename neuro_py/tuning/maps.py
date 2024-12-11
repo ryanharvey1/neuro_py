@@ -3,7 +3,7 @@ import logging
 import multiprocessing
 import os
 from typing import Any, List, Optional, Union
-
+import warnings
 import nelpy as nel
 import numpy as np
 from joblib import Parallel, delayed
@@ -196,7 +196,8 @@ class SpatialMap(object):
 
         # log warning if st_run is empty following restriction
         if st_run.isempty:
-            logging.warning("No spike trains during running epochs")
+            logging.warning("No spike trains during running epochs")  # This will log it but not raise a warning
+            warnings.warn("No spike trains during running epochs", UserWarning)
 
         # take pos as input for case of shuffling
         if pos is not None:
@@ -339,7 +340,8 @@ class SpatialMap(object):
 
         # log warning if st_run is empty following restriction
         if st_run.isempty:
-            logging.warning("No spike trains during running epochs")
+            logging.warning("No spike trains during running epochs")  # This will log it but not raise a warning
+            warnings.warn("No spike trains during running epochs", UserWarning)
             
         # take pos as input for case of shuffling
         if pos is not None:
