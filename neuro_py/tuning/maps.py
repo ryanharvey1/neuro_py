@@ -158,7 +158,6 @@ class SpatialMap(object):
             self.tc, self.st_run = self.map_1d()
         else:
             raise ValueError("pos dims must be 1 or 2")
-        
 
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()

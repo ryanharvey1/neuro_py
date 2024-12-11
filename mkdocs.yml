@@ -95,3 +95,4 @@ nav:
   - Reactivation: tutorials/reactivation.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb
   - Attractor Estimation: tutorials/attractor_landscape.ipynb
+  - Representational Geodynamics: tutorials/pv_trajectory_geodynamics.ipynb
