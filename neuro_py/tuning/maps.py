@@ -25,9 +25,6 @@ class SpatialMap(object):
         Position data (nelpy.AnalogSignal or nel.PositionArray).
     st : object
         Spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal).
-    
-    Optional Parameters
-    -------------------
     speed : Optional[object]
         Speed data (nelpy.AnalogSignal), recommended input: from non-epoched data.
     dim : Optional[int]
@@ -54,9 +51,6 @@ class SpatialMap(object):
         Number of position shuffles for spatial information. Default is 500.
     parallel_shuff : bool, optional
         Parallelize shuffling. Default is True.
-    
-    Place Field Detector Parameters
-    -------------------------------
     place_field_thres : Union[int, float], optional
         Percent of continuous region of peak firing rate. Default is 0.2.
     place_field_min_size : Optional[Union[int, float]]
@@ -141,14 +135,27 @@ class SpatialMap(object):
                 "st must be nelpy.SpikeTrain or nelpy.BinnedSpikeTrainArray"
             )
 
-        # get speed and running epochs (highly recommended you calculate 
-        #   speed before hand on non epoched data)
-        if self.speed is None:
-            self.speed = nel.utils.ddt_asa(self.pos, smooth=True, sigma=0.1, norm=True)
+        # check data is not empty
+        if pos.isempty or st.isempty:
+            raise ValueError("pos and st must not be empty")
+        
+        # check if pos all nan
+        if np.all(np.isnan(pos.data)):
+            raise ValueError("Position data cannot contain all NaN values")
 
-        self.run_epochs = nel.utils.get_run_epochs(
-            self.speed, v1=self.speed_thres, v2=self.speed_thres
-        ).merge()
+        # get speed and running epochs (highly recommended you calculate
+        #   speed before hand on non epoched data)
+        if speed_thres > 0:
+            if self.speed is None:
+                self.speed = nel.utils.ddt_asa(
+                    self.pos, smooth=True, sigma=0.1, norm=True
+                )
+
+            self.run_epochs = nel.utils.get_run_epochs(
+                self.speed, v1=self.speed_thres, v2=self.speed_thres
+            ).merge()
+        else:
+            self.run_epochs = self.pos.support.copy()
 
         # calculate maps, 1d or 2d
         self.dim = pos.n_signals
@@ -158,7 +165,6 @@ class SpatialMap(object):
             self.tc, self.st_run = self.map_1d()
         else:
             raise ValueError("pos dims must be 1 or 2")
-        
 
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()
@@ -187,6 +193,10 @@ class SpatialMap(object):
 
         # restrict spike trains to those epochs during which the animal was running
         st_run = self.st[self.run_epochs]
+
+        # log warning if st_run is empty following restriction
+        if st_run.isempty:
+            logging.warning("No spike trains during running epochs")
 
         # take pos as input for case of shuffling
         if pos is not None:
@@ -271,6 +281,9 @@ class SpatialMap(object):
         # initialize ratemap
         ratemap = np.zeros((st_run.data.shape[0], occupancy.shape[0]))
 
+        if st_run.isempty:
+            return ratemap
+
         # if data to map is spike train (point process)
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
@@ -324,6 +337,10 @@ class SpatialMap(object):
         # restrict spike trains to those epochs during which the animal was running
         st_run = self.st[self.run_epochs]
 
+        # log warning if st_run is empty following restriction
+        if st_run.isempty:
+            logging.warning("No spike trains during running epochs")
+            
         # take pos as input for case of shuffling
         if pos is not None:
             pos_run = pos[self.run_epochs]
@@ -427,12 +444,20 @@ class SpatialMap(object):
         ratemap = np.zeros(
             (st_run.data.shape[0], occupancy.shape[0], occupancy.shape[1])
         )
+        if st_run.isempty:
+            return ratemap
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
-                ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = np.histogram2d(
-                    np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]),
-                    np.interp(st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]),
-                    bins=(self.x_edges, self.y_edges),
+                ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = (
+                    np.histogram2d(
+                        np.interp(
+                            st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]
+                        ),
+                        np.interp(
+                            st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]
+                        ),
+                        bins=(self.x_edges, self.y_edges),
+                    )
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
@@ -467,7 +492,10 @@ class SpatialMap(object):
         np.ndarray
             P-values for the spatial information.
         """
-        def create_shuffled_coordinates(X: np.ndarray, n_shuff: int = 500) -> List[np.ndarray]:
+
+        def create_shuffled_coordinates(
+            X: np.ndarray, n_shuff: int = 500
+        ) -> List[np.ndarray]:
             """Create shuffled coordinates by rolling the original coordinates.
 
             Parameters
@@ -699,9 +727,9 @@ class SpatialMap(object):
         # store spatial metrics
         firingRateMap["spatial_information"] = self.tc.spatial_information().tolist()
         if hasattr(self, "spatial_information_pvalues"):
-            firingRateMap[
-                "spatial_information_pvalues"
-            ] = self.spatial_information_pvalues.tolist()
+            firingRateMap["spatial_information_pvalues"] = (
+                self.spatial_information_pvalues.tolist()
+            )
         firingRateMap["spatial_sparsity"] = self.tc.spatial_sparsity().tolist()
 
         # store position speed and timestamps
