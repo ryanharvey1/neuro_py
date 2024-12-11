@@ -1,6 +1,8 @@
-from neuro_py.ensemble import assembly
 import numpy as np
+import pytest
 from scipy import linalg
+
+from neuro_py.ensemble import assembly
 
 
 def test_assembly():
@@ -64,14 +66,26 @@ def test_assembly():
     rng = np.random.RandomState(42)
     U, _, _ = linalg.svd(rng.randn(n_features, n_features))
     X = np.dot(rng.randn(n_samples, rank), U[:, :rank].T).T
-    patterns, significance, zactmat = assembly.runPatterns(X,method="ica",nullhyp="mp")
+    with pytest.warns(Warning) as record:
+        patterns, significance, zactmat = assembly.runPatterns(
+            X, method="ica", nullhyp="mp"
+        )
+    assert len(record) > 0  # Ensure that at least one warning was raised
+    assert "no active neurons" in str(record[0].message)  # Verify the warning message
     assert patterns is None
     assert zactmat is None
     assert significance is None
 
     # test no patterns found
-    X = np.zeros([n_samples, n_features],int).T
+    X = np.zeros([n_samples, n_features], int).T
     np.fill_diagonal(X, 1)
-    patterns, significance, zactmat = assembly.runPatterns(X,method="ica",nullhyp="mp")
+    with pytest.warns(Warning) as record:
+        patterns, significance, zactmat = assembly.runPatterns(
+            X, method="ica", nullhyp="mp"
+        )
+    assert len(record) > 0  # Ensure that at least one warning was raised
+    assert "no assembly detected" in str(
+        record[0].message
+    )  # Verify the warning message
     assert patterns is None
     assert zactmat is None
