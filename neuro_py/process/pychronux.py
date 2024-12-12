@@ -277,6 +277,9 @@ def mtspectrumpt(
         tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
         tapers = tapers.T
 
+    if tapers_ts is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+        
     N = len(tapers_ts)
     # number of points in fft of prolates
     nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
