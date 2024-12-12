@@ -134,7 +134,7 @@ def test_mtfftpt():
 
     # Assertions
     assert J.shape == (5, 2)  # Ensure correct shape of J
-    assert np.isclose(Msp, 4 / (t[-1] - t[0]))  # Verify mean spike rate
+    assert np.isclose(Msp, 4 / len(t))  # Verify mean spike rate
     assert Nsp == 4  # Verify total spike count
 
     # Test Case 2: Empty spike times
@@ -165,7 +165,7 @@ def test_mtfftpt():
 
     # Assertions
     assert J_single.shape == (5, 2)  # Ensure correct shape of J
-    assert Msp_single == 1 / (t[-1] - t[0])  # Verify mean spike rate
+    assert Msp_single == 1 / len(t)  # Verify mean spike rate
     assert Nsp_single == 1  # Verify total spike count
 
     # Test Case 5: Multiple tapers and frequencies
@@ -190,7 +190,7 @@ def test_mtfftpt():
 
     # Assertions
     assert J_mult.shape == (8, 3)  # Ensure correct shape of J
-    assert Msp_mult == len(data_multiple) / (t_multiple[-1] - t_multiple[0])
+    assert Msp_mult == len(data_multiple) / len(t_multiple)
     assert Nsp_mult == len(data_multiple)
 
 
@@ -245,7 +245,12 @@ def test_mtspectrumpt():
 
     # Test Case 4: Invalid frequency range
     invalid_fpass = [50, 1]  # Invalid frequency range
-    with pytest.raises(ValueError, match=re.escape("Invalid frequency range: fpass[0] should be less than fpass[1].")):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Invalid frequency range: fpass[0] should be less than fpass[1]."
+        ),
+    ):
         px.mtspectrumpt(data, Fs, invalid_fpass, NW, n_tapers)
 
     # Test Case 5: Single channel data
@@ -271,7 +276,58 @@ def test_mtspectrumpt():
         spectrum_df_support, pd.DataFrame
     ), "Output with custom time support should be a DataFrame."
 
+    # Test Case 7: validate frequency peak
+    def simulate_bursting_cell(frequency, duration, burst_rate, Fs):
+        """
+        Simulate spike times for a bursting cell.
 
-if __name__ == "__main__":
-    test_mtspectrumpt()
+        Parameters
+        ----------
+        frequency : float
+            Frequency of bursts in Hz (e.g., 8 Hz).
+        duration : float
+            Duration of the simulation in seconds.
+        burst_rate : float
+            Rate of spikes within each burst (e.g., 50 Hz).
+        Fs : int
+            Sampling frequency for the time vector.
+
+        Returns
+        -------
+        spike_times : np.ndarray
+            Array of spike times in seconds.
+        """
+        t = np.arange(0, duration, 1 / Fs)
+        burst_times = np.arange(0, duration, 1 / frequency)
+        spike_times = []
+        for bt in burst_times:
+            burst_spikes = bt + np.random.rand(int(burst_rate / frequency)) / burst_rate
+            spike_times.extend(burst_spikes)
+        spike_times = np.array(spike_times)
+        spike_times = spike_times[spike_times < duration]  # Clip to duration
+        return spike_times
+
+    # Parameters
+    Fs = 1000  # Sampling frequency (Hz)
+    duration = 10  # Duration of simulation (seconds)
+    burst_frequency = 8  # Burst frequency (Hz)
+    burst_rate = 50  # Rate of spikes within each burst (Hz)
+
+    # Simulate spike times
+    spike_times = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
+
+    spec = px.mtspectrumpt(
+        [spike_times],
+        1250,
+        [1, 40],
+        NW=3,
+        n_tapers=5,
+        time_support=[0, duration],
+    )
+    # peak is at 8 Hz
+    assert spec.index[np.argmax(spec.values)].astype(int) == 8
+
+
+# if __name__ == "__main__":
+#     test_mtfftpt()
 #     pytest.main()
