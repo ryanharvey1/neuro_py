@@ -33,7 +33,6 @@ def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.nda
     df = Fs / nfft
     f = np.arange(0, Fs + df, df)
     f = f[0:nfft]
-    # findx = np.logical_and(f >= fpass[0], f <= fpass[-1])
     findx = (f >= fpass[0]) & (f <= fpass[-1])
     f = f[findx]
     return f, findx
@@ -119,8 +118,6 @@ def get_tapers(
             f"Not enough tapers, with 'NW' of {NW}. Increase the bandwidth or "
             "use more data points"
         )
-
-    tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
 
     tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
     mask = lambdas > min_lambda
