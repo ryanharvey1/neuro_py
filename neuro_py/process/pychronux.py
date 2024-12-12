@@ -33,7 +33,6 @@ def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.nda
     df = Fs / nfft
     f = np.arange(0, Fs + df, df)
     f = f[0:nfft]
-    # findx = np.logical_and(f >= fpass[0], f <= fpass[-1])
     findx = (f >= fpass[0]) & (f <= fpass[-1])
     f = f[findx]
     return f, findx
@@ -121,8 +120,6 @@ def get_tapers(
         )
 
     tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
-
-    tapers, lambdas = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
     mask = lambdas > min_lambda
     if not np.sum(mask) > 0:
         raise ValueError(
@@ -144,7 +141,6 @@ def get_tapers(
     return tapers, lambdas
 
 
-# @njit(nopython=True)
 def mtfftpt(
     data: np.ndarray,
     tapers: np.ndarray,
@@ -161,7 +157,7 @@ def mtfftpt(
     data : np.ndarray
         1D array of spike times (in seconds).
     tapers : np.ndarray
-        Tapers from the DPSS method.
+        Tapers from the DPSS method (time x tapers).
     nfft : int
         Number of points for FFT.
     t : np.ndarray
@@ -169,14 +165,14 @@ def mtfftpt(
     f : np.ndarray
         Frequency vector.
     findx : list of bool
-        Frequency index.
+        Frequency index, indicating which FFT bins correspond to `f`.
 
     Returns
     -------
     J : np.ndarray
-        FFT of the data.
+        FFT of the data, shape (len(f), K), where K is the number of tapers.
     Msp : float
-        Mean spikes per time.
+        Mean spikes per time (spike density).
     Nsp : float
         Total number of spikes in data.
 
@@ -186,28 +182,34 @@ def mtfftpt(
     the specified tapers and returns the FFT result, mean spikes,
     and total spike count.
     """
-    K = tapers.shape[1]
-    nfreq = len(f)
-    H = np.zeros((nfft, K), dtype=np.complex128)
-    for i in np.arange(K):
-        H[:, i] = np.fft.fft(tapers[:, i], nfft, axis=0)
+    K = tapers.shape[1]  # Number of tapers
+    nfreq = len(f)  # Number of frequencies
 
-    H = H[findx, :]
+    # Compute FFT of the tapers
+    H = np.zeros((nfft, K), dtype=np.complex128)
+    for i in range(K):
+        H[:, i] = np.fft.fft(tapers[:, i], nfft, axis=0)
+    H = H[findx, :]  # Only keep relevant frequency bins
+
+    # Convert frequency to angular frequency
     w = 2 * np.pi * f
-    dtmp = data
-    indx = np.logical_and(dtmp >= np.min(t), dtmp <= np.max(t))
-    if len(indx):
-        dtmp = dtmp[indx]
-    Nsp = len(dtmp)
-    Msp = Nsp / len(t)
+
+    # Select spike times within the range of `t`
+    dtmp = data[(data >= np.min(t)) & (data <= np.max(t))]
+    Nsp = len(dtmp)  # Total spike count
+    Msp = Nsp / (t[-1] - t[0]) if len(t) > 1 else 0  # Spike density
 
     if Msp != 0:
-        data_proj = np.empty((len(dtmp), K))
-        for i in np.arange(K):
-            data_proj[:, i] = np.interp(dtmp, t, tapers[:, i])
+        # Interpolate spike times for each taper
+        data_proj = np.array([np.interp(dtmp, t, tapers[:, i]) for i in range(K)]).T
+
+        # Compute the complex exponential term
         exponential = np.exp(np.atleast_2d(-1j * w).T * (dtmp - t[0]))
+
+        # Multitaper projection
         J = np.dot(exponential, data_proj) - H * Msp
     else:
+        # No spikes: return zeros
         J = np.zeros((nfreq, K))
 
     return J, Msp, Nsp
@@ -275,6 +277,9 @@ def mtspectrumpt(
         tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
         tapers = tapers.T
 
+    if tapers_ts is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+        
     N = len(tapers_ts)
     # number of points in fft of prolates
     nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
@@ -427,3 +432,105 @@ def point_spectra(
     J = exponential @ data_proj.T - H.T * len(data) / len(timegrid)
     spectra = np.squeeze(np.mean(np.real(np.conj(J) * J), axis=1))
     return spectra, f
+
+
+def mtcsdpt(
+    data1: np.ndarray,
+    data2: np.ndarray,
+    Fs: int,
+    fpass: list,
+    NW: Union[int, float] = 2.5,
+    n_tapers: int = 4,
+    time_support: Union[list, None] = None,
+    tapers: Union[np.ndarray, None] = None,
+    tapers_ts: Union[np.ndarray, None] = None,
+) -> pd.DataFrame:
+    """
+    Multitaper cross-spectral density (CSD) for point processes.
+
+    Inputs:
+        data1: array of spike times for the first signal (in seconds)
+        data2: array of spike times for the second signal (in seconds)
+        Fs: sampling frequency
+        fpass: frequency range to evaluate
+        NW: time-bandwidth product
+        n_tapers: number of tapers
+        tapers: [NW, K] or [tapers, eigenvalues]
+        time_support: time range to evaluate
+    Outputs:
+        Sxy: cross-spectral density
+
+    """
+    if time_support is not None:
+        mintime, maxtime = time_support
+    else:
+        mintime = min(np.min(data1), np.min(data2))
+        maxtime = max(np.max(data1), np.max(data2))
+    dt = 1 / Fs
+
+    # Create tapers if not provided
+    if tapers is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+        N = len(tapers_ts)
+        tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
+
+    tapers = tapers.T
+    N = len(tapers_ts)
+
+    # Number of points in FFT
+    nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
+    f, findx = getfgrid(Fs, nfft, fpass)
+
+    # Compute the multitaper Fourier transforms of both spike trains
+    J1, Msp1, Nsp1 = mtfftpt(data1, tapers, nfft, tapers_ts, f, findx)
+    J2, Msp2, Nsp2 = mtfftpt(data2, tapers, nfft, tapers_ts, f, findx)
+
+    # Cross-spectral density: Sxy = mean(conjugate(J1) * J2)
+    csd = np.real(np.mean(np.conj(J1) * J2, axis=1))
+
+    csd_df = pd.DataFrame(index=f, data=csd, columns=["CSD"])
+    return csd_df
+
+
+def mtcoherencept(
+    data1: np.ndarray,
+    data2: np.ndarray,
+    Fs: int,
+    fpass: list,
+    NW: Union[int, float] = 2.5,
+    n_tapers: int = 4,
+    time_support: Union[list, None] = None,
+    tapers: Union[np.ndarray, None] = None,
+    tapers_ts: Union[np.ndarray, None] = None,
+) -> pd.DataFrame:
+    """
+    Multitaper coherence for point processes.
+
+    Inputs:
+        data1: array of spike times for the first signal (in seconds)
+        data2: array of spike times for the second signal (in seconds)
+        Fs: sampling frequency
+        fpass: frequency range to evaluate
+        NW: time-bandwidth product
+        n_tapers: number of tapers
+        tapers: [NW, K] or [tapers, eigenvalues]
+        time_support: time range to evaluate
+    Outputs:
+        coherence_df: Coherence between the two point processes
+
+    """
+    # Compute power spectral densities (PSD) for both spike trains
+    psd1 = mtspectrumpt(data1, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts)
+    psd2 = mtspectrumpt(data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts)
+
+    # Compute cross-spectral density (CSD) between the two spike trains
+    csd = mtcsdpt(
+        data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts
+    )
+
+    # Calculate coherence: |Sxy(f)|^2 / (Sxx(f) * Syy(f))
+    coherence = np.abs(csd["CSD"]) ** 2 / (psd1.values * psd2.values)
+
+    # Return coherence as a pandas DataFrame
+    coherence_df = pd.DataFrame(index=csd.index, data=coherence, columns=["Coherence"])
+    return coherence_df
