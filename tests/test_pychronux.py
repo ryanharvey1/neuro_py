@@ -297,7 +297,6 @@ def test_mtspectrumpt():
         spike_times : np.ndarray
             Array of spike times in seconds.
         """
-        t = np.arange(0, duration, 1 / Fs)
         burst_times = np.arange(0, duration, 1 / frequency)
         spike_times = []
         for bt in burst_times:
