@@ -3,9 +3,29 @@ import unittest
 import numpy as np
 
 from neuro_py.ensemble.dynamics import (
+    cosine_similarity,
     potential_landscape,
     potential_landscape_nd,
 )
+
+
+class TestCosineSimilarity(unittest.TestCase):
+    def setUp(self):
+        N_POINTS = 20
+        x = -np.sin(np.linspace(0, 2 * np.pi, N_POINTS))
+        y = np.cos(np.linspace(0, 2 * np.pi, N_POINTS))
+        z1 = -np.linspace(0, 1, N_POINTS)
+        z2 = -np.linspace(0, 1, N_POINTS) + np.sin(np.linspace(np.pi/2, 1.5*np.pi, N_POINTS))
+        self.cos_traj1 = np.array([x, y, z1]).T
+        self.cos_traj2 = np.array([x, y, z2]).T
+
+    def test_cosine_similarity_output_shape(self):
+        result = cosine_similarity(np.diff(self.cos_traj1.T).T, np.diff(self.cos_traj2.T).T)
+        self.assertEqual(result.shape, (19,))
+
+    def test_cosine_similarity_sum_positive(self):
+        result = cosine_similarity(np.diff(self.cos_traj1.T).T, np.diff(self.cos_traj2.T).T)
+        self.assertGreater(np.sum(result), 0)
 
 
 class TestPotentialLandscape(unittest.TestCase):
@@ -98,3 +118,6 @@ class TestPotentialLandscapeND(unittest.TestCase):
         _, potential, _, _, _, _ = potential_landscape_nd(X_dyn, projbins, nanborderempty=True)
         self.assertTrue(np.isnan(potential).any())
 
+
+if __name__ == '__main__':
+    unittest.main()

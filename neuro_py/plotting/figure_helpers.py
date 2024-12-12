@@ -389,3 +389,14 @@ def plot_joint_peth(
     sns.despine()
 
     return fig, ax
+
+
+def clean_plot3d(ax):
+    ax.grid(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.xaxis.labelpad = ax.yaxis.labelpad = ax.zaxis.labelpad = 0
+    ax.xaxis._axinfo['label']['space_factor'] = 0
+
+    return ax

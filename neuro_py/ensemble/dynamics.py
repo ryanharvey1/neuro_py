@@ -1,6 +1,7 @@
 from typing import Tuple, Union
 
 import numpy as np
+import sklearn.metrics
 
 from scipy.stats import binned_statistic_dd
 
@@ -8,6 +9,40 @@ from ..util.array import (
     find_terminal_masked_indices,
     replace_border_zeros_with_nan,
 )
+
+
+def cosine_similarity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
+    """Cosine similarity between temporal difference vectors of two firing rate
+    vector trajectories.
+
+    Parameters
+    ----------
+    pv1 : numpy.ndarray
+        Temporal difference of firing rate vector trajectory in one context.
+        Shape: (num_bins, num_neurons)
+
+    pv2 : numpy.ndarray
+        Temporal difference of firing rate vector trajectory in another context.
+        Shape: (num_bins, num_neurons)
+
+    Returns
+    -------
+    numpy.ndarray
+        Cosine similarity between the two contexts.
+
+    References
+    ----------
+    .. [1] Guidera, J. A., Gramling, D. P., Comrie, A. E., Joshi, A.,
+    Denovellis, E. L., Lee, K. H., Zhou, J., Thompson, P., Hernandez, J.,
+    Yorita, A., Haque, R., Kirst, C., & Frank, L. M. (2024). Regional
+    specialization manifests in the reliability of neural population codes.
+    bioRxiv : the preprint server for biology, 2024.01.25.576941.
+    https://doi.org/10.1101/2024.01.25.576941
+    """
+    cosine_mat = sklearn.metrics.pairwise.cosine_similarity(pv1, pv2)
+    cosine_sim = np.diag(cosine_mat)
+
+    return cosine_sim
 
 
 def potential_landscape(

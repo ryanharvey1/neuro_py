@@ -9,11 +9,17 @@ __all__ = (
     "restore_natural_scale",
     "adjust_box_widths",
     "plot_joint_peth",
+    "clean_plot3d",
+    "AngleAnnotation",
 )
 
+from .decorators import (
+    AngleAnnotation,
+)
 from .events import plot_events, plot_peth, plot_peth_fast
 from .figure_helpers import (
     adjust_box_widths,
+    clean_plot3d,
     lighten_color,
     plot_joint_peth,
     restore_natural_scale,
