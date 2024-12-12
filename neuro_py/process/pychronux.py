@@ -141,7 +141,6 @@ def get_tapers(
     return tapers, lambdas
 
 
-# @njit(nopython=True)
 def mtfftpt(
     data: np.ndarray,
     tapers: np.ndarray,
@@ -158,7 +157,7 @@ def mtfftpt(
     data : np.ndarray
         1D array of spike times (in seconds).
     tapers : np.ndarray
-        Tapers from the DPSS method.
+        Tapers from the DPSS method (time x tapers).
     nfft : int
         Number of points for FFT.
     t : np.ndarray
@@ -166,14 +165,14 @@ def mtfftpt(
     f : np.ndarray
         Frequency vector.
     findx : list of bool
-        Frequency index.
+        Frequency index, indicating which FFT bins correspond to `f`.
 
     Returns
     -------
     J : np.ndarray
-        FFT of the data.
+        FFT of the data, shape (len(f), K), where K is the number of tapers.
     Msp : float
-        Mean spikes per time.
+        Mean spikes per time (spike density).
     Nsp : float
         Total number of spikes in data.
 
@@ -183,28 +182,34 @@ def mtfftpt(
     the specified tapers and returns the FFT result, mean spikes,
     and total spike count.
     """
-    K = tapers.shape[1]
-    nfreq = len(f)
-    H = np.zeros((nfft, K), dtype=np.complex128)
-    for i in np.arange(K):
-        H[:, i] = np.fft.fft(tapers[:, i], nfft, axis=0)
+    K = tapers.shape[1]  # Number of tapers
+    nfreq = len(f)  # Number of frequencies
 
-    H = H[findx, :]
+    # Compute FFT of the tapers
+    H = np.zeros((nfft, K), dtype=np.complex128)
+    for i in range(K):
+        H[:, i] = np.fft.fft(tapers[:, i], nfft, axis=0)
+    H = H[findx, :]  # Only keep relevant frequency bins
+
+    # Convert frequency to angular frequency
     w = 2 * np.pi * f
-    dtmp = data
-    indx = np.logical_and(dtmp >= np.min(t), dtmp <= np.max(t))
-    if len(indx):
-        dtmp = dtmp[indx]
-    Nsp = len(dtmp)
-    Msp = Nsp / len(t)
+
+    # Select spike times within the range of `t`
+    dtmp = data[(data >= np.min(t)) & (data <= np.max(t))]
+    Nsp = len(dtmp)  # Total spike count
+    Msp = Nsp / (t[-1] - t[0]) if len(t) > 1 else 0  # Spike density
 
     if Msp != 0:
-        data_proj = np.empty((len(dtmp), K))
-        for i in np.arange(K):
-            data_proj[:, i] = np.interp(dtmp, t, tapers[:, i])
+        # Interpolate spike times for each taper
+        data_proj = np.array([np.interp(dtmp, t, tapers[:, i]) for i in range(K)]).T
+
+        # Compute the complex exponential term
         exponential = np.exp(np.atleast_2d(-1j * w).T * (dtmp - t[0]))
+
+        # Multitaper projection
         J = np.dot(exponential, data_proj) - H * Msp
     else:
+        # No spikes: return zeros
         J = np.zeros((nfreq, K))
 
     return J, Msp, Nsp
