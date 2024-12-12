@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from scipy.signal.windows import dpss
 from joblib import Parallel, delayed
+from numba import jit
+import warnings
 
 
 def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.ndarray]:
@@ -318,35 +320,40 @@ def mtspectrumpt(
 
 def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarray:
     """
-    Multitaper FFT for continuous data.
+    Multi-taper Fourier Transform - Continuous Data (Single Signal)
 
     Parameters
     ----------
     data : np.ndarray
-        1D array of continuous data (e.g., LFP).
+        1D array of data (samples).
     tapers : np.ndarray
-        Tapers array with shape [NW, K] or [tapers, eigenvalues].
+        Precomputed DPSS tapers with shape (samples, tapers).
     nfft : int
-        Number of points for FFT.
+        Length of padded data for FFT.
     Fs : int
         Sampling frequency.
 
     Returns
     -------
     J : np.ndarray
-        FFT of the data with shape (nfft, K).
-
-    Raises
-    ------
-    AssertionError
-        If the length of tapers is incompatible with the length of data.
+        FFT in the form (nfft, K), where K is the number of tapers.
     """
-    NC = len(data)
-    NK, K = tapers.shape
-    assert NK == NC, "length of tapers is incompatible with length of data"
-    tmp = np.repeat(np.atleast_2d(data), K, 0).T
-    tmp2 = tmp * tapers
-    J = np.fft.fft(tmp2.T, nfft) / float(Fs)
+    # Ensure data is 1D
+    if data.ndim != 1:
+        raise ValueError("Input data must be a 1D array.")
+
+    NC = data.shape[0]  # Number of samples in data
+    NK, K = tapers.shape  # Number of samples and tapers
+
+    if NK != NC:
+        raise ValueError("Length of tapers is incompatible with length of data.")
+
+    # Project data onto tapers
+    data_proj = data[:, np.newaxis] * tapers  # Shape: (samples, tapers)
+
+    # Compute FFT for each taper
+    J = np.fft.fft(data_proj, n=nfft, axis=0) / Fs  # Shape: (nfft, K)
+
     return J
 
 
@@ -381,11 +388,17 @@ def mtspectrumc(
     nfft = np.max(
         [int(2 ** np.ceil(np.log2(N))), N]
     )  # number of points in fft of prolates
+    # get the frequency grid
     f, findx = getfgrid(Fs, nfft, fpass)
+    # get the fft of the tapers
     tapers = dpsschk(tapers, N, Fs)
+    # get the fft of the data
     J = mtfftc(data, tapers, nfft, Fs)
-    J = J.T[findx, :]
+    # restrict fft of tapers to required frequencies
+    J = J[findx, :]
+    # get the power spectrum
     S = np.real(np.mean(np.conj(J) * J, 1))
+    # return the power spectrum
     return pd.Series(index=f, data=S)
 
 
