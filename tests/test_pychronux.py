@@ -327,6 +327,85 @@ def test_mtspectrumpt():
     assert spec.index[np.argmax(spec.values)].astype(int) == 8
 
 
-# if __name__ == "__main__":
-#     test_mtfftpt()
+def test_mtfftc():
+    # Generate mock data
+    data = np.random.randn(256)
+    N = data.shape[0]
+    bandwidth = 4.0
+    fs = 1000.0
+    nfft = 512
+
+    # Generate tapers using scipy
+    NW = bandwidth * N / fs
+    K = int(np.ceil(2 * NW)) - 1
+    tapers, _ = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
+
+    # Ensure tapers have the correct shape (N, K)
+    tapers = tapers.T
+
+    # Call the function
+    J = px.mtfftc(data, tapers, nfft, fs)
+
+    # Check the shape of the output
+    assert J.shape == (nfft, K), "Shape of J does not match expected values."
+
+    # Check if the function raises a ValueError for incompatible lengths
+    with pytest.raises(
+        ValueError, match="Length of tapers is incompatible with length of data."
+    ):
+        px.mtfftc(data[:-1], tapers, nfft, fs)
+
+    # Test Case 2: Silumated data
+    # Generate a sinusoidal signal at 8Hz for 10 seconds
+    Fs = 1000
+    duration = 100
+    t = np.linspace(0, duration, duration * Fs)
+    data_simulated = np.sin(2 * np.pi * 8 * t)
+
+    # Generate tapers using scipy
+    N = len(data_simulated)
+    NW = 3
+    K = int(np.ceil(2 * NW)) - 1
+    tapers, _ = dpss(N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True)
+
+    # Ensure tapers have the correct shape (N, K)
+    tapers = tapers.T
+
+    # Call the function
+    J_simulated = px.mtfftc(data_simulated, tapers, nfft, Fs)
+
+    # Check the shape of the output
+    assert J_simulated.shape == (nfft, K), "Shape of J does not match expected values."
+
+    f, findx = px.getfgrid(Fs, nfft, [0, 20])
+    J_simulated = J_simulated[findx, :]
+    S = np.real(np.mean(np.conj(J_simulated) * J_simulated, 1))
+
+    # Check the peak frequency is 8 Hz
+    peak_freq = f[np.argmax(S)]
+    assert np.isclose(
+        peak_freq, 8, atol=0.2
+    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+
+
+def test_mtspectrumc():
+    Fs = 1000
+    duration = 100
+    t = np.linspace(0, duration, duration * Fs)
+    data_simulated = np.sin(2 * np.pi * 8 * t)
+
+    NW = 3
+    K = int(np.ceil(2 * NW)) - 1
+
+    df = px.mtspectrumc(data_simulated, Fs, [0, 20], [NW, K])
+
+    # Check the peak frequency is 8 Hz
+    peak_freq = df.index[np.argmax(df.values)]
+    assert np.isclose(
+        peak_freq, 8, atol=0.2
+    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+
+
+if __name__ == "__main__":
+    test_mtspectrumc()
 #     pytest.main()
