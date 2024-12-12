@@ -108,6 +108,83 @@ def test_get_tapers_value_error():
         px.get_tapers(N, bandwidth, fs=fs, min_lambda=min_lambda, n_tapers=n_tapers)
 
 
-if __name__ == "__main__":
-    test_get_tapers()
+
+def test_mtfftpt():
+    # Test Case 1: Basic functionality
+    data = np.array([0.1, 0.2, 0.4, 0.5])  # Spike times
+    tapers = np.array([
+        [0.1, 0.2],
+        [0.3, 0.4],
+        [0.5, 0.6],
+        [0.7, 0.8],
+    ])  # DPSS tapers
+    nfft = 8
+    t = np.linspace(0, 1, 4)  # Time vector
+    f = np.linspace(0, 10, 5)  # Frequency vector
+
+    # Update findx to match the size of nfft
+    findx = np.zeros(nfft, dtype=bool)
+    findx[:len(f)] = True
+
+    # Call the function
+    J, Msp, Nsp = px.mtfftpt(data, tapers, nfft, t, f, findx)
+
+    # Assertions
+    assert J.shape == (5, 2)  # Ensure correct shape of J
+    assert np.isclose(Msp, 4 / (t[-1] - t[0]))  # Verify mean spike rate
+    assert Nsp == 4  # Verify total spike count
+
+    # Test Case 2: Empty spike times
+    data_empty = np.array([])
+    J_empty, Msp_empty, Nsp_empty = px.mtfftpt(data_empty, tapers, nfft, t, f, findx)
+
+    # Assertions
+    assert J_empty.shape == (5, 2)
+    assert np.allclose(J_empty, 0)  # J should be zeros
+    assert Msp_empty == 0  # Mean spike rate should be zero
+    assert Nsp_empty == 0  # Total spike count should be zero
+
+    # Test Case 3: No valid spike times in range
+    data_out_of_range = np.array([-0.5, 1.5])
+    J_out, Msp_out, Nsp_out = px.mtfftpt(data_out_of_range, tapers, nfft, t, f, findx)
+
+    # Assertions
+    assert J_out.shape == (5, 2)
+    assert np.allclose(J_out, 0)  # J should be zeros
+    assert Msp_out == 0  # Mean spike rate should be zero
+    assert Nsp_out == 0  # Total spike count should be zero
+
+    # Test Case 4: Single spike time
+    data_single = np.array([0.2])
+    J_single, Msp_single, Nsp_single = px.mtfftpt(data_single, tapers, nfft, t, f, findx)
+
+    # Assertions
+    assert J_single.shape == (5, 2)  # Ensure correct shape of J
+    assert Msp_single == 1 / (t[-1] - t[0])  # Verify mean spike rate
+    assert Nsp_single == 1  # Verify total spike count
+
+    # Test Case 5: Multiple tapers and frequencies
+    data_multiple = np.array([0.1, 0.25, 0.5])
+    tapers_multiple = np.random.rand(4, 3)  # Random tapers (4 time points, 3 tapers)
+    nfft_multiple = 16
+    t_multiple = np.linspace(0, 1, 4)
+    f_multiple = np.linspace(0, 20, 8)
+
+    # Update findx for this case
+    findx_multiple = np.zeros(nfft_multiple, dtype=bool)
+    findx_multiple[:len(f_multiple)] = True
+
+    J_mult, Msp_mult, Nsp_mult = px.mtfftpt(
+        data_multiple, tapers_multiple, nfft_multiple, t_multiple, f_multiple, findx_multiple
+    )
+
+    # Assertions
+    assert J_mult.shape == (8, 3)  # Ensure correct shape of J
+    assert Msp_mult == len(data_multiple) / (t_multiple[-1] - t_multiple[0])
+    assert Nsp_mult == len(data_multiple)
+
+
+
+# if __name__ == "__main__":
+#     test_mtfftpt()
 #     pytest.main()
