@@ -1,7 +1,9 @@
+import re
 from neuro_py.process import pychronux as px
 import numpy as np
 import pytest
 from scipy.signal.windows import dpss
+import pandas as pd
 
 
 def test_pychronux():
@@ -108,23 +110,24 @@ def test_get_tapers_value_error():
         px.get_tapers(N, bandwidth, fs=fs, min_lambda=min_lambda, n_tapers=n_tapers)
 
 
-
 def test_mtfftpt():
     # Test Case 1: Basic functionality
     data = np.array([0.1, 0.2, 0.4, 0.5])  # Spike times
-    tapers = np.array([
-        [0.1, 0.2],
-        [0.3, 0.4],
-        [0.5, 0.6],
-        [0.7, 0.8],
-    ])  # DPSS tapers
+    tapers = np.array(
+        [
+            [0.1, 0.2],
+            [0.3, 0.4],
+            [0.5, 0.6],
+            [0.7, 0.8],
+        ]
+    )  # DPSS tapers
     nfft = 8
     t = np.linspace(0, 1, 4)  # Time vector
     f = np.linspace(0, 10, 5)  # Frequency vector
 
     # Update findx to match the size of nfft
     findx = np.zeros(nfft, dtype=bool)
-    findx[:len(f)] = True
+    findx[: len(f)] = True
 
     # Call the function
     J, Msp, Nsp = px.mtfftpt(data, tapers, nfft, t, f, findx)
@@ -156,7 +159,9 @@ def test_mtfftpt():
 
     # Test Case 4: Single spike time
     data_single = np.array([0.2])
-    J_single, Msp_single, Nsp_single = px.mtfftpt(data_single, tapers, nfft, t, f, findx)
+    J_single, Msp_single, Nsp_single = px.mtfftpt(
+        data_single, tapers, nfft, t, f, findx
+    )
 
     # Assertions
     assert J_single.shape == (5, 2)  # Ensure correct shape of J
@@ -172,10 +177,15 @@ def test_mtfftpt():
 
     # Update findx for this case
     findx_multiple = np.zeros(nfft_multiple, dtype=bool)
-    findx_multiple[:len(f_multiple)] = True
+    findx_multiple[: len(f_multiple)] = True
 
     J_mult, Msp_mult, Nsp_mult = px.mtfftpt(
-        data_multiple, tapers_multiple, nfft_multiple, t_multiple, f_multiple, findx_multiple
+        data_multiple,
+        tapers_multiple,
+        nfft_multiple,
+        t_multiple,
+        f_multiple,
+        findx_multiple,
     )
 
     # Assertions
@@ -184,7 +194,84 @@ def test_mtfftpt():
     assert Nsp_mult == len(data_multiple)
 
 
+def test_mtspectrumpt():
+    # Test Case 1: Basic functionality
+    data = np.array(
+        [
+            np.array([0.1, 0.2, 0.4, 0.6, 0.77, 1, 1.1, 1.11]),
+            np.array([0.3, 0.5, 0.7, 0.73, 1, 2, 2.1]),
+        ],
+        dtype=object,
+    )  # Spike times (2 channels)
+    Fs = 1000  # Sampling frequency in Hz
+    fpass = [1, 50]  # Frequency range to evaluate
+    NW = 2.5  # Time-bandwidth product
+    n_tapers = 3  # Number of tapers
 
-# if __name__ == "__main__":
-#     test_mtfftpt()
+    spectrum_df = px.mtspectrumpt(data, Fs, fpass, NW, n_tapers)
+
+    # Assertions
+    assert isinstance(spectrum_df, pd.DataFrame), "Output should be a pandas DataFrame."
+    assert len(spectrum_df) > 0, "Spectrum DataFrame should not be empty."
+    assert all(
+        fpass[0] <= f <= fpass[1] for f in spectrum_df.index
+    ), "Frequencies should lie within fpass."
+
+    # Test Case 2: Precomputed tapers from scipy
+    mintime = np.min(np.concatenate(data))
+    maxtime = np.max(np.concatenate(data))
+    dt = 1 / Fs
+    tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+
+    tapers, _ = dpss(len(tapers_ts), NW, n_tapers, return_ratios=True)
+
+    spectrum_df_precomputed = px.mtspectrumpt(
+        data, Fs, fpass, NW, n_tapers, tapers=tapers.T
+    )
+
+    # Assertions
+    assert isinstance(
+        spectrum_df_precomputed, pd.DataFrame
+    ), "Output with precomputed tapers should be a DataFrame."
+
+    # Test Case 3: Empty data
+    empty_data = np.array([])
+    spectrum_df_empty = px.mtspectrumpt(empty_data, Fs, fpass, NW, n_tapers)
+
+    # Assertions
+    assert (
+        spectrum_df_empty.empty
+    ), "Output for empty data should be an empty DataFrame."
+
+    # Test Case 4: Invalid frequency range
+    invalid_fpass = [50, 1]  # Invalid frequency range
+    with pytest.raises(ValueError, match=re.escape("Invalid frequency range: fpass[0] should be less than fpass[1].")):
+        px.mtspectrumpt(data, Fs, invalid_fpass, NW, n_tapers)
+
+    # Test Case 5: Single channel data
+    single_channel_data = np.array([[0.1, 0.3, 0.5]])  # Single channel of spike times
+    spectrum_df_single = px.mtspectrumpt(single_channel_data, Fs, fpass, NW, n_tapers)
+
+    # Assertions
+    assert isinstance(
+        spectrum_df_single, pd.DataFrame
+    ), "Output should be a pandas DataFrame for single channel."
+    assert (
+        spectrum_df_single.shape[1] == 1
+    ), "Output DataFrame should have one column for single channel."
+
+    # Test Case 6: Custom time support
+    time_support = [0.0, 0.8]  # Custom time range
+    spectrum_df_support = px.mtspectrumpt(
+        data, Fs, fpass, NW, n_tapers, time_support=time_support
+    )
+
+    # Assertions
+    assert isinstance(
+        spectrum_df_support, pd.DataFrame
+    ), "Output with custom time support should be a DataFrame."
+
+
+if __name__ == "__main__":
+    test_mtspectrumpt()
 #     pytest.main()
