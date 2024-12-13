@@ -272,11 +272,12 @@ def mtspectrumpt(
     -------
     >>> spec = pychronux.mtspectrumpt(
     >>>    st.data,
-    >>>    1250,
+    >>>    100,
     >>>    [1, 20],
     >>>    NW=3,
     >>>    n_tapers=5,
     >>>    time_support=[st.support.start, st.support.stop],
+    >>>    nfft=500,
     >>> )
     """
 
@@ -293,8 +294,13 @@ def mtspectrumpt(
     if time_support is not None:
         mintime, maxtime = time_support
     else:
-        mintime = np.min(np.concatenate(data))
-        maxtime = np.max(np.concatenate(data))
+        if data.dtype == np.object_:
+            mintime = np.min(np.concatenate(data))
+            maxtime = np.max(np.concatenate(data))
+        else:
+            mintime = np.min(data)
+            maxtime = np.max(data)
+
     dt = 1 / Fs
 
     if tapers is None:
@@ -493,22 +499,38 @@ def mtcsdpt(
     time_support: Union[list, None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
+    nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Multitaper cross-spectral density (CSD) for point processes.
 
-    Inputs:
-        data1: array of spike times for the first signal (in seconds)
-        data2: array of spike times for the second signal (in seconds)
-        Fs: sampling frequency
-        fpass: frequency range to evaluate
-        NW: time-bandwidth product
-        n_tapers: number of tapers
-        tapers: [NW, K] or [tapers, eigenvalues]
-        time_support: time range to evaluate
-    Outputs:
-        Sxy: cross-spectral density
+    Parameters
+    ----------
+    data1 : np.ndarray
+        Array of spike times for the first signal (in seconds).
+    data2 : np.ndarray
+        Array of spike times for the second signal (in seconds).
+    Fs : int
+        Sampling frequency.
+    fpass : list
+        Frequency range to evaluate as [min_freq, max_freq].
+    NW : Union[int, float], optional
+        Time-bandwidth product, by default 2.5.
+    n_tapers : int, optional
+        Number of tapers, by default 4.
+    time_support : Union[list, None], optional
+        Time range to evaluate, by default None.
+    tapers : Union[np.ndarray, None], optional
+        Precomputed tapers, given as [NW, K] or [tapers, eigenvalues], by default None.
+    tapers_ts : Union[np.ndarray, None], optional
+        Taper time series, by default None.
+    nfft : Optional[int], optional
+        Number of points for FFT, by default None.
 
+    Returns
+    -------
+    pd.DataFrame
+        Cross-spectral density between the two point processes.
     """
     if time_support is not None:
         mintime, maxtime = time_support
@@ -527,7 +549,8 @@ def mtcsdpt(
     N = len(tapers_ts)
 
     # Number of points in FFT
-    nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
+    if nfft is None:
+        nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
     f, findx = getfgrid(Fs, nfft, fpass)
 
     # Compute the multitaper Fourier transforms of both spike trains
@@ -551,34 +574,60 @@ def mtcoherencept(
     time_support: Union[list, None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
+    nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Multitaper coherence for point processes.
 
-    Inputs:
-        data1: array of spike times for the first signal (in seconds)
-        data2: array of spike times for the second signal (in seconds)
-        Fs: sampling frequency
-        fpass: frequency range to evaluate
-        NW: time-bandwidth product
-        n_tapers: number of tapers
-        tapers: [NW, K] or [tapers, eigenvalues]
-        time_support: time range to evaluate
-    Outputs:
-        coherence_df: Coherence between the two point processes
+    Parameters
+    ----------
+    data1 : np.ndarray
+        Array of spike times for the first signal (in seconds).
+    data2 : np.ndarray
+        Array of spike times for the second signal (in seconds).
+    Fs : int
+        Sampling frequency.
+    fpass : list
+        Frequency range to evaluate as [min_freq, max_freq].
+    NW : Union[int, float], optional
+        Time-bandwidth product, by default 2.5.
+    n_tapers : int, optional
+        Number of tapers, by default 4.
+    time_support : Union[list, None], optional
+        Time range to evaluate, by default None.
+    tapers : Union[np.ndarray, None], optional
+        Precomputed tapers, given as [NW, K] or [tapers, eigenvalues], by default None.
+    tapers_ts : Union[np.ndarray, None], optional
+        Taper time series, by default None.
+    nfft : Optional[int], optional
+        Number of points for FFT, by default None.
 
+    Returns
+    -------
+    pd.DataFrame
+        Coherence between the two point processes.
     """
+    # Check if data is a single unit and put in array
+    if isinstance(data1, np.ndarray):
+        data1 = np.array([data1])
+    if isinstance(data2, np.ndarray):
+        data2 = np.array([data2])
+
     # Compute power spectral densities (PSD) for both spike trains
-    psd1 = mtspectrumpt(data1, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts)
-    psd2 = mtspectrumpt(data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts)
+    psd1 = mtspectrumpt(
+        data1, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
+    )
+    psd2 = mtspectrumpt(
+        data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
+    )
 
     # Compute cross-spectral density (CSD) between the two spike trains
     csd = mtcsdpt(
-        data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts
+        data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
     )
 
     # Calculate coherence: |Sxy(f)|^2 / (Sxx(f) * Syy(f))
-    coherence = np.abs(csd["CSD"]) ** 2 / (psd1.values * psd2.values)
+    coherence = np.abs(csd["CSD"].values) ** 2 / (psd1.values * psd2.values).flatten()
 
     # Return coherence as a pandas DataFrame
     coherence_df = pd.DataFrame(index=csd.index, data=coherence, columns=["Coherence"])
