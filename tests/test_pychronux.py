@@ -194,6 +194,36 @@ def test_mtfftpt():
     assert Nsp_mult == len(data_multiple)
 
 
+def simulate_bursting_cell(frequency, duration, burst_rate, Fs):
+    """
+    Simulate spike times for a bursting cell.
+
+    Parameters
+    ----------
+    frequency : float
+        Frequency of bursts in Hz (e.g., 8 Hz).
+    duration : float
+        Duration of the simulation in seconds.
+    burst_rate : float
+        Rate of spikes within each burst (e.g., 50 Hz).
+    Fs : int
+        Sampling frequency for the time vector.
+
+    Returns
+    -------
+    spike_times : np.ndarray
+        Array of spike times in seconds.
+    """
+    burst_times = np.arange(0, duration, 1 / frequency)
+    spike_times = []
+    for bt in burst_times:
+        burst_spikes = bt + np.random.rand(int(burst_rate / frequency)) / burst_rate
+        spike_times.extend(burst_spikes)
+    spike_times = np.array(spike_times)
+    spike_times = spike_times[spike_times < duration]  # Clip to duration
+    return spike_times
+
+
 def test_mtspectrumpt():
     # Test Case 1: Basic functionality
     data = np.array(
@@ -277,35 +307,6 @@ def test_mtspectrumpt():
     ), "Output with custom time support should be a DataFrame."
 
     # Test Case 7: validate frequency peak
-    def simulate_bursting_cell(frequency, duration, burst_rate, Fs):
-        """
-        Simulate spike times for a bursting cell.
-
-        Parameters
-        ----------
-        frequency : float
-            Frequency of bursts in Hz (e.g., 8 Hz).
-        duration : float
-            Duration of the simulation in seconds.
-        burst_rate : float
-            Rate of spikes within each burst (e.g., 50 Hz).
-        Fs : int
-            Sampling frequency for the time vector.
-
-        Returns
-        -------
-        spike_times : np.ndarray
-            Array of spike times in seconds.
-        """
-        burst_times = np.arange(0, duration, 1 / frequency)
-        spike_times = []
-        for bt in burst_times:
-            burst_spikes = bt + np.random.rand(int(burst_rate / frequency)) / burst_rate
-            spike_times.extend(burst_spikes)
-        spike_times = np.array(spike_times)
-        spike_times = spike_times[spike_times < duration]  # Clip to duration
-        return spike_times
-
     # Parameters
     Fs = 1000  # Sampling frequency (Hz)
     duration = 10  # Duration of simulation (seconds)
@@ -406,6 +407,68 @@ def test_mtspectrumc():
     ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
 
 
+def test_point_spectra():
+    """
+    Test the point_spectra function.
+    """
+    # Parameters
+    Fs = 1250  # Sampling frequency
+    freq_range = [1, 20]  # Frequency range of interest
+    tapers0 = [3, 5]  # Tapers configuration
+    pad = 0  # No padding
+
+    np.random.seed(42)
+    times = np.sort(np.random.uniform(0, 10, 100))
+
+    # Run the function
+    spectra, freqs = px.point_spectra(
+        times=times,
+        Fs=Fs,
+        freq_range=freq_range,
+        tapers0=tapers0,
+        pad=pad,
+    )
+
+    # Assertions
+    assert isinstance(spectra, np.ndarray), "Spectra should be a numpy array."
+    assert isinstance(freqs, np.ndarray), "Frequencies should be a numpy array."
+    assert len(spectra) == len(
+        freqs
+    ), "Spectra and frequencies should have the same length."
+    assert len(freqs) > 0, "There should be frequencies in the output."
+    assert (
+        freq_range[0] <= freqs[0]
+    ), "Frequencies should start at or above freq_range[0]."
+    assert (
+        freq_range[1] >= freqs[-1]
+    ), "Frequencies should end at or below freq_range[1]."
+    assert np.all(spectra >= 0), "Power spectrum values should be non-negative."
+
+    # Test Case 2: validate frequency peak
+    # Parameters
+    Fs = 1000  # Sampling frequency (Hz)
+    duration = 10  # Duration of simulation (seconds)
+    burst_frequency = 8  # Burst frequency (Hz)
+    burst_rate = 50  # Rate of spikes within each burst (Hz)
+
+    # Simulate spike times
+    times = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
+
+    spectra, freqs = px.point_spectra(
+        times=times,
+        Fs=Fs,
+        freq_range=freq_range,
+        tapers0=tapers0,
+        pad=pad,
+    )
+    # peak is at 8 Hz
+    peak_freq = freqs[np.argmax(spectra)]
+
+    assert np.isclose(
+        peak_freq, 8, atol=0.2
+    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+
+
 if __name__ == "__main__":
-    test_mtspectrumc()
+    test_point_spectra()
 #     pytest.main()
