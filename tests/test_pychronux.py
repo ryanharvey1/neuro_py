@@ -469,6 +469,78 @@ def test_point_spectra():
     ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
 
 
-if __name__ == "__main__":
-    test_point_spectra()
-#     pytest.main()
+def test_mtcsdpt():
+    # Generate mock spike times for two signals
+    data1 = np.sort(np.random.uniform(0, 10, 100))
+    data2 = np.sort(np.random.uniform(0, 10, 100))
+    Fs = 1000
+    fpass = [0, 50]
+    NW = 2.5
+    n_tapers = 4
+
+    # Call the function
+    csd_df = px.mtcsdpt(data1, data2, Fs, fpass, NW, n_tapers)
+
+    # Check the shape of the output
+    assert isinstance(csd_df, pd.DataFrame), "Output is not a DataFrame."
+    assert "CSD" in csd_df.columns, "CSD column is missing in the output DataFrame."
+    assert len(csd_df) > 0, "Output DataFrame is empty."
+
+    # Check if the frequency range is correct
+    assert csd_df.index.min() >= fpass[0], "Minimum frequency is less than fpass[0]."
+    assert csd_df.index.max() <= fpass[1], "Maximum frequency is greater than fpass[1]."
+
+    # Check if the cross-spectral density values are real numbers
+    assert np.all(np.isreal(csd_df["CSD"])), "CSD values are not real numbers."
+
+
+def test_mtcoherencept():
+    # Generate mock spike times for two signals
+    data1 = np.sort(np.random.uniform(0, 10, 100))
+    data2 = np.sort(np.random.uniform(0, 10, 100))
+    Fs = 1000
+    fpass = [0, 50]
+    NW = 2.5
+    n_tapers = 4
+
+    # Call the function
+    coherence_df = px.mtcoherencept(data1, data2, Fs, fpass, NW, n_tapers)
+
+    # Check the shape of the output
+    assert isinstance(coherence_df, pd.DataFrame), "Output is not a DataFrame."
+    assert (
+        "Coherence" in coherence_df.columns
+    ), "Coherence column is missing in the output DataFrame."
+    assert len(coherence_df) > 0, "Output DataFrame is empty."
+
+    # Check if the frequency range is correct
+    assert (
+        coherence_df.index.min() >= fpass[0]
+    ), "Minimum frequency is less than fpass[0]."
+    assert (
+        coherence_df.index.max() <= fpass[1]
+    ), "Maximum frequency is greater than fpass[1]."
+
+    # Check if the coherence values are between 0 and 1
+    assert np.all(
+        (coherence_df["Coherence"] >= 0) & (coherence_df["Coherence"] <= 1)
+    ), "Coherence values are not between 0 and 1."
+
+    # Test Case 2: validate frequency peak
+    # Parameters
+    Fs = 1000  # Sampling frequency (Hz)
+    duration = 10  # Duration of simulation (seconds)
+    burst_frequency = 8  # Burst frequency (Hz)
+    burst_rate = 50  # Rate of spikes within each burst (Hz)
+
+    # Simulate spike times
+    times_1 = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
+    times_2 = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
+
+    coherence_df = px.mtcoherencept(times_1, times_2, Fs, fpass, NW, n_tapers)
+    # peak is at 8 Hz
+    peak_freq = coherence_df.index[np.argmax(coherence_df["Coherence"])]
+    assert np.isclose(
+        peak_freq, 8, atol=0.2
+    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+
