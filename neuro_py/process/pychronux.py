@@ -2,10 +2,8 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from scipy.signal.windows import dpss
 from joblib import Parallel, delayed
-from numba import jit
-import warnings
+from scipy.signal.windows import dpss
 
 
 def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.ndarray]:
