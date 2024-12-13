@@ -442,6 +442,11 @@ def point_spectra(
     spectra : np.ndarray
         Power spectrum.
     f : np.ndarray
+        Frequency vector.
+
+    Notes
+    -----
+    Alternative function to `mtspectrumpt` for computing the power spectrum
     """
 
     # generate frequency grid
