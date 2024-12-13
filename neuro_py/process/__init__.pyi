@@ -47,6 +47,8 @@ __all__ = (
     "mtfftc",
     "mtspectrumc",
     "point_spectra",
+    "mtcsdpt",
+    "mtcoherencept",
     "circular_shift",
     "average_diagonal",
     "remove_inactive_cells",
@@ -108,6 +110,8 @@ from .pychronux import (
     mtspectrumc,
     mtspectrumpt,
     point_spectra,
+    mtcsdpt,
+    mtcoherencept,
 )
 from .utils import (
     average_diagonal,
