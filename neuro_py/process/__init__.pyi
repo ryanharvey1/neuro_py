@@ -48,7 +48,7 @@ __all__ = (
     "mtspectrumc",
     "point_spectra",
     "mtcsdpt",
-    "mtcoherencept"
+    "mtcoherencept",
     "circular_shift",
     "average_diagonal",
     "remove_inactive_cells",
