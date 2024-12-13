@@ -59,7 +59,7 @@ def decode_file_path(save_file: str) -> str:
 
     Examples
     -------
-    >>> save_file = r"Z:\home\ryanh\projects\ripple_heterogeneity\replay_02_17_23\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
+    >>> save_file = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     >>> decode_file_path(save_file)
     "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     """
