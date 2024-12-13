@@ -236,6 +236,7 @@ def mtspectrumpt(
     time_support: Union[list, None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
+    nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Multitaper power spectrum estimation for point process data.
@@ -258,6 +259,8 @@ def mtspectrumpt(
         Precomputed tapers, given as [NW, K] or [tapers, eigenvalues] (default is None).
     tapers_ts : Union[np.ndarray, None], optional
         Taper time series (default is None).
+    nfft : Optional[int], optional
+        Number of points for FFT (default is None).
 
     Returns
     -------
@@ -305,12 +308,13 @@ def mtspectrumpt(
 
     N = len(tapers_ts)
     # number of points in fft of prolates
-    nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
+    if nfft is None:
+        nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
     f, findx = getfgrid(Fs, nfft, fpass)
 
     spec = np.zeros((len(f), len(data)))
     for i, d in enumerate(data):
-        J, Msp, Nsp = mtfftpt(d, tapers, nfft, tapers_ts, f, findx)
+        J, _, _ = mtfftpt(d, tapers, nfft, tapers_ts, f, findx)
         spec[:, i] = np.real(np.mean(np.conj(J) * J, 1))
 
     spectrum_df = pd.DataFrame(index=f, columns=np.arange(len(data)), dtype=np.float64)
@@ -408,63 +412,74 @@ def point_spectra(
     freq_range: List[float] = [1, 20],
     tapers0: List[int] = [3, 5],
     pad: int = 0,
+    nfft: Optional[int] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Compute point spectra for a set of spike times.
+    Compute multitaper power spectrum for point processes.
 
     Parameters
     ----------
     times : np.ndarray
         Array of spike times (in seconds).
     Fs : int, optional
-        Sampling frequency in Hz (default is 1250).
-    freq_range : list, optional
-        Frequency range to evaluate as [min_freq, max_freq] (default is [1, 20]).
-    tapers0 : list, optional
-        Tapers configuration as [NW, K] or [tapers, eigenvalues] (default is [3, 5]).
+        Sampling frequency (default is 1250 Hz).
+    freq_range : List[float], optional
+        Frequency range to evaluate (default is [1, 20] Hz).
+    tapers0 : List[int], optional
+        Time-bandwidth product and number of tapers (default is [3, 5]).
+        The time-bandwidth product is used to compute the tapers.
     pad : int, optional
-        Number of points to pad for FFT (default is 0).
+        Padding for the FFT (default is 0).
+    nfft : Optional[int], optional
+        Number of points for FFT (default is None).
 
     Returns
     -------
     spectra : np.ndarray
         Power spectrum.
     f : np.ndarray
-        Frequencies corresponding to the power spectrum.
-
-    Notes
-    -----
-    This function computes the point spectra for spike times using the multitaper method.
-    The power spectrum is returned along with the associated frequencies.
-    By Ryan H, converted from PointSpectra.m by Ralitsa Todorova.
     """
 
+    # generate frequency grid
     timesRange = [min(times), max(times)]
     window = np.floor(np.diff(timesRange))
-    nSamplesPerWindow = int(np.round(Fs * window))  # number of samples in window
-    nfft = np.max(
-        [(int(2 ** np.ceil(np.log2(nSamplesPerWindow))) + pad), nSamplesPerWindow]
-    )
+    nSamplesPerWindow = int(np.round(Fs * window[0]))
+    if nfft is None:
+        nfft = np.max(
+            [(int(2 ** np.ceil(np.log2(nSamplesPerWindow))) + pad), nSamplesPerWindow]
+        )
     fAll = np.linspace(0, Fs, int(nfft))
-    ok = (fAll >= freq_range[0]) & (fAll <= freq_range[1])
-    Nf = sum(ok)
+    frequency_ind = (fAll >= freq_range[0]) & (fAll <= freq_range[1])
+
+    # Generate tapers
     tapers, _ = dpss(nSamplesPerWindow, tapers0[0], tapers0[1], return_ratios=True)
     tapers = tapers * np.sqrt(Fs)
-    spectra = np.zeros(Nf)
-    H = np.fft.fft(tapers.T, int(nfft), 1)  # fft of tapers
-    # restrict fft of tapers to required frequencies
-    f = fAll[ok]
-    H = H[:, ok]
-    w = 2 * np.pi * f  # angular frequencies at which ft is to be evaluated
+
+    # Compute FFT of tapers and restrict to required frequencies
+    H = np.fft.fft(tapers, n=nfft, axis=1)  # Shape: (K, nfft)
+    H = H[:, frequency_ind]  # Shape: (K, Nf)
+
+    # Angular frequencies
+    f = fAll[frequency_ind]
+    w = 2 * np.pi * f
+
+    # Time grid
     timegrid = np.linspace(timesRange[0], timesRange[1], nSamplesPerWindow)
 
-    # make sure times are within the range of timegrid
+    # Ensure times are within range
     data = times[(times >= timegrid[0]) & (times <= timegrid[-1])]
-    data_proj = [np.interp(data, timegrid, taper) for taper in tapers.T]
-    data_proj = np.vstack(data_proj)
-    exponential = np.exp(np.outer(-1j * w, (data - timegrid[0])))
-    J = exponential @ data_proj.T - H.T * len(data) / len(timegrid)
-    spectra = np.squeeze(np.mean(np.real(np.conj(J) * J), axis=1))
+
+    # Project spike times onto tapers
+    data_proj = [np.interp(data, timegrid, taper) for taper in tapers]
+    data_proj = np.vstack(data_proj)  # Shape: (K, len(data))
+
+    # Compute multitaper spectrum
+    exponential = np.exp(
+        np.outer(-1j * w, (data - timegrid[0]))
+    )  # Shape: (Nf, len(data))
+    J = exponential @ data_proj.T - H.T * len(data) / len(timegrid)  # Shape: (Nf, K)
+    spectra = np.squeeze(np.mean(np.real(np.conj(J) * J), axis=1))  # Mean across tapers
+
     return spectra, f
 
 
