@@ -138,7 +138,7 @@ class SpatialMap(object):
         # check data is not empty
         if pos.isempty or st.isempty:
             raise ValueError("pos and st must not be empty")
-        
+
         # check if pos all nan
         if np.all(np.isnan(pos.data)):
             raise ValueError("Position data cannot contain all NaN values")
@@ -196,7 +196,9 @@ class SpatialMap(object):
 
         # log warning if st_run is empty following restriction
         if st_run.isempty:
-            logging.warning("No spike trains during running epochs")  # This will log it but not raise a warning
+            logging.warning(
+                "No spike trains during running epochs"
+            )  # This will log it but not raise a warning
             warnings.warn("No spike trains during running epochs", UserWarning)
 
         # take pos as input for case of shuffling
@@ -285,6 +287,11 @@ class SpatialMap(object):
         if st_run.isempty:
             return ratemap
 
+        mask = ~np.isnan(pos_run.data).any(axis=0)
+        x_pos, ts = (
+            pos_run.data[0, mask],
+            pos_run.abscissa_vals[mask],
+        )
         # if data to map is spike train (point process)
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
@@ -293,18 +300,14 @@ class SpatialMap(object):
                     ratemap[i, : len(self.x_edges)],
                     _,
                 ) = np.histogram(
-                    np.interp(
-                        st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]
-                    ),
+                    np.interp(st_run.data[i], ts, x_pos),
                     bins=self.x_edges,
                 )
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             # get x location for every bin center
-            x = np.interp(
-                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[0, :]
-            )
+            x = np.interp(st_run.abscissa_vals, ts, x_pos)
             # get indices location within bin edges
             ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
             # iterate over each time step and add data values to ratemap
@@ -340,9 +343,11 @@ class SpatialMap(object):
 
         # log warning if st_run is empty following restriction
         if st_run.isempty:
-            logging.warning("No spike trains during running epochs")  # This will log it but not raise a warning
+            logging.warning(
+                "No spike trains during running epochs"
+            )  # This will log it but not raise a warning
             warnings.warn("No spike trains during running epochs", UserWarning)
-            
+
         # take pos as input for case of shuffling
         if pos is not None:
             pos_run = pos[self.run_epochs]
@@ -448,27 +453,28 @@ class SpatialMap(object):
         )
         if st_run.isempty:
             return ratemap
+
+        # remove nans from position data for interpolation
+        mask = ~np.isnan(pos_run.data).any(axis=0)
+        x_pos, y_pos, ts = (
+            pos_run.data[0, mask],
+            pos_run.data[1, mask],
+            pos_run.abscissa_vals[mask],
+        )
+
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
                 ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = (
                     np.histogram2d(
-                        np.interp(
-                            st_run.data[i], pos_run.abscissa_vals, pos_run.data[0, :]
-                        ),
-                        np.interp(
-                            st_run.data[i], pos_run.abscissa_vals, pos_run.data[1, :]
-                        ),
+                        np.interp(st_run.data[i], ts, x_pos),
+                        np.interp(st_run.data[i], ts, y_pos),
                         bins=(self.x_edges, self.y_edges),
                     )
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            x = np.interp(
-                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[0, :]
-            )
-            y = np.interp(
-                st_run.abscissa_vals, pos_run.abscissa_vals, pos_run.data[1, :]
-            )
+            x = np.interp(st_run.abscissa_vals, ts, x_pos)
+            y = np.interp(st_run.abscissa_vals, ts, y_pos)
             ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
             ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
