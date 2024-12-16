@@ -152,8 +152,7 @@ def test_spatial_map_properties_nan_pos_with_speed_thres(spatial_map_nan_pos_fix
     assert spatial_map.ratemap.max() == 0
 
 
-@pytest.fixture
-def spatial_map_nan_pos_w_no_speed_thresh_fixture():
+def spatial_map_nan_pos_w_no_speed_thresh():
     """
     Fixture to create a SpatialMap instance with generated position and spike train data.
     """
@@ -172,19 +171,38 @@ def spatial_map_nan_pos_w_no_speed_thresh_fixture():
     spatial_map = SpatialMap(
         pos, st, x_minmax=(0, 100), y_minmax=(0, 100), speed_thres=0
     )
-    return spatial_map
-
-
-def test_spatial_map_properties_nan_pos(spatial_map_nan_pos_w_no_speed_thresh_fixture):
-    """
-    Test the properties of SpatialMap.
-    """
-    spatial_map = spatial_map_nan_pos_w_no_speed_thresh_fixture
 
     assert spatial_map.is2d is True
     assert spatial_map.n_units == 5
     assert spatial_map.occupancy.shape == (34, 34)
     assert spatial_map.ratemap.shape == (5, 34, 34)  # 5 units with 34x34 maps
+    assert spatial_map.isempty is False
+    assert spatial_map.occupancy.sum() > 0  # Ensure occupancy was computed
+    assert spatial_map.ratemap.min() >= 0  # Rates cannot be negative
+    assert spatial_map.ratemap.max() > 0
+
+
+def spatial_map_nan_pos_w_no_speed_thresh_1d():
+    """
+    Fixture to create a SpatialMap instance with generated position and spike train data.
+    """
+    # Generate synthetic data
+    time, x_position, y_position = generate_position_data()
+    spike_trains = generate_spike_train_data(n_units=5, time=time)
+
+    nan_idx = np.arange(0, 100)
+    x_position[nan_idx] = np.nan
+    pos = nel.AnalogSignalArray(np.array(x_position), time=time, fs=50)
+
+    st = nel.SpikeTrainArray(spike_trains, fs=20_000)
+
+    # Create SpatialMap instance
+    spatial_map = SpatialMap(pos, st, x_minmax=(0, 100), speed_thres=0)
+
+    assert spatial_map.is2d is False
+    assert spatial_map.n_units == 5
+    assert spatial_map.occupancy.shape == (34,)
+    assert spatial_map.ratemap.shape == (5, 34)  # 5 units with 34x34 maps
     assert spatial_map.isempty is False
     assert spatial_map.occupancy.sum() > 0  # Ensure occupancy was computed
     assert spatial_map.ratemap.min() >= 0  # Rates cannot be negative
