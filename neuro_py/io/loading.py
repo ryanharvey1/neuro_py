@@ -954,6 +954,12 @@ def load_theta_cycles(
     filename = os.path.join(
         basepath, os.path.basename(basepath) + ".thetacycles.events.mat"
     )
+    if not os.path.exists(filename):
+        warnings.warn("file does not exist")
+        if return_epoch_array:
+            return nel.EpochArray()
+        return pd.DataFrame()
+    
     data = sio.loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["start"] = data["thetacycles"]["timestamps"][:, 0]
