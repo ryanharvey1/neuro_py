@@ -149,3 +149,7 @@ cython_debug/
 
 # rendered videos
 *.mp4
+
+# torch, lightning outputs
+lightning_logs/
+logs/
