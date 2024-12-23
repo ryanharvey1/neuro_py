@@ -47,7 +47,7 @@ class M2MLSTM(L.LightningModule):
                 torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='leaky_relu')
                 if m.bias is not None:
                     fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
-                    bound = 1 / np.math.sqrt(fan_in)
+                    bound = 1 / np.sqrt(fan_in)
                     nn.init.uniform_(m.bias, -bound, bound)  # LeCunn init
         init_params(self.fc)
 
