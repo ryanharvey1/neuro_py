@@ -60,10 +60,10 @@ p {
   right: .3rem;
   display: block;
   padding: .1rem .4rem;
-  color: var(--md-default-bg-color);
+  color: inherit;
   font-weight: bold;
   font-size: .8rem;
-  border: .05rem solid var(--md-default-bg-color--lighter);
+  border: .05rem solid var(--md-footer-fg-color--lighter);
   border-radius: .1rem;
   content: "/";
 }
