@@ -106,7 +106,7 @@ class TestDecodePipeline(unittest.TestCase):
         RESULTS_PATH = None
         
         bv_preds_folds, bv_models_folds, norm_params_folds, metrics_folds = \
-            npy.ensemble.decode.pipeline.train_model(
+            npy.ensemble.decoding.pipeline.train_model(
                 partitions, hyperparams, resultspath=RESULTS_PATH,
                 stop_partition=None,
             )

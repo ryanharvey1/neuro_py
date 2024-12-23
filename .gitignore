@@ -4,6 +4,7 @@
 __pycache__/
 *.py[cod]
 *.vscode
+.ruff_cache/
 data/
 dask-worker-space/
 .vs/ProjectSettings.json
@@ -153,3 +154,6 @@ cython_debug/
 # torch, lightning outputs
 lightning_logs/
 logs/
+
+# custom outputs
+results/

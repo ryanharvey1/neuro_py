@@ -9,8 +9,6 @@ import sklearn
 import torch
 import zlib
 
-from torch.utils import data
-
 from .mlp import MLP  # noqa
 from .lstm import LSTM  # noqa
 from .m2mlstm import M2MLSTM, NSVDataset  # noqa
@@ -69,23 +67,29 @@ def get_spikes_with_history(neural_data, bins_before, bins_after, bins_current=1
     for i in range(num_examples - bins_before - bins_after):
         start_idx = i
         end_idx = start_idx + surrounding_bins
-        X[i + bins_before, :, :] = neural_data[start_idx:end_idx, :]
+        X[i + bins_before] = neural_data[start_idx:end_idx]
 
     return X
 
 def _get_trial_spikes_with_no_overlap_history(X, bins_before, bins_after, bins_current):
     nonoverlap_trial_covariates = []
-    for X_trial in X:
+    if X.ndim == 2:
         X_cov = get_spikes_with_history(
-            np.asarray(X_trial), bins_before, bins_after, bins_current
-        )
+            X, bins_before, bins_after, bins_current)
         nonoverlap_trial_covariates.append(X_cov)
+    else:
+        for X_trial in X:
+            X_cov = get_spikes_with_history(
+                np.asarray(X_trial), bins_before, bins_after, bins_current
+            )
+            nonoverlap_trial_covariates.append(X_cov)
     return nonoverlap_trial_covariates
 
 def format_trial_segs_nsv(
         nsv_train_normed, nsv_rest_normed, bv_train, bv_rest, predict_bv,
         bins_before=0, bins_current=1, bins_after=0, 
-    ):
+    ):# -> tuple[NDArray, list, ndarray[Any, dtype], list, Any | nda...:
+    is_2D = nsv_train_normed[0].ndim == 1
     # Format for RNNs: covariate matrix including spike history from previous bins
     X_train = np.concatenate(_get_trial_spikes_with_no_overlap_history(
         nsv_train_normed, bins_before, bins_after, bins_current))
@@ -104,10 +108,12 @@ def format_trial_segs_nsv(
             X_feat.shape[0], (X_feat.shape[1] * X_feat.shape[2]))
         X_flat_rest.append(X_flat_feat)
 
+    bv_train = bv_train if not is_2D else [bv_train]
     y_train = np.concatenate(bv_train)
     y_train = y_train[:, predict_bv]
     y_rest = []
     for bv_y in bv_rest:
+        bv_y = bv_y if not is_2D else [bv_y]
         y = np.concatenate(bv_y)
         y = y[:, predict_bv]
         y_rest.append(y)
@@ -115,27 +121,37 @@ def format_trial_segs_nsv(
     return X_train, X_rest, X_flat_train, X_flat_rest, y_train, y_rest
 
 def zscore_trial_segs(train, rest_feats=None, normparams=None):
-    concat_train = np.concatenate(train)
+    is_2D = train[0].ndim == 1
+    concat_train = train if is_2D else np.concatenate(train)
     train_mean = normparams['X_train_mean'] if normparams is not None else bn.nanmean(concat_train, axis=0)
     train_std = normparams['X_train_std'] if normparams is not None else bn.nanstd(concat_train, axis=0)
 
     train_notnan_cols = train_std != 0
     train_nan_cols = ~train_notnan_cols
-    normed_train = np.empty_like(train)
-    for i, nsvstseg in enumerate(train):
-        zscored = np.divide(nsvstseg-train_mean, train_std, where=train_notnan_cols)
-        zscored.loc[:, train_nan_cols] = 0
-        normed_train[i] = zscored
+    if is_2D:
+        normed_train = np.divide(train-train_mean, train_std, where=train_notnan_cols)
+        normed_train.loc[:, train_nan_cols] = 0        
+    else:
+        normed_train = np.empty_like(train)
+        for i, nsvstseg in enumerate(train):
+            zscored = np.divide(nsvstseg-train_mean, train_std, where=train_notnan_cols)
+            zscored.loc[:, train_nan_cols] = 0
+            normed_train[i] = zscored
 
     normed_rest_feats = []
     if rest_feats is not None:
         for feats in rest_feats:
-            normed_feats = np.empty_like(feats)
-            for i, trialSegROI in enumerate(feats):
-                zscored = np.divide(feats[i]-train_mean, train_std, where=train_notnan_cols)
-                zscored.loc[:, train_nan_cols] = 0
-                normed_feats[i] = zscored
-            normed_rest_feats.append(normed_feats)
+            if is_2D:
+                normed_feats = np.divide(feats-train_mean, train_std, where=train_notnan_cols)
+                normed_feats.loc[:, train_nan_cols] = 0
+                normed_rest_feats.append(normed_feats)
+            else:
+                normed_feats = np.empty_like(feats)
+                for i, trialSegROI in enumerate(feats):
+                    zscored = np.divide(feats[i]-train_mean, train_std, where=train_notnan_cols)
+                    zscored.loc[:, train_nan_cols] = 0
+                    normed_feats[i] = zscored
+                normed_rest_feats.append(normed_feats)
 
     return normed_train, normed_rest_feats, dict(
         X_train_mean=train_mean, X_train_std=train_std,
@@ -297,9 +313,18 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
         val_dataset = NSVDataset(X_val, y_val)
         test_dataset = NSVDataset(X_test, y_test)
 
-        train_loader = data.DataLoader(train_dataset, shuffle=True, num_workers=hyperparams['num_workers'], batch_size=1)
-        val_loader = data.DataLoader(val_dataset, shuffle=False, num_workers=hyperparams['num_workers'], batch_size=1)
-        test_loader = data.DataLoader(test_dataset, shuffle=False, num_workers=hyperparams['num_workers'], batch_size=1)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, shuffle=True, num_workers=hyperparams['num_workers'],
+            batch_size=1
+        )
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset, shuffle=False, num_workers=hyperparams['num_workers'],
+            batch_size=1
+        )
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset, shuffle=False, num_workers=hyperparams['num_workers'],
+            batch_size=1
+        )
         hyperparams['model_args']['in_dim'] = X_train[0].shape[-1]
 
     return (X_train, y_train, X_val, y_val, X_test, y_test), (train_loader, val_loader, test_loader), fold_norm_params
@@ -355,26 +380,63 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
     hyperparams : dict
         Dictionary containing the hyperparameters for the model training. The
         dictionary should contain the following keys:
-        - 'model': str, the name of the model to be trained. The available
-            models are 'MLP', 'LSTM', 'M2MLSTM', and 'Transformer'.
-        - 'model_args': dict, the arguments to be passed to the model
+        - `model`: str, the type of the model to be trained. Multi-layer
+            Perceptron (MLP), Long Short-Term Memory (LSTM), many-to-many LSTM
+            (M2MLSTM), Transformer (NDT).
+        - `model_args`: dict, the arguments to be passed to the model
             constructor. The arguments should be in the format expected by the
             model constructor.
-        - 'bins_before': int, the number of bins before the current bin to
+            - `in_dim`: The number of input features.
+            - `out_dim`: The number of output features.
+            - `hidden_dim`: The number of hidden units each hidden layer of the
+                model. Can also take float values to specify the dropout rate.
+                For LSTM and M2MLSTM, it should be a tuple of the hidden size,
+                the number of layers, and the dropout rate.
+            - `args`:
+                - `clf`: If True, the model is a classifier; otherwise, it is a
+                    regressor.
+                - `activations`: The activation functions for each layer.
+                - `criterion`: The loss function to optimize.
+                - `epochs`: The number of complete passes through the training
+                    dataset.
+                - `lr`: Controls how much to change the model in response to the
+                    estimated error each time the model weights are updated. A
+                    smaller value ensures stable convergence but may slow down
+                    training, while a larger value speeds up training but risks
+                    overshooting.
+                - `base_lr`: The initial learning rate for the learning rate
+                    scheduler.
+                - `max_grad_norm`: The maximum norm of the gradients.
+                - `iters_to_accumulate`: The number of iterations to accumulate
+                    gradients.
+                - `weight_decay`: The L2 regularization strength.
+                - `num_training_batches`: The number of training batches. If
+                    None, the number of batches is calculated based on the batch
+                    size and the length of the training data.
+                - `scheduler_step_size_multiplier`: The multiplier for the
+                    learning rate scheduler step size. Higher values lead to
+                    faster learning rate decay.
+        - `bins_before`: int, the number of bins before the current bin to
             include in the input data.
-        - 'bins_current': int, the number of bins in the current time bin to
+        - `bins_current`: int, the number of bins in the current time bin to
             include in the input data.
-        - 'bins_after': int, the number of bins after the current bin to include
+        - `bins_after`: int, the number of bins after the current bin to include
             in the input data.
-        - 'behaviors': list, the indices of the behavioral features to be
-            predicted. Select behavioral variable must have homogenous data
-            types across all features (continuous for regression and categorical
-            for classification)
-        - 'batch_size': int, the batch size to be used for training.
-        - 'num_workers': int, the number of workers to use for data loading.
-        - 'device': str, the device to use for training. Should be 'cuda' or
+        - `behaviors`: list, the indices of the columns of behavioral features
+            to be predicted. Selected behavioral variable must have homogenous
+            data types across all features (continuous for regression and
+            categorical for classification)
+        - `batch_size`: int, the number of training examples utilized in one
+            iteration. Larger batch sizes offer stable gradient estimates but
+            require more memory, while smaller batches introduce noise that can
+            help escape local minima.
+        - `num_workers`: int, The number of parallel processes to use for data
+            loading. Increasing the number of workers can speed up data loading
+            but may lead to memory issues. Too many workers can also slow down
+            the training process due to contention for resources.
+        - `device`: str, the device to use for training. Should be 'cuda' or
             'cpu'.
-        - 'seed': int, the seed to use for random number generation.
+        - `seed`: int, the random seed for reproducibility.
     resultspath : str or None, optional
         Path to the directory where the trained models and logs will be saved.
     stop_partition : int, optional
@@ -405,10 +467,10 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
         del hyperparams_cp['model_args']['args']['epochs']
         del hyperparams_cp['model_args']['args']['num_training_batches']
         model_cache_name = zlib.crc32(str(hyperparams_cp).encode('utf-8'))
+        best_ckpt_path = None
         if resultspath is not None:
             model_cache_path = os.path.join(resultspath, 'models', str(model_cache_name))
             best_ckpt_name_file = os.path.join(model_cache_path, f'{i}-best_model.txt')
-            best_ckpt_path = None
             if os.path.exists(best_ckpt_name_file):
                 with open(best_ckpt_name_file, 'r') as f:
                     best_ckpt_path = f.read()
@@ -439,7 +501,10 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
             log_every_n_steps=5,
             reload_dataloaders_every_n_epochs=1
         )
-        trainer.fit(model, train_loader, val_loader, ckpt_path=None if resultspath is None else best_ckpt_path)
+        trainer.fit(
+            model, train_loader, val_loader,
+            ckpt_path=best_ckpt_path
+        )
         if resultspath is not None:
             with open(best_ckpt_name_file, 'w') as f:
                 f.write(checkpoint_callback.best_model_path)

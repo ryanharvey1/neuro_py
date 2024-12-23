@@ -16,6 +16,9 @@ __all__ = [
     "shuffle_nsv_intrialsegs",
     "train_model",
     "predict_models_folds",
+    "split_data",
+    "partition_indices",
+    "partition_sets",
 ]
 
 from .mlp import MLP
@@ -36,4 +39,9 @@ from .pipeline import (
     shuffle_nsv_intrialsegs,
     train_model,
     predict_models_folds,
+)
+from .preprocess import (
+    split_data,
+    partition_indices,
+    partition_sets,
 )
