@@ -122,7 +122,8 @@ class M2MLSTM(L.LightningModule):
             self.parameters(), weight_decay=args['weight_decay'])
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer, max_lr=args['lr'],
-            epochs=args['epochs'], steps_per_epoch=len(self.trainer._data_connector._train_dataloader_source.dataloader())
+            epochs=args['epochs'],
+            total_steps=self.trainer.estimated_stepping_batches
         )
         lr_scheduler = {'scheduler': scheduler, 'interval': 'step'}
         return [optimizer], [lr_scheduler]

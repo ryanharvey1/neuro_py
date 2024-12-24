@@ -261,13 +261,13 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
             num_workers=hyperparams['num_workers'], modeltype=hyperparams['model'])
         hyperparams['model_args']['in_dim'] = X_train.shape[-1]
     else:
-        y_train = [np.stack(y)[:, hyperparams['behaviors']] for y in bv_train]
+        y_train = [y.values[:, hyperparams['behaviors']] for y in bv_train]
         nbins_per_tseg = [len(y) for y in y_train]  # number of time bins in each trial
         tseg_bounds_train = np.cumsum([0] + nbins_per_tseg)
-        y_val = [np.stack(y)[:, hyperparams['behaviors']] for y in bv_val]
+        y_val = [y.values[:, hyperparams['behaviors']] for y in bv_val]
         nbins_per_tseg = [len(y) for y in y_val]
         tseg_bounds_val = np.cumsum([0] + nbins_per_tseg)
-        y_test = [np.stack(y)[:, hyperparams['behaviors']] for y in bv_test]
+        y_test = [y.values[:, hyperparams['behaviors']] for y in bv_test]
         nbins_per_tseg = [len(y) for y in y_test]
         tseg_bounds_test = np.cumsum([0] + nbins_per_tseg)
 
@@ -429,7 +429,8 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
         - `batch_size`: int, the number of training examples utilized in one
             iteration. Larger batch sizes offer stable gradient estimates but
             require more memory, while smaller batches introduce noise that can
-            help escape local minima.
+            help escape local minima. When using M2MLSTM, the batch size should
+            be set to 1.
         - `num_workers`: int, The number of parallel processes to use for data
             loading. Increasing the number of workers can speed up data loading
             but may lead to memory issues. Too many workers can also slow down
