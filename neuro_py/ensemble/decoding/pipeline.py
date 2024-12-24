@@ -3,6 +3,7 @@ import os
 import random
 
 import numpy as np
+import pandas as pd
 import bottleneck as bn
 import lightning.pytorch as pl
 import sklearn
@@ -233,7 +234,7 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
     bins_before = hyperparams['bins_before']
     bins_current = hyperparams['bins_current']
     bins_after = hyperparams['bins_after']
-    if hyperparams['model'] != 'M2MLSTM':
+    if hyperparams['model'] not in ('M2MLSTM', 'NDT'):
         (
             X_cov_train, X_flat_train, y_train,
             ((X_cov_val, X_flat_val, y_val), (X_cov_test, X_flat_test, y_test)),
@@ -261,13 +262,22 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
             num_workers=hyperparams['num_workers'], modeltype=hyperparams['model'])
         hyperparams['model_args']['in_dim'] = X_train.shape[-1]
     else:
-        y_train = [y.values[:, hyperparams['behaviors']] for y in bv_train]
+        if type(bv_train[0]) == pd.DataFrame:
+            y_train = [y.values[:, hyperparams['behaviors']] for y in bv_train]
+        else:
+            y_train = [y[:, hyperparams['behaviors']] for y in bv_train]
         nbins_per_tseg = [len(y) for y in y_train]  # number of time bins in each trial
         tseg_bounds_train = np.cumsum([0] + nbins_per_tseg)
-        y_val = [y.values[:, hyperparams['behaviors']] for y in bv_val]
+        if type(bv_val[0]) == pd.DataFrame:
+            y_val = [y.values[:, hyperparams['behaviors']] for y in bv_val]
+        else:
+            y_val = [y[:, hyperparams['behaviors']] for y in bv_val]
         nbins_per_tseg = [len(y) for y in y_val]
         tseg_bounds_val = np.cumsum([0] + nbins_per_tseg)
-        y_test = [y.values[:, hyperparams['behaviors']] for y in bv_test]
+        if type(bv_test[0]) == pd.DataFrame:
+            y_test = [y.values[:, hyperparams['behaviors']] for y in bv_test]
+        else:
+            y_test = [y[:, hyperparams['behaviors']] for y in bv_test]
         nbins_per_tseg = [len(y) for y in y_test]
         tseg_bounds_test = np.cumsum([0] + nbins_per_tseg)
 
@@ -330,7 +340,7 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
     return (X_train, y_train, X_val, y_val, X_test, y_test), (train_loader, val_loader, test_loader), fold_norm_params
 
 def evaluate_model(hyperparams, ohe, predictor, X_test, y_test):
-    if hyperparams['model'] == 'M2MLSTM':
+    if hyperparams['model'] in ('M2MLSTM', 'NDT'):
         out_dim = hyperparams['model_args']['out_dim']
         bv_preds_fold = [predictor(torch.from_numpy(X.reshape(1, *X.shape)).type(torch.float32)) for X in X_test]
         bv_preds_fold = np.vstack([bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim) for bv in bv_preds_fold])
@@ -388,10 +398,21 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
             model constructor.
             - `in_dim`: The number of input features.
             - `out_dim`: The number of output features.
-            - `hidden_dim`: The number of hidden units each hidden layer of the
+            - `hidden_dims`: The number of hidden units each hidden layer of the
                 model. Can also take float values to specify the dropout rate.
-                For LSTM and M2MLSTM, it should be a tuple of the hidden size,
+                - For LSTM and M2MLSTM, it should be a tuple of the hidden size,
                 the number of layers, and the dropout rate.
+                If the model is an MLP, it should be a list of hidden layer
+                sizes which can also take float values to specify the dropout
+                rate.
+                - If the model is an LSTM or M2MLSTM, it should be a list of the
+                hidden layer size, the number of layers, and the dropout rate.
+                - If the model is an NDT, it should be a list of the hidden
+                layer size, the number of layers, the number of attention heads,
+                the dropout rate for the encoder layer, and the dropout rate
+                applied before the decoder layer.
+            - `max_context_len`: The maximum context length for the transformer
+                model. Only used if the model is an NDT.
             - `args`:
                 - `clf`: If True, the model is a classifier; otherwise, it is a
                     regressor.
@@ -429,8 +450,10 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
         - `batch_size`: int, the number of training examples utilized in one
             iteration. Larger batch sizes offer stable gradient estimates but
             require more memory, while smaller batches introduce noise that can
-            help escape local minima. When using M2MLSTM, the batch size should
-            be set to 1.
+            help escape local minima.
+            - When using M2MLSTM or NDT and input trials are of inconsistents
+            lengths, the batch size should be set to 1.
+            - M2MLSTM does not support batch_size != 1.
         - `num_workers`: int, The number of parallel processes to use for data
             loading. Increasing the number of workers can speed up data loading
             but may lead to memory issues. Too many workers can also slow down

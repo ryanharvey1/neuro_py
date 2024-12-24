@@ -26,22 +26,26 @@ def partition_indices(folds):
     return partitions_indices
 
 def partition_sets(partitions_indices, nsv_trial_segs, bv_trial_segs):
-    """_summary_
+    """Partition neural state vectors and behavioral variables into train,
+    validation, and test sets.
 
     Parameters
     ----------
-    partitions_indices : _type_
-        _description_
-    nsv_trial_segs : np.ndarray
-        
+    partitions_indices : list[tuple[np.ndarray]]
+        List of tuples containing indices of divided trials into train,
+        validation, and test sets.
+    nsv_trial_segs : np.ndarray[pd.DataFrame] or pd.DataFrame
+        Neural state vectors for each trial.
         Shape: [n_trials, n_timepoints, n_neurons] or [n_timepoints, n_neurons]
-    bv_trial_segs : _type_
-        _description_
+    bv_trial_segs : np.ndarray[pd.DataFrame] or pd.DataFrame
+        Behavioral variables for each trial.
+        Shape: [n_trials, n_timepoints, n_bvars] or [n_timepoints, n_bvars]
 
     Returns
     -------
-    _type_
-        _description_
+    partitions : list[tuple[np.ndarray]]
+        List of tuples containing train, validation, and test sets for neural
+        state vectors and behavioral variables.
     """
     partitions = []
     is_2D = nsv_trial_segs[0].ndim == 1

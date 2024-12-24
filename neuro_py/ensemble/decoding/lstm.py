@@ -6,21 +6,22 @@ from torch import nn
 
 
 class LSTM(L.LightningModule):
-    """MLPs in Pytorch of an arbitrary number of hidden
-    layers of potentially different sizes.
-    """
+    """Long Short-Term Memory (LSTM) model."""
     def __init__(self, in_dim=100, out_dim=2, hidden_dims=(400, 1, .0), use_bias=True, args={}):
         """
-        Constructs a MultiLayerPerceptron
+        Constructs a LSTM model
 
-        Args:
-            in_dim: Integer
-                dimensionality of input data (784)
-            out_dim: Integer
-                number of output columns
-            hidden_dims: List
-                containing the dimensions of the hidden layers,
-                empty list corresponds to a linear model (in_dim, out_dim)
+        Parameters
+        ----------
+        in_dim : int
+            Dimensionality of input data
+        out_dim : int
+            Dimensionality of output data
+        hidden_dims : List
+            Architectural parameters of the model
+            (hidden_size, num_layers, dropout)
+        use_bias : bool
+            Whether to use bias or not in the final linear layer
         """
         super().__init__()
         self.save_hyperparameters()

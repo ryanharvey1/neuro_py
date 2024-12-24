@@ -12,14 +12,20 @@ class MLP(L.LightningModule):
         """
         Constructs a MultiLayerPerceptron
 
-        Args:
-            in_dim: Integer
-                dimensionality of input data (784)
-            out_dim: Integer
-                number of output columns
-            hidden_dims: List
-                containing the dimensions of the hidden layers,
-                empty list corresponds to a linear model (in_dim, out_dim)
+        Parameters
+        ----------
+        in_dim : int
+            Dimensionality of input data
+        out_dim : int
+            Dimensionality of output data
+        hidden_dims : List
+            List containing architectural parameters of the model. If element is
+            int, it is a hidden layer of that size. If element is float, it is a
+            dropout layer with that probability.
+        use_bias : bool
+            Whether to use bias or not in the all linear layers
+        args : dict
+            Dictionary containing the hyperparameters of the model
         """
         super().__init__()
         self.save_hyperparameters()
@@ -68,13 +74,15 @@ class MLP(L.LightningModule):
         """
         Defines the network structure and flow from input to output
 
-        Args:
-            x: Tensor
-                Image to be processed by the network
-
-        Returns:
-            output: Tensor
-                same dimension and shape as the input with probabilistic values in the range [0, 1]
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input data
+        
+        Returns
+        -------
+        torch.Tensor
+            Output data
         """
         return self.main(x)
 

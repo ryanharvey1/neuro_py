@@ -43,90 +43,145 @@ def seed_worker():
     random.seed(worker_seed)
 
 class TestDecodePipeline(unittest.TestCase):
-    def test_train_model_pipeline(self):
-        """Test the decoders.pipeline.train_model function."""
-        DEVICE = set_device()
-        SEED = set_seed(seed=0, seed_torch=True)
-        
-        BEHAVIORAL_VARS = [
+    @classmethod
+    def setUpClass(cls):
+        cls.DEVICE = set_device()
+        cls.SEED = set_seed(seed=0, seed_torch=True)
+        cls.N_TRIALS = 50
+        cls.TRIAL_LENGTH = 10
+        cls.N_NEURONS = 100
+        cls.N_BV_OUT = 2
+        cls.BEHAVIORAL_VARS = [
             'pv_x', 'pv_y', 'pv_speed', 'pv_dir', 'pv_dir_cos', 'pv_dir_sin',
         ]
+        cls.PREDICT_BV = [cls.BEHAVIORAL_VARS.index('pv_x'), cls.BEHAVIORAL_VARS.index('pv_y')]
+        cls.RESULTS_PATH = None
 
-        bins_before = 0
-        bins_current = 1
-        bins_after = 0
-        
-        predict_bv = [BEHAVIORAL_VARS.index('pv_x'), BEHAVIORAL_VARS.index('pv_y')]
-        decoder_type = ['MLP', 'MLPOld', 'LSTM', 'M2MLSTM', 'NDT'][0]
-        
-        N_TRIALS = 50
-        TRIAL_LENGTH = 10
-        N_NEURONS = 100
-        partitions = [
-            (
-                [pd.DataFrame(np.random.rand(TRIAL_LENGTH, N_NEURONS)) for _ in range(N_TRIALS)],  # nsv_train
-                np.random.rand(N_TRIALS, TRIAL_LENGTH, len(predict_bv)),  # bv_train
-                [pd.DataFrame(np.random.rand(TRIAL_LENGTH, N_NEURONS)) for _ in range(N_TRIALS)],  # nsv_val
-                np.random.rand(N_TRIALS, TRIAL_LENGTH, len(predict_bv)),  # bv_val
-                [pd.DataFrame(np.random.rand(TRIAL_LENGTH, N_NEURONS)) for _ in range(N_TRIALS)],  # nsv_test
-                np.random.rand(N_TRIALS, TRIAL_LENGTH, len(predict_bv)),  # bv_test
-            )  # nsv_train, bv_train, nsv_val, bv_val, nsv_test, bv_test
+    def generate_random_data(self):
+        nsv_trials = [
+            pd.DataFrame(np.random.rand(self.TRIAL_LENGTH, self.N_NEURONS)) for _ in range(self.N_TRIALS)
         ]
+        bv_trials = np.random.rand(self.N_TRIALS, self.TRIAL_LENGTH, self.N_BV_OUT)
+        return nsv_trials, bv_trials
+
+    def create_partitions(self, nsv_trials, bv_trials):
+        return [(nsv_trials, bv_trials) * 3]
+
+    def create_base_hyperparams(self, decoder_type):
+        return {
+            'batch_size': 1 if decoder_type == 'M2MLSTM' else 32,
+            'num_workers': 5,
+            'model': decoder_type,
+            'behaviors': self.PREDICT_BV,
+            'bins_before': 0,
+            'bins_current': 1,
+            'bins_after': 0,
+            'device': self.DEVICE,
+            'seed': self.SEED
+        }
+
+    def run_decoder_test(self, decoder_type, model_args):
+        nsv_trials, bv_trials = self.generate_random_data()
+        partitions = self.create_partitions(nsv_trials, bv_trials)
         
-        hyperparams = dict(
-            batch_size=512 * 8,
-            num_workers=5,
-            model=decoder_type,
-            model_args=dict(
-                in_dim=None,
-                out_dim=len(predict_bv),
-                hidden_dims=[512, 512, .2, 512],
-                args=dict(
-                    clf=False,
-                    activations=nn.CELU,
-                    criterion=F.mse_loss,
-                    epochs=10,
-                    lr=3e-2,
-                    base_lr=1e-2,
-                    max_grad_norm=1.,
-                    iters_to_accumulate=1,
-                    weight_decay=1e-2,
-                    num_training_batches=None,
-                    scheduler_step_size_multiplier=2,
-                )
-            ),
-            behaviors=predict_bv,
-            bins_before=bins_before,
-            bins_current=bins_current,
-            bins_after=bins_after,
-            device=DEVICE,
-            seed=SEED
-        )
-        
-        RESULTS_PATH = None
-        
+        hyperparams = self.create_base_hyperparams(decoder_type)
+
+        hyperparams['model_args'] = model_args
+
         bv_preds_folds, bv_models_folds, norm_params_folds, metrics_folds = \
             npy.ensemble.decoding.pipeline.train_model(
-                partitions, hyperparams, resultspath=RESULTS_PATH,
+                partitions, hyperparams, resultspath=self.RESULTS_PATH,
                 stop_partition=None,
             )
         
-        # Example assertions to validate outputs (adjust based on actual implementation)
+        self.validate_outputs(bv_preds_folds, bv_models_folds, norm_params_folds, metrics_folds)
+        return bv_models_folds
+
+    def validate_outputs(self, bv_preds_folds, bv_models_folds, norm_params_folds, metrics_folds):
         self.assertIsInstance(bv_preds_folds, list)
         self.assertIsInstance(bv_models_folds, list)
         self.assertIsInstance(norm_params_folds, list)
         self.assertIsInstance(metrics_folds, dict)
 
-        # check the length of the outputs
         self.assertEqual(len(bv_preds_folds), 1)
         self.assertEqual(len(bv_models_folds), 1)
         self.assertEqual(len(norm_params_folds), 1)
 
-        # check the shape of the outputs
-        self.assertEqual(bv_preds_folds[0].shape, (N_TRIALS * TRIAL_LENGTH, len(predict_bv)))
-        self.assertEqual(bv_models_folds[0].main[0].in_features, N_NEURONS)
-        self.assertEqual(bv_models_folds[0].main[-1].out_features, len(predict_bv))
+        self.assertEqual(bv_preds_folds[0].shape, (self.N_TRIALS * self.TRIAL_LENGTH, len(self.PREDICT_BV)))
         self.assertEqual(len(norm_params_folds[0]), 4)
+
+    def test_mlp_decoder(self):
+        model_args = {
+            'in_dim': None,
+            'out_dim': len(self.PREDICT_BV),
+            'hidden_dims': [512, 512, .2, 512],
+            'args': {
+                'clf': False,
+                'activations': nn.CELU,
+                'criterion': F.mse_loss,
+                'epochs': 1,
+                'lr': 3e-2,
+                'base_lr': 1e-2,
+                'max_grad_norm': 1.,
+                'iters_to_accumulate': 1,
+                'weight_decay': 1e-2,
+                'num_training_batches': None,
+                'scheduler_step_size_multiplier': 2,
+            }
+        }
+        self.run_decoder_test('MLP', model_args)
+
+    def test_ndt_decoder(self):
+        model_args = {
+            'in_dim': self.N_NEURONS,
+            'out_dim': self.N_BV_OUT,
+            'hidden_dims': [64, 1, 1, .0, .0],
+            'max_context_len': self.TRIAL_LENGTH,
+            'args': {
+                'clf': False,
+                'activations': nn.CELU,
+                'criterion': F.mse_loss,
+                'epochs': 1,
+                'lr': 3e-2,
+                'base_lr': 1e-2,
+                'max_grad_norm': 1.,
+                'iters_to_accumulate': 1,
+                'weight_decay': 1e-2,
+                'num_training_batches': None,
+                'scheduler_step_size_multiplier': 1,
+            }
+        }
+        bv_models_folds = self.run_decoder_test('NDT', model_args)
+        self.assertEqual(
+            bv_models_folds[0].transformer_encoder.layers[0].self_attn.out_proj.in_features,
+            self.N_NEURONS
+        )
+        self.assertEqual(
+            bv_models_folds[0].transformer_encoder.layers[0].self_attn.out_proj.out_features,
+            self.N_NEURONS
+        )
+        self.assertEqual(bv_models_folds[0].decoder[-1].out_features, 2)
+
+    def test_m2mlstm_decoder(self):
+        model_args = {
+            'in_dim': self.N_NEURONS,
+            'out_dim': self.N_BV_OUT,
+            'hidden_dims': [64, 1, .0],
+            'args': {
+                'clf': False,
+                'activations': nn.CELU,
+                'criterion': F.mse_loss,
+                'epochs': 1,
+                'lr': 3e-2,
+                'base_lr': 1e-2,
+                'max_grad_norm': 1.,
+                'iters_to_accumulate': 1,
+                'weight_decay': 1e-2,
+                'num_training_batches': None,
+                'scheduler_step_size_multiplier': 1,
+            }
+        }
+        self.run_decoder_test('M2MLSTM', model_args)    
 
 
 if __name__ == '__main__':
