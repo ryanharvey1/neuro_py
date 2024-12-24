@@ -90,10 +90,11 @@ nav:
 - Home: index.md
 - API Reference: reference/
 - Tutorials:
-  - Batch Analysis: tutorials/batch_analysis.ipynb
-  - Explained Variance: tutorials/explained_variance.ipynb
-  - Bias Correlation: tutorials/bias_correlation.ipynb
-  - Reactivation: tutorials/reactivation.ipynb
-  - Spatial Map: tutorials/spatial_map.ipynb
   - Attractor Estimation: tutorials/attractor_landscape.ipynb
+  - Batch Analysis: tutorials/batch_analysis.ipynb
+  - Bias Correlation: tutorials/bias_correlation.ipynb
+  - Explained Variance: tutorials/explained_variance.ipynb
+  - Neural Decoding: tutorials/decoding.ipynb
+  - Reactivation: tutorials/reactivation.ipynb
   - Representational Geodynamics: tutorials/pv_trajectory_geodynamics.ipynb
+  - Spatial Map: tutorials/spatial_map.ipynb

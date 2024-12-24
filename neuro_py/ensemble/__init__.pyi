@@ -29,8 +29,10 @@ __all__ = [
     "bias_matrix_njit",
     "observed_and_shuffled_correlation",
     "shuffled_significance",
+    "decoding",
 ]
 
+from . import decoding
 from .assembly import (
     binshuffling,
     circshuffling,
