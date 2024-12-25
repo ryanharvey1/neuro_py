@@ -90,10 +90,11 @@ nav:
 - Home: index.md
 - API Reference: reference/
 - Tutorials:
+  - Attractor Estimation: tutorials/attractor_landscape.ipynb
   - Batch Analysis: tutorials/batch_analysis.ipynb
-  - Explained Variance: tutorials/explained_variance.ipynb
   - Bias Correlation: tutorials/bias_correlation.ipynb
+  - Explained Variance: tutorials/explained_variance.ipynb
+  - Neural Decoding: tutorials/decoding.ipynb
+  - Neural Geodynamics: tutorials/neural_geodynamics.ipynb
   - Reactivation: tutorials/reactivation.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb
-  - Attractor Estimation: tutorials/attractor_landscape.ipynb
-  - Neural Geodynamics: tutorials/neural_geodynamics.ipynb
