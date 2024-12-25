@@ -342,10 +342,21 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
 def evaluate_model(hyperparams, ohe, predictor, X_test, y_test):
     if hyperparams['model'] in ('M2MLSTM', 'NDT'):
         out_dim = hyperparams['model_args']['out_dim']
-        bv_preds_fold = [predictor(torch.from_numpy(X.reshape(1, *X.shape)).type(torch.float32)) for X in X_test]
-        bv_preds_fold = np.vstack([bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim) for bv in bv_preds_fold])
+        with torch.no_grad():
+            bv_preds_fold = [
+                predictor(
+                    torch.from_numpy(X.reshape(1, *X.shape)).type(torch.float32)
+                )
+                for X in X_test
+            ]
+        bv_preds_fold = np.vstack([
+            bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim)
+            for bv in bv_preds_fold
+        ])
     else:
-        bv_preds_fold = predictor(torch.from_numpy(X_test).type(torch.float32))
+        bv_preds_fold = predictor(
+            torch.from_numpy(X_test).type(torch.float32)
+        )
         bv_preds_fold = bv_preds_fold.detach().cpu().numpy()
 
     bv_preds_fold = copy.deepcopy(bv_preds_fold)
@@ -359,7 +370,11 @@ def evaluate_model(hyperparams, ohe, predictor, X_test, y_test):
         metrics = dict(accuracy=accuracy)
         bv_preds_fold = logits
     else:
-        coeff_determination = sklearn.metrics.r2_score(labels, logits, multioutput='variance_weighted')
+        coeff_determination = sklearn.metrics.r2_score(
+            labels,
+            logits,
+            multioutput='variance_weighted'
+        )
         rmse = sklearn.metrics.root_mean_squared_error(labels, logits)
         metrics = dict(coeff_determination=coeff_determination, rmse=rmse)
     return metrics, bv_preds_fold
