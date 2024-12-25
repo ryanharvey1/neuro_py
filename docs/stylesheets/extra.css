@@ -53,3 +53,17 @@ p {
 .md-tabs {
   background: none;
 }
+
+[data-md-toggle="search"]:not(:checked) ~ .md-header .md-search__form::after {
+  position: absolute;
+  top: .3rem;
+  right: .3rem;
+  display: block;
+  padding: .1rem .4rem;
+  color: inherit;
+  font-weight: bold;
+  font-size: .8rem;
+  border: .05rem solid var(--md-footer-fg-color--lighter);
+  border-radius: .1rem;
+  content: "/";
+}

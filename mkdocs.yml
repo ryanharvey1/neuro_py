@@ -95,6 +95,6 @@ nav:
   - Bias Correlation: tutorials/bias_correlation.ipynb
   - Explained Variance: tutorials/explained_variance.ipynb
   - Neural Decoding: tutorials/decoding.ipynb
+  - Neural Geodynamics: tutorials/neural_geodynamics.ipynb
   - Reactivation: tutorials/reactivation.ipynb
-  - Representational Geodynamics: tutorials/pv_trajectory_geodynamics.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb

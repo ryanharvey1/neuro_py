@@ -1,4 +1,4 @@
-""" Loading functions for cell explorer format"""
+"""Loading functions for cell explorer format"""
 
 import glob
 import multiprocessing
@@ -954,6 +954,12 @@ def load_theta_cycles(
     filename = os.path.join(
         basepath, os.path.basename(basepath) + ".thetacycles.events.mat"
     )
+    if not os.path.exists(filename):
+        warnings.warn("file does not exist")
+        if return_epoch_array:
+            return nel.EpochArray()
+        return pd.DataFrame()
+
     data = sio.loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["start"] = data["thetacycles"]["timestamps"][:, 0]
@@ -1321,7 +1327,11 @@ def load_theta_rem_shift(basepath: str) -> Tuple[pd.DataFrame, dict]:
     return df, data_dict
 
 
-def load_SleepState_states(basepath: str) -> dict:
+def load_SleepState_states(
+    basepath: str,
+    return_epoch_array: bool = False,
+    states_list: list = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"],
+) -> dict:
     """
     Loader of SleepState.states.mat.
 
@@ -1329,21 +1339,22 @@ def load_SleepState_states(basepath: str) -> dict:
     ----------
     basepath : str
         Path to the folder containing the SleepState.states.mat file.
+    return_epoch_array : bool, optional
+        If True, return an dict of EpochArrays, by default False.
+    states_list : list, optional
+        List of states to load, by default ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"].
 
     Returns
     -------
     dict
         Dictionary containing the contents of the SleepState.states.mat file.
-
-    Notes
-    -----
-    TODO: Extract more from the file, this extracts the basics for now.
     """
-    try:
-        filename = glob.glob(os.path.join(basepath, "*.SleepState.states.mat"))[0]
-    except Exception:
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".SleepState.states.mat"
+    )
+    if not os.path.exists(filename):
         warnings.warn("file does not exist")
-        return
+        return None
 
     # load cell_metrics file
     data = sio.loadmat(filename)
@@ -1380,7 +1391,20 @@ def load_SleepState_states(basepath: str) -> dict:
     for dn in dt.names:
         dict_[dn] = data["SleepState"]["ints"][0][0][dn][0][0]
 
-    return dict_
+    if not return_epoch_array:
+        return dict_
+    else:
+        epoch_df = load_epoch(basepath)
+        # get session bounds to provide support
+        session_domain = nel.EpochArray(
+            [epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]
+        )
+        states_dict = {}
+        for state in states_list:
+            states_dict[state] = nel.EpochArray(
+                dict_.get(state, []), domain=session_domain
+            )
+        return states_dict
 
 
 def load_animal_behavior(
@@ -1626,7 +1650,6 @@ def load_brain_regions(
         }
 
     if out_format == "DataFrame":  # return as DataFrame
-
         region_df = pd.DataFrame(columns=["channels", "region"])
         for key in brainRegions.keys():
             temp_df = pd.DataFrame(brainRegions[key]["channels"], columns=["channels"])
