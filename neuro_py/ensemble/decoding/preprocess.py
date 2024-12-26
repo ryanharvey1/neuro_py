@@ -1,16 +1,50 @@
+from typing import List, Tuple, Union
+
 import numpy as np
-import sklearn.model_selection
+import pandas as pd
+
+from sklearn.model_selection import StratifiedKFold
 
 
-def split_data(trial_nsvs, splitby, trainsize=.8, seed=0):
+def split_data(trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0.8, seed: int = 0) -> List[np.ndarray]:
+    """
+    Split data into stratified folds.
+
+    Parameters
+    ----------
+    trial_nsvs : np.ndarray
+        Neural state vectors for trials.
+    splitby : np.ndarray
+        Labels for stratification.
+    trainsize : float, optional
+        Proportion of data to use for training, by default 0.8
+    seed : int, optional
+        Random seed for reproducibility, by default 0
+
+    Returns
+    -------
+    List[np.ndarray]
+        List of indices for each fold.
+    """
     n_splits = int(np.round(1 / ((1 - trainsize) / 2)))
-    skf = sklearn.model_selection.StratifiedKFold(
-        n_splits=n_splits, shuffle=True, random_state=seed)
-    folds = [
-        fold_indices for _, fold_indices in skf.split(trial_nsvs, splitby)]
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    folds = [fold_indices for _, fold_indices in skf.split(trial_nsvs, splitby)]
     return folds
 
-def partition_indices(folds):
+def partition_indices(folds: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """
+    Partition indices into train, validation, and test sets.
+
+    Parameters
+    ----------
+    folds : List[np.ndarray]
+        Indices for each fold.
+
+    Returns
+    -------
+    List[Tuple[np.ndarray, np.ndarray, np.ndarray]]
+        Train, validation, and test indices.
+    """
     partition_mask = np.zeros(len(folds), dtype=int)
     partition_mask[0:2] = (2, 1)
     folds_arr = np.asarray(folds, dtype=object)
@@ -25,45 +59,53 @@ def partition_indices(folds):
         partitions_indices.append((train_indices, val_indices, test_indices))
     return partitions_indices
 
-def partition_sets(partitions_indices, nsv_trial_segs, bv_trial_segs):
-    """Partition neural state vectors and behavioral variables into train,
+def partition_sets(
+    partitions_indices: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
+    nsv_trial_segs: Union[np.ndarray, pd.DataFrame],
+    bv_trial_segs: Union[np.ndarray, pd.DataFrame]
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+    """
+    Partition neural state vectors and behavioral variables into train,
     validation, and test sets.
 
     Parameters
     ----------
-    partitions_indices : list[tuple[np.ndarray]]
+    partitions_indices : List[Tuple[np.ndarray, np.ndarray, np.ndarray]]
         List of tuples containing indices of divided trials into train,
         validation, and test sets.
-    nsv_trial_segs : np.ndarray[pd.DataFrame] or pd.DataFrame
+    nsv_trial_segs : Union[np.ndarray, pd.DataFrame]
         Neural state vectors for each trial.
         Shape: [n_trials, n_timepoints, n_neurons] or [n_timepoints, n_neurons]
-    bv_trial_segs : np.ndarray[pd.DataFrame] or pd.DataFrame
+    bv_trial_segs : Union[np.ndarray, pd.DataFrame]
         Behavioral variables for each trial.
         Shape: [n_trials, n_timepoints, n_bvars] or [n_timepoints, n_bvars]
 
     Returns
     -------
-    partitions : list[tuple[np.ndarray]]
+    List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
         List of tuples containing train, validation, and test sets for neural
         state vectors and behavioral variables.
     """
     partitions = []
-    is_2D = nsv_trial_segs[0].ndim == 1
+    is_2D = nsv_trial_segs.ndim == 1
     for (train_indices, val_indices, test_indices) in partitions_indices:
-        train = nsv_trial_segs.loc[train_indices] if is_2D else \
-            np.take(nsv_trial_segs, train_indices)
-        val = nsv_trial_segs.loc[val_indices] if is_2D else \
-            np.take(nsv_trial_segs, val_indices)
-        test = nsv_trial_segs.loc[test_indices] if is_2D else \
-            np.take(nsv_trial_segs, test_indices)
+        if is_2D:
+            if isinstance(nsv_trial_segs, pd.DataFrame):
+                nsv_trial_segs = nsv_trial_segs.loc
+                bv_trial_segs = bv_trial_segs.loc
+            train = nsv_trial_segs[train_indices]
+            val = nsv_trial_segs[val_indices]
+            test = nsv_trial_segs[test_indices]
+            train_bv = bv_trial_segs[train_indices]
+            val_bv = bv_trial_segs[val_indices]
+            test_bv = bv_trial_segs[test_indices]
+        else:
+            train = np.take(nsv_trial_segs, train_indices, axis=0)
+            val = np.take(nsv_trial_segs, val_indices, axis=0)
+            test = np.take(nsv_trial_segs, test_indices, axis=0)
+            train_bv = np.take(bv_trial_segs, train_indices, axis=0)
+            val_bv = np.take(bv_trial_segs, val_indices, axis=0)
+            test_bv = np.take(bv_trial_segs, test_indices, axis=0)
 
-        train_bv, val_bv, test_bv = (
-            bv_trial_segs.loc[train_indices] if is_2D else \
-                np.take(bv_trial_segs, train_indices),
-            bv_trial_segs.loc[val_indices] if is_2D else \
-                np.take(bv_trial_segs, val_indices),
-            bv_trial_segs.loc[test_indices] if is_2D else \
-                np.take(bv_trial_segs, test_indices)
-        )
         partitions.append((train, train_bv, val, val_bv, test, test_bv))
     return partitions

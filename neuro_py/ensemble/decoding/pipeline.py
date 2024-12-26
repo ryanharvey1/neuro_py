@@ -2,6 +2,10 @@ import copy
 import os
 import random
 
+from typing import List, Tuple, Dict, Optional,  Any
+
+import sklearn.preprocessing
+
 import numpy as np
 import pandas as pd
 import bottleneck as bn
@@ -10,35 +14,38 @@ import sklearn
 import torch
 import zlib
 
+from numpy.typing import NDArray
+
 from .mlp import MLP  # noqa
 from .lstm import LSTM  # noqa
 from .m2mlstm import M2MLSTM, NSVDataset  # noqa
 from .transformer import NDT  # noqa
 
 
-def seed_worker(worker_id):
+def seed_worker(worker_id: int) -> None:
     """
-    DataLoader will reseed workers following randomness in
-    multi-process data loading algorithm.
+    Seed a worker with the given ID for reproducibility in data loading.
 
-    Args:
-        worker_id: integer
-            ID of subprocess to seed. 0 means that
-            the data will be loaded in the main process
-            Refer: https://pytorch.org/docs/stable/data.html#data-loading-randomness for more details
+    Parameters
+    ----------
+    worker_id : int
+        The ID of the worker to be seeded.
+
+    Notes
+    -----
+    This function is used to ensure reproducibility when using multi-process data loading.
     """
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-
-def get_spikes_with_history(neural_data, bins_before, bins_after, bins_current=1):
+def get_spikes_with_history(neural_data: np.ndarray, bins_before: int, bins_after: int, bins_current: int = 1) -> np.ndarray:
     """
     Create the covariate matrix of neural activity.
 
     Parameters
     ----------
-    neural_data : numpy.ndarray
+    neural_data : np.ndarray
         A matrix of size "number of time bins" x "number of neurons",
         representing the number of spikes in each time bin for each neuron.
     bins_before : int
@@ -46,25 +53,19 @@ def get_spikes_with_history(neural_data, bins_before, bins_after, bins_current=1
     bins_after : int
         How many bins of neural data after the output are used for decoding.
     bins_current : int, optional
-        Whether to use the concurrent time bin of neural data for decoding.
-        Default is 1.
+        Whether to use the concurrent time bin of neural data for decoding, by
+        default 1.
 
     Returns
     -------
-    numpy.ndarray
+    np.ndarray
         A matrix of size "number of total time bins" x "number of surrounding
         time bins used for prediction" x "number of neurons".
-        For every time bin, there are the firing rates of all neurons from the
-        specified number of time bins before (and after).
     """
-    num_examples = neural_data.shape[0]  # Number of total time bins we have neural data for
-    num_neurons = neural_data.shape[1]   # Number of neurons
-    surrounding_bins = bins_before + bins_after + bins_current  # Number of surrounding time bins used for prediction
-    X = np.zeros([num_examples, surrounding_bins, num_neurons])  # Initialize covariate matrix with zeros
+    num_examples, num_neurons = neural_data.shape
+    surrounding_bins = bins_before + bins_after + bins_current
+    X = np.zeros([num_examples, surrounding_bins, num_neurons])
 
-    # Loop through each time bin, and collect the spikes occurring in surrounding time bins
-    # Note: The first "bins_before" and last "bins_after" rows of X will remain filled with zeros,
-    # since they don't get filled below due to insufficient preceding or succeeding bins.
     for i in range(num_examples - bins_before - bins_after):
         start_idx = i
         end_idx = start_idx + surrounding_bins
@@ -72,7 +73,31 @@ def get_spikes_with_history(neural_data, bins_before, bins_after, bins_current=1
 
     return X
 
-def _get_trial_spikes_with_no_overlap_history(X, bins_before, bins_after, bins_current):
+def _get_trial_spikes_with_no_overlap_history(
+        X: NDArray,
+        bins_before: int,
+        bins_after: int,
+        bins_current: int
+    ) -> List[NDArray]:
+    """
+    Get trial spikes with no overlap history.
+
+    Parameters
+    ----------
+    X : NDArray
+        Input binned spike data.
+    bins_before : int
+        Number of bins before the current bin.
+    bins_after : int
+        Number of bins after the current bin.
+    bins_current : int
+        Number of current bins.
+
+    Returns
+    -------
+    List[NDArray]
+        List of trial covariates with no overlap history.
+    """
     nonoverlap_trial_covariates = []
     if X.ndim == 2:
         X_cov = get_spikes_with_history(
@@ -87,9 +112,42 @@ def _get_trial_spikes_with_no_overlap_history(X, bins_before, bins_after, bins_c
     return nonoverlap_trial_covariates
 
 def format_trial_segs_nsv(
-        nsv_train_normed, nsv_rest_normed, bv_train, bv_rest, predict_bv,
-        bins_before=0, bins_current=1, bins_after=0, 
-    ):# -> tuple[NDArray, list, ndarray[Any, dtype], list, Any | nda...:
+    nsv_train_normed: List[NDArray],
+    nsv_rest_normed: List[NDArray],
+    bv_train: NDArray,
+    bv_rest: List[NDArray],
+    predict_bv: List[int],
+    bins_before: int = 0,
+    bins_current: int = 1,
+    bins_after: int = 0
+) -> Tuple[NDArray, List[NDArray], NDArray, List[NDArray], NDArray, List[NDArray]]:
+    """
+    Format trial segments for neural state vectors.
+
+    Parameters
+    ----------
+    nsv_train_normed : List[NDArray]
+        Normalized neural state vectors for training.
+    nsv_rest_normed : List[NDArray]
+        Normalized neural state vectors for rest.
+    bv_train : NDArray
+        Behavioral state vectors for training.
+    bv_rest : List[NDArray]
+        Behavioral state vectors for rest.
+    predict_bv : List[int]
+        Indices of behavioral state vectors to predict.
+    bins_before : int, optional
+        Number of bins before the current bin, by default 0.
+    bins_current : int, optional
+        Number of current bins, by default 1.
+    bins_after : int, optional
+        Number of bins after the current bin, by default 0.
+
+    Returns
+    -------
+    Tuple[NDArray, List[NDArray], NDArray, List[NDArray], NDArray, List[NDArray]]
+        Formatted trial segments for neural state vectors.
+    """
     is_2D = nsv_train_normed[0].ndim == 1
     # Format for RNNs: covariate matrix including spike history from previous bins
     X_train = np.concatenate(_get_trial_spikes_with_no_overlap_history(
@@ -121,7 +179,28 @@ def format_trial_segs_nsv(
 
     return X_train, X_rest, X_flat_train, X_flat_rest, y_train, y_rest
 
-def zscore_trial_segs(train, rest_feats=None, normparams=None):
+def zscore_trial_segs(
+    train: NDArray,
+    rest_feats: Optional[List[NDArray]] = None,
+    normparams: Optional[Dict[str, Any]] = None
+) -> Tuple[NDArray, List[NDArray], Dict[str, Any]]:
+    """
+    Z-score trial segments.
+
+    Parameters
+    ----------
+    train : NDArray
+        Training data.
+    rest_feats : Optional[List[NDArray]], optional
+        Rest features, by default None.
+    normparams : Optional[Dict[str, Any]], optional
+        Normalization parameters, by default None.
+
+    Returns
+    -------
+    Tuple[NDArray, List[NDArray], Dict[str, Any]]
+        Normalized train data, normalized rest features, and normalization parameters.
+    """
     is_2D = train[0].ndim == 1
     concat_train = train if is_2D else np.concatenate(train)
     train_mean = normparams['X_train_mean'] if normparams is not None else bn.nanmean(concat_train, axis=0)
@@ -159,7 +238,46 @@ def zscore_trial_segs(train, rest_feats=None, normparams=None):
         X_train_notnan_mask=train_notnan_cols,
     )
 
-def normalize_format_trial_segs(nsv_train, nsv_rest, bv_train, bv_rest, predict_bv=[4,5], bins_before=0, bins_current=1, bins_after=0, normparams=None):
+def normalize_format_trial_segs(
+    nsv_train: NDArray,
+    nsv_rest: List[NDArray],
+    bv_train: NDArray,
+    bv_rest: List[NDArray],
+    predict_bv: List[int] = [4, 5],
+    bins_before: int = 0,
+    bins_current: int = 1,
+    bins_after: int = 0,
+    normparams: Optional[Dict[str, Any]] = None
+) -> Tuple[NDArray, NDArray, NDArray, List[Tuple[NDArray, NDArray, NDArray]], Dict[str, Any]]:
+    """
+    Normalize and format trial segments.
+
+    Parameters
+    ----------
+    nsv_train : NDArray
+        Neural state vectors for training.
+    nsv_rest : List[NDArray]
+        Neural state vectors for rest.
+    bv_train : NDArray
+        Behavioral state vectors for training.
+    bv_rest : List[NDArray]
+        Behavioral state vectors for rest.
+    predict_bv : List[int], optional
+        Indices of behavioral state vectors to predict, by default [4, 5].
+    bins_before : int, optional
+        Number of bins before the current bin, by default 0.
+    bins_current : int, optional
+        Number of current bins, by default 1.
+    bins_after : int, optional
+        Number of bins after the current bin, by default 0.
+    normparams : Optional[Dict[str, Any]], optional
+        Normalization parameters, by default None.
+
+    Returns
+    -------
+    Tuple[NDArray, NDArray, NDArray, List[Tuple[NDArray, NDArray, NDArray]], Dict[str, Any]]
+        Normalized and formatted trial segments.
+    """
     nsv_train_normed, nsv_rest_normed, norm_params = zscore_trial_segs(nsv_train, nsv_rest, normparams)
 
     (X_train, X_rest, X_flat_train, X_flat_rest, y_train, y_rest
@@ -179,9 +297,48 @@ def normalize_format_trial_segs(nsv_train, nsv_rest, bv_train, bv_rest, predict_
     return X_train, X_flat_train, y_train, tuple(zip(X_rest, X_flat_rest, y_centered_rest)), norm_params
 
 def minibatchify(
-        Xtrain, ytrain, Xval, yval, Xtest, ytest, seed=0,
-        batch_size=128, num_workers=5, modeltype='MLP'
-    ):
+        Xtrain: NDArray,
+        ytrain: NDArray,
+        Xval: NDArray,
+        yval: NDArray,
+        Xtest: NDArray,
+        ytest: NDArray,
+        seed: int = 0,
+        batch_size: int = 128,
+        num_workers: int = 5,
+        modeltype: str = 'MLP'
+    ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+    """
+    Create minibatches for training, validation, and testing.
+
+    Parameters
+    ----------
+    Xtrain : NDArray
+        Training features.
+    ytrain : NDArray
+        Training labels.
+    Xval : NDArray
+        Validation features.
+    yval : NDArray
+        Validation labels.
+    Xtest : NDArray
+        Test features.
+    ytest : NDArray
+        Test labels.
+    seed : int, optional
+        Random seed, by default 0.
+    batch_size : int, optional
+        Batch size, by default 128.
+    num_workers : int, optional
+        Number of workers for data loading, by default 5.
+    modeltype : str, optional
+        Type of model, by default 'MLP'.
+
+    Returns
+    -------
+    Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]
+        DataLoaders for training, validation, and testing.
+    """
     g_seed = torch.Generator()
     g_seed.manual_seed(seed)
     train = torch.utils.data.TensorDataset(
@@ -211,7 +368,28 @@ def minibatchify(
 
     return train_loader, val_loader, test_loader
 
-def normalize_labels(y_train, y_val, y_test):
+def normalize_labels(
+        y_train: NDArray,
+        y_val: NDArray,
+        y_test: NDArray
+    ) -> Tuple[Tuple[NDArray, NDArray, NDArray], int]:
+    """
+    Normalize labels to integers in [0, n_classes).
+
+    Parameters
+    ----------
+    y_train : NDArray
+        Training labels.
+    y_val : NDArray
+        Validation labels.
+    y_test : NDArray
+        Test labels.
+
+    Returns
+    -------
+    Tuple[Tuple[NDArray, NDArray, NDArray], int]
+        Normalized labels and number of classes.
+    """
     # map labels to integers in [0, n_classes)
     uniq_labels = np.unique(np.concatenate((y_train, y_val, y_test)))
     n_classes = len(uniq_labels)
@@ -221,16 +399,74 @@ def normalize_labels(y_train, y_val, y_test):
     y_test = np.vectorize(lambda v: uniq_labels_idx_map[v])(y_test)
     return (y_train, y_val, y_test), n_classes
 
-def create_model(hyperparams):
+def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, pl.LightningModule]:
+    """
+    Create a model based on the given hyperparameters.
+
+    Parameters
+    ----------
+    hyperparams : Dict[str, Any]
+        Dictionary containing model hyperparameters.
+
+    Returns
+    -------
+    Tuple[Any, pl.LightningModule]
+        The decoder class and instantiated model.
+    """
     decoder = eval(f"{hyperparams['model']}")
     model = decoder(**hyperparams['model_args'])
+    
     if 'LSTM' in hyperparams['model']:
         model.init_hidden(hyperparams['batch_size'])
         model.hidden_state = model.hidden_state.to(hyperparams['device'])
         model.cell_state = model.cell_state.to(hyperparams['device'])
+    
     return decoder, model
 
-def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv_val, bv_test, foldnormparams=None):
+def preprocess_data(
+        hyperparams: Dict[str, Any],
+        ohe: sklearn.preprocessing.OneHotEncoder,
+        nsv_train: NDArray,
+        nsv_val: NDArray,
+        nsv_test: NDArray,
+        bv_train: NDArray,
+        bv_val: NDArray,
+        bv_test: NDArray,
+        foldnormparams: Optional[Dict[str, Any]] = None
+    ) -> Tuple[
+        Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray],
+        Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader],
+        Dict[str, Any]
+    ]:
+    """
+    Preprocess the data for model training and evaluation.
+
+    Parameters
+    ----------
+    hyperparams : Dict[str, Any]
+        Dictionary containing hyperparameters.
+    ohe : OneHotEncoder
+        One-hot encoder for categorical variables.
+    nsv_train : NDArray
+        Neural state vectors for training.
+    nsv_val : NDArray
+        Neural state vectors for validation.
+    nsv_test : NDArray
+        Neural state vectors for testing.
+    bv_train : NDArray
+        Behavioral state vectors for training.
+    bv_val : NDArray
+        Behavioral state vectors for validation.
+    bv_test : NDArray
+        Behavioral state vectors for testing.
+    foldnormparams : Optional[Dict[str, Any]], optional
+        Normalization parameters for the current fold, by default None.
+
+    Returns
+    -------
+    Tuple[Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray], Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader], Dict[str, Any]]
+        Preprocessed data, data loaders, and normalization parameters.
+    """
     bins_before = hyperparams['bins_before']
     bins_current = hyperparams['bins_current']
     bins_after = hyperparams['bins_after']
@@ -344,7 +580,34 @@ def preprocess_data(hyperparams, ohe, nsv_train, nsv_val, nsv_test, bv_train, bv
 
     return (X_train, y_train, X_val, y_val, X_test, y_test), (train_loader, val_loader, test_loader), fold_norm_params
 
-def evaluate_model(hyperparams, ohe, predictor, X_test, y_test):
+def evaluate_model(
+        hyperparams: Dict[str, Any],
+        ohe: sklearn.preprocessing.OneHotEncoder,
+        predictor: torch.nn.Module,
+        X_test: NDArray,
+        y_test: NDArray
+    ) -> Tuple[Dict[str, float], NDArray]:
+    """
+    Evaluate the model on test data.
+
+    Parameters
+    ----------
+    hyperparams : Dict[str, Any]
+        Dictionary containing hyperparameters.
+    ohe : OneHotEncoder
+        One-hot encoder for categorical variables.
+    predictor : torch.nn.Module
+        The trained model.
+    X_test : NDArray
+        Test features.
+    y_test : NDArray
+        Test labels.
+
+    Returns
+    -------
+    Tuple[Dict[str, float], NDArray]
+        Evaluation metrics and model predictions.
+    """
     if hyperparams['model'] in ('M2MLSTM', 'NDT'):
         out_dim = hyperparams['model_args']['out_dim']
         with torch.no_grad():
@@ -384,7 +647,20 @@ def evaluate_model(hyperparams, ohe, predictor, X_test, y_test):
         metrics = dict(coeff_determination=coeff_determination, rmse=rmse)
     return metrics, bv_preds_fold
 
-def shuffle_nsv_intrialsegs(nsv_trialsegs):
+def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray:
+    """
+    Shuffle neural state variables within trial segments.
+
+    Parameters
+    ----------
+    nsv_trialsegs : List[pd.DataFrame]
+        List of neural state variable trial segments.
+
+    Returns
+    -------
+    NDArray
+        Shuffled neural state variables.
+    """
     nsv_shuffled_intrialsegs = []
     for nsv_tseg in nsv_trialsegs:
         # shuffle the data
@@ -393,15 +669,18 @@ def shuffle_nsv_intrialsegs(nsv_trialsegs):
         )
     return np.asarray(nsv_shuffled_intrialsegs, dtype=object)
 
-def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
-    """Generic function to train a DNN model on the given data partitions.
-
-    In-built caching & checkpointing is used to save the best model based on the
-    validation loss.
+def train_model(
+    partitions: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
+    hyperparams: Dict[str, Any],
+    resultspath: Optional[str] = None,
+    stop_partition: Optional[int] = None
+) -> Tuple[List[np.ndarray], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
+    """
+    Train a DNN model on the given data partitions with in-built caching & checkpointing.
 
     Parameters
     ----------
-    partitions : array-like
+    partitions : List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
         K-fold partitions of the data with the following format:
         [(nsv_train, bv_train, nsv_val, bv_val, nsv_test, bv_test), ...]
         Each element of the list is a tuple of numpy arrays containing the with
@@ -410,83 +689,11 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
         (ntrials, nbins, nfeats) where nfeats is the number of neurons for the
         neural state vectors and number of behavioral features to be predicted
         for the behavioral variables.
-    hyperparams : dict
-        Dictionary containing the hyperparameters for the model training. The
-        dictionary should contain the following keys:
-        - `model`: str, the type of the model to be trained. Multi-layer
-            Perceptron (MLP), Long Short-Term Memory (LSTM), many-to-many LSTM
-            (M2MLSTM), Transformer (NDT).
-        - `model_args`: dict, the arguments to be passed to the model
-            constructor. The arguments should be in the format expected by the
-            model constructor.
-            - `in_dim`: The number of input features.
-            - `out_dim`: The number of output features.
-            - `hidden_dims`: The number of hidden units each hidden layer of the
-                model. Can also take float values to specify the dropout rate.
-                - For LSTM and M2MLSTM, it should be a tuple of the hidden size,
-                the number of layers, and the dropout rate.
-                If the model is an MLP, it should be a list of hidden layer
-                sizes which can also take float values to specify the dropout
-                rate.
-                - If the model is an LSTM or M2MLSTM, it should be a list of the
-                hidden layer size, the number of layers, and the dropout rate.
-                - If the model is an NDT, it should be a list of the hidden
-                layer size, the number of layers, the number of attention heads,
-                the dropout rate for the encoder layer, and the dropout rate
-                applied before the decoder layer.
-            - `max_context_len`: The maximum context length for the transformer
-                model. Only used if the model is an NDT.
-            - `args`:
-                - `clf`: If True, the model is a classifier; otherwise, it is a
-                    regressor.
-                - `activations`: The activation functions for each layer.
-                - `criterion`: The loss function to optimize.
-                - `epochs`: The number of complete passes through the training
-                    dataset.
-                - `lr`: Controls how much to change the model in response to the
-                    estimated error each time the model weights are updated. A
-                    smaller value ensures stable convergence but may slow down
-                    training, while a larger value speeds up training but risks
-                    overshooting.
-                - `base_lr`: The initial learning rate for the learning rate
-                    scheduler.
-                - `max_grad_norm`: The maximum norm of the gradients.
-                - `iters_to_accumulate`: The number of iterations to accumulate
-                    gradients.
-                - `weight_decay`: The L2 regularization strength.
-                - `num_training_batches`: The number of training batches. If
-                    None, the number of batches is calculated based on the batch
-                    size and the length of the training data.
-                - `scheduler_step_size_multiplier`: The multiplier for the
-                    learning rate scheduler step size. Higher values lead to
-                    faster learning rate decay.
-        - `bins_before`: int, the number of bins before the current bin to
-            include in the input data.
-        - `bins_current`: int, the number of bins in the current time bin to
-            include in the input data.
-        - `bins_after`: int, the number of bins after the current bin to include
-            in the input data.
-        - `behaviors`: list, the indices of the columns of behavioral features
-            to be predicted. Selected behavioral variable must have homogenous
-            data types across all features (continuous for regression and
-            categorical for classification)
-        - `batch_size`: int, the number of training examples utilized in one
-            iteration. Larger batch sizes offer stable gradient estimates but
-            require more memory, while smaller batches introduce noise that can
-            help escape local minima.
-            - When using M2MLSTM or NDT and input trials are of inconsistents
-            lengths, the batch size should be set to 1.
-            - M2MLSTM does not support batch_size != 1.
-        - `num_workers`: int, The number of parallel processes to use for data
-            loading. Increasing the number of workers can speed up data loading
-            but may lead to memory issues. Too many workers can also slow down
-            the training process due to contention for resources.
-        - `device`: str, the device to use for training. Should be 'cuda' or
-            'cpu'.
-        - `seed`: int, the random seed for reproducibility.
-    resultspath : str or None, optional
+    hyperparams : Dict[str, Any]
+        Dictionary containing the hyperparameters for the model training.
+    resultspath : Optional[str], default=None
         Path to the directory where the trained models and logs will be saved.
-    stop_partition : int, optional
+    stop_partition : Optional[int], default=None
         Index of the partition to stop training at. Only useful for debugging,
         by default None
 
@@ -496,6 +703,80 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
         Tuple containing the predicted behavioral variables for each fold,
         the trained models for each fold, the normalization parameters for each
         fold, and the evaluation metrics for each fold.
+    
+    Notes
+    -----
+    The hyperparameters dictionary should contain the following keys:
+    - `model`: str, the type of the model to be trained. Multi-layer
+        Perceptron (MLP), Long Short-Term Memory (LSTM), many-to-many LSTM
+        (M2MLSTM), Transformer (NDT).
+    - `model_args`: dict, the arguments to be passed to the model constructor.
+        The arguments should be in the format expected by the model constructor.
+        - `in_dim`: The number of input features.
+        - `out_dim`: The number of output features.
+        - `hidden_dims`: The number of hidden units each hidden layer of the
+            model. Can also take float values to specify the dropout rate.
+            - For LSTM and M2MLSTM, it should be a tuple of the hidden size,
+                the number of layers, and the dropout rate.
+                If the model is an MLP, it should be a list of hidden layer
+                sizes which can also take float values to specify the dropout
+                rate.
+            - If the model is an LSTM or M2MLSTM, it should be a list of the
+            hidden layer size, the number of layers, and the dropout rate.
+            - If the model is an NDT, it should be a list of the hidden layer
+                size, the number of layers, the number of attention heads, the
+                dropout rate for the encoder layer, and the dropout rate applied
+                before the decoder layer.
+        - `max_context_len`: The maximum context length for the transformer
+            model. Only used if the model is an NDT.
+        - `args`:
+            - `clf`: If True, the model is a classifier; otherwise, it is a
+                regressor.
+            - `activations`: The activation functions for each layer.
+            - `criterion`: The loss function to optimize.
+            - `epochs`: The number of complete passes through the training
+                dataset.
+            - `lr`: Controls how much to change the model in response to the
+                estimated error each time the model weights are updated. A
+                smaller value ensures stable convergence but may slow down
+                training, while a larger value speeds up training but risks
+                overshooting.
+            - `base_lr`: The initial learning rate for the learning rate
+                scheduler.
+            - `max_grad_norm`: The maximum norm of the gradients.
+            - `iters_to_accumulate`: The number of iterations to accumulate
+                gradients.
+            - `weight_decay`: The L2 regularization strength.
+            - `num_training_batches`: The number of training batches. If
+                None, the number of batches is calculated based on the batch
+                size and the length of the training data.
+            - `scheduler_step_size_multiplier`: The multiplier for the
+                learning rate scheduler step size. Higher values lead to
+                faster learning rate decay.
+    - `bins_before`: int, the number of bins before the current bin to
+        include in the input data.
+    - `bins_current`: int, the number of bins in the current time bin to
+        include in the input data.
+    - `bins_after`: int, the number of bins after the current bin to include
+        in the input data.
+    - `behaviors`: list, the indices of the columns of behavioral features
+        to be predicted. Selected behavioral variable must have homogenous
+        data types across all features (continuous for regression and
+        categorical for classification)
+    - `batch_size`: int, the number of training examples utilized in one
+        iteration. Larger batch sizes offer stable gradient estimates but
+        require more memory, while smaller batches introduce noise that can
+        help escape local minima.
+        - When using M2MLSTM or NDT and input trials are of inconsistents
+            lengths, the batch size should be set to 1.
+        - M2MLSTM does not support batch_size != 1.
+    - `num_workers`: int, The number of parallel processes to use for data
+        loading. Increasing the number of workers can speed up data loading
+        but may lead to memory issues. Too many workers can also slow down
+        the training process due to contention for resources.
+    - `device`: str, the device to use for training. Should be 'cuda' or
+        'cpu'.
+    - `seed`: int, the random seed for reproducibility.
     """
     ohe = sklearn.preprocessing.OneHotEncoder()
     bv_preds_folds = []
@@ -585,7 +866,34 @@ def train_model(partitions, hyperparams, resultspath=None, stop_partition=None):
             break
     return bv_preds_folds, bv_models_folds, norm_params_folds, metrics_folds
 
-def predict_models_folds(partitions, hyperparams, bv_models_folds, foldnormparams):
+def predict_models_folds(
+        partitions: List[Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray]],
+        hyperparams: Dict[str, Any],
+        bv_models_folds: List[Any],
+        foldnormparams: List[Dict[str, Any]]
+    ) -> Tuple[List[NDArray], Dict[str, List[float]]]:
+    """
+    Predict and evaluate models across multiple folds.
+
+    Parameters
+    ----------
+    partitions : List[Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray]]
+        List of data partitions for each fold. Each partition contains:
+        (nsv_train, bv_train, nsv_val, bv_val, nsv_test, bv_test)
+    hyperparams : Dict[str, Any]
+        Dictionary of hyperparameters for the models.
+    bv_models_folds : List[Any]
+        List of trained models for each fold.
+    foldnormparams : List[Dict[str, Any]]
+        List of normalization parameters for each fold.
+
+    Returns
+    -------
+    Tuple[List[NDArray], Dict[str, List[float]]]
+        A tuple containing:
+        - List of predictions for each fold
+        - Dictionary of evaluation metrics for each fold
+    """
     ohe = sklearn.preprocessing.OneHotEncoder()
     bv_preds_folds = []
     metrics_folds = dict()
