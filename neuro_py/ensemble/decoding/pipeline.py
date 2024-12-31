@@ -210,12 +210,18 @@ def zscore_trial_segs(
     train_nan_cols = ~train_notnan_cols
     if is_2D:
         normed_train = np.divide(train-train_mean, train_std, where=train_notnan_cols)
-        normed_train.loc[:, train_nan_cols] = 0        
+        # if train is not jagged, it gets converted completely to object
+        # np.ndarray. Hence, cannot exclusively use normed_train.loc
+        if isinstance(normed_train, pd.DataFrame):
+            normed_train = normed_train.loc
+        normed_train[:, train_nan_cols] = 0
     else:
         normed_train = np.empty_like(train)
         for i, nsvstseg in enumerate(train):
             zscored = np.divide(nsvstseg-train_mean, train_std, where=train_notnan_cols)
-            zscored.loc[:, train_nan_cols] = 0
+            if isinstance(zscored, pd.DataFrame):
+                zscored = zscored.loc
+            zscored[:, train_nan_cols] = 0
             normed_train[i] = zscored
 
     normed_rest_feats = []
@@ -223,13 +229,17 @@ def zscore_trial_segs(
         for feats in rest_feats:
             if is_2D:
                 normed_feats = np.divide(feats-train_mean, train_std, where=train_notnan_cols)
-                normed_feats.loc[:, train_nan_cols] = 0
+                if isinstance(normed_feats, pd.DataFrame):
+                    normed_feats = normed_feats.loc
+                normed_feats[:, train_nan_cols] = 0
                 normed_rest_feats.append(normed_feats)
             else:
                 normed_feats = np.empty_like(feats)
                 for i, trialSegROI in enumerate(feats):
                     zscored = np.divide(feats[i]-train_mean, train_std, where=train_notnan_cols)
-                    zscored.loc[:, train_nan_cols] = 0
+                    if isinstance(zscored, pd.DataFrame):
+                        zscored = zscored.loc
+                    zscored[:, train_nan_cols] = 0
                     normed_feats[i] = zscored
                 normed_rest_feats.append(normed_feats)
 

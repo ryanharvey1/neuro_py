@@ -87,7 +87,7 @@ def partition_sets(
         state vectors and behavioral variables.
     """
     partitions = []
-    is_2D = nsv_trial_segs.ndim == 1
+    is_2D = nsv_trial_segs[0].ndim == 1
     for (train_indices, val_indices, test_indices) in partitions_indices:
         if is_2D:
             if isinstance(nsv_trial_segs, pd.DataFrame):
