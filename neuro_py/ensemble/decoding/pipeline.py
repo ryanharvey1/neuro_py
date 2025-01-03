@@ -2,7 +2,6 @@ import copy
 import os
 import random
 
-from re import X
 from typing import List, Tuple, Dict, Optional,  Any
 
 import sklearn.preprocessing
