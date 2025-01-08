@@ -560,3 +560,42 @@ def shift_epoch_array(
     return nel.EpochArray(
         np.array([epoch_starts_shifted, epoch_stops_shifted]).T, domain=session_domain
     )
+
+
+def get_overlapping_intervals(
+    start: float, stop: float, interval_width: float, slideby: float
+) -> np.ndarray:
+    """
+    Generate overlapping intervals within a specified time range.
+
+    Parameters
+    ----------
+    start : float
+        The start time of the time range.
+    stop : float
+        The stop time of the time range.
+    interval_width : float
+        The width of each interval in seconds.
+    slideby : float
+        The amount to slide the interval by in seconds.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array containing (start, stop) pairs for all overlapping intervals.
+
+    Examples
+    --------
+    >>> get_overlapping_intervals(0, 10, 2, 1)
+    array([[0, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 7],
+        [6, 8],
+        [7, 9]])
+    """
+    starts = np.arange(start, stop - interval_width, slideby)
+    stops = starts + interval_width
+    return np.column_stack((starts, stops))
