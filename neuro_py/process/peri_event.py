@@ -1,6 +1,7 @@
 import warnings
 from typing import List, Optional, Tuple, Union
 
+import bottleneck as bn
 import numpy as np
 import pandas as pd
 from nelpy import EpochArray
@@ -730,10 +731,11 @@ def event_triggered_average_fast(
         return pd.DataFrame(
             index=time_lags,
             columns=np.arange(signal.shape[0]),
-            data=avg_signal.mean(axis=2).T,
+            data=bn.nanmean(avg_signal, axis=2).T,
         )
+
     if return_average:
-        return avg_signal.mean(axis=2), time_lags
+        return bn.nanmean(avg_signal, axis=2), time_lags
     else:
         return avg_signal, time_lags
 
