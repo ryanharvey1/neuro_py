@@ -450,9 +450,12 @@ class PairwiseBias(object):
         Fit the model with task data and transform the post-task data.
     """
 
-    def __init__(self, num_shuffles: int = 300, n_jobs: int = 10):
+    def __init__(
+        self, num_shuffles: int = 300, n_jobs: int = 10, fillneutral: float = np.nan
+    ):
         self.num_shuffles = num_shuffles
         self.n_jobs = n_jobs
+        self.fillneutral = fillneutral
         self.total_neurons = None
         self.task_normalized = None
         self.observed_correlation_ = None
@@ -564,7 +567,10 @@ class PairwiseBias(object):
         filtered_neurons = post_neurons[start_idx:end_idx]
 
         post_bias_matrix = self.bias_matrix(
-            filtered_spikes, filtered_neurons, self.total_neurons
+            filtered_spikes,
+            filtered_neurons,
+            self.total_neurons,
+            fillneutral=self.fillneutral,
         )
 
         post_normalized = self.normalize_bias_matrix(post_bias_matrix)
@@ -577,7 +583,10 @@ class PairwiseBias(object):
         for _ in range(self.num_shuffles):
             shuffled_neurons = np.random.permutation(filtered_neurons)
             shuffled_bias_matrix = self.bias_matrix(
-                filtered_spikes, shuffled_neurons, self.total_neurons
+                filtered_spikes,
+                shuffled_neurons,
+                self.total_neurons,
+                fillneutral=self.fillneutral,
             )
             shuffled_normalized = self.normalize_bias_matrix(shuffled_bias_matrix)
             shuffled_correlation.append(
@@ -620,7 +629,10 @@ class PairwiseBias(object):
         if task_intervals is None:
             # Compute bias matrix for task data and normalize
             task_bias_matrix = self.bias_matrix(
-                task_spikes, task_neurons, self.total_neurons
+                task_spikes,
+                task_neurons,
+                self.total_neurons,
+                fillneutral=self.fillneutral,
             )
             self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
         else:
@@ -638,7 +650,10 @@ class PairwiseBias(object):
 
                 # Compute the bias matrix for the interval
                 bias_matrix = self.bias_matrix(
-                    interval_spikes, interval_neurons, self.total_neurons
+                    interval_spikes,
+                    interval_neurons,
+                    self.total_neurons,
+                    fillneutral=self.fillneutral,
                 )
                 bias_matrix = self.normalize_bias_matrix(bias_matrix)
                 task_normalized_matrices.append(bias_matrix)
