@@ -6,30 +6,30 @@ import pandas as pd
 
 def get_spindices(data: np.ndarray) -> pd.DataFrame:
     """
-    Get spike timestamps and spike IDs from each spike train in a sorted DataFrame.
+    Spike timestamps and IDs from each spike train in a time-sorted DataFrame.
 
     Parameters
     ----------
     data : np.ndarray
-        Spike times for each spike train, where each element is an array of spike times.
+        Spike times for each spike train, where each element is an array of
+        spike times for a neuron.
 
     Returns
     -------
     pd.DataFrame
-        A DataFrame containing sorted spike times and the corresponding spike IDs.
+        Sorted spike times and the corresponding spikes' neuron IDs
 
     Examples
     -------
     >>> spike_trains = [np.array([0.1, 0.2, 0.4]), np.array([0.15, 0.35])]
     >>> spikes = get_spindices(spike_trains)
     """
-    spikes_id = []
-    for spk_i, spk in enumerate(data):
-        spikes_id.append(spk_i * np.ones_like(spk))
+    spikes_id = np.repeat(np.arange(len(data)), [len(spk) for spk in data])
 
-    spikes = pd.DataFrame()
-    spikes["spike_times"] = np.hstack(data)
-    spikes["spike_id"] = np.hstack(spikes_id)
+    spikes = pd.DataFrame({
+        'spike_times': np.concatenate(data),
+        'spike_id': spikes_id
+    })
     spikes.sort_values("spike_times", inplace=True)
     return spikes
 
@@ -44,24 +44,28 @@ def spindices_to_ndarray(
     Parameters
     ----------
     spikes : pd.DataFrame
-        DataFrame containing 'spike_times' and 'spike_id' columns, sorted by 'spike_times'.
+        DataFrame containing 'spike_times' and 'spike_id' columns, sorted by
+        'spike_times'.
     spike_id : list or np.ndarray, optional
-        List or array of spike IDs to search for in the DataFrame. If None, all spike IDs are used.
+        List or array of spike IDs to search for in the DataFrame. If None, all
+        spike IDs are used.
 
     Returns
     -------
     List[np.ndarray]
-        A list of arrays, each containing the spike times for a corresponding spike train.
+        A list of arrays, each containing the spike times for a corresponding
+        spike train.
 
     Examples
     -------
     >>> spike_trains = spindices_to_ndarray(spikes_df, spike_id=[0, 1, 2])
     """
     if spike_id is None:
-        spike_id = np.unique(spikes["spike_id"])
-    data = []
-    for spk_i in spike_id:
-        data.append(spikes[spikes["spike_id"] == spk_i]["spike_times"].values)
+        spike_id = spikes.spike_id.unique()
+    data = [
+        spikes[spikes.spike_id == spk_i].spike_times.values
+        for spk_i in spike_id
+    ]
     return data
 
 
@@ -74,7 +78,8 @@ def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
     Parameters
     ----------
     autocorrs : pd.DataFrame
-        Autocorrelograms of spike trains, with time (in seconds) as index and correlation values as columns.
+        Autocorrelograms of spike trains, with time (in seconds) as index and
+        correlation values as columns.
 
     Returns
     -------
@@ -86,8 +91,8 @@ def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
     The burst index is calculated as:
         burst_idx = (peak - baseline) / max(peak, baseline)
 
-    - Peak is calculated as the maximum value of the autocorrelogram between 2-9 ms.
-    - Baseline is calculated as the mean value of the autocorrelogram between 40-50 ms.
+    - Peak is calculated as the maximum of the autocorrelogram between 2-9 ms.
+    - Baseline is calculated as the mean of the autocorrelogram between 40-50 ms.
 
     Examples
     -------
