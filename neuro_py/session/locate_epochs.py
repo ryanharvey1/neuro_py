@@ -185,8 +185,11 @@ def find_multitask_pre_post(
         task_bool = env.str.contains(task_tag, case=False)
     sleep_bool = env.str.contains("sleep", case=False)
 
+    # find the task indices
     task_idx = np.where(task_bool)[0]
-    task_idx = np.delete(task_idx, task_idx == 0, 0)
+    # remove 0 index, task can never be first
+    task_idx = task_idx[task_idx != 0]
+    # find the sleep indices
     sleep_idx = np.where(sleep_bool)[0]
 
     pre_task_post = []
