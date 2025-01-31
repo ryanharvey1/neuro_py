@@ -73,7 +73,8 @@ def remove_artifacts(
             zero_intervals = np.expand_dims(zero_intervals, axis=0)
 
         # If no specific channels are provided, process all channels
-        channels_to_remove = channels_to_remove or list(range(n_channels))
+        if channels_to_remove is None:
+            channels_to_remove = list(range(n_channels))
 
         # Zero out the specified intervals
         if mode == "zeros":
