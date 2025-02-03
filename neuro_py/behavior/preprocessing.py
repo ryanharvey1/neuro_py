@@ -24,6 +24,10 @@ def filter_tracker_jumps(
     Returns
     -------
     pd.DataFrame
+
+    Notes
+    -----
+    Will force dtypes of x and y to float64
     """
 
     # Calculate the Euclidean distance between consecutive points
@@ -37,10 +41,17 @@ def filter_tracker_jumps(
     # Calculate the speed between consecutive points (distance / time)
     beh_df["speed"] = beh_df["distance"] / beh_df["dt"]
 
-    # Mark x and y as NaN where the speed exceeds the maximum allowed speed
-    beh_df.loc[beh_df["speed"] > max_speed, ["x", "y"]] = np.nan
+    # Identify the start of each jump
+    # A jump starts when the speed exceeds the threshold, and the previous speed did not
+    jump_starts = (beh_df["speed"] > max_speed) & (
+        beh_df["speed"].shift(1) <= max_speed
+    )
+
+    # Mark x and y as NaN only for the first frame of each jump
+    beh_df.loc[jump_starts, ["x", "y"]] = np.nan
 
     beh_df = beh_df.drop(columns=["dx", "dy", "distance", "dt", "speed"])
+
     return beh_df
 
 
