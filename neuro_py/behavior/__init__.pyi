@@ -22,6 +22,8 @@ __all__ = [
     "find_last_non_center_well",
     "get_correct_inbound_outbound",
     "score_inbound_outbound",
+    "filter_tracker_jumps",
+    "filter_tracker_jumps_in_file",
 ]
 
 from .cheeseboard import plot_grid_with_circle_and_random_dots
@@ -52,3 +54,4 @@ from .well_traversal_classification import (
     segment_path,
     shift_well_enters,
 )
+from .preprocessing import filter_tracker_jumps, filter_tracker_jumps_in_file
