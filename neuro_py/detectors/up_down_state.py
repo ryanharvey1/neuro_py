@@ -14,7 +14,7 @@ def detect_up_down_states(
     basepath: Optional[str] = None,
     st: Optional[nel.SpikeTrainArray] = None,
     nrem_epochs: Optional[nel.EpochArray] = None,
-    region: str = "ILA|PFC|PL|EC1|EC2|EC3|EC4|EC5|MEC",
+    region: str = "ILA|PFC|PL|EC1|EC2|EC3|EC4|EC5|MEC|CTX",
     min_dur: float = 0.03,
     max_dur: float = 0.5,
     percentile: float = 20,
