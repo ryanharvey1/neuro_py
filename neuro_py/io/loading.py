@@ -314,8 +314,8 @@ class LFPLoader(object):
         return np.angle(signal.hilbert(filt_sig))
 
     def get_freq_phase_amp(
-        self, band2filter: list = [6, 12], ford: int = 3
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self, band2filter: list = [6, 12], ford: int = 3, kernel_size: int = 13
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Get the filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
 
@@ -325,11 +325,21 @@ class LFPLoader(object):
             The frequency band to filter, by default [6, 12].
         ford : int, optional
             The order of the Butterworth filter, by default 3.
+        kernel_size : int, optional
+            The kernel size for the median filter, by default 13.
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-            The filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
+        filt_sig : np.ndarray
+            The filtered signal.
+        phase : np.ndarray
+            The phase of the LFP signal.
+        amplitude : np.ndarray
+            The amplitude of the LFP signal.
+        amplitude_filtered : np.ndarray
+            The filtered amplitude of the LFP signal.
+        frequency : np.ndarray
+            The instantaneous frequency of the LFP signal.
         """
 
         band2filter = np.array(band2filter, dtype=float)
@@ -340,8 +350,24 @@ class LFPLoader(object):
         phase = np.angle(signal.hilbert(filt_sig))
         amplitude = np.abs(signal.hilbert(filt_sig))
         amplitude_filtered = signal.filtfilt(b, a, amplitude, padtype="odd")
-        return filt_sig, phase, amplitude, amplitude_filtered
 
+        # calculate the frequency
+        # median filter to smooth the unwrapped phase (this is to avoid jumps in the frequency)
+        filtered_signal = signal.medfilt2d(
+            np.unwrap(phase), kernel_size=[1, kernel_size]
+        )
+
+        # Calculate the derivative of the unwrapped phase to get frequency
+        dt = np.diff(self.lfp.abscissa_vals)
+        if np.allclose(dt, dt[0]):  # Check if sampling is uniform
+            dt = dt[0]  # Use a single scalar for uniform sampling
+        else:
+            dt = np.hstack((dt[0], dt))  # Use an array for non-uniform sampling
+        derivative = np.gradient(filtered_signal, dt, axis=-1)
+        frequency = derivative / (2 * np.pi)
+
+        return filt_sig, phase, amplitude, amplitude_filtered, frequency
+        
 
 # Alias for backwards compatibility
 class __init__(LFPLoader):
