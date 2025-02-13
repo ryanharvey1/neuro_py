@@ -33,6 +33,7 @@ class NodePicker:
         The size of the nodes, by default 100.
     epoch : int, optional
         The epoch number, by default None.
+    interval : Tuple[float, float], optional
 
     Attributes
     ----------
@@ -90,6 +91,9 @@ class NodePicker:
     # for a specific epoch
     >>> python linearization_pipeline.py path/to/session 1
 
+    # for a specific interval
+    >>> python linearization_pipeline.py path/to/session 0 100
+
     References
     ----------
     https://github.com/LorenFrankLab/track_linearization
@@ -103,6 +107,7 @@ class NodePicker:
         node_color: str = "#177ee6",
         node_size: int = 100,
         epoch: Optional[int] = None,
+        interval: Optional[Tuple[float, float]] = None,
     ):
         """
         Initialize the NodePicker.
@@ -131,7 +136,8 @@ class NodePicker:
         self.edges = [[]]
         self.basepath = basepath
         self.epoch = epoch
-        self.use_HMM = False
+        self.interval = interval
+        self.use_HMM = True
 
         if self.epoch is not None:
             self.epoch = int(self.epoch)
@@ -163,9 +169,11 @@ class NodePicker:
         """
         Connect the event handlers.
         """
+        print("Connecting to events")
         if self.cid is None:
             self.cid = self.canvas.mpl_connect("button_press_event", self.click_event)
             self.canvas.mpl_connect("key_press_event", self.process_key)
+            print("Mouse click event connected!")  # Debugging
 
     def disconnect(self) -> None:
         """
@@ -196,15 +204,27 @@ class NodePicker:
         event : Any
             The mouse click event.
         """
+
+        print(
+            f"Mouse clicked at: {event.xdata}, {event.ydata}, button: {event.button}, key: {event.key}"
+        )  # Debugging
         if not event.inaxes:
             return
-        if (event.key not in ["control", "shift"]) & (event.button == 1):  # left click
-            self._nodes.append((event.xdata, event.ydata))
-        if (event.key not in ["control", "shift"]) & (event.button == 3):  # right click
-            self.remove_point((event.xdata, event.ydata))
-        if (event.key == "shift") & (event.button == 1):
+
+        if event.key is None:  # Regular mouse clicks
+            if event.button == 1:  # Left click
+                self._nodes.append((event.xdata, event.ydata))
+            elif event.button == 3:  # Right click
+                self.remove_point((event.xdata, event.ydata))
+
+        elif event.key == "shift" and event.button == 1:  # Shift + Left click
             self.clear()
-        if (event.key == "control") & (event.button == 1):
+
+        elif (
+            event.key == "control" and event.button == 1
+        ):  # Ctrl + Left click (Edge creation)
+            if len(self._nodes) == 0:
+                return
             point = (event.xdata, event.ydata)
             distance_to_nodes = np.linalg.norm(self.node_positions - point, axis=1)
             closest_node_ind = np.argmin(distance_to_nodes)
@@ -212,7 +232,8 @@ class NodePicker:
                 self.edges[-1].append(closest_node_ind)
             else:
                 self.edges.append([closest_node_ind])
-        if event.key == "enter":
+
+        elif event.key == "enter":  # Pressing Enter
             self.format_and_save()
 
         self.redraw()
@@ -286,6 +307,12 @@ class NodePicker:
                 ~np.isnan(behave_df.x)
                 & (behave_df.time >= epochs.iloc[self.epoch].startTime)
                 & (behave_df.time <= epochs.iloc[self.epoch].stopTime)
+            )
+        elif self.interval is not None:
+            cur_epoch = (
+                ~np.isnan(behave_df.x)
+                & (behave_df.time >= self.interval[0])
+                & (behave_df.time <= self.interval[1])
             )
         else:
             cur_epoch = ~np.isnan(behave_df.x)
@@ -362,7 +389,7 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
-        if self.epoch is None:
+        if self.epoch is None and self.interval is None:
             # load epochs
             epochs = load_epoch(self.basepath)
             # iter over each epoch
@@ -374,6 +401,21 @@ class NodePicker:
                     behave_df[idx].shape[0] != 0
                 ):
                     # adding nodes and edges
+                    data["behavior"]["epochs"][epoch_i]["node_positions"] = (
+                        self.node_positions
+                    )
+                    data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
+        elif self.interval is not None:
+            # if interval was used, add nodes and edges just the epochs within that interval
+            epochs = load_epoch(self.basepath)
+            for epoch_i, ep in enumerate(epochs.itertuples()):
+                # amount of overlap between interval and epoch
+                start_overlap = max(self.interval[0], ep.startTime)
+                end_overlap = min(self.interval[1], ep.stopTime)
+                overlap = max(0, end_overlap - start_overlap)
+
+                # if overlap is greater than 1 second, add nodes and edges
+                if overlap > 1:
                     data["behavior"]["epochs"][epoch_i]["node_positions"] = (
                         self.node_positions
                     )
@@ -441,7 +483,11 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         return pd.DataFrame([data["session"]["epochs"]])
 
 
-def run(basepath: str, epoch: Optional[int] = None) -> None:
+def run(
+    basepath: str,
+    epoch: Optional[int] = None,
+    interval: Optional[Tuple[float, float]] = None,
+) -> None:
     """
     Run the linearization pipeline.
 
@@ -451,16 +497,19 @@ def run(basepath: str, epoch: Optional[int] = None) -> None:
         The base path where the data files are located.
     epoch : int, optional
         The epoch number to process, by default None.
+    interval : Tuple[float, float], optional
 
     Returns
     -------
     None
     """
+    plt.close("all")
     print("here is the file,", basepath)
 
     with plt.style.context("dark_background"):
-        plt.ion()
-        fig, ax = plt.subplots(figsize=(5, 5))
+        plt.ioff()
+
+        _, ax = plt.subplots(figsize=(5, 5))
 
         behave_df = load_animal_behavior(basepath)
 
@@ -472,6 +521,8 @@ def run(basepath: str, epoch: Optional[int] = None) -> None:
                     epochs.iloc[epoch].startTime, epochs.iloc[epoch].stopTime
                 )
             ]
+        elif interval is not None:
+            behave_df = behave_df[behave_df["time"].between(interval[0], interval[1])]
 
         ax.scatter(behave_df.x, behave_df.y, color="white", s=0.5, alpha=0.5)
         ax.axis("equal")
@@ -481,7 +532,8 @@ def run(basepath: str, epoch: Optional[int] = None) -> None:
         ax.set_ylabel("y (cm)")
         ax.set_xlabel("x (cm)")
 
-        NodePicker(ax=ax, basepath=basepath, epoch=epoch)
+        picker = NodePicker(ax=ax, basepath=basepath, epoch=epoch, interval=interval)
+        picker.connect()  # Ensure connection
 
         plt.show(block=True)
 
@@ -492,3 +544,5 @@ if __name__ == "__main__":
         run(sys.argv[1])
     elif len(sys.argv) == 3:
         run(sys.argv[1], epoch=int(sys.argv[2]))
+    elif len(sys.argv) == 4:
+        run(sys.argv[1], interval=(float(sys.argv[2]), float(sys.argv[3])))
