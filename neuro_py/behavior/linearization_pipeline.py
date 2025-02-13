@@ -13,14 +13,88 @@ from track_linearization import get_linearized_position, make_track_graph
 """
 TODO: 
 -fix bugs in removing nodes and edges
--automatically determine get_linearized_position params "sensor_std_dev"
-    for instances where data is not in cm
 -add option to input your own nodes and edges
 """
 
 
 class NodePicker:
-    """Interactive creation of track graph by looking at video frames."""
+    """
+    Interactive creation of track graph by looking at video frames.
+
+    Parameters
+    ----------
+    ax : plt.Axes, optional
+        The matplotlib axes to draw on, by default None.
+    basepath : str, optional
+        The base path for saving data, by default None.
+    node_color : str, optional
+        The color of the nodes, by default "#177ee6".
+    node_size : int, optional
+        The size of the nodes, by default 100.
+    epoch : int, optional
+        The epoch number, by default None.
+
+    Attributes
+    ----------
+    ax : plt.Axes
+        The matplotlib axes to draw on.
+    canvas : plt.FigureCanvas
+        The matplotlib figure canvas.
+    cid : int
+        The connection id for the event handler.
+    _nodes : list
+        The list of node positions.
+    node_color : str
+        The color of the nodes.
+    _nodes_plot : plt.scatter
+        The scatter plot of the nodes.
+    edges : list
+        The list of edges.
+    basepath : str
+        The base path for saving data.
+    epoch : int
+        The epoch number.
+    use_HMM : bool
+        Whether to use the hidden markov model.
+
+    Methods
+    -------
+    node_positions
+        Get the positions of the nodes.
+    connect
+        Connect the event handlers.
+    disconnect
+        Disconnect the event handlers.
+    process_key
+        Process key press events.
+    click_event
+        Process mouse click events.
+    redraw
+        Redraw the nodes and edges.
+    remove_point
+        Remove a point from the nodes.
+    clear
+        Clear all nodes and edges.
+    format_and_save
+        Format the data and save it to disk.
+    save_nodes_edges
+        Save the nodes and edges to a pickle file.
+    save_nodes_edges_to_behavior
+        Store nodes and edges into behavior file.
+
+    Examples
+    --------
+    # in command line
+    >>> python linearization_pipeline.py path/to/session
+
+    # for a specific epoch
+    >>> python linearization_pipeline.py path/to/session 1
+
+    References
+    ----------
+    https://github.com/LorenFrankLab/track_linearization
+
+    """
 
     def __init__(
         self,
@@ -245,12 +319,12 @@ class NodePicker:
 
         data["behavior"]["position"]["linearized"] = behave_df.linearized.values
         data["behavior"]["states"] = behave_df.states.values
-        data["behavior"]["position"][
-            "projected_x"
-        ] = behave_df.projected_x_position.values
-        data["behavior"]["position"][
-            "projected_y"
-        ] = behave_df.projected_y_position.values
+        data["behavior"]["position"]["projected_x"] = (
+            behave_df.projected_x_position.values
+        )
+        data["behavior"]["position"]["projected_y"] = (
+            behave_df.projected_y_position.values
+        )
 
         # store nodes and edges within behavior file
         data = self.save_nodes_edges_to_behavior(data, behave_df)
@@ -300,15 +374,15 @@ class NodePicker:
                     behave_df[idx].shape[0] != 0
                 ):
                     # adding nodes and edges
-                    data["behavior"]["epochs"][epoch_i][
-                        "node_positions"
-                    ] = self.node_positions
+                    data["behavior"]["epochs"][epoch_i]["node_positions"] = (
+                        self.node_positions
+                    )
                     data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
         else:
             # if epoch was used, add nodes and edges just that that epoch
-            data["behavior"]["epochs"][self.epoch][
-                "node_positions"
-            ] = self.node_positions
+            data["behavior"]["epochs"][self.epoch]["node_positions"] = (
+                self.node_positions
+            )
             data["behavior"]["epochs"][self.epoch]["edges"] = self.edges
 
         return data
