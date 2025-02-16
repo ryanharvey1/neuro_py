@@ -1,10 +1,15 @@
 import matplotlib.pyplot as plt
+
+# import nelpy as nel
 import numpy as np
 import scipy.signal
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector
-from sklearn.decomposition import PCA
+from numba import jit
 from scipy.signal import hilbert
+from sklearn.decomposition import PCA
+
+import neuro_py as npy
 
 
 def filter_signal(signal, lowcut, highcut, fs, order=4):
@@ -24,6 +29,7 @@ def detect_events(signal, threshold_std):
     return events
 
 
+@jit(nopython=True)
 def expand_intervals(signal, events, threshold_std):
     """Expand intervals to where the signal passes 1 std above the mean."""
     threshold = np.mean(signal) + threshold_std * np.std(signal)
@@ -37,6 +43,7 @@ def expand_intervals(signal, events, threshold_std):
     return intervals
 
 
+@jit(nopython=True)
 def overlap_intervals(intervals_a, intervals_b):
     """Find overlapping intervals between two lists of intervals."""
     overlaps = []
@@ -47,6 +54,7 @@ def overlap_intervals(intervals_a, intervals_b):
     return overlaps
 
 
+@jit(nopython=True)
 def extract_peak_data(signal, intervals, fs):
     """Extract peak times and amplitudes from intervals."""
     peak_times = []
@@ -120,11 +128,11 @@ def interactive_curation(
 
     def onpick(event):
         idx = event.ind[0]
-        start = max(0, int((peak_times[idx] - 0.05) * fs))
-        end = min(len(ripple_signal), int((peak_times[idx] + 0.05) * fs))
+        start = max(0, int((peak_times[idx] - 0.5) * fs))
+        end = min(len(ripple_signal), int((peak_times[idx] + 0.5) * fs))
 
         # Update raw signal plot
-        time_axis = np.linspace(-50, 50, end - start)
+        time_axis = np.linspace(-0.5, 0.5, end - start)
         line_ripple.set_data(time_axis, raw_ripple_signal[start:end])
         line_sharp_wave.set_data(time_axis, raw_sharp_wave_signal[start:end])
 
@@ -161,6 +169,7 @@ def interactive_curation(
     return selected_indices
 
 
+@jit(nopython=True)
 def extract_fixed_length_segments(signal, peak_times, fs, window_size=0.1):
     """Extract fixed-length segments around peak times."""
     fixed_length = int(window_size * fs)
@@ -189,16 +198,26 @@ def compute_envelope(signal):
     return np.abs(analytic_signal)
 
 
-def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
-    # Store raw signals for plotting
-    raw_ripple_signal = ripple_signal
-    raw_sharp_wave_signal = sharp_wave_signal
+def swr_detector(
+    ripple_signal,
+    sharp_wave_signal,
+    fs,
+    noise_signal=None,
+    min_duration=0.02,
+    ripple_band=(80, 250),
+    sharp_wave_band=(2, 50),
+    peak_threshold=2,
+    second_threshold=.5,
+):
+    """Detect sharp wave-ripple (SWR) events from LFP signals."""
 
     # Filter signals
-    ripple_filtered = filter_signal(ripple_signal, 80, 250, fs)
-    sharp_wave_filtered = filter_signal(sharp_wave_signal, 2, 50, fs)
+    ripple_filtered = filter_signal(ripple_signal, ripple_band[0], ripple_band[1], fs)
+    sharp_wave_filtered = filter_signal(
+        sharp_wave_signal, sharp_wave_band[0], sharp_wave_band[1], fs
+    )
     if noise_signal is not None:
-        noise_filtered = filter_signal(noise_signal, 80, 250, fs)
+        noise_filtered = filter_signal(noise_signal, ripple_band[0], ripple_band[1], fs)
 
     # Compute envelopes
     ripple_envelope = compute_envelope(ripple_filtered)
@@ -207,19 +226,27 @@ def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
         noise_envelope = compute_envelope(noise_filtered)
 
     # Detect events on the envelope
-    ripple_events = detect_events(ripple_envelope, 2)
-    sharp_wave_events = detect_events(sharp_wave_envelope, 2)
+    ripple_events = detect_events(ripple_envelope, peak_threshold)
+    sharp_wave_events = detect_events(sharp_wave_envelope, peak_threshold)
     if noise_signal is not None:
-        noise_events = detect_events(noise_envelope, 2)
+        noise_events = detect_events(noise_envelope, peak_threshold)
 
     # Expand intervals
-    ripple_intervals = expand_intervals(ripple_envelope, ripple_events, 1)
-    sharp_wave_intervals = expand_intervals(sharp_wave_envelope, sharp_wave_events, 1)
+    ripple_intervals = expand_intervals(ripple_envelope, ripple_events, second_threshold)
+    sharp_wave_intervals = expand_intervals(sharp_wave_envelope, sharp_wave_events, second_threshold)
     if noise_signal is not None:
-        noise_intervals = expand_intervals(noise_envelope, noise_events, 1)
+        noise_intervals = expand_intervals(noise_envelope, noise_events, second_threshold)
 
     # Find overlapping intervals
     swr_intervals = overlap_intervals(ripple_intervals, sharp_wave_intervals)
+
+    # restict by length
+    swr_intervals = [
+        interval
+        for interval in swr_intervals
+        if interval[1] - interval[0] > min_duration * fs
+    ]
+
     if noise_signal is not None:
         swr_intervals = [
             interval
@@ -236,9 +263,9 @@ def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
     )
 
     # Extract fixed-length segments around peaks
-    ripple_segments = extract_fixed_length_segments(ripple_filtered, peak_times, fs)
+    ripple_segments = extract_fixed_length_segments(ripple_signal, peak_times, fs)
     sharp_wave_segments = extract_fixed_length_segments(
-        sharp_wave_filtered, peak_times, fs
+        sharp_wave_signal, peak_times, fs
     )
 
     # Combine ripple and sharp wave segments for dimensionality reduction
@@ -254,8 +281,8 @@ def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
         sharp_wave_filtered,
         fs,
         peak_times,
-        raw_ripple_signal,
-        raw_sharp_wave_signal,
+        ripple_signal,
+        sharp_wave_signal,
     )
 
     # Filter valid events based on selected indices
@@ -263,11 +290,14 @@ def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
     valid_peak_times = [peak_times[i] for i in selected_indices]
     valid_peak_amplitudes = [peak_amplitudes[i] for i in selected_indices]
 
+    # convert to seconds
+    valid_swr_intervals = np.array(valid_swr_intervals) / fs
+
     # Return valid events
     return valid_swr_intervals, valid_peak_times, valid_peak_amplitudes
 
 
-# # Example usage
+# Example usage
 # fs = 1000  # Sampling rate
 # ripple_signal = np.random.randn(10 * fs)  # Replace with actual data
 # sharp_wave_signal = np.random.randn(10 * fs)  # Replace with actual data
@@ -276,18 +306,23 @@ def swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal=None):
 # swr_intervals, peak_times, peak_amplitudes = swr_detector(ripple_signal, sharp_wave_signal, fs, noise_signal)
 
 
-import neuro_py as npy
+# basepath = r"U:\data\hpc_ctx_project\HP15\hp15_day44_20250214"
+# lfp = npy.io.LFPLoader(basepath)
+# ripple_ch = 41
+# sharp_wave_ch = 32
+# noise_ch = 193
+# fs = lfp.fs
 
-basepath = r"U:\data\hpc_ctx_project\HP15\hp15_day36_20250206"
-lfp = npy.io.LFPLoader(basepath)
-ripple_ch = 39
-sharp_wave_ch = 32
-noise_ch = 171
-fs = lfp.fs
-swr_intervals, peak_times, peak_amplitudes = swr_detector(
-    lfp.lfp.data[ripple_ch, :],
-    lfp.lfp.data[sharp_wave_ch, :],
-    fs,
-    lfp.lfp.data[noise_ch, :],
-)
-print(swr_intervals)
+# ripple_signal = lfp.lfp.data[ripple_ch, :].copy()
+# sharp_wave_signal = lfp.lfp.data[sharp_wave_ch, :].copy()
+# noise_signal = lfp.lfp.data[noise_ch, :].copy()
+
+# print("data loaded")
+
+# swr_intervals, peak_times, peak_amplitudes = swr_detector(
+#     ripple_signal,
+#     sharp_wave_signal,
+#     fs,
+#     noise_signal,
+# )
+# print(swr_intervals)
