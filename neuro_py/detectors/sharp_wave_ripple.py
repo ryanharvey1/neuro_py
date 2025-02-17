@@ -10,7 +10,8 @@ from numba import jit
 from scipy.signal import find_peaks, hilbert
 from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap, TSNE, SpectralEmbedding
-
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import umap
 import neuro_py as npy
 
 
@@ -99,7 +100,7 @@ def reduce_dimensionality(data):
     # return pca.fit_transform(data)
     # isomap
 
-    return SpectralEmbedding(n_components=2).fit_transform(data)
+    return Isomap(n_components=2).fit_transform(data)
 
 
 def interactive_curation(
@@ -112,6 +113,10 @@ def interactive_curation(
     raw_sharp_wave_signal,
 ):
     """Interactive window for manual curation with dark mode and visual enhancements."""
+
+    # close all previous figures
+    plt.close("all")
+
     # Set dark mode style
     plt.style.use("dark_background")
 
@@ -189,12 +194,10 @@ def interactive_curation(
         fig.canvas.draw_idle()
 
     # Add LassoSelector
-    lasso = LassoSelector(
-        ax1, onselect, props={"color": "red", "linewidth": 2, "alpha": 0.8}
-    )
+    LassoSelector(ax1, onselect, props={"color": "red", "linewidth": 2, "alpha": 0.8})
 
     fig.canvas.mpl_connect("pick_event", onpick)
-    plt.show()
+    plt.show(block=True)
 
     # Return selected indices
     return selected_indices
@@ -229,6 +232,66 @@ def compute_envelope(signal):
     return np.abs(analytic_signal)
 
 
+def extract_features(ripple_segment, sharp_wave_segment):
+    ripple_features = [
+        np.max(ripple_segment),  # Peak amplitude
+        len(ripple_segment),  # Duration
+        np.mean(ripple_segment),  # Mean amplitude
+    ]
+    sharp_wave_features = [
+        np.max(sharp_wave_segment),  # Peak amplitude
+        len(sharp_wave_segment),  # Duration
+        np.mean(sharp_wave_segment),  # Mean amplitude
+    ]
+    return np.hstack([ripple_features, sharp_wave_features])
+
+
+def merge_overlapping_intervals(intervals):
+    """
+    Merge overlapping intervals and return the indices of intervals to merge.
+
+    Parameters:
+        intervals (list of tuples): List of intervals, where each interval is a tuple (start, end).
+
+    Returns:
+        list of lists: Each sublist contains the indices of intervals that were merged.
+    """
+
+    # Sort intervals based on start time
+    sorted_intervals = sorted(intervals, key=lambda x: x[0])
+    merged_indices = []
+    current_merge_group = [0]  # Start with the first interval
+    current_end = sorted_intervals[0][1]
+
+    for i in range(1, len(sorted_intervals)):
+        start, end = sorted_intervals[i]
+        if start <= current_end:  # Overlapping interval
+            current_merge_group.append(i)
+            current_end = max(current_end, end)  # Extend the merged interval
+        else:
+            # No overlap, start a new merge group
+            merged_indices.append(current_merge_group)
+            current_merge_group = [i]
+            current_end = end
+
+    # Add the last merge group
+    merged_indices.append(current_merge_group)
+
+    return np.array(merged_indices, object)[
+        np.arange(len(merged_indices))[
+            np.array([len(elm) for elm in merged_indices]) > 1
+        ]
+    ]
+
+
+def instant_frequnecy(signal, fs):
+    """Compute the instantaneous frequency of a signal."""
+    analytic_signal = hilbert(signal)
+    instantaneous_phase = np.unwrap(np.angle(analytic_signal))
+    instantaneous_frequency = np.diff(instantaneous_phase) / (2.0 * np.pi) * fs
+    return instantaneous_frequency
+
+
 def swr_detector(
     ripple_signal,
     sharp_wave_signal,
@@ -238,17 +301,27 @@ def swr_detector(
     max_duration=0.2,
     ripple_band=(80, 250),
     sharp_wave_band=(2, 50),
-    peak_threshold=2,
-    second_threshold=0.5,
+    ripple_peak_threshold=1,
+    sharp_wave_peak_threshold=1,
     verbose=False,
     clean_lfp=True,
 ):
     """Detect sharp wave-ripple (SWR) events from LFP signals."""
 
-    # if clean_lfp:
-    #     ts = np.arange(len(ripple_signal)) / fs
-    #     ripple_signal = npy.lfp.clean_lfp(ripple_signal, ts)
-    #     sharp_wave_signal = npy.lfp.clean_lfp(sharp_wave_signal, ts)
+    # adjust peak threshold based on if lfp was cleaned
+    if clean_lfp:
+        original_std = [np.std(ripple_signal), np.std(sharp_wave_signal)]
+
+        ts = np.arange(len(ripple_signal)) / fs
+        ripple_signal_ = npy.lfp.clean_lfp(ripple_signal, ts)
+        sharp_wave_signal_ = npy.lfp.clean_lfp(sharp_wave_signal, ts)
+
+        new_std = [np.std(ripple_signal_), np.std(sharp_wave_signal_)]
+
+        ripple_peak_threshold = ripple_peak_threshold * (new_std[0] / original_std[0])
+        sharp_wave_peak_threshold = sharp_wave_peak_threshold * (
+            new_std[1] / original_std[1]
+        )
 
     # Filter signals
     ripple_filtered = filter_signal(ripple_signal, ripple_band[0], ripple_band[1], fs)
@@ -271,53 +344,65 @@ def swr_detector(
     # Detect events on the envelope
     ripple_events, ripple_intervals, ripple_amp = detect(
         ripple_envelope,
-        peak_threshold,
+        ripple_peak_threshold,
         fs,
         min_duration=min_duration,
         max_duration=max_duration,
     )
     sharp_wave_events, sharp_wave_intervals, sharpwave_amp = detect(
         sharp_wave_envelope,
-        peak_threshold,
+        sharp_wave_peak_threshold,
         fs,
         min_duration=min_duration,
         max_duration=max_duration,
     )
+    # ensure sharp waves events are negative in the filtered signal
+    idx = sharp_wave_filtered[(sharp_wave_events * fs).astype(int)] < 0
+    sharp_wave_events = sharp_wave_events[idx]
+    sharp_wave_intervals = sharp_wave_intervals[idx]
+    sharpwave_amp = sharpwave_amp[idx]
+
     if noise_signal is not None:
-        noise_events, noise_intervals, noise_amp = detect(
+        _, noise_intervals, _ = detect(
             noise_envelope,
-            peak_threshold,
+            ripple_peak_threshold,
             fs,
             min_duration=min_duration,
             max_duration=max_duration,
         )
 
     # Find overlapping intervals
-    idx, ind = npy.process.in_intervals(sharp_wave_events, ripple_intervals, return_interval=True)
-    sharp_wave_intervals = sharp_wave_intervals[idx]
-    sharpwave_amp = sharpwave_amp[idx]
-    sharp_wave_events = sharp_wave_events[idx]
-    
+    idx, ind = npy.process.in_intervals(
+        ripple_events, sharp_wave_intervals, return_interval=True
+    )
+    ripple_intervals = ripple_intervals[idx]
+    ripple_amp = ripple_amp[idx]
+    ripple_events = ripple_events[idx]
+
     ind = ind[~np.isnan(ind)].astype(int)
-    ripple_intervals = ripple_intervals[ind]
-    ripple_amp = ripple_amp[ind]
-    ripple_events = ripple_events[ind]
+    sharp_wave_intervals = sharp_wave_intervals[ind]
+    sharpwave_amp = sharpwave_amp[ind]
+    sharp_wave_events = sharp_wave_events[ind]
 
     # swr_intervals = ripple_intervals.copy()
     # remove dentate spikes that are overlapping with noise spikes
     if noise_signal is not None:
-        overlap = npy.process.find_intersecting_intervals(
+        noise_label = npy.process.find_intersecting_intervals(
             nel.EpochArray(ripple_intervals),
             nel.EpochArray(noise_intervals),
             return_indices=True,
         )
-        ripple_intervals = ripple_intervals[~overlap]
-        ripple_amp = ripple_amp[~overlap]
-        ripple_events = ripple_events[~overlap]
-        sharp_wave_intervals = sharp_wave_intervals[~overlap]
-        sharpwave_amp = sharpwave_amp[~overlap]
-        sharp_wave_events = sharp_wave_events[~overlap]
+        ripple_intervals = ripple_intervals[~noise_label]
+        ripple_amp = ripple_amp[~noise_label]
+        ripple_events = ripple_events[~noise_label]
+        sharp_wave_intervals = sharp_wave_intervals[~noise_label]
+        sharpwave_amp = sharpwave_amp[~noise_label]
+        sharp_wave_events = sharp_wave_events[~noise_label]
 
+    # merge overlapping intervals
+    # merged_indices = merge_overlapping_intervals(ripple_intervals)
+    # for indices in merged_indices:
+    #     start
 
     # Extract peak data
     # peak_times, peak_amplitudes = extract_peak_data(
@@ -332,15 +417,41 @@ def swr_detector(
         sharp_wave_signal, ripple_events, fs
     )
 
-    # ripple_segments = npy.process.event_triggered_average_fast(ripple_signal, sharp_wave_events, fs, window=[-0.5, 0.5], return_average=False, return_pandas=False)
-    # sharp_wave_segments = npy.process.event_triggered_average_fast(sharp_wave_signal, sharp_wave_events, fs, window=[-0.5, 0.5], return_average=False, return_pandas=False)
-    # logging.info("Segments extracted")
+    ripple_freq_segments = extract_fixed_length_segments(
+        instant_frequnecy(ripple_filtered, fs), ripple_events, fs
+    )
+    sharp_wave_freq_segments = extract_fixed_length_segments(
+        instant_frequnecy(sharp_wave_filtered, fs), ripple_events, fs
+    )
 
     # Combine ripple and sharp wave segments for dimensionality reduction
     combined_segments = np.hstack([ripple_segments, sharp_wave_segments])
+    # normalize each segment
+    combined_segments = (combined_segments - combined_segments.mean(axis=1)[:, None]) / combined_segments.std(axis=1)[:, None]
+
+    # get features [max, duration, mean, max freq, mean freq] for each segment and each signal
+    features = np.array([
+        ripple_segments.max(axis=1),
+        ripple_intervals[:, 1] - ripple_intervals[:, 0],
+        ripple_segments.mean(axis=1),
+        ripple_freq_segments.max(axis=1),
+        ripple_freq_segments.mean(axis=1),
+        sharp_wave_segments.max(axis=1),
+        sharp_wave_intervals[:, 1] - sharp_wave_intervals[:, 0],
+        sharp_wave_segments.mean(axis=1),
+        sharp_wave_freq_segments.max(axis=1),
+        sharp_wave_freq_segments.mean(axis=1),
+    ]).T
+
+    # normalize each feature 
+    features = (features - features.mean(axis=0)) / features.std(axis=0)
+
+    # lda = LinearDiscriminantAnalysis(n_components=2)
+    # points = lda.fit_transform(features, noise_label * 1)
+    points = umap.UMAP().fit_transform(combined_segments)
 
     # Reduce dimensionality
-    points = reduce_dimensionality(combined_segments)
+    # points = reduce_dimensionality(features)
 
     logging.info("Dimensionality reduced")
 
@@ -354,11 +465,15 @@ def swr_detector(
         ripple_signal,
         sharp_wave_signal,
     )
-
-    # Filter valid events based on selected indices
-    valid_swr_intervals = [ripple_intervals[i] for i in selected_indices]
-    valid_peak_times = [sharp_wave_events[i] for i in selected_indices]
-    valid_peak_amplitudes = [ripple_amp[i] for i in selected_indices]
+    if len(selected_indices) > 0:
+        # Filter valid events based on selected indices
+        valid_swr_intervals = [sharp_wave_intervals[i] for i in selected_indices]
+        valid_peak_times = [sharp_wave_events[i] for i in selected_indices]
+        valid_peak_amplitudes = [ripple_amp[i] for i in selected_indices]
+    else:
+        valid_swr_intervals = sharp_wave_intervals
+        valid_peak_times = sharp_wave_events
+        valid_peak_amplitudes = ripple_amp
 
     # convert to seconds
     valid_swr_intervals = np.array(valid_swr_intervals)
