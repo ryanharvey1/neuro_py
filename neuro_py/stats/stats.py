@@ -57,9 +57,15 @@ def get_significant_events(
     if isinstance(np.isnan(scores), np.ndarray):
         pvalues[np.isnan(scores)] = 1
 
-    sig_event_idx = np.argwhere(
-        scores > np.percentile(shuffled_scores, axis=0, q=q)
-    ).squeeze()
+    if tail == "both":
+        threshold = np.percentile(np.abs(shuffled_scores), axis=0, q=q)
+        sig_event_idx = np.where(np.abs(scores) > threshold)[0]
+    elif tail == "right":
+        threshold = np.percentile(shuffled_scores, axis=0, q=q)
+        sig_event_idx = np.where(scores > threshold)[0]
+    elif tail == "left":
+        threshold = np.percentile(shuffled_scores, axis=0, q=100 - q)
+        sig_event_idx = np.where(scores < threshold)[0]
 
     # calculate how many standard deviations away from shuffle
     stddev = (np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)) / np.nanstd(
