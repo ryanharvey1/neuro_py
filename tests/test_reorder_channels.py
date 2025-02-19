@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-import pytest
 
 import neuro_py as npy
 
