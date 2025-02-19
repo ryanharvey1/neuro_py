@@ -13,14 +13,20 @@ def test_reorder_channels(tmp_path):
     data = np.arange(n_samples * n_channels, dtype=np.int16).reshape(
         n_samples, n_channels
     )
+
     file_path = os.path.join(tmp_path, "test_file.dat")
+
     data.tofile(file_path)
 
     # Define the new channel order
     channel_order = [2, 0, 3, 1]  # Reorder channels
 
     # Call the function to reorder channels
-    new_file_path = npy.raw.reorder_channels(file_path, n_channels, channel_order)
+    npy.raw.reorder_channels(file_path, n_channels, channel_order)
+
+    filename = os.path.basename(file_path)
+    basepath = os.path.dirname(file_path)
+    new_file_path = os.path.join(basepath, f"reordered_{filename}")
 
     # Verify the new file exists
     assert os.path.exists(new_file_path)
