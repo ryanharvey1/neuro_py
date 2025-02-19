@@ -1,6 +1,7 @@
 import gc
 import os
 import warnings
+from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -455,7 +456,7 @@ def fill_missing_channels(
     return new_file_path
 
 
-def reorder_channels(
+def reorder_channels_(
     file_path: str,
     n_channels: int,
     channel_order: List[int],
@@ -520,4 +521,118 @@ def reorder_channels(
 
             # Write the reordered chunk to the new file
             chunk_reordered.tofile(f_out)
+
+
+def process_chunk(args):
+    """
+    Process a chunk of the file in parallel.
+    """
+    start, end, file_path, n_channels, channel_order, dtype, new_file_path = args
+    # Memory-map the input file for this chunk
+    data = np.memmap(
+        file_path,
+        dtype=dtype,
+        mode="r",
+        shape=(end - start, n_channels),
+        offset=start * n_channels * dtype.itemsize,
+    )
+    # Memory-map the output file for this chunk
+    reordered_data = np.memmap(
+        new_file_path,
+        dtype=dtype,
+        mode="r+",
+        shape=(end - start, n_channels),
+        offset=start * n_channels * dtype.itemsize,
+    )
+    # Reorder the channels
+    reordered_data[:] = data[:, channel_order]
+    # Flush changes to disk
+    reordered_data.flush()
+
+
+def reorder_channels(
+    file_path: str,
+    n_channels: int,
+    channel_order: List[int],
+    precision: str = "int16",
+    num_processes: int = 8,  # Adjust based on your CPU cores
+) -> str:
+    """
+    Reorder channels in a large binary file, processing in chunks.
+    This function is useful when you want to reorder the channels in a binary file.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the file of the binary file to modify.
+    n_channels : int
+        Total number of channels in the binary file.
+    channel_order : List[int]
+        List of channel indices specifying the new order of channels.
+    precision : str, optional
+        Data precision, by default "int16".
+    chunk_size : int, optional
+        Number of samples per chunk, by default 10,000.
+
+    Examples
+    --------
+    >>> reorder_channels(
+    ...    r"U:\\data\\hpc_ctx_project\\HP13\\HP13_day1_20241030\\HP13_cheeseboard_241030_153710\\amplifier.dat",
+    ...    128,
+    ...    channel_order = [1, 0, 3, 2, ...]
+    ... )
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Binary file '{file_path}' does not exist.")
+
+    dtype = np.dtype(precision)
+    bytes_per_sample = dtype.itemsize
+
+    # Calculate total number of samples
+    file_size = os.path.getsize(file_path)
+    n_samples = file_size // (bytes_per_sample * n_channels)
+    if file_size % (bytes_per_sample * n_channels) != 0:
+        raise ValueError("Data size is not consistent with expected shape.")
+
+    # Prepare output file path
+    filename = os.path.basename(file_path)
+    basepath = os.path.dirname(file_path)
+    new_file_path = os.path.join(basepath, f"reordered_{filename}")
+
+    # Create an empty output file of the correct size
+    with open(new_file_path, "wb") as f:
+        f.write(np.zeros(n_samples * n_channels, dtype=dtype).tobytes())
+
+    # Split the work into chunks for parallel processing
+    chunk_size = n_samples // num_processes
+    chunks = [
+        (
+            i * chunk_size,
+            (i + 1) * chunk_size,
+            file_path,
+            n_channels,
+            channel_order,
+            dtype,
+            new_file_path,
+        )
+        for i in range(num_processes)
+    ]
+
+    # Handle the last chunk if n_samples is not divisible by num_processes
+    if n_samples % num_processes != 0:
+        chunks.append(
+            (
+                num_processes * chunk_size,
+                n_samples,
+                file_path,
+                n_channels,
+                channel_order,
+                dtype,
+                new_file_path,
+            )
+        )
+
+    # Process chunks in parallel
+    with Pool(num_processes) as pool:
+        pool.map(process_chunk, chunks)
 
