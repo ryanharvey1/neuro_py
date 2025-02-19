@@ -18,7 +18,7 @@ from scipy import signal
 
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
-from neuro_py.process.peri_event import get_participation
+from neuro_py.process.peri_event import count_in_interval
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -1061,7 +1061,7 @@ def load_barrage_events(
     # load ca2 pyr cells
     st, _ = load_spikes(basepath, putativeCellType="Pyr", brainRegion="CA2")
     # bin spikes into barrages
-    bst = get_participation(st.data, df["start"].values, df["stop"].values)
+    bst = count_in_interval(st.data, df["start"].values, df["stop"].values)
     # keep only barrages with some activity
     df = df[np.sum(bst > 0, axis=0) > 0].reset_index(drop=True)
 
