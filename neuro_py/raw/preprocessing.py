@@ -456,73 +456,6 @@ def fill_missing_channels(
     return new_file_path
 
 
-def reorder_channels_(
-    file_path: str,
-    n_channels: int,
-    channel_order: List[int],
-    precision: str = "int16",
-    chunk_size: int = 10_000,
-) -> str:
-    """
-    Reorder channels in a large binary file, processing in chunks.
-    This function is useful when you want to reorder the channels in a binary file.
-
-    Parameters
-    ----------
-    file_path : str
-        Path to the file of the binary file to modify.
-    n_channels : int
-        Total number of channels in the binary file.
-    channel_order : List[int]
-        List of channel indices specifying the new order of channels.
-    precision : str, optional
-        Data precision, by default "int16".
-    chunk_size : int, optional
-        Number of samples per chunk, by default 10,000.
-
-    Examples
-    --------
-    >>> reorder_channels(
-    ...    r"U:\\data\\hpc_ctx_project\\HP13\\HP13_day1_20241030\\HP13_cheeseboard_241030_153710\\amplifier.dat",
-    ...    128,
-    ...    channel_order = [1, 0, 3, 2, ...]
-    ... )
-    """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Binary file '{file_path}' does not exist.")
-
-    dtype = np.dtype(precision)
-    bytes_per_sample = dtype.itemsize
-
-    # Calculate total number of samples
-    file_size = os.path.getsize(file_path)
-    n_samples = file_size // (bytes_per_sample * n_channels)
-    if file_size % (bytes_per_sample * n_channels) != 0:
-        raise ValueError("Data size is not consistent with expected shape.")
-
-    # Prepare output file path
-    filename = os.path.basename(file_path)
-    basepath = os.path.dirname(file_path)
-    new_file_path = os.path.join(basepath, f"reordered_{filename}")
-
-    # Process file in chunks
-    with open(file_path, "rb") as f_in, open(new_file_path, "wb") as f_out:
-        for _ in range(0, n_samples, chunk_size):
-            # Read a chunk of data
-            chunk = np.fromfile(
-                f_in,
-                dtype=dtype,
-                count=chunk_size * n_channels,
-            )
-            chunk = chunk.reshape(-1, n_channels)
-
-            # Reorder the channels
-            chunk_reordered = chunk[:, channel_order]
-
-            # Write the reordered chunk to the new file
-            chunk_reordered.tofile(f_out)
-
-
 def process_chunk(args):
     """
     Process a chunk of the file in parallel.
@@ -635,4 +568,3 @@ def reorder_channels(
     # Process chunks in parallel
     with Pool(num_processes) as pool:
         pool.map(process_chunk, chunks)
-
