@@ -18,7 +18,6 @@ from scipy import signal
 
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
-from neuro_py.process.peri_event import count_in_interval
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -1025,6 +1024,7 @@ def load_barrage_events(
     Union[pd.DataFrame, nel.EpochArray]
         DataFrame with barrage events.
     """
+    from neuro_py.process.peri_event import count_in_interval
 
     # locate barrage file
     filename = os.path.join(basepath, os.path.basename(basepath) + ".HSEn2.events.mat")
