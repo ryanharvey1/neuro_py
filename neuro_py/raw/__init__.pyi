@@ -3,6 +3,7 @@ __all__ = [
     "fill_missing_channels",
     "cut_artifacts",
     "cut_artifacts_intan",
+    "reorder_channels"
 ]
 
 from .preprocessing import (
@@ -10,4 +11,5 @@ from .preprocessing import (
     fill_missing_channels,
     remove_artifacts,
     cut_artifacts_intan,
+    reorder_channels
 )
