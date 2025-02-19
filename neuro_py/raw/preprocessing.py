@@ -456,7 +456,7 @@ def fill_missing_channels(
     return new_file_path
 
 
-def process_chunk(args):
+def __process_chunk(args):
     """
     Process a chunk of the file in parallel.
     """
@@ -567,4 +567,4 @@ def reorder_channels(
 
     # Process chunks in parallel
     with Pool(num_processes) as pool:
-        pool.map(process_chunk, chunks)
+        pool.map(__process_chunk, chunks)
