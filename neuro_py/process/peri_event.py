@@ -9,7 +9,7 @@ from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
 from scipy.ndimage import gaussian_filter1d
-from neuro_py.io.loading import load_spikes, load_ripples_events, loadXML
+from neuro_py.io.loading import load_spikes, load_ripples_events
 from tqdm import tqdm 
 from neuro_py.process.intervals import in_intervals, split_epoch_by_width
 
