@@ -2266,21 +2266,19 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
     # load file
-    data = sio.loadmat(filename)
-    x = data["session"][0][0]["extracellular"][0][0]["chanCoords"][0][0][0]
-    y = data["session"][0][0]["extracellular"][0][0]["chanCoords"][0][0][1]
-    electrode_groups = data["session"][0][0]["extracellular"][0][0]["electrodeGroups"][
-        0
-    ][0][0]
+    data = sio.loadmat(filename, simplify_cells=True)
+    x = data["session"]['extracellular']['chanCoords']['x']
+    y = data["session"]['extracellular']['chanCoords']['y']
+    electrode_groups = data["session"]["extracellular"]["electrodeGroups"]['channels']
 
     # for each group in electrodeGroups
     mapped_shanks = []
     mapped_channels = []
-    for shank_i in np.arange(electrode_groups.shape[1]):
+    for shank_i in np.arange(len(electrode_groups)):
         mapped_channels.append(
-            electrode_groups[0][shank_i][0] - 1
+            electrode_groups[shank_i] - 1
         )  # -1 to make 0 indexed
-        mapped_shanks.append(np.repeat(shank_i, len(electrode_groups[0][shank_i][0])))
+        mapped_shanks.append(np.repeat(shank_i, len(electrode_groups[shank_i])))
 
     #  unpack to lists
     mapped_channels = list(chain(*mapped_channels))
