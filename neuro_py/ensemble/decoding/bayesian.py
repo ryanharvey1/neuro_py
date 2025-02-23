@@ -22,6 +22,12 @@ def decode_2d(
     Returns:
     - p: 3D array, decoded position probabilities matrix with shape (n_bins, n_xbins, n_ybins)
     """
+
+    # Ensure input arrays are contiguous for vectorization
+    ct = np.ascontiguousarray(ct)
+    tc = np.ascontiguousarray(tc)
+    occupancy = np.ascontiguousarray(occupancy)
+
     # Flatten spatial dimensions
     n_xbins, n_ybins, n_cells = tc.shape
     n_spatial_bins = n_xbins * n_ybins
