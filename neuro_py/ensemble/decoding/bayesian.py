@@ -13,14 +13,24 @@ def decode_2d(
     """
     Decode position from spike counts in a 2D spatial environment
 
-    Parameters:
+    Parameters
+    ----------
     - ct: 2D array, spike counts matrix with shape (n_bins, n_cells)
     - tc: 3D array, ratemap matrix with shape (n_xbins, n_ybins, n_cells)
     - occupancy: 2D array, occupancy matrix with shape (n_xbins, n_ybins)
     - bin_size_s: float, width of each time bin in seconds
 
-    Returns:
+    Returns
+    ----------
     - p: 3D array, decoded position probabilities matrix with shape (n_bins, n_xbins, n_ybins)
+
+    Examples
+    ----------
+    >>> ct = np.random.rand(10, 5)
+    >>> tc = np.random.rand(3, 3, 5)
+    >>> occupancy = np.random.rand(3, 3)
+    >>> bin_size_s = 0.1
+    >>> p = decode_2d(ct, tc, occupancy, bin_size_s)
     """
 
     # Ensure input arrays are contiguous for vectorization
