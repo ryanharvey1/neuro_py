@@ -21,8 +21,10 @@ def decode(
         ND array, ratemap matrix with shape (n_xbins, n_ybins, ..., n_cells)
     occupancy : ndarray
         (N-1)D array, occupancy matrix with shape (n_xbins, n_ybins, ...)
-    bin_size_s : ndarray
+    bin_size_s : float
         float, width of each time bin in seconds
+    uniform_prior : bool, optional
+        bool, whether to use uniform prior, by default False
 
     Returns
     ----------
@@ -40,14 +42,14 @@ def decode(
 
     # 2D example
     >>> ct = np.random.rand(10, 5)
-    >>> tc = np.random.rand(3, 3, 5)  # 2D example
+    >>> tc = np.random.rand(3, 3, 5)
     >>> occupancy = np.random.rand(3, 3)
     >>> bin_size_s = 0.1
     >>> p = decode(ct, tc, occupancy, bin_size_s)
 
     # 3D example
     >>> ct = np.random.rand(10, 5)
-    >>> tc = np.random.rand(3, 3, 3, 5)  # 3D example
+    >>> tc = np.random.rand(3, 3, 3, 5)
     >>> occupancy = np.random.rand(3, 3, 3)
     >>> bin_size_s = 0.1
     >>> p = decode(ct, tc, occupancy, bin_size_s)
