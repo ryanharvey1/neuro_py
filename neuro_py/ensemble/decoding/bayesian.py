@@ -38,6 +38,12 @@ def decode(
     tc = np.ascontiguousarray(tc)
     occupancy = np.ascontiguousarray(occupancy)
 
+    # Validate input shapes
+    assert ct.ndim == 2, "ct must be a 2D array with shape (n_bins, n_cells)"
+    assert tc.ndim >= 2, "tc must be at least a 2D array with shape (n_xbins, ..., n_cells)"
+    assert occupancy.ndim == tc.ndim - 1, "occupancy must have one fewer dimension than tc"
+    assert ct.shape[1] == tc.shape[-1], "Number of cells in ct and tc must match"
+    
     # Flatten spatial dimensions
     n_cells = tc.shape[-1]
     spatial_shape = tc.shape[:-1]  # Shape of spatial dimensions
