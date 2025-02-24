@@ -15,14 +15,19 @@ def decode(
 
     Parameters
     ----------
-    - ct: 2D array, spike counts matrix with shape (n_bins, n_cells)
-    - tc: ND array, ratemap matrix with shape (n_xbins, n_ybins, ..., n_cells)
-    - occupancy: (N-1)D array, occupancy matrix with shape (n_xbins, n_ybins, ...)
-    - bin_size_s: float, width of each time bin in seconds
+    ct : ndarray
+        2D array, spike counts matrix with shape (n_bins, n_cells)
+    tc : ndarray
+        ND array, ratemap matrix with shape (n_xbins, n_ybins, ..., n_cells)
+    occupancy : ndarray
+        (N-1)D array, occupancy matrix with shape (n_xbins, n_ybins, ...)
+    bin_size_s : ndarray
+        float, width of each time bin in seconds
 
     Returns
     ----------
-    - p: (N+1)D array, decoded position probabilities matrix with shape (n_bins, n_xbins, n_ybins, ...)
+    p : ndarray
+        (N+1)D array, decoded position probabilities matrix with shape (n_bins, n_xbins, n_ybins, ...)
 
     Examples
     ----------
