@@ -19,6 +19,7 @@ __all__ = [
     "split_data",
     "partition_indices",
     "partition_sets",
+    "decode",
 ]
 
 from .mlp import MLP
@@ -45,3 +46,4 @@ from .preprocess import (
     partition_indices,
     partition_sets,
 )
+from .bayesian import decode
