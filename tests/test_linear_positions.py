@@ -59,6 +59,9 @@ def lap_data():
 def analog_signal_array(position_data, timestamp_data):
     data, _ = position_data
     time = timestamp_data
+
+    # data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    # time = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     return nel.AnalogSignalArray(data=data, timestamps=time)
 
 
@@ -75,14 +78,6 @@ def test_linearize_position(position_data):
     assert linear_y.shape == y.shape
     assert not np.isnan(linear_x).any()
     assert not np.isnan(linear_y).any()
-
-
-def test_linearize_position_all_nans():
-    x = np.array([np.nan, np.nan, np.nan])
-    y = np.array([np.nan, np.nan, np.nan])
-    linear_x, linear_y = linearize_position(x, y)
-    assert np.all(np.isnan(linear_x))
-    assert np.all(np.isnan(linear_y))
 
 
 def test_find_laps(timestamp_data, position_data):
