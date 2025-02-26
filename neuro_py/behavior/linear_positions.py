@@ -54,7 +54,7 @@ def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.nda
     return x, y
 
 
-def find_laps(
+def __find_laps(
     Vts: np.ndarray,
     Vdata: np.ndarray,
     newLapThreshold: float = 15,
@@ -161,7 +161,7 @@ def find_laps(
             break
 
     if good_laps:
-        laps = find_good_laps(
+        laps = __find_good_laps(
             Vts,
             Vdata,
             laps,
@@ -173,7 +173,7 @@ def find_laps(
     return laps
 
 
-def peakdetz(
+def __peakdetz(
     v: np.ndarray, 
     delta: float, 
     lookformax: int = 1, 
@@ -268,7 +268,7 @@ def peakdetz(
     return maxtab, mintab
 
 
-def find_good_laps(
+def __find_good_laps(
     ts: np.ndarray, 
     V_rest: np.ndarray, 
     laps: pd.DataFrame, 
@@ -344,7 +344,7 @@ def find_good_laps(
 
         # % find turn around points during this lap
         lookformax = laps.iloc[lap].direction == 1
-        peak, trough = peakdetz(v, delta, lookformax, 0)
+        peak, trough = __peakdetz(v, delta, lookformax, 0)
 
         if lookformax:
             # % find the direct path from bottomend to topend (or mark lap for
@@ -512,7 +512,7 @@ def get_linear_track_lap_epochs(
     - This function calls `find_laps` to determine the lap structure, then segregates epochs into outbound and inbound directions.
     - The EpochArray objects represent the start and stop timestamps for each identified lap.
     """
-    laps = find_laps(
+    laps = __find_laps(
         np.array(ts),
         np.array(x),
         newLapThreshold=newLapThreshold,

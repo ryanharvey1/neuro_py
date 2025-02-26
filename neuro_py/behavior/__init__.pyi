@@ -8,9 +8,6 @@ __all__ = [
     "get_velocity",
     "get_speed",
     "linearize_position",
-    "find_laps",
-    "peakdetz",
-    "find_good_laps",
     "get_linear_track_lap_epochs",
     "find_good_lap_epochs",
     "NodePicker",
@@ -37,11 +34,8 @@ from .get_trials import (
 from .kinematics import get_speed, get_velocity
 from .linear_positions import (
     find_good_lap_epochs,
-    find_good_laps,
-    find_laps,
     get_linear_track_lap_epochs,
     linearize_position,
-    peakdetz,
 )
 from .linearization_pipeline import NodePicker
 from .well_traversal_classification import (
