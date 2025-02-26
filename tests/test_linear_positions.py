@@ -59,9 +59,6 @@ def lap_data():
 def analog_signal_array(position_data, timestamp_data):
     data, _ = position_data
     time = timestamp_data
-
-    # data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    # time = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     return nel.AnalogSignalArray(data=data, timestamps=time)
 
 
