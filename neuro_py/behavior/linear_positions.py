@@ -23,6 +23,16 @@ def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.nda
     -------
     tuple[numpy.ndarray, numpy.ndarray]
         Linearized x and y coordinates, both of shape (n, 1).
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3, 4, 5])
+    >>> y = np.array([1, 2, 3, 4, 5])
+    >>> linear_x, linear_y = npy.behavior.linearize_position(x, y)
+    >>> linear_x
+    array([0.        , 1.41421356, 2.82842712, 4.24264069, 5.65685425])
+    >>> linear_y
+    array([3.92192151e-16, 0.00000000e+00, 9.80480378e-17, 1.96096076e-16, 2.94144113e-16])
     """
     # locate and remove nans (sklearn pca does not like nans)
     badidx = (np.isnan(x)) | (np.isnan(y))
@@ -511,7 +521,7 @@ def get_linear_track_lap_epochs(
     - This function calls `find_laps` to determine the lap structure, then segregates epochs into outbound and inbound directions.
     - The EpochArray objects represent the start and stop timestamps for each identified lap.
     
-    Example
+    Examples
     -------
     >>> outbound_epochs, inbound_epochs = get_linear_track_lap_epochs(ts, x)
 
@@ -580,7 +590,7 @@ def find_good_lap_epochs(
         Returns an empty EpochArray if no good laps are found or if the number
         of laps is less than `min_laps`.
 
-    Example
+    Examples
     -------
     >>> good_laps = find_good_lap_epochs(pos, dir_epoch)
         
