@@ -128,6 +128,24 @@ def test_find_good_lap_epochs(analog_signal_array, epoch_array):
     assert good_laps.n_intervals == 5
 
 
+def test_find_good_lap_epochs_and_find_good_lap_epochs(analog_signal_array):
+    pos = analog_signal_array
+
+    outbound_epochs, inbound_epochs = get_linear_track_lap_epochs(
+        pos.abscissa_vals, pos.data[0]
+    )
+    assert isinstance(outbound_epochs, nel.EpochArray)
+    assert isinstance(inbound_epochs, nel.EpochArray)
+
+    outbound_epochs = find_good_lap_epochs(pos, outbound_epochs, min_laps=0)
+    inbound_epochs = find_good_lap_epochs(pos, inbound_epochs, min_laps=0)
+    
+    assert isinstance(outbound_epochs, nel.EpochArray)
+    assert isinstance(inbound_epochs, nel.EpochArray)
+    assert outbound_epochs.n_intervals == 5
+    assert inbound_epochs.n_intervals == 0
+
+
 # Edge cases
 def test_linearize_position_with_nans():
     x = np.array([1, 2, np.nan, 4, 5])
