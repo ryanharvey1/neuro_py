@@ -482,7 +482,7 @@ def get_linear_track_lap_epochs(
     """
     Identifies lap epochs on a linear track and classifies them into outbound and inbound directions.
 
-    Parameters:
+    Parameters
     ----------
     ts : np.ndarray
         Array of timestamps corresponding to position data.
@@ -499,17 +499,22 @@ def get_linear_track_lap_epochs(
     posbins : int, optional
         Number of bins to divide the track into for analysis, by default 50.
 
-    Returns:
+    Returns
     -------
     Tuple[nel.EpochArray, nel.EpochArray]
         A tuple containing two nelpy EpochArray objects:
         - outbound_epochs: Epochs representing outbound runs (towards the far end of the track).
         - inbound_epochs: Epochs representing inbound runs (back towards the start).
 
-    Notes:
+    Notes
     ------
     - This function calls `find_laps` to determine the lap structure, then segregates epochs into outbound and inbound directions.
     - The EpochArray objects represent the start and stop timestamps for each identified lap.
+    
+    Example
+    -------
+    >>> outbound_epochs, inbound_epochs = get_linear_track_lap_epochs(ts, x)
+
     """
     laps = __find_laps(
         np.array(ts),
@@ -575,6 +580,10 @@ def find_good_lap_epochs(
         Returns an empty EpochArray if no good laps are found or if the number
         of laps is less than `min_laps`.
 
+    Example
+    -------
+    >>> good_laps = find_good_lap_epochs(pos, dir_epoch)
+        
     Notes
     -----
     The function calculates the percent occupancy over position bins per lap,
