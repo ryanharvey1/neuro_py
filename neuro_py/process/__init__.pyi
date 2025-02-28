@@ -53,6 +53,7 @@ __all__ = (
     "average_diagonal",
     "remove_inactive_cells",
     "remove_inactive_cells_pre_task_post",
+    "compute_image_spread"
 )
 
 from . import batch_analysis
@@ -118,4 +119,5 @@ from .utils import (
     circular_shift,
     remove_inactive_cells,
     remove_inactive_cells_pre_task_post,
+    compute_image_spread
 )
