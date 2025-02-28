@@ -384,31 +384,39 @@ def remove_inactive_cells_pre_task_post(
     )
 
 
-def compute_image_spread(X, exponent):
+def compute_image_spread(X: np.ndarray, exponent: float = 2) -> Tuple[float, float]:
     """
     Compute the spread of an image X using the square root of a weighted moment.
-    Replicated from Widloski Foster 2022
 
     Parameters:
+    -------
       X : 2D numpy array of shape (numBinsY, numBinsX)
           The probability distribution (e.g., a posterior for one time bin).
       exponent : float
           The exponent used in the moment calculation.
-      
+
     Returns:
+    -------
       spread : float
           The computed spread (sqrt of the image moment).
       image_moment : float
           The raw image moment (weighted moment).
+
+    Examples:
+    -------
+      >>> X = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
+      >>> spread, image_moment = compute_image_spread(X, exponent=2)
+
+    References:
+      Widloski Foster 2022
     """
     numBinsY, numBinsX = X.shape
 
     # Compute center of mass (COM) for the X (columns) direction.
-    # Note: In MATLAB, indices run from 1 to numBinsX, so we replicate that here.
     cols = np.arange(1, numBinsX + 1)
     sumX = np.nansum(X, axis=0)  # sum over rows, shape: (numBinsX,)
     totalX = np.nansum(sumX)
-    # Add a small correction term as in MATLAB: 0.5/numBinsX
+    # Add a small correction term
     comX = np.nansum(sumX * cols) / totalX + 0.5 / numBinsX
 
     # Compute center of mass for the Y (rows) direction.
@@ -423,12 +431,14 @@ def compute_image_spread(X, exponent):
     # Compute the weighted moment using the product of the deviations raised to the given exponent.
     # For each bin, we compute:
     #     |XX - comX|^exponent * |YY - comY|^exponent * X(i,j)
-    moment = np.nansum((np.abs(XX - comX) ** exponent) * (np.abs(YY - comY) ** exponent) * X)
-    
+    moment = np.nansum(
+        (np.abs(XX - comX) ** exponent) * (np.abs(YY - comY) ** exponent) * X
+    )
+
     # Normalize by the total probability.
     image_moment = moment / np.nansum(X)
-    
+
     # The spread is the square root of the image moment.
     spread = np.sqrt(image_moment)
-    
+
     return spread, image_moment
