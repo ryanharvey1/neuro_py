@@ -382,3 +382,53 @@ def remove_inactive_cells_pre_task_post(
     return remove_inactive_cells(
         st, cell_metrics, restict_epochs, min_spikes=min_spikes
     )
+
+
+def compute_image_spread(X, exponent):
+    """
+    Compute the spread of an image X using the square root of a weighted moment.
+    Replicated from Widloski Foster 2022
+
+    Parameters:
+      X : 2D numpy array of shape (numBinsY, numBinsX)
+          The probability distribution (e.g., a posterior for one time bin).
+      exponent : float
+          The exponent used in the moment calculation.
+      
+    Returns:
+      spread : float
+          The computed spread (sqrt of the image moment).
+      image_moment : float
+          The raw image moment (weighted moment).
+    """
+    numBinsY, numBinsX = X.shape
+
+    # Compute center of mass (COM) for the X (columns) direction.
+    # Note: In MATLAB, indices run from 1 to numBinsX, so we replicate that here.
+    cols = np.arange(1, numBinsX + 1)
+    sumX = np.nansum(X, axis=0)  # sum over rows, shape: (numBinsX,)
+    totalX = np.nansum(sumX)
+    # Add a small correction term as in MATLAB: 0.5/numBinsX
+    comX = np.nansum(sumX * cols) / totalX + 0.5 / numBinsX
+
+    # Compute center of mass for the Y (rows) direction.
+    rows = np.arange(1, numBinsY + 1)
+    sumY = np.nansum(X, axis=1)  # sum over columns, shape: (numBinsY,)
+    totalY = np.nansum(sumY)
+    comY = np.nansum(sumY * rows) / totalY + 0.5 / numBinsY
+
+    # Create a meshgrid for the bin indices (using 1-indexing like MATLAB)
+    XX, YY = np.meshgrid(np.arange(1, numBinsX + 1), np.arange(1, numBinsY + 1))
+
+    # Compute the weighted moment using the product of the deviations raised to the given exponent.
+    # For each bin, we compute:
+    #     |XX - comX|^exponent * |YY - comY|^exponent * X(i,j)
+    moment = np.nansum((np.abs(XX - comX) ** exponent) * (np.abs(YY - comY) ** exponent) * X)
+    
+    # Normalize by the total probability.
+    image_moment = moment / np.nansum(X)
+    
+    # The spread is the square root of the image moment.
+    spread = np.sqrt(image_moment)
+    
+    return spread, image_moment
