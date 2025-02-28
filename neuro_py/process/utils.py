@@ -384,7 +384,9 @@ def remove_inactive_cells_pre_task_post(
     )
 
 
-def compute_image_spread(X: np.ndarray, exponent: float = 2) -> Tuple[float, float]:
+def compute_image_spread(
+    X: np.ndarray, exponent: float = 2, normalize: bool = True
+) -> Tuple[float, float]:
     """
     Compute the spread of an image using the square root of a weighted moment.
 
@@ -395,10 +397,12 @@ def compute_image_spread(X: np.ndarray, exponent: float = 2) -> Tuple[float, flo
     Parameters
     ----------
     X : np.ndarray
-        A 2D numpy array of shape (numBinsY, numBinsX) representing the probability
-        distribution (e.g., a posterior for one time bin).
+        A 2D numpy array of shape (numBinsY, numBinsX). If `normalize` is True,
+        the input is assumed to represent a probability distribution.
     exponent : float, optional
         The exponent used in the moment calculation. Default is 2.
+    normalize : bool, optional
+        If True, normalize the input array so that its sum is 1. Default is True.
 
     Returns
     -------
@@ -420,6 +424,12 @@ def compute_image_spread(X: np.ndarray, exponent: float = 2) -> Tuple[float, flo
     ----------
     Widloski & Foster, 2022
     """
+    if np.allclose(X, 0):
+        return np.nan, np.nan  # Return NaN if the input is all zero
+    
+    if normalize:
+        X = X / np.nansum(X)  # Normalize the input
+
     numBinsY, numBinsX = X.shape
 
     # Compute center of mass (COM) for the X (columns) direction.
