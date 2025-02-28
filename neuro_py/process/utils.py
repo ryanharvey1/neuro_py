@@ -386,29 +386,39 @@ def remove_inactive_cells_pre_task_post(
 
 def compute_image_spread(X: np.ndarray, exponent: float = 2) -> Tuple[float, float]:
     """
-    Compute the spread of an image X using the square root of a weighted moment.
+    Compute the spread of an image using the square root of a weighted moment.
 
-    Parameters:
+    The spread is calculated as the square root of a weighted moment of the image,
+    where the weights are derived from the deviations of each pixel from the
+    center of mass (COM) of the image.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        A 2D numpy array of shape (numBinsY, numBinsX) representing the probability
+        distribution (e.g., a posterior for one time bin).
+    exponent : float, optional
+        The exponent used in the moment calculation. Default is 2.
+
+    Returns
     -------
-      X : 2D numpy array of shape (numBinsY, numBinsX)
-          The probability distribution (e.g., a posterior for one time bin).
-      exponent : float
-          The exponent used in the moment calculation.
+    spread : float
+        The computed spread, defined as the square root of the weighted moment.
+    image_moment : float
+        The raw weighted moment of the image.
 
-    Returns:
-    -------
-      spread : float
-          The computed spread (sqrt of the image moment).
-      image_moment : float
-          The raw image moment (weighted moment).
+    Examples
+    --------
+    >>> X = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
+    >>> spread, image_moment = compute_image_spread(X, exponent=2)
+    >>> print(spread)
+    0.5704157028642128
+    >>> print(image_moment)
+    0.325374074074074
 
-    Examples:
-    -------
-      >>> X = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
-      >>> spread, image_moment = compute_image_spread(X, exponent=2)
-
-    References:
-      Widloski Foster 2022
+    References
+    ----------
+    Widloski & Foster, 2022
     """
     numBinsY, numBinsX = X.shape
 
