@@ -382,3 +382,83 @@ def remove_inactive_cells_pre_task_post(
     return remove_inactive_cells(
         st, cell_metrics, restict_epochs, min_spikes=min_spikes
     )
+
+
+def compute_image_spread(
+    X: np.ndarray, exponent: float = 2, normalize: bool = True
+) -> Tuple[float, float]:
+    """
+    Compute the spread of an image using the square root of a weighted moment.
+
+    The spread is calculated as the square root of a weighted moment of the image,
+    where the weights are derived from the deviations of each pixel from the
+    center of mass (COM) of the image.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        A 2D numpy array of shape (numBinsY, numBinsX). If `normalize` is True,
+        the input is assumed to represent a probability distribution.
+    exponent : float, optional
+        The exponent used in the moment calculation. Default is 2.
+    normalize : bool, optional
+        If True, normalize the input array so that its sum is 1. Default is True.
+
+    Returns
+    -------
+    spread : float
+        The computed spread, defined as the square root of the weighted moment.
+    image_moment : float
+        The raw weighted moment of the image.
+
+    Examples
+    --------
+    >>> X = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
+    >>> spread, image_moment = compute_image_spread(X, exponent=2)
+    >>> print(spread)
+    0.5704157028642128
+    >>> print(image_moment)
+    0.325374074074074
+
+    References
+    ----------
+    Widloski & Foster, 2022
+    """
+    if np.allclose(X, 0):
+        return np.nan, np.nan  # Return NaN if the input is all zero
+    
+    if normalize:
+        X = X / np.nansum(X)  # Normalize the input
+
+    numBinsY, numBinsX = X.shape
+
+    # Compute center of mass (COM) for the X (columns) direction.
+    cols = np.arange(1, numBinsX + 1)
+    sumX = np.nansum(X, axis=0)  # sum over rows, shape: (numBinsX,)
+    totalX = np.nansum(sumX)
+    # Add a small correction term
+    comX = np.nansum(sumX * cols) / totalX + 0.5 / numBinsX
+
+    # Compute center of mass for the Y (rows) direction.
+    rows = np.arange(1, numBinsY + 1)
+    sumY = np.nansum(X, axis=1)  # sum over columns, shape: (numBinsY,)
+    totalY = np.nansum(sumY)
+    comY = np.nansum(sumY * rows) / totalY + 0.5 / numBinsY
+
+    # Create a meshgrid for the bin indices (using 1-indexing like MATLAB)
+    XX, YY = np.meshgrid(np.arange(1, numBinsX + 1), np.arange(1, numBinsY + 1))
+
+    # Compute the weighted moment using the product of the deviations raised to the given exponent.
+    # For each bin, we compute:
+    #     |XX - comX|^exponent * |YY - comY|^exponent * X(i,j)
+    moment = np.nansum(
+        (np.abs(XX - comX) ** exponent) * (np.abs(YY - comY) ** exponent) * X
+    )
+
+    # Normalize by the total probability.
+    image_moment = moment / np.nansum(X)
+
+    # The spread is the square root of the image moment.
+    spread = np.sqrt(image_moment)
+
+    return spread, image_moment
