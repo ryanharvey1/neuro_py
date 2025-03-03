@@ -53,6 +53,7 @@ __all__ = (
     "average_diagonal",
     "remove_inactive_cells",
     "remove_inactive_cells_pre_task_post",
+    "swr_modulated_units"
     "compute_image_spread"
 )
 
@@ -93,6 +94,7 @@ from .peri_event import (
     nearest_event_delay,
     peth_matrix,
     relative_times,
+    swr_modulated_units
 )
 from .precession_utils import (
     acf_power,
