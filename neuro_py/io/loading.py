@@ -2275,11 +2275,23 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
     mapped_shanks = []
     mapped_channels = []
     
-    for shank_i in np.arange(data['session']['extracellular']['nElectrodeGroups']):
+    n_groups = data['session']['extracellular']['nElectrodeGroups']
+
+    if n_groups > 1:
+
+        # loop through electrode groups
+        for group_i in np.arange(n_groups):
+            mapped_channels.append(
+                electrode_groups[group_i] - 1
+            )  # -1 to make 0 indexed
+            mapped_shanks.append(np.repeat(group_i, len(electrode_groups[group_i])))
+
+    elif n_groups == 1: 
+
         mapped_channels.append(
-            electrode_groups[shank_i] - 1
+            electrode_groups - 1
         )  # -1 to make 0 indexed
-        mapped_shanks.append(np.repeat(shank_i, len(electrode_groups[shank_i])))
+        mapped_shanks.append(np.repeat(0, len(electrode_groups))) # electrode group for single shank always 0
 
     #  unpack to lists
     mapped_channels = list(chain(*mapped_channels))
