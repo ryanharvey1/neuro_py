@@ -2269,6 +2269,11 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
     data = sio.loadmat(filename, simplify_cells=True)
     x = data["session"]['extracellular']['chanCoords']['x']
     y = data["session"]['extracellular']['chanCoords']['y']
+
+    if (len(x) == 0) & (len(y) == 0):
+        warnings.warn("The coordinates are empty in session.extracellular.chanCoords. Returning None - check session file")
+        return None
+    
     electrode_groups = data["session"]["extracellular"]["electrodeGroups"]['channels']
 
     # for each group in electrodeGroups
