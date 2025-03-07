@@ -1588,7 +1588,7 @@ def load_epoch(basepath: str) -> pd.DataFrame:
 
 def load_trials(basepath: str) -> pd.DataFrame:
     """
-    Loads trials from cell explorer basename.session.behavioralTracking and stores in a DataFrame.
+    Loads trials from cell explorer basename.animal.behavior and stores in a DataFrame.
 
     Parameters
     ----------
@@ -1599,8 +1599,8 @@ def load_trials(basepath: str) -> pd.DataFrame:
     -------
     pd.DataFrame
         DataFrame with the following fields:
-        - startTime: start time of the trial
-        - stopTime: stop time of the trial
+        - startTime: start time of the trial, in seconds
+        - stopTime: stop time of the trial, in seconds
         - trialsID: ID of the trial
 
     References
