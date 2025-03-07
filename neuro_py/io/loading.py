@@ -367,7 +367,7 @@ class LFPLoader(object):
         frequency = derivative / (2 * np.pi)
 
         return filt_sig, phase, amplitude, amplitude_filtered, frequency
-        
+
 
 # Alias for backwards compatibility
 class __init__(LFPLoader):
@@ -1602,26 +1602,69 @@ def load_trials(basepath: str) -> pd.DataFrame:
         - startTime: start time of the trial
         - stopTime: stop time of the trial
         - trialsID: ID of the trial
+
+    References
+    ----------
+    https://cellexplorer.org/datastructure/data-structure-and-format/#behavior
     """
-    try:
-        filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
-    except Exception:
+
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".animal.behavior.mat"
+    )
+
+    if not os.path.exists(filename):
         warnings.warn("file does not exist")
         return pd.DataFrame()
 
     # load file
     data = sio.loadmat(filename, simplify_cells=True)
+    if "trials" not in data["behavior"].keys():
+        warnings.warn("trials not found in file")
+        return pd.DataFrame()
 
-    try:
-        df = pd.DataFrame(data=data["behavior"]["trials"])
+    # current standard is
+    #   behavior.trials.*name of trial*.start
+    #   behavior.trials.*name of trial*.stop
+    if (
+        isinstance(data["behavior"]["trials"], dict)
+        and "starts" in data["behavior"]["trials"].keys()
+        and "stops" in data["behavior"]["trials"].keys()
+    ):
+        df = pd.DataFrame(
+            data=np.array(
+                [
+                    data["behavior"]["trials"]["starts"],
+                    data["behavior"]["trials"]["stops"],
+                ]
+            ).T
+        )
         df.columns = ["startTime", "stopTime"]
-        df["trialsID"] = data["behavior"]["trialsID"]
-        return df
-    except Exception:
-        df = pd.DataFrame(data=[data["behavior"]["trials"]])
-        df.columns = ["startTime", "stopTime"]
-        df["trialsID"] = data["behavior"]["trialsID"]
-        return df
+        df["trialsID"] = data["behavior"]["trials"]["stateName"]
+
+    # old standard
+    #   behavior.trials.*[starts,stops]*
+    else:
+        # check if trials is empty
+        if len(data["behavior"]["trials"]) == 0:
+            warnings.warn("trials is empty")
+            return pd.DataFrame()
+        try:
+            df = pd.DataFrame(data=data["behavior"]["trials"])
+            df.columns = ["startTime", "stopTime"]
+            # check if trialsID exists
+            if "trialsID" in data["behavior"].keys():
+                df["trialsID"] = data["behavior"]["trialsID"]
+        except Exception:
+            df = pd.DataFrame(data=[data["behavior"]["trials"]])
+            df.columns = ["startTime", "stopTime"]
+            # check if trialsID exists
+            if "trialsID" in data["behavior"].keys():
+                if len(data["behavior"]["trialsID"]) == df.shape[0]:
+                    df["trialsID"] = data["behavior"]["trialsID"]
+                else:
+                    warnings.warn("trials or trialsID not correct shape")
+
+    return df
 
 
 def load_brain_regions(
@@ -2267,23 +2310,24 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
 
     # load file
     data = sio.loadmat(filename, simplify_cells=True)
-    x = data["session"]['extracellular']['chanCoords']['x']
-    y = data["session"]['extracellular']['chanCoords']['y']
+    x = data["session"]["extracellular"]["chanCoords"]["x"]
+    y = data["session"]["extracellular"]["chanCoords"]["y"]
 
     if (len(x) == 0) & (len(y) == 0):
-        warnings.warn("The coordinates are empty in session.extracellular.chanCoords. Returning None - check session file")
+        warnings.warn(
+            "The coordinates are empty in session.extracellular.chanCoords. Returning None - check session file"
+        )
         return None
-    
-    electrode_groups = data["session"]["extracellular"]["electrodeGroups"]['channels']
+
+    electrode_groups = data["session"]["extracellular"]["electrodeGroups"]["channels"]
 
     # for each group in electrodeGroups
     mapped_shanks = []
     mapped_channels = []
-    
-    n_groups = data['session']['extracellular']['nElectrodeGroups']
+
+    n_groups = data["session"]["extracellular"]["nElectrodeGroups"]
 
     if n_groups > 1:
-
         # loop through electrode groups
         for group_i in np.arange(n_groups):
             mapped_channels.append(
@@ -2291,12 +2335,11 @@ def load_probe_layout(basepath: str) -> pd.DataFrame:
             )  # -1 to make 0 indexed
             mapped_shanks.append(np.repeat(group_i, len(electrode_groups[group_i])))
 
-    elif n_groups == 1: 
-
-        mapped_channels.append(
-            electrode_groups - 1
-        )  # -1 to make 0 indexed
-        mapped_shanks.append(np.repeat(0, len(electrode_groups))) # electrode group for single shank always 0
+    elif n_groups == 1:
+        mapped_channels.append(electrode_groups - 1)  # -1 to make 0 indexed
+        mapped_shanks.append(
+            np.repeat(0, len(electrode_groups))
+        )  # electrode group for single shank always 0
 
     #  unpack to lists
     mapped_channels = list(chain(*mapped_channels))
