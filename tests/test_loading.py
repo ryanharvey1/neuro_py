@@ -236,14 +236,14 @@ def test_load_brain_regions_dataframe_output():
         patch("scipy.io.loadmat", return_value=mock_data) as mock_loadmat,
         patch(
             "neuro_py.io.loading.loadXML",
-            return_value=(None, None, None, {0: [0, 1, 2, 3], 1: [4, 5, 6, 7]}),
+            return_value=(8, 20_000, 1250, {0: [0, 1, 2, 3], 1: [4, 5, 6, 7]}),
         ) as mock_loadxml,
     ):
         # Debug: Print mock objects
         print(f"mock_exists: {mock_exists}")
         print(f"mock_loadmat: {mock_loadmat}")
         print(f"mock_loadxml: {mock_loadxml}")
-        
+
         result = load_brain_regions(basepath, out_format="DataFrame")
 
         # Check that the result is a DataFrame with the correct structure
