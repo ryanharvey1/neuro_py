@@ -1687,7 +1687,7 @@ def load_brain_regions(
 
     Examples
     -------
-    >>> brainRegions = load_epoch("Z:\\Data\\GirardeauG\\Rat09\\Rat09-20140327")
+    >>> brainRegions = load_brain_regions("Z:\\Data\\GirardeauG\\Rat09\\Rat09-20140327")
     >>> print(brainRegions.keys())
     dict_keys(['CA1', 'Unknown', 'blv', 'bmp', 'ven'])
     >>> print(brainRegions['CA1'].keys())
