@@ -132,18 +132,18 @@ def test_load_brain_regions_file_not_found():
     """Test that the function returns an empty dict/DataFrame and issues a warning when the file does not exist."""
     basepath = "/fake/path"
 
-    # with warnings.catch_warnings(record=True) as w:
-    # Test for dict output
-    result_dict = load_brain_regions(basepath, out_format="dict")
-    assert result_dict == {}
-    # assert len(w) == 1
-    # assert "does not exist" in str(w[0].message)
+    with warnings.catch_warnings(record=True):
+        # Test for dict output
+        result_dict = load_brain_regions(basepath, out_format="dict")
+        assert result_dict == {}
+        # assert len(w) == 1
+        # assert "does not exist" in str(w[0].message)
 
-    # Test for DataFrame output
-    result_df = load_brain_regions(basepath, out_format="DataFrame")
-    assert result_df.empty
-    # assert len(w) == 2
-    # assert "does not exist" in str(w[1].message)
+        # Test for DataFrame output
+        result_df = load_brain_regions(basepath, out_format="DataFrame")
+        assert result_df.empty
+        # assert len(w) == 2
+        # assert "does not exist" in str(w[1].message)
 
 
 def test_load_brain_regions_no_brain_regions_key():
@@ -155,18 +155,18 @@ def test_load_brain_regions_no_brain_regions_key():
         patch("os.path.exists", return_value=True),
         patch("scipy.io.loadmat", return_value={"session": {}}),
     ):
-        # with warnings.catch_warnings(record=True) as w:
-        # Test for dict output
-        result_dict = load_brain_regions(basepath, out_format="dict")
-        assert result_dict == {}
-        # assert len(w) == 1
-        # assert "brainRegions not found in file" in str(w[0].message)
+        with warnings.catch_warnings(record=True):
+            # Test for dict output
+            result_dict = load_brain_regions(basepath, out_format="dict")
+            assert result_dict == {}
+            # assert len(w) == 1
+            # assert "brainRegions not found in file" in str(w[0].message)
 
-        # Test for DataFrame output
-        result_df = load_brain_regions(basepath, out_format="DataFrame")
-        assert result_df.empty
-        # assert len(w) == 2
-        # assert "brainRegions not found in file" in str(w[1].message)
+            # Test for DataFrame output
+            result_df = load_brain_regions(basepath, out_format="DataFrame")
+            assert result_df.empty
+            # assert len(w) == 2
+            # assert "brainRegions not found in file" in str(w[1].message)
 
 
 def test_load_brain_regions_dict_output():
@@ -232,13 +232,18 @@ def test_load_brain_regions_dataframe_output():
 
     # Mock the file existence, loadmat, and loadXML functions
     with (
-        patch("os.path.exists", return_value=True),
-        patch("scipy.io.loadmat", return_value=mock_data),
+        patch("os.path.exists", return_value=True) as mock_exists,
+        patch("scipy.io.loadmat", return_value=mock_data) as mock_loadmat,
         patch(
             "neuro_py.io.loading.loadXML",
             return_value=(None, None, None, {0: [0, 1, 2, 3], 1: [4, 5, 6, 7]}),
-        ),
+        ) as mock_loadxml,
     ):
+        # Debug: Print mock objects
+        print(f"mock_exists: {mock_exists}")
+        print(f"mock_loadmat: {mock_loadmat}")
+        print(f"mock_loadxml: {mock_loadxml}")
+        
         result = load_brain_regions(basepath, out_format="DataFrame")
 
         # Check that the result is a DataFrame with the correct structure
