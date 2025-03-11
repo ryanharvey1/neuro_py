@@ -4,7 +4,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from neuro_py.io.loading import load_brain_regions, load_trials, loadXML
+from neuro_py.io.loading import load_brain_regions, load_trials
 
 
 # test load_trials
@@ -155,18 +155,18 @@ def test_load_brain_regions_no_brain_regions_key():
         patch("os.path.exists", return_value=True),
         patch("scipy.io.loadmat", return_value={"session": {}}),
     ):
-        with warnings.catch_warnings(record=True) as w:
-            # Test for dict output
-            result_dict = load_brain_regions(basepath, out_format="dict")
-            assert result_dict == {}
-            # assert len(w) == 1
-            # assert "brainRegions not found in file" in str(w[0].message)
+        # with warnings.catch_warnings(record=True) as w:
+        # Test for dict output
+        result_dict = load_brain_regions(basepath, out_format="dict")
+        assert result_dict == {}
+        # assert len(w) == 1
+        # assert "brainRegions not found in file" in str(w[0].message)
 
-            # Test for DataFrame output
-            result_df = load_brain_regions(basepath, out_format="DataFrame")
-            assert result_df.empty
-            # assert len(w) == 2
-            # assert "brainRegions not found in file" in str(w[1].message)
+        # Test for DataFrame output
+        result_df = load_brain_regions(basepath, out_format="DataFrame")
+        assert result_df.empty
+        # assert len(w) == 2
+        # assert "brainRegions not found in file" in str(w[1].message)
 
 
 def test_load_brain_regions_dict_output():
