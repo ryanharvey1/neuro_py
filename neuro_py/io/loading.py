@@ -19,6 +19,7 @@ from scipy import signal
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
+from neuro_py.util.array import is_nested
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -1737,13 +1738,18 @@ def load_brain_regions(
         # get channel order from electrodeGroups in session file
         shank_to_channel = data["extracellular"]["electrodeGroups"]["channels"]
 
-        channels = np.hstack(shank_to_channel)
-        shanks = np.hstack(
-            [
-                np.repeat(i, len(shank_to_channel[i]))
-                for i in range(len(shank_to_channel))
-            ]
-        )
+        # check if nested array for multi shank
+        if is_nested(shank_to_channel) or shank_to_channel.ndim > 1:
+            channels = np.hstack(shank_to_channel)
+            shanks = np.hstack(
+                [
+                    np.repeat(i, len(shank_to_channel[i]))
+                    for i in range(len(shank_to_channel))
+                ]
+            )
+        else:
+            channels = shank_to_channel
+            shanks = np.zeros(len(channels))
 
         mapped_df = pd.DataFrame(columns=["channels", "region"])
         mapped_df["channels"] = channels
