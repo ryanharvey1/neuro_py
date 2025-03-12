@@ -1734,20 +1734,16 @@ def load_brain_regions(
         }
 
     if out_format == "DataFrame":  # return as DataFrame
-        _, _, _, shank_to_channel = loadXML(basepath)
+        # get channel order from electrodeGroups in session file
+        shank_to_channel = data["extracellular"]["electrodeGroups"]["channels"]
 
-        # sort channels by shank
-        mapped_channels = []
-        mapped_shanks = []
-        for key, shank_i in enumerate(shank_to_channel.keys()):
-            mapped_channels.append(shank_to_channel[key])
-            mapped_shanks.append(np.repeat(shank_i, len(shank_to_channel[key])))
-
-        #  unpack to lists
-        channels = (
-            np.array(list(chain(*mapped_channels))) + 1
-        )  # add 1 to match 1-indexed channels
-        shanks = list(chain(*mapped_shanks))
+        channels = np.hstack(shank_to_channel)
+        shanks = np.hstack(
+            [
+                np.repeat(i, len(shank_to_channel[i]))
+                for i in range(len(shank_to_channel))
+            ]
+        )
 
         mapped_df = pd.DataFrame(columns=["channels", "region"])
         mapped_df["channels"] = channels
