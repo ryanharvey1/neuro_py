@@ -19,6 +19,7 @@ from scipy import signal
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
+from neuro_py.util.array import is_nested
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -1698,49 +1699,69 @@ def load_brain_regions(
     >>> print(brainRegions['CA1']['electrodeGroups'])
         [17 18 19 20]
     """
-    filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
-    _, _, _, shank_to_channel = loadXML(basepath)
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
+
+    if not os.path.exists(filename):
+        warnings.warn(f"file {filename} does not exist")
+        if out_format == "DataFrame":
+            return pd.DataFrame()
+        else:
+            return {}
 
     # load file
-    data = sio.loadmat(filename)
+    data = sio.loadmat(filename, simplify_cells=True)
     data = data["session"]
 
+    if "brainRegions" not in data.keys():
+        warnings.warn("brainRegions not found in file")
+        if out_format == "DataFrame":
+            return pd.DataFrame()
+        else:
+            return {}
+
     brainRegions = {}
-    for dn in data["brainRegions"][0][0].dtype.names:
-        channels = data["brainRegions"][0][0][dn][0][0][0][0][0][0]
+    for region in data["brainRegions"].keys():
+        if len(data["brainRegions"][region]) == 0:
+            continue
+        channels = data["brainRegions"][region]["channels"]
         try:
-            electrodeGroups = data["brainRegions"][0][0][dn][0][0][0][0][1][0]
+            electrodeGroups = data["brainRegions"][region]["electrodeGroups"]
         except Exception:
             electrodeGroups = np.nan
 
-        brainRegions[dn] = {
+        brainRegions[region] = {
             "channels": channels,
             "electrodeGroups": electrodeGroups,
         }
 
     if out_format == "DataFrame":  # return as DataFrame
-        region_df = pd.DataFrame(columns=["channels", "region"])
-        for key in brainRegions.keys():
-            temp_df = pd.DataFrame(brainRegions[key]["channels"], columns=["channels"])
-            temp_df["region"] = key
+        # get channel order from electrodeGroups in session file
+        shank_to_channel = data["extracellular"]["electrodeGroups"]["channels"]
 
-            region_df = pd.concat([region_df, temp_df])
+        # check if nested array for multi shank
+        if is_nested(shank_to_channel) or shank_to_channel.ndim > 1:
+            channels = np.hstack(shank_to_channel)
+            shanks = np.hstack(
+                [
+                    np.repeat(i, len(shank_to_channel[i]))
+                    for i in range(len(shank_to_channel))
+                ]
+            )
+        else:
+            channels = shank_to_channel
+            shanks = np.zeros(len(channels))
 
-            # # sort channels by shank
-        mapped_channels = []
-        mapped_shanks = []
-        for key, shank_i in enumerate(shank_to_channel.keys()):
-            mapped_channels.append(shank_to_channel[key])
-            mapped_shanks.append(np.repeat(shank_i, len(shank_to_channel[key])))
-        #  unpack to listssss
-        idx = list(chain(*mapped_channels))
-        shanks = list(chain(*mapped_shanks))
-
-        mapped_df = region_df.sort_values("channels").reset_index(drop=True).iloc[idx]
+        mapped_df = pd.DataFrame(columns=["channels", "region"])
+        mapped_df["channels"] = channels
+        mapped_df["region"] = "Unknown"
         mapped_df["shank"] = shanks
-        mapped_df["channels"] = (
-            mapped_df["channels"] - 1
-        )  # save channel as zero-indexed
+
+        for key in brainRegions.keys():
+            idx = np.in1d(channels, brainRegions[key]["channels"])
+            mapped_df.loc[idx, "region"] = key
+
+        # save channel as zero-indexed
+        mapped_df["channels"] = mapped_df["channels"] - 1
 
         return mapped_df.reset_index(drop=True)
 

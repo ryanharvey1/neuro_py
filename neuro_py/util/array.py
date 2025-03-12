@@ -107,3 +107,36 @@ def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
             arr[tuple(slicer)] = subarray  # Replace modified subarray
 
     return arr
+
+
+def is_nested(array: np.ndarray) -> bool:
+    """
+    Check if an array is nested.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        Input array.
+
+    Returns
+    -------
+    bool
+        True if the array is nested, False otherwise.
+
+    Examples
+    --------
+    >>> is_nested(np.array([1, 2, 3]))
+    False
+
+    >>> is_nested(np.array([[1, 2], [3, 4]]))
+    False
+
+    >>> is_nested(np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]))
+    False
+
+    >>> is_nested(np.array([np.array([1, 2]), np.array([3, 4, 5])], dtype=object))
+    True
+    """
+    if array.dtype != object:
+        return False
+    return any(isinstance(item, np.ndarray) for item in array)
