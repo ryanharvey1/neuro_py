@@ -19,7 +19,7 @@ def filter_tracker_jumps(
     beh_df : pd.DataFrame
         Behavior data with columns x, y, and ts.
     max_speed : Union[int,float], optional
-        Maximum allowed speed in pixels per second.
+        Maximum allowed speed in cm per second.
 
     Returns
     -------
