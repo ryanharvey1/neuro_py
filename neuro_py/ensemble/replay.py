@@ -11,9 +11,8 @@ from nelpy.decoding import decode1D as decode
 from numba import jit
 
 from neuro_py.ensemble.pairwise_bias_correlation import (
-    bias_matrix_njit,
+    skew_bias_matrix,
     cosine_similarity_matrices,
-    normalize_bias_matrix,
 )
 from neuro_py.process.peri_event import crossCorr
 
@@ -429,8 +428,8 @@ class PairwiseBias(object):
     ----------
     total_neurons : int, or None
         Total number of neurons in the dataset.
-    task_normalized : np.ndarray, or None
-        Normalized bias matrix for the task data.
+    task_skew_bias : np.ndarray, or None
+        Normalized skew-bias matrix for the task data.
     observed_correlation_ : np.ndarray, or None
         Observed cosine similarity between task and post-task bias matrices.
     shuffled_correlations_ : np.ndarray, or None
@@ -457,7 +456,7 @@ class PairwiseBias(object):
         self.n_jobs = n_jobs
         self.fillneutral = fillneutral
         self.total_neurons = None
-        self.task_normalized = None
+        self.task_skew_bias = None
         self.observed_correlation_ = None
         self.shuffled_correlations_ = None
         self.z_score_ = None
@@ -490,24 +489,7 @@ class PairwiseBias(object):
         np.ndarray
             A matrix of size (total_neurons, total_neurons) representing the bias.
         """
-        return bias_matrix_njit(spike_times, neuron_ids, total_neurons, fillneutral)
-
-    @staticmethod
-    def normalize_bias_matrix(bias_matrix: np.ndarray) -> np.ndarray:
-        """
-        Normalize the bias matrix values to fall between -1 and 1.
-
-        Parameters
-        ----------
-        bias_matrix : np.ndarray
-            A bias matrix of shape (n, n).
-
-        Returns
-        -------
-        np.ndarray
-            Normalized matrix with values between -1 and 1.
-        """
-        return normalize_bias_matrix(bias_matrix)
+        return skew_bias_matrix(spike_times, neuron_ids, total_neurons, fillneutral)
 
     @staticmethod
     def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
@@ -532,7 +514,7 @@ class PairwiseBias(object):
         self,
         post_spikes: np.ndarray,
         post_neurons: np.ndarray,
-        task_normalized: np.ndarray,
+        task_skew_bias: np.ndarray,
         post_intervals: np.ndarray,
         interval_i: int,
     ) -> Tuple[float, List[float]]:
@@ -566,31 +548,28 @@ class PairwiseBias(object):
         filtered_spikes = post_spikes[start_idx:end_idx]
         filtered_neurons = post_neurons[start_idx:end_idx]
 
-        post_bias_matrix = self.bias_matrix(
+        post_skew_bias = self.bias_matrix(
             filtered_spikes,
             filtered_neurons,
             self.total_neurons,
             fillneutral=self.fillneutral,
         )
 
-        post_normalized = self.normalize_bias_matrix(post_bias_matrix)
-
         observed_correlation = self.cosine_similarity_matrices(
-            task_normalized, post_normalized
+            task_skew_bias, post_skew_bias
         )
 
         shuffled_correlation = []
         for _ in range(self.num_shuffles):
             shuffled_neurons = np.random.permutation(filtered_neurons)
-            shuffled_bias_matrix = self.bias_matrix(
+            shuffled_skew_bias = self.bias_matrix(
                 filtered_spikes,
                 shuffled_neurons,
                 self.total_neurons,
                 fillneutral=self.fillneutral,
             )
-            shuffled_normalized = self.normalize_bias_matrix(shuffled_bias_matrix)
             shuffled_correlation.append(
-                self.cosine_similarity_matrices(task_normalized, shuffled_normalized)
+                self.cosine_similarity_matrices(task_skew_bias, shuffled_skew_bias)
             )
 
         return observed_correlation, shuffled_correlation
@@ -628,16 +607,16 @@ class PairwiseBias(object):
 
         if task_intervals is None:
             # Compute bias matrix for task data and normalize
-            task_bias_matrix = self.bias_matrix(
+            task_skew_bias = self.bias_matrix(
                 task_spikes,
                 task_neurons,
                 self.total_neurons,
                 fillneutral=self.fillneutral,
             )
-            self.task_normalized = self.normalize_bias_matrix(task_bias_matrix)
+            self.task_skew_bias = task_skew_bias
         else:
             # Compute bias matrices for each task interval
-            task_normalized_matrices = []
+            task_skew_biases = []
 
             for interval in task_intervals:
                 # find the indices of spikes within the interval
@@ -649,20 +628,19 @@ class PairwiseBias(object):
                 interval_neurons = task_neurons[start_idx:end_idx]
 
                 # Compute the bias matrix for the interval
-                bias_matrix = self.bias_matrix(
+                interval_skew_bias = self.bias_matrix(
                     interval_spikes,
                     interval_neurons,
                     self.total_neurons,
                     fillneutral=self.fillneutral,
                 )
-                bias_matrix = self.normalize_bias_matrix(bias_matrix)
-                task_normalized_matrices.append(bias_matrix)
+                task_skew_biases.append(interval_skew_bias)
 
             # Average the normalized bias matrices
             # I expect to see RuntimeWarnings in this block
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                self.task_normalized = np.nanmean(task_normalized_matrices, axis=0)
+                self.task_skew_bias = np.nanmean(task_skew_biases, axis=0)
         return self
 
     def transform(
@@ -706,7 +684,7 @@ class PairwiseBias(object):
                     delayed(self.observed_and_shuffled_correlation)(
                         post_spikes,
                         post_neurons,
-                        self.task_normalized,
+                        self.task_skew_bias,
                         post_intervals,
                         interval_i,
                     )
@@ -719,7 +697,7 @@ class PairwiseBias(object):
                     self.observed_and_shuffled_correlation(
                         post_spikes,
                         post_neurons,
-                        self.task_normalized,
+                        self.task_skew_bias,
                         post_intervals,
                         interval_i,
                     )

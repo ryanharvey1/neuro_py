@@ -16,164 +16,15 @@ from neuro_py.session.locate_epochs import (
 from neuro_py.spikes import spike_tools
 
 
-def bias_matrix(
-    spike_times: np.ndarray,
-    neuron_ids: np.ndarray,
-    total_neurons: int,
-    fillneutral: float = 0.5
-) -> np.ndarray:
-    r"""
-    Compute the pairwise bias matrix for a given sequence of spikes.
-
-    Parameters
-    ----------
-    spike_times : numpy.ndarray
-        Spike times for the sequence, assumed to be sorted.
-    neuron_ids : numpy.ndarray
-        Neuron identifiers corresponding to `spike_times`.
-        Values should be integers between 0 and `total_neurons - 1`.
-    total_neurons : int
-        Total number of neurons being considered.
-    fillneutral : float, optional
-        Value to fill for neutral bias, by default 0.5
-
-    Returns
-    -------
-    numpy.ndarray
-        A bias matrix of size `(total_neurons, total_neurons)` where
-        each entry represents the bias between neuron pairs.
-
-    Notes
-    -----
-    The bias \( B_{ij} \) for neurons \( i \) and \( j \) is computed as:
-    \[
-    B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
-    \]
-    where \( nspikes_{ij} \) is the count of spikes from neuron \( i \) occurring 
-    before spikes from neuron \( j \). If there are no spikes for either neuron,
-    the bias is set to 0.5 (neutral bias).
-    """
-    bias = np.empty((total_neurons, total_neurons))
-    np.fill_diagonal(bias, fillneutral)
-
-    # Create boolean masks for all neurons in advance
-    masks = [neuron_ids == i for i in range(total_neurons)]
-
-    for i in range(total_neurons):
-        spikes_i = spike_times[masks[i]]  # timestamps for neuron i
-        nspikes_i = spikes_i.size
-        for j in range(total_neurons):
-            if i != j:
-                spikes_j = spike_times[masks[j]]
-                nspikes_j = spikes_j.size
-
-                if nspikes_i > 0 and nspikes_j > 0:
-                    # Count how many times neuron i spikes before each neuron j spike
-                    nspikes_ij = np.searchsorted(
-                        spikes_i, spikes_j, side='right').sum()
-                    bias[i, j] = nspikes_ij / (nspikes_i * nspikes_j)
-                else:
-                    bias[i, j] = fillneutral  # Neutral bias if no spikes
-
-    return bias
-
-
-def bias_matrix_fast(
-    spike_times: np.ndarray,
-    neuron_ids: np.ndarray,
-    total_neurons: int,
-    fillneutral: float = 0.5,
-    return_counts: bool = False
-) -> np.ndarray:
-    r"""
-    Compute the pairwise bias matrix for a given sequence of spikes.
-
-    Parameters
-    ----------
-    spike_times : numpy.ndarray
-        Spike times for the sequence, assumed to be sorted.
-    neuron_ids : numpy.ndarray
-        Neuron identifiers corresponding to `spike_times`.
-        Values should be integers between 0 and `total_neurons - 1`.
-    total_neurons : int
-        Total number of neurons being considered.
-    fillneutral : float, optional
-        Value to fill for neutral bias, by default 0.5
-
-    Returns
-    -------
-    bias : numpy.ndarray
-        A bias matrix of size `(total_neurons, total_neurons)` where
-        each entry represents the bias between neuron pairs.
-    ibeforej : numpy.ndarray, optional
-        A matrix of size `(total_neurons, total_neurons)` where
-        each entry represents the count of spikes from neuron \( i \) occurring
-        before spikes from neuron \( j \).
-    prod_nspikes_ij : numpy.ndarray, optional
-        A matrix of size `(total_neurons, total_neurons)` where
-        each entry represents the product of spikes from neurons \( i \) and
-        \( j \).
-
-    Notes
-    -----
-    Refer to the `bias_matrix` function for better code interpretability.
-
-    The bias \( B_{ij} \) for neurons \( i \) and \( j \) is computed as:
-    \[
-    B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
-    \]
-    where \( nspikes_{ij} \) is the count of spikes from neuron \( i \) occurring 
-    before spikes from neuron \( j \). If there are no spikes for either neuron,
-    the bias is set to 0.5 (neutral bias).
-
-    References
-    ----------
-    .. [1] Roth, Z. (2016). Analysis of neuronal sequences using pairwise
-        biases. arXiv, 65-67 (2016). https://arxiv.org/abs/1603.02916
-    """
-    ibeforej = np.zeros((total_neurons, total_neurons))  # rows: i, cols: j
-    prod_nspikes_ij = np.zeros((total_neurons, total_neurons))
-    bias = np.empty((total_neurons, total_neurons))
-
-    # Create boolean masks for all neurons in advance
-    masks = [neuron_ids == i for i in range(total_neurons)]
-
-    for i in range(total_neurons):
-        spikes_i = spike_times[masks[i]]  # timestamps for neuron i
-        nspikes_i = spikes_i.size
-        for j in range(i + 1, total_neurons):
-            spikes_j = spike_times[masks[j]]
-            nspikes_j = spikes_j.size
-
-            if nspikes_i > 0 and nspikes_j > 0:
-                # Count how many times neuron i spikes before each neuron j spike
-                nspikes_ij = np.searchsorted(
-                    spikes_i, spikes_j, side='right').sum()
-                ibeforej[i, j] = nspikes_ij
-                prod_nspikes_ij[i, j] = nspikes_i * nspikes_j
-
-    jbeforei = prod_nspikes_ij - ibeforej
-    prod_nspikes_ij = prod_nspikes_ij + prod_nspikes_ij.T  # symmetrize
-    ibeforej = ibeforej + jbeforei.T
-    np.divide(ibeforej, prod_nspikes_ij, out=bias, where=prod_nspikes_ij != 0)
-    # set remaining values to fillneutral
-    bias[prod_nspikes_ij == 0] = fillneutral
-
-    if return_counts:
-        return bias, ibeforej, prod_nspikes_ij
-
-    return bias
-
-
 @njit
-def bias_matrix_njit(
+def skew_bias_matrix(
     spike_times: np.ndarray,
     neuron_ids: np.ndarray,
     total_neurons: int,
-    fillneutral: float = 0.5
+    fillneutral: float = 0
 ) -> np.ndarray:
     r"""
-    Compute the pairwise bias matrix for a given sequence of spikes.
+    Compute the pairwise skew-bias matrix for a given sequence of spikes.
 
     Parameters
     ----------
@@ -185,80 +36,82 @@ def bias_matrix_njit(
     total_neurons : int
         Total number of neurons being considered.
     fillneutral : float, optional
-        Value to fill for neutral bias, by default 0.5
+        Value to fill for neutral bias, by default 0
 
     Returns
     -------
     numpy.ndarray
-        A bias matrix of size `(total_neurons, total_neurons)` where
-        each entry represents the bias between neuron pairs.
+        Skew-bias matrix of size `(total_neurons, total_neurons)` where
+        each entry represents the normalized bias between neuron pairs.
 
     Notes
     -----
     Refer to the `bias_matrix` function for better code interpretability.
 
-    The bias \( B_{ij} \) for neurons \( i \) and \( j \) is computed as:
+    The probability-bias \( B_{ij} \) for neurons \( i \) and \( j \) is
+    computed as:
     \[
     B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
     \]
-    where \( nspikes_{ij} \) is the count of spikes from neuron \( i \) occurring
-    before spikes from neuron \( j \). If there are no spikes for either neuron,
-    the bias is set to 0.5 (neutral bias).
+    where \( nspikes_{ij} \) is the count of spikes from neuron \( i \)
+    occurring before spikes from neuron \( j \). If there are no spikes for
+    either neuron, the bias is set to 0.5 (neutral bias).
+
+    The skew-bias matrix is computed as:
+    \[
+    S_{ij} = 2 \cdot B_{ij} - 1
+    \]
+    where \( B_{ij} \) is the probability-bias matrix.
+
+    The skew-bias matrix is a skew-symmetric matrix as \( S_{ij} = -S_{ji} \).
+    The values are normalized between -1 and 1. A value of 1 indicates that
+    neuron \( i \) spikes before neuron \( j \) in all cases, while -1 indicates
+    the opposite. A value of 0 indicates that the order of spikes is random.
 
     References
     ----------
     .. [1] Roth, Z. (2016). Analysis of neuronal sequences using pairwise
-        biases. arXiv, 65-67 (2016). https://arxiv.org/abs/1603.02916
+        biases. arXiv, 11-16. https://arxiv.org/abs/1603.02916
     """
-    ibeforej = np.zeros((total_neurons, total_neurons))
-    prod_nspikes_ij = np.zeros((total_neurons, total_neurons))
     bias = np.empty((total_neurons, total_neurons))
+    nrn_spk_rindices = np.empty(total_neurons+1, dtype=np.int64)
+    nrn_spk_rindices[0] = 0
 
     nrns_st = numba.typed.List()
     for _ in range(total_neurons):
         nrns_st.append(numba.typed.List.empty_list(np.float64))
     for i, nrn_id in enumerate(neuron_ids):
         nrns_st[nrn_id].append(spike_times[i])
+    for nnrn in range(total_neurons):
+        nrn_spk_rindices[nnrn+1] = nrn_spk_rindices[nnrn] + len(nrns_st[nnrn])
+
+    nrns_st_all = np.empty(nrn_spk_rindices[-1], dtype=np.float64)
+    for nnrn in range(total_neurons):
+        nrns_st_all[nrn_spk_rindices[nnrn]:nrn_spk_rindices[nnrn+1]] = np.asarray(nrns_st[nnrn])
 
     # Build bias matrix
     for i in range(total_neurons):
-        spikes_i = np.asarray(nrns_st[i])
+        spikes_i = nrns_st_all[nrn_spk_rindices[i]:nrn_spk_rindices[i+1]]
         nspikes_i = len(spikes_i)
 
         for j in range(i + 1, total_neurons):
-            spikes_j = np.asarray(nrns_st[j])
-            nspikes_j = len(spikes_j)
+            nspikes_j = len(nrns_st[j])
+            if (nspikes_i == 0) or (nspikes_j == 0):
+                bias[i, j] = bias[j, i] = fillneutral
+            else:
+                spikes_j = nrns_st_all[
+                    nrn_spk_rindices[j]:nrn_spk_rindices[j+1]]
 
-            if nspikes_i > 0 and nspikes_j > 0:
                 nspikes_ij = np.searchsorted(
                     spikes_i, spikes_j, side='right').sum()
-                ibeforej[i, j] = nspikes_ij
-                prod_nspikes_ij[i, j] = nspikes_i * nspikes_j
+                bias[i, j] = 2 * (nspikes_ij / (nspikes_i * nspikes_j)) - 1
+                bias[j, i] = -bias[i, j]
 
-    jbeforei = prod_nspikes_ij - ibeforej
-    prod_nspikes_ij = prod_nspikes_ij + prod_nspikes_ij.T
-    ibeforej = ibeforej + jbeforei.T
-    bias = ibeforej / prod_nspikes_ij  # no need to check for zero division
-    bias = np.where(prod_nspikes_ij == 0, fillneutral, bias)
+    # set diagonal to fillneutral
+    for i in range(total_neurons):
+        bias[i, i] = fillneutral
 
     return bias
-
-
-def normalize_bias_matrix(bias: np.ndarray) -> np.ndarray:
-    """
-    Normalize the bias matrix values to fall between -1 and 1.
-
-    Parameters
-    ----------
-    bias : numpy.ndarray
-        A bias matrix of shape (n_neurons, n_neurons).
-
-    Returns
-    -------
-    numpy.ndarray
-        A normalized matrix with values between -1 and 1.
-    """
-    return 2 * bias - 1
 
 
 def cosine_similarity_matrices(

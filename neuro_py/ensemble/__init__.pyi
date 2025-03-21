@@ -23,10 +23,7 @@ __all__ = [
     "cosine_similarity",
     "PairwiseBias",
     "cosine_similarity_matrices",
-    "normalize_bias_matrix",
-    "bias_matrix",
-    "bias_matrix_fast",
-    "bias_matrix_njit",
+    "skew_bias_matrix",
     "observed_and_shuffled_correlation",
     "shuffled_significance",
     "decoding",
@@ -56,10 +53,7 @@ from .similarity_index import similarity_index
 from .similaritymat import similaritymat
 from .pairwise_bias_correlation import (
     cosine_similarity_matrices,
-    normalize_bias_matrix,
-    bias_matrix,
-    bias_matrix_fast,
-    bias_matrix_njit,
+    skew_bias_matrix,
     observed_and_shuffled_correlation,
     shuffled_significance,
 )
