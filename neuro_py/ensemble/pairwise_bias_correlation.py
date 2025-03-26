@@ -46,8 +46,6 @@ def skew_bias_matrix(
 
     Notes
     -----
-    Refer to the `bias_matrix` function for better code interpretability.
-
     The probability-bias \( B_{ij} \) for neurons \( i \) and \( j \) is
     computed as:
     \[
@@ -196,24 +194,21 @@ def observed_and_shuffled_correlation(
         post_spikes < post_intervals[interval_i][1]
     )
 
-    post_bias_matrix = bias_matrix(
+    post_bias_matrix = skew_bias_matrix(
         post_spikes[idx], post_neurons[idx], total_neurons
     )
-    post_normalized = normalize_bias_matrix(post_bias_matrix)
 
     # Compute cosine similarity between task and post-task bias matrices
-    observed_correlation = cosine_similarity_matrices(task_normalized, post_normalized)
+    observed_correlation = cosine_similarity_matrices(task_normalized, post_bias_matrix)
 
     # Shuffle post-task spikes and compute bias matrix
     shuffled_correlation = [
         cosine_similarity_matrices(
             task_normalized,
-            normalize_bias_matrix(
-                bias_matrix(
-                    post_spikes[idx],
-                    np.random.permutation(post_neurons[idx]),
-                    total_neurons,
-                )
+            skew_bias_matrix(
+                post_spikes[idx],
+                np.random.permutation(post_neurons[idx]),
+                total_neurons,
             ),
         )
         for _ in range(num_shuffles)
@@ -298,11 +293,9 @@ def shuffled_significance(
     np.random.seed(0)
 
     # Compute bias matrices for task epochs
-    task_bias_matrix = bias_matrix(
+    task_bias_matrix = skew_bias_matrix(
         task_spikes, task_neurons, total_neurons
     )
-    # Normalize the bias matrices
-    task_normalized = normalize_bias_matrix(task_bias_matrix)
 
     # Get shuffled and observed correlations using parallel processing
     observed_correlation, shuffled_correlations = zip(
@@ -311,7 +304,7 @@ def shuffled_significance(
                 post_spikes,
                 post_neurons,
                 total_neurons,
-                task_normalized,
+                task_bias_matrix,
                 post_intervals,
                 interval_i,
                 num_shuffles,
