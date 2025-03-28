@@ -1,10 +1,12 @@
 import warnings
 from unittest.mock import patch
 
+import nelpy as nel
 import numpy as np
 import pandas as pd
+import pytest
 
-from neuro_py.io.loading import load_brain_regions, load_trials
+from neuro_py.io.loading import load_brain_regions, load_spikes, load_trials
 
 
 # test load_trials
@@ -267,3 +269,390 @@ def test_load_brain_regions_dataframe_output():
             "Unknown",
         ]
         assert result["shank"].tolist() == [0, 0, 0, 0, 1, 1, 1, 1]
+
+
+# test load_spikes
+# Test cases
+def test_load_spikes_basic_success():
+    """Test basic successful loading of spikes without any filters."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        # Setup mock returns
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron"],
+                    "brainRegion": ["CA1", "CA3"],
+                    "bad_unit": [False, False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0]), np.array([3.0, 4.0])]},
+        )
+
+        # Call function
+        st, metrics = load_spikes("dummy_path")
+
+        # Assertions
+        assert st is not None
+        assert metrics is not None
+        assert st.n_active == 2
+        assert len(metrics) == 2
+
+
+def test_load_spikes_no_sampling_rate():
+    """Test when sampling rate is not available in metadata."""
+    with patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta:
+        mock_meta.return_value = {}
+
+        st, metrics = load_spikes("dummy_path")
+        assert st is None
+        assert metrics is None
+
+
+def test_load_spikes_no_cell_metrics():
+    """Test when cell metrics cannot be loaded."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (None, None)
+
+        st, metrics = load_spikes("dummy_path")
+        assert st is None
+        assert metrics is None
+
+
+def test_load_spikes_filter_by_cell_type():
+    """Test filtering by putative cell type."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, False, False],
+                }
+            ),
+            {
+                "spikes": [
+                    np.array([1.0, 2.0]),
+                    np.array([3.0, 4.0]),
+                    np.array([5.0, 6.0]),
+                ]
+            },
+        )
+
+        # Filter for only pyramidal cells
+        st, metrics = load_spikes("dummy_path", putativeCellType=["Pyramidal"])
+
+        assert st.n_active == 2
+        assert all(metrics.putativeCellType == "Pyramidal")
+
+
+def test_load_spikes_filter_by_brain_region():
+    """Test filtering by brain region."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, False, False],
+                }
+            ),
+            {
+                "spikes": [
+                    np.array([1.0, 2.0]),
+                    np.array([3.0, 4.0]),
+                    np.array([5.0, 6.0]),
+                ]
+            },
+        )
+
+        # Filter for only CA1 cells
+        st, metrics = load_spikes("dummy_path", brainRegion=["CA1"])
+
+        assert st.n_active == 2
+        assert all(metrics.brainRegion == "CA1")
+
+
+def test_load_spikes_remove_bad_units():
+    """Test removal of bad units."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, True, False],
+                }
+            ),
+            {
+                "spikes": [
+                    np.array([1.0, 2.0]),
+                    np.array([3.0, 4.0]),
+                    np.array([5.0, 6.0]),
+                ]
+            },
+        )
+
+        # Default should remove bad units
+        st, metrics = load_spikes("dummy_path")
+
+        assert st.n_active == 2
+        assert sum(metrics.bad_unit) == 0
+
+
+def test_load_spikes_keep_bad_units():
+    """Test keeping bad units when remove_bad_unit=False."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, True, False],
+                }
+            ),
+            {
+                "spikes": [
+                    np.array([1.0, 2.0]),
+                    np.array([3.0, 4.0]),
+                    np.array([5.0, 6.0]),
+                ]
+            },
+        )
+
+        # Keep bad units
+        st, metrics = load_spikes("dummy_path", remove_bad_unit=False)
+
+        assert st.n_active == 3
+        assert sum(metrics.bad_unit) == 1
+
+
+def test_load_spikes_filter_by_other_metric():
+    """Test filtering by other arbitrary metrics."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, False, False],
+                    "quality": ["good", "excellent", "fair"],
+                }
+            ),
+            {
+                "spikes": [
+                    np.array([1.0, 2.0]),
+                    np.array([3.0, 4.0]),
+                    np.array([5.0, 6.0]),
+                ]
+            },
+        )
+
+        # Filter by quality metric
+        st, metrics = load_spikes(
+            "dummy_path", other_metric="quality", other_metric_value="excellent"
+        )
+
+        assert st.n_active == 1
+
+        assert metrics.iloc[0].quality == "excellent"
+
+
+def test_load_spikes_remove_unstable():
+    """Test removal of unstable units."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron", "Pyramidal"],
+                    "brainRegion": ["CA1", "CA3", "CA1"],
+                    "bad_unit": [False, False, False],
+                }
+            ),
+            {
+                "spikes": [
+                    np.sort(
+                        np.random.poisson(4, size=100)
+                    ),  # Stable cell (spikes in all intervals)
+                    np.array([1]),  # Unstable cell (spikes in only one interval)
+                    np.sort(np.random.poisson(4, size=100)),  # Stable cell
+                ]
+            },
+        )
+
+        # Remove unstable units
+        st, metrics = load_spikes(
+            "dummy_path", remove_unstable=True, stable_interval_width=3
+        )
+
+        assert st.n_active == 2
+
+        assert len(metrics) == 2
+
+
+def test_load_spikes_single_cell():
+    """Test handling of single cell case."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal"],
+                    "brainRegion": ["CA1"],
+                    "bad_unit": [False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0])]},
+        )
+
+        st, metrics = load_spikes("dummy_path")
+
+        assert st.n_active == 1
+        assert len(metrics) == 1
+
+
+def test_load_spikes_with_support():
+    """Test loading with time support restriction."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron"],
+                    "brainRegion": ["CA1", "CA3"],
+                    "bad_unit": [False, False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0]), np.array([3.0, 4.0])]},
+        )
+
+        # Create a dummy support epoch
+        support = nel.EpochArray(np.array([[0, 5]]))
+
+        st, metrics = load_spikes("dummy_path", support=support)
+
+        assert st is not None
+        assert st.support is not None
+
+
+def test_load_spikes_brain_state_filter():
+    """Test filtering by brain state."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+        patch("neuro_py.io.loading.load_SleepState_states") as mock_states,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal", "Interneuron"],
+                    "brainRegion": ["CA1", "CA3"],
+                    "bad_unit": [False, False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0, 10.0]), np.array([3.0, 4.0, 20.0])]},
+        )
+
+        # Mock sleep states (only WAKEstate between 0-5 seconds)
+        mock_states.return_value = {
+            "WAKEstate": np.array([[0, 5]]),
+            "NREMstate": np.array([[5, 10]]),
+        }
+
+        st, metrics = load_spikes("dummy_path", brain_state="WAKEstate")
+
+        # Check that spikes outside WAKEstate are filtered
+        for spike_train in st.data:
+            assert all(spike <= 5 for spike in spike_train)
+
+
+def test_load_spikes_invalid_brain_state():
+    """Test handling of invalid brain state input."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+        patch("builtins.print") as mock_print,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal"],
+                    "brainRegion": ["CA1"],
+                    "bad_unit": [False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0])]},
+        )
+
+        # Invalid brain state
+        st, metrics = load_spikes("dummy_path", brain_state="INVALID")
+
+        # Should still return data but without brain state filtering
+        assert st is not None
+        assert metrics is not None
+        mock_print.assert_called()  # Check that warning was printed
+
+
+def test_load_spikes_other_metric_length_mismatch():
+    """Test error when other_metric and other_metric_value have different lengths."""
+    with (
+        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    ):
+        mock_meta.return_value = {"sr": 20000}
+        mock_metrics.return_value = (
+            pd.DataFrame(
+                {
+                    "putativeCellType": ["Pyramidal"],
+                    "brainRegion": ["CA1"],
+                    "bad_unit": [False],
+                }
+            ),
+            {"spikes": [np.array([1.0, 2.0])]},
+        )
+
+        with pytest.raises(ValueError, match="must be of same length"):
+            load_spikes(
+                "dummy_path",
+                other_metric=["quality", "depth"],
+                other_metric_value=["good"],
+            )
