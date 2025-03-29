@@ -272,35 +272,67 @@ def test_load_brain_regions_dataframe_output():
 
 
 # test load_spikes
+
+@pytest.fixture
+def mock_metadata():
+    with patch('neuro_py.io.loading.load_extracellular_metadata') as mock:
+        yield mock
+
+@pytest.fixture
+def mock_cell_metrics():
+    with patch('neuro_py.io.loading.load_cell_metrics') as mock:
+        yield mock
+
+@pytest.fixture
+def mock_sleep_states():
+    with patch('neuro_py.io.loading.load_SleepState_states') as mock:
+        yield mock
+        
 # Test cases
-def test_load_spikes_basic_success():
+def test_load_spikes_basic_success(mock_metadata, mock_cell_metrics):
     """Test basic successful loading of spikes without any filters."""
-    with (
-        patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
-        patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
-    ):
-        # Setup mock returns
-        mock_meta.return_value = {"sr": 20000}
-        mock_metrics.return_value = (
-            pd.DataFrame(
-                {
-                    "putativeCellType": ["Pyramidal", "Interneuron"],
-                    "brainRegion": ["CA1", "CA3"],
-                    "bad_unit": [False, False],
-                }
-            ),
-            {"spikes": [np.array([1.0, 2.0]), np.array([3.0, 4.0])]},
-        )
+    # with (
+    #     patch("neuro_py.io.loading.load_extracellular_metadata") as mock_meta,
+    #     patch("neuro_py.io.loading.load_cell_metrics") as mock_metrics,
+    # ):
+    #     # Setup mock returns
+    #     mock_meta.return_value = {"sr": 20000}
+    #     mock_metrics.return_value = (
+    #         pd.DataFrame(
+    #             {
+    #                 "putativeCellType": ["Pyramidal", "Interneuron"],
+    #                 "brainRegion": ["CA1", "CA3"],
+    #                 "bad_unit": [False, False],
+    #             }
+    #         ),
+    #         {"spikes": [np.array([1.0, 2.0]), np.array([3.0, 4.0])]},
+    #     )
 
-        # Call function
-        st, metrics = load_spikes("dummy_path")
+    #     # Call function
+    #     st, metrics = load_spikes("dummy_path")
 
-        # Assertions
-        assert st is not None
-        assert metrics is not None
-        assert st.n_active == 2
-        assert len(metrics) == 2
-
+    #     # Assertions
+    #     assert st is not None
+    #     assert metrics is not None
+    #     assert st.n_active == 2
+    #     assert len(metrics) == 2
+    # Setup mock returns
+    mock_metadata.return_value = {"sr": 20000}
+    mock_cell_metrics.return_value = (
+        pd.DataFrame({
+            "putativeCellType": ["Pyramidal", "Interneuron"],
+            "brainRegion": ["CA1", "CA3"],
+            "bad_unit": [False, False]
+        }),
+        {"spikes": [np.array([1.0, 2.0]), np.array([3.0, 4.0])]}
+    )
+    # Call function
+    st, metrics = load_spikes("dummy_path")
+    # Assertions
+    assert st is not None
+    assert metrics is not None
+    assert st.n_active == 2
+    assert len(metrics) == 2
 
 def test_load_spikes_no_sampling_rate():
     """Test when sampling rate is not available in metadata."""
@@ -650,7 +682,7 @@ def test_load_spikes_other_metric_length_mismatch():
             {"spikes": [np.array([1.0, 2.0])]},
         )
 
-        with pytest.raises(ValueError, match="must be of same length"):
+        with pytest.raises(ValueError, match="other_metric and other_metric_value must be of same length"):
             load_spikes(
                 "dummy_path",
                 other_metric=["quality", "depth"],
