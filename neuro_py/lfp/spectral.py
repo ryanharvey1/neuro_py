@@ -27,7 +27,7 @@ def filter_signal(
     Parameters
     ----------
     sig : np.ndarray
-        Time series to be filtered.
+        Time series to be filtered. N signals x M samples array.
     fs : float
         Sampling rate, in Hz.
     pass_type : {'bandpass', 'bandstop', 'lowpass', 'highpass'}
@@ -124,7 +124,10 @@ def filter_signal(
             fir_coefs = firwin(kernel_len, f_range[0] / nyquist, pass_zero=False)
 
         # Apply the FIR filter
-        sig_filt = np.convolve(sig, fir_coefs, mode="same")
+        if len(sig.shape) == 1:
+            sig_filt = np.convolve(sig, fir_coefs, mode="same")
+        else:
+            sig_filt = np.vstack([np.convolve(sig_, fir_coefs, mode="same") for sig_ in sig])
 
     # IIR filter implementation
     elif filter_type == "iir":
