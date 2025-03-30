@@ -4,7 +4,6 @@ import warnings
 from unittest.mock import patch
 
 import nelpy as nel
-import neuro_py as npy
 import numpy as np
 import pandas as pd
 import pytest
