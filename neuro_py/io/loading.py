@@ -16,6 +16,7 @@ import scipy.io as sio
 from joblib import Parallel, delayed
 from scipy import signal
 
+import neuro_py as npy
 from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
@@ -1851,6 +1852,8 @@ def load_spikes(
     other_metric: Union[str, None] = None,
     other_metric_value: Union[str, None] = None,
     support: Union[nel.EpochArray, None] = None,
+    remove_unstable: bool = False,
+    stable_interval_width: int = 600,
 ) -> Tuple[Union[nel.SpikeTrainArray, None], Union[pd.DataFrame, None]]:
     """
     Load specific cells' spike times.
@@ -1873,6 +1876,10 @@ def load_spikes(
         Value of the metric to restrict spikes to, by default None.
     support : Union[nel.EpochArray, None], optional
         Time support to provide, by default None.
+    remove_unstable : bool, optional
+        If True, remove unstable cells, by default False.
+    stable_interval_width : int, optional
+        Width of the stable interval in seconds, by default 600.
 
     Returns
     -------
@@ -1884,11 +1891,8 @@ def load_spikes(
     if not isinstance(brainRegion, list):
         brainRegion = [brainRegion]
 
-    # get sample rate from xml or session
-    try:
-        _, _, fs_dat, _ = loadXML(basepath)
-    except Exception:
-        fs_dat = load_extracellular_metadata(basepath).get("sr", None)
+    # get sample rate from session
+    fs_dat = load_extracellular_metadata(basepath).get("sr", None)
 
     if fs_dat is None:
         return None, None
@@ -1946,6 +1950,19 @@ def load_spikes(
     if remove_bad_unit:
         # bad units will be tagged true, so only keep false values
         restrict_idx = ~cell_metrics.bad_unit.values
+        cell_metrics = cell_metrics[restrict_idx]
+        st = st[restrict_idx]
+
+    if remove_unstable and len(st) > 0:
+        starts = np.arange(
+            np.hstack(st).min(),
+            np.hstack(st).max() - stable_interval_width,
+            stable_interval_width,
+        )
+        stops = starts + stable_interval_width
+
+        bst = npy.process.count_in_interval(st, starts, stops, "counts")
+        restrict_idx = np.sum(bst == 0, axis=1) < 2  # allow for 1 unstable interval max
         cell_metrics = cell_metrics[restrict_idx]
         st = st[restrict_idx]
 
