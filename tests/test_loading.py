@@ -209,9 +209,9 @@ def test_load_brain_regions_dict_output():
         assert isinstance(result, dict)
         assert "CA1" in result
         assert "Unknown" in result
-        assert np.array_equal(result["CA1"]["channels"], np.array([1, 2, 3]))
+        assert np.array_equal(result["CA1"]["channels"], np.array([0, 1, 2]))
         assert np.array_equal(result["CA1"]["electrodeGroups"], np.array([17, 18]))
-        assert np.array_equal(result["Unknown"]["channels"], np.array([4, 5]))
+        assert np.array_equal(result["Unknown"]["channels"], np.array([3, 4]))
         assert np.isnan(result["Unknown"]["electrodeGroups"])
 
 
