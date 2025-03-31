@@ -1724,7 +1724,7 @@ def load_brain_regions(
     for region in data["brainRegions"].keys():
         if len(data["brainRegions"][region]) == 0:
             continue
-        channels = data["brainRegions"][region]["channels"]
+        channels = data["brainRegions"][region]["channels"] - 1 # index starts at 0 loading in python
         try:
             electrodeGroups = data["brainRegions"][region]["electrodeGroups"]
         except Exception:
