@@ -1724,7 +1724,7 @@ def load_brain_regions(
     for region in data["brainRegions"].keys():
         if len(data["brainRegions"][region]) == 0:
             continue
-        channels = data["brainRegions"][region]["channels"]
+        channels = data["brainRegions"][region]["channels"] - 1
         try:
             electrodeGroups = data["brainRegions"][region]["electrodeGroups"]
         except Exception:
@@ -1737,7 +1737,7 @@ def load_brain_regions(
 
     if out_format == "DataFrame":  # return as DataFrame
         # get channel order from electrodeGroups in session file
-        shank_to_channel = data["extracellular"]["electrodeGroups"]["channels"]
+        shank_to_channel = data["extracellular"]["electrodeGroups"]["channels"] - 1
 
         # check if nested array for multi shank
         if is_nested(shank_to_channel) or shank_to_channel.ndim > 1:
@@ -1762,7 +1762,7 @@ def load_brain_regions(
             mapped_df.loc[idx, "region"] = key
 
         # save channel as zero-indexed
-        mapped_df["channels"] = mapped_df["channels"] - 1
+        mapped_df["channels"] = mapped_df["channels"] 
 
         return mapped_df.reset_index(drop=True)
 
