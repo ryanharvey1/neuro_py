@@ -264,6 +264,7 @@ class AssemblyReact:
 
         if (bst == 0).all():
             self.patterns = None
+            return
         else:
             patterns, _, _ = assembly.runPatterns(
                 bst,
@@ -274,6 +275,11 @@ class AssemblyReact:
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
             )
+
+            if patterns is None: 
+                self.patterns = None
+                return 
+            
             # flip patterns to have positive max
             self.patterns = np.array(
                 [
