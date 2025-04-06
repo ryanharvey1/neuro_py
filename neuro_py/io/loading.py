@@ -1661,7 +1661,10 @@ def load_trials(basepath: str) -> pd.DataFrame:
             df.columns = ["startTime", "stopTime"]
             # check if trialsID exists
             if "trialsID" in data["behavior"].keys():
-                if len(data["behavior"]["trialsID"]) == df.shape[0]:
+                if type(data["behavior"]["trialsID"]) is str:
+                    df["trialsID"] = data["behavior"]["trialsID"]
+
+                elif len(data["behavior"]["trialsID"]) == df.shape[0]:
                     df["trialsID"] = data["behavior"]["trialsID"]
                 else:
                     warnings.warn("trials or trialsID not correct shape")
