@@ -744,7 +744,7 @@ def count_in_interval(
     st: np.ndarray,
     event_starts: np.ndarray,
     event_stops: np.ndarray,
-    par_type: str = "binary",
+    par_type: str = "counts",
 ) -> np.ndarray:
     """
     Count timestamps in specified intervals and return a matrix where each
