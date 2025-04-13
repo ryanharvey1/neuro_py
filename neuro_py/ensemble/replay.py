@@ -8,13 +8,149 @@ from nelpy import TuningCurve1D
 from nelpy.analysis import replay
 from nelpy.core import BinnedSpikeTrainArray
 from nelpy.decoding import decode1D as decode
-from numba import jit
+from numba import jit, njit
 
 from neuro_py.ensemble.pairwise_bias_correlation import (
-    skew_bias_matrix,
     cosine_similarity_matrices,
+    skew_bias_matrix,
 )
 from neuro_py.process.peri_event import crossCorr
+
+
+@njit
+def __weighted_corr_2d_jit(
+    weights: np.ndarray,
+    x_coords: Optional[np.ndarray],
+    y_coords: Optional[np.ndarray],
+    time_coords: Optional[np.ndarray],
+) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
+    # Handle NaN weights
+    weights = np.nan_to_num(weights, nan=0.0)
+
+    x_dim, y_dim, t_dim = weights.shape
+
+    if x_coords is None:
+        x_coords = np.arange(x_dim)
+    if y_coords is None:
+        y_coords = np.arange(y_dim)
+    if time_coords is None:
+        time_coords = np.arange(t_dim)
+
+    n_points = x_dim * y_dim * t_dim
+
+    # Preallocate flattened arrays
+    w_flat = np.empty(n_points, dtype=np.float64)
+    x_flat = np.empty(n_points, dtype=np.float64)
+    y_flat = np.empty(n_points, dtype=np.float64)
+    t_flat = np.empty(n_points, dtype=np.float64)
+
+    idx = 0
+    for i in range(x_dim):
+        for j in range(y_dim):
+            for k in range(t_dim):
+                w = weights[i, j, k]
+                w_flat[idx] = w
+                x_flat[idx] = x_coords[i]
+                y_flat[idx] = y_coords[j]
+                t_flat[idx] = time_coords[k]
+                idx += 1
+
+    total_weight = np.sum(w_flat)
+    if total_weight == 0.0:
+        return (
+            np.nan,
+            np.full(t_dim, np.nan),
+            np.full(t_dim, np.nan),
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        )
+
+    mean_x = np.sum(w_flat * x_flat) / total_weight
+    mean_y = np.sum(w_flat * y_flat) / total_weight
+    mean_t = np.sum(w_flat * t_flat) / total_weight
+
+    cov_xt = np.sum(w_flat * (x_flat - mean_x) * (t_flat - mean_t)) / total_weight
+    cov_yt = np.sum(w_flat * (y_flat - mean_y) * (t_flat - mean_t)) / total_weight
+    cov_tt = np.sum(w_flat * (t_flat - mean_t) ** 2) / total_weight
+    cov_xx = np.sum(w_flat * (x_flat - mean_x) ** 2) / total_weight
+    cov_yy = np.sum(w_flat * (y_flat - mean_y) ** 2) / total_weight
+
+    denom_x = np.sqrt(cov_xx * cov_tt)
+    denom_y = np.sqrt(cov_yy * cov_tt)
+
+    if denom_x == 0.0 or denom_y == 0.0 or cov_tt == 0.0:
+        return (
+            np.nan,
+            np.full(t_dim, np.nan),
+            np.full(t_dim, np.nan),
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        )
+
+    corr_x = cov_xt / denom_x
+    corr_y = cov_yt / denom_y
+
+    slope_x = cov_xt / cov_tt
+    slope_y = cov_yt / cov_tt
+
+    x_traj = mean_x + slope_x * (time_coords - mean_t)
+    y_traj = mean_y + slope_y * (time_coords - mean_t)
+
+    spatiotemporal_corr = np.sqrt((corr_x**2 + corr_y**2) / 2) * np.sign(
+        corr_x + corr_y
+    )
+
+    return spatiotemporal_corr, x_traj, y_traj, slope_x, slope_y, mean_x, mean_y
+
+
+def weighted_corr_2d(
+    weights: np.ndarray,
+    x_coords: Optional[np.ndarray] = None,
+    y_coords: Optional[np.ndarray] = None,
+    time_coords: Optional[np.ndarray] = None,
+) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
+    """
+    Calculate the weighted correlation between the X and Y dimensions of the matrix.
+
+    Parameters
+    ----------
+    weights : np.ndarray
+        A matrix of weights.
+    x_coords : Optional[np.ndarray], optional
+        X-values for each column and row, by default None.
+    y_coords : Optional[np.ndarray], optional
+        Y-values for each column and row, by default None.
+    time_coords : Optional[np.ndarray], optional
+        Time-values for each column and row, by default None.
+
+    Returns
+    -------
+    Tuple[float, np.ndarray, np.ndarray, float, float, float, float]
+        The weighted correlation coefficient, x trajectory, y trajectory,
+        slope_x, slope_y, mean_x, mean_y.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> weights = np.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
+    >>> x_coords = np.array([0, 1])
+    >>> y_coords = np.array([0, 1])
+    >>> time_coords = np.array([0, 1, 2])
+    >>> weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+    """
+    x_dim, y_dim, t_dim = weights.shape
+    if x_coords is None:
+        x_coords = np.arange(x_dim)
+    if y_coords is None:
+        y_coords = np.arange(y_dim)
+    if time_coords is None:
+        time_coords = np.arange(t_dim)
+    return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
 
 
 def WeightedCorr(
