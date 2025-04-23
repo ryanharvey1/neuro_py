@@ -3,7 +3,9 @@ __all__ = [
     "fill_missing_channels",
     "cut_artifacts",
     "cut_artifacts_intan",
-    "reorder_channels"
+    "reorder_channels",
+    "phy_log_to_epocharray",
+    "spike_sorting_progress",
 ]
 
 from .preprocessing import (
@@ -11,5 +13,7 @@ from .preprocessing import (
     fill_missing_channels,
     remove_artifacts,
     cut_artifacts_intan,
-    reorder_channels
+    reorder_channels,
 )
+
+from .spike_sorting import phy_log_to_epocharray, spike_sorting_progress
