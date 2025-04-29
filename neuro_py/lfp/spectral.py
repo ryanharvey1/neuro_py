@@ -298,6 +298,7 @@ def event_triggered_wavelet(
     parallel: bool = True,
     whiten: bool = True,
     whiten_order: int = 2,
+    fs: Optional[float] = None,
     **kwargs,
 ) -> Union[
     Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
@@ -330,6 +331,8 @@ def event_triggered_wavelet(
         If True, whiten the signal before computing the wavelet transform.
     whiten_order : int
         Order of the autoregressive model used for whitening.
+    fs : float
+        Sampling rate, in Hz.
     kwargs
         Additional keyword arguments to pass to `compute_wavelet_transform`.
 
@@ -414,8 +417,9 @@ def event_triggered_wavelet(
     # set up frequency range
     freqs = np.arange(freq_min, freq_max, freq_step)
     # set up time range
-    ds = timestamps[1] - timestamps[0]
-    fs = 1 / ds
+    if fs is None:
+        ds = timestamps[1] - timestamps[0]
+        fs = 1 / ds
     # Create times array based on the sample rate (fs)
     times = np.arange(-max_lag, max_lag, 1 / fs)
     # Number of samples corresponding to the time window around each event
