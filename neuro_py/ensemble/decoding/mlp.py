@@ -235,7 +235,6 @@ class MLP(L.LightningModule):
             mode='triangular2',
             gamma=0.99994,
             last_epoch=-1,
-            verbose=False
         )
         lr_scheduler = {'scheduler': scheduler, 'interval': 'step'}
         return [optimizer], [lr_scheduler]
