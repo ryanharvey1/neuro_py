@@ -489,7 +489,7 @@ def reorder_channels(
     channel_order: List[int],
     precision: str = "int16",
     num_processes: int = 8,  # Adjust based on your CPU cores
-) -> str:
+):
     """
     Reorder channels in a large binary file, processing in chunks.
     This function is useful when you want to reorder the channels in a binary file.
@@ -504,8 +504,9 @@ def reorder_channels(
         List of channel indices specifying the new order of channels.
     precision : str, optional
         Data precision, by default "int16".
-    chunk_size : int, optional
-        Number of samples per chunk, by default 10,000.
+    num_processes : int, optional
+        Number of processes to use for parallel processing, by default 8.
+
 
     Examples
     --------
@@ -533,7 +534,7 @@ def reorder_channels(
     new_file_path = os.path.join(basepath, f"reordered_{filename}")
 
     # Create an empty output file of the correct size
-    with open(new_file_path, 'wb') as f:
+    with open(new_file_path, "wb") as f:
         f.truncate(n_samples * n_channels * bytes_per_sample)
 
     # Split the work into chunks for parallel processing
