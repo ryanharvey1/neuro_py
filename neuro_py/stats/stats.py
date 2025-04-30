@@ -68,9 +68,18 @@ def get_significant_events(
         sig_event_idx = np.where(scores < threshold)[0]
 
     # calculate how many standard deviations away from shuffle
-    stddev = (np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)) / np.nanstd(
-        np.abs(shuffled_scores), axis=0
-    )
+    if tail == "both":
+        stddev = (np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)) / np.nanstd(
+            np.abs(shuffled_scores), axis=0
+        )
+    elif tail == "right":
+        stddev = (scores - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
+            shuffled_scores, axis=0
+        )
+    elif tail == "left":
+        stddev = (np.nanmean(shuffled_scores, axis=0) - scores) / np.nanstd(
+            shuffled_scores, axis=0
+        )
 
     return np.atleast_1d(sig_event_idx), np.atleast_1d(pvalues), np.atleast_1d(stddev)
 
