@@ -1765,7 +1765,7 @@ def load_brain_regions(
             mapped_df.loc[idx, "region"] = key
 
         # save channel as zero-indexed
-        mapped_df["channels"] = mapped_df["channels"] 
+        mapped_df["channels"] = mapped_df["channels"]
 
         return mapped_df.reset_index(drop=True)
 
@@ -2445,7 +2445,9 @@ def load_emg(
     return emg, high_emg_epoch, low_emg_epoch
 
 
-def load_events(basepath: str, epoch_name: str) -> Union[nel.EpochArray, None]:
+def load_events(
+    basepath: str, epoch_name: str, load_pandas=False
+) -> Union[nel.EpochArray, None, pd.DataFrame]:
     """
     Load events from basename.epoch_name.events.mat.
 
@@ -2458,7 +2460,7 @@ def load_events(basepath: str, epoch_name: str) -> Union[nel.EpochArray, None]:
 
     Returns
     -------
-    events : nel.EpochArray or None
+    events : nel.EpochArray or None or pd.DataFrame
         Events, or None if the file does not exist.
     """
     filename = os.path.join(
@@ -2469,4 +2471,20 @@ def load_events(basepath: str, epoch_name: str) -> Union[nel.EpochArray, None]:
         return None
 
     data = sio.loadmat(filename, simplify_cells=True)
+
+    if load_pandas:
+        n_events = data[epoch_name]["timestamps"].shape[0]
+
+        event_df = pd.DataFrame(
+            data[epoch_name]["timestamps"], columns=["starts", "stops"]
+        )
+        for key in data[epoch_name].keys():
+            if (
+                isinstance(data[epoch_name][key], np.ndarray)
+                and data[epoch_name][key].shape[0] == n_events
+                and data[epoch_name][key].ndim == 1
+            ):
+                event_df[key] = data[epoch_name][key]
+        return event_df
+    
     return nel.EpochArray(data[epoch_name]["timestamps"])
