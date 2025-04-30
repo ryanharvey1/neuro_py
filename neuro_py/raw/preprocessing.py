@@ -533,8 +533,8 @@ def reorder_channels(
     new_file_path = os.path.join(basepath, f"reordered_{filename}")
 
     # Create an empty output file of the correct size
-    with open(new_file_path, "wb") as f:
-        f.write(np.zeros(n_samples * n_channels, dtype=dtype).tobytes())
+    with open(new_file_path, 'wb') as f:
+        f.truncate(n_samples * n_channels * bytes_per_sample)
 
     # Split the work into chunks for parallel processing
     chunk_size = n_samples // num_processes
