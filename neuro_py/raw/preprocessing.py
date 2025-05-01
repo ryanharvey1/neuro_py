@@ -1,7 +1,6 @@
 import gc
 import os
 import warnings
-from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
 import numpy as np
