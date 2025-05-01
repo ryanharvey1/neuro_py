@@ -5,6 +5,7 @@ from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
 import numpy as np
+from tqdm import tqdm
 
 
 def remove_artifacts(
@@ -456,43 +457,15 @@ def fill_missing_channels(
     return new_file_path
 
 
-def __process_chunk(args):
-    """
-    Process a chunk of the file in parallel.
-    """
-    start, end, file_path, n_channels, channel_order, dtype, new_file_path = args
-    # Memory-map the input file for this chunk
-    data = np.memmap(
-        file_path,
-        dtype=dtype,
-        mode="r",
-        shape=(end - start, n_channels),
-        offset=start * n_channels * dtype.itemsize,
-    )
-    # Memory-map the output file for this chunk
-    reordered_data = np.memmap(
-        new_file_path,
-        dtype=dtype,
-        mode="r+",
-        shape=(end - start, n_channels),
-        offset=start * n_channels * dtype.itemsize,
-    )
-    # Reorder the channels
-    reordered_data[:] = data[:, channel_order]
-    # Flush changes to disk
-    reordered_data.flush()
-
-
 def reorder_channels(
     file_path: str,
     n_channels: int,
     channel_order: List[int],
     precision: str = "int16",
-    num_processes: int = 8,  # Adjust based on your CPU cores
+    chunk_size: int = 100000,  # Process this many samples at a time
 ):
     """
-    Reorder channels in a large binary file, processing in chunks.
-    This function is useful when you want to reorder the channels in a binary file.
+    Reorder channels in a large binary file, processing sequentially with a progress bar.
 
     Parameters
     ----------
@@ -504,17 +477,9 @@ def reorder_channels(
         List of channel indices specifying the new order of channels.
     precision : str, optional
         Data precision, by default "int16".
-    num_processes : int, optional
-        Number of processes to use for parallel processing, by default 8.
-
-
-    Examples
-    --------
-    >>> reorder_channels(
-    ...    r"U:\\data\\hpc_ctx_project\\HP13\\HP13_day1_20241030\\HP13_cheeseboard_241030_153710\\amplifier.dat",
-    ...    128,
-    ...    channel_order = [1, 0, 3, 2, ...]
-    ... )
+    chunk_size : int, optional
+        Number of samples to process at a time, by default 100000.
+        Adjust based on your available memory.
     """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Binary file '{file_path}' does not exist.")
@@ -537,35 +502,34 @@ def reorder_channels(
     with open(new_file_path, "wb") as f:
         f.truncate(n_samples * n_channels * bytes_per_sample)
 
-    # Split the work into chunks for parallel processing
-    chunk_size = n_samples // num_processes
-    chunks = [
-        (
-            i * chunk_size,
-            (i + 1) * chunk_size,
-            file_path,
-            n_channels,
-            channel_order,
-            dtype,
-            new_file_path,
-        )
-        for i in range(num_processes)
-    ]
+    # Process the file sequentially in chunks
+    with tqdm(total=n_samples, desc="Processing", unit="samples") as pbar:
+        for start in range(0, n_samples, chunk_size):
+            end = min(start + chunk_size, n_samples)
 
-    # Handle the last chunk if n_samples is not divisible by num_processes
-    if n_samples % num_processes != 0:
-        chunks.append(
-            (
-                num_processes * chunk_size,
-                n_samples,
+            # Memory-map the input file for this chunk
+            data = np.memmap(
                 file_path,
-                n_channels,
-                channel_order,
-                dtype,
-                new_file_path,
+                dtype=dtype,
+                mode="r",
+                shape=(end - start, n_channels),
+                offset=start * n_channels * dtype.itemsize,
             )
-        )
 
-    # Process chunks in parallel
-    with Pool(num_processes) as pool:
-        pool.map(__process_chunk, chunks)
+            # Memory-map the output file for this chunk
+            reordered_data = np.memmap(
+                new_file_path,
+                dtype=dtype,
+                mode="r+",
+                shape=(end - start, n_channels),
+                offset=start * n_channels * dtype.itemsize,
+            )
+
+            # Reorder the channels
+            reordered_data[:] = data[:, channel_order]
+
+            # Flush changes to disk
+            reordered_data.flush()
+
+            # Update progress bar
+            pbar.update(end - start)
