@@ -20,29 +20,25 @@ from neuro_py.process.peri_event import crossCorr
 @njit
 def __weighted_corr_2d_jit(
     weights: np.ndarray,
-    x_coords: Optional[np.ndarray],
-    y_coords: Optional[np.ndarray],
-    time_coords: Optional[np.ndarray],
+    x_coords: np.ndarray,
+    y_coords: np.ndarray,
+    time_coords: np.ndarray,
 ) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
     # Handle NaN weights
     weights = np.nan_to_num(weights, nan=0.0)
 
-    x_dim, y_dim, t_dim = weights.shape
+    # Use the same dtype as weights for internal arrays
+    dtype = weights.dtype
 
-    if x_coords is None:
-        x_coords = np.arange(x_dim)
-    if y_coords is None:
-        y_coords = np.arange(y_dim)
-    if time_coords is None:
-        time_coords = np.arange(t_dim)
+    x_dim, y_dim, t_dim = weights.shape
 
     n_points = x_dim * y_dim * t_dim
 
     # Preallocate flattened arrays
-    w_flat = np.empty(n_points, dtype=np.float64)
-    x_flat = np.empty(n_points, dtype=np.float64)
-    y_flat = np.empty(n_points, dtype=np.float64)
-    t_flat = np.empty(n_points, dtype=np.float64)
+    w_flat = np.empty(n_points, dtype=dtype)
+    x_flat = np.empty(n_points, dtype=dtype)
+    y_flat = np.empty(n_points, dtype=dtype)
+    t_flat = np.empty(n_points, dtype=dtype)
 
     idx = 0
     for i in range(x_dim):
@@ -57,14 +53,15 @@ def __weighted_corr_2d_jit(
 
     total_weight = np.sum(w_flat)
     if total_weight == 0.0:
+        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
         return (
-            np.nan,
-            np.full(t_dim, np.nan),
-            np.full(t_dim, np.nan),
-            np.nan,
-            np.nan,
-            np.nan,
-            np.nan,
+            np.nan,  # First value remains float64 for consistency
+            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.full(t_dim, nan_val[()], dtype=dtype),
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
         )
 
     mean_x = np.sum(w_flat * x_flat) / total_weight
@@ -81,14 +78,15 @@ def __weighted_corr_2d_jit(
     denom_y = np.sqrt(cov_yy * cov_tt)
 
     if denom_x == 0.0 or denom_y == 0.0 or cov_tt == 0.0:
+        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
         return (
-            np.nan,
-            np.full(t_dim, np.nan),
-            np.full(t_dim, np.nan),
-            np.nan,
-            np.nan,
-            np.nan,
-            np.nan,
+            np.nan,  # First value remains float64 for consistency
+            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.full(t_dim, nan_val[()], dtype=dtype),
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
         )
 
     corr_x = cov_xt / denom_x
@@ -104,7 +102,15 @@ def __weighted_corr_2d_jit(
         corr_x + corr_y
     )
 
-    return spatiotemporal_corr, x_traj, y_traj, slope_x, slope_y, mean_x, mean_y
+    return (
+        spatiotemporal_corr,  # float64
+        x_traj.astype(dtype),  # Ensure consistent dtype
+        y_traj.astype(dtype),
+        np.array(slope_x, dtype=dtype)[()],
+        np.array(slope_y, dtype=dtype)[()],
+        np.array(mean_x, dtype=dtype)[()],
+        np.array(mean_y, dtype=dtype)[()],
+    )
 
 
 def weighted_corr_2d(
@@ -144,12 +150,24 @@ def weighted_corr_2d(
 
     """
     x_dim, y_dim, t_dim = weights.shape
-    if x_coords is None:
-        x_coords = np.arange(x_dim)
-    if y_coords is None:
-        y_coords = np.arange(y_dim)
-    if time_coords is None:
-        time_coords = np.arange(t_dim)
+    dtype = weights.dtype
+
+    x_coords = (
+        np.arange(x_dim, dtype=dtype)
+        if x_coords is None
+        else np.asarray(x_coords, dtype=dtype)
+    )
+    y_coords = (
+        np.arange(y_dim, dtype=dtype)
+        if y_coords is None
+        else np.asarray(y_coords, dtype=dtype)
+    )
+    time_coords = (
+        np.arange(t_dim, dtype=dtype)
+        if time_coords is None
+        else np.asarray(time_coords, dtype=dtype)
+    )
+
     return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
 
 
