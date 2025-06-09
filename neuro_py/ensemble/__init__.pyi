@@ -28,7 +28,8 @@ __all__ = [
     "shuffled_significance",
     "decoding",
     "weighted_corr_2d",
-    "weighted_corr_2d_jit"
+    "weighted_corr_2d_jit",
+    "position_estimator",
 ]
 
 from . import decoding
@@ -67,5 +68,6 @@ from .replay import (
     trajectory_score_bst,
     PairwiseBias,
     weighted_corr_2d,
-    weighted_corr_2d_jit
+    weighted_corr_2d_jit,
+    position_estimator
 )
