@@ -555,10 +555,10 @@ class SpatialMap(object):
             )
             if dim == 1:
                 tc, _ = self.map_1d(pos_shuff)
-                return tc.spatial_information()
+                return tc.spatial_information(Pi = tc.occupancy)
             elif dim == 2:
                 tc, _ = self.map_2d(pos_shuff)
-                return tc.spatial_information()
+                return tc.spatial_information(Pi = tc.occupancy)
 
         pos_data_shuff = create_shuffled_coordinates(
             self.pos.data, n_shuff=self.n_shuff
@@ -582,7 +582,7 @@ class SpatialMap(object):
         # calculate p values for the obs vs null
         _, self.spatial_information_pvalues, self.spatial_information_zscore = (
             get_significant_events(
-                self.tc.spatial_information(), np.array(shuffle_spatial_info)
+                self.tc.spatial_information(Pi = self.tc.occupancy), np.array(shuffle_spatial_info)
             )
         )
 
@@ -735,7 +735,7 @@ class SpatialMap(object):
             firingRateMap["peak"] = self.tc.field_peak_rate.tolist()
 
         # store spatial metrics
-        firingRateMap["spatial_information"] = self.tc.spatial_information().tolist()
+        firingRateMap["spatial_information"] = self.tc.spatial_information(Pi = self.tc.occupancy).tolist()
         if hasattr(self, "spatial_information_pvalues"):
             firingRateMap["spatial_information_pvalues"] = (
                 self.spatial_information_pvalues.tolist()
@@ -863,19 +863,19 @@ class SpatialMap(object):
 
     @property
     def spatial_sparsity(self):
-        return self.tc.spatial_sparsity
+        return self.tc.spatial_sparsity(Pi = self.tc.occupancy)
 
     @property
     def spatial_information(self):
-        return self.tc.spatial_information
+        return self.tc.spatial_information(Pi = self.tc.occupancy)
 
     @property
     def information_rate(self):
-        return self.tc.information_rate
+        return self.tc.information_rate(Pi = self.tc.occupancy)
 
     @property
     def spatial_selectivity(self):
-        return self.tc.spatial_selectivity
+        return self.tc.spatial_selectivity(Pi = self.tc.occupancy)
 
     def __sub__(self, other):
         return self.tc.__sub__(other)
