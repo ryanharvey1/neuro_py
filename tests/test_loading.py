@@ -936,3 +936,66 @@ def test_load_spikes_other_metric_length_mismatch():
                 other_metric=["quality", "depth"],
                 other_metric_value=["good"],
             )
+
+def test_load_SleepState_states():
+    """Test basic successful loading of SleepState"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session11")
+        basename = os.path.basename(basepath)
+        
+        statenames = np.array([
+            'WAKE', 
+            np.array([], dtype='<U1'), 
+            'NREM', 
+            np.array([], dtype='<U1'), 
+            'REM'
+        ], dtype=object)
+
+        create_temp_mat_file(
+            basepath, 
+            {f"{basename}.SleepState.states.mat": {
+                'SleepState': {
+                'idx': {
+                    'statenames': statenames,
+                    'states': np.array([1, 2, 3]),
+                    'timestamps': np.array([[0, 1], [1, 2], [2, 3]])
+                },
+                'ints': {
+                    'WAKEstate': np.array([
+                        [0, 1],
+                        [2, 3]
+                        ]),
+                    'NREMstate': np.array([
+                        [1, 2],
+                        [3, 4]
+                        ]),
+                    'REMstate': np.array([
+                        [2, 3],
+                        [4, 5]
+                        ]),
+                    'THETA': np.array([
+                        [0.5, 1.5],
+                        [2.5, 3.5],
+                        [4.5, 5.5]
+                        ]),
+                    'nonTHETA': np.array([
+                        [1.5, 2.5],
+                        [3.5, 4.5]
+                        ])
+                }
+            }
+            }})
+
+        # Call the function under test
+        result = load_SleepState_states(basepath)
+
+        print(result["THETA"])
+
+        # Assertions
+        assert result is not None
+        assert isinstance(result, dict)
+        assert result["wake_id"] == 1
+        assert result["rem_id"] == 5
+        assert "NREMstate" in result
+        assert isinstance(result["states"], np.ndarray)
+        assert result["THETA"].shape == (3, 2)
