@@ -1385,25 +1385,27 @@ def load_SleepState_states(
         return None
 
     # load cell_metrics file
-    data = sio.loadmat(filename)
+    data = sio.loadmat(filename,simplify_cells=True)
 
     # get epoch id
+    sleepState_names = data['SleepState']['idx']['statenames']
+    sleepState_names_cleaned = np.array([x if isinstance(x, str) else '' for x in sleepState_names])
     wake_id = (
-        np.where(data["SleepState"]["idx"][0][0]["statenames"][0][0][0] == "WAKE")[0][0]
+        np.where(sleepState_names_cleaned == "WAKE")[0][0]
         + 1
     )
     rem_id = (
-        np.where(data["SleepState"]["idx"][0][0]["statenames"][0][0][0] == "REM")[0][0]
+        np.where(sleepState_names_cleaned == "REM")[0][0]
         + 1
     )
     nrem_id = (
-        np.where(data["SleepState"]["idx"][0][0]["statenames"][0][0][0] == "NREM")[0][0]
+        np.where(sleepState_names_cleaned == "NREM")[0][0]
         + 1
     )
 
     # get states and timestamps vectors
-    states = data["SleepState"]["idx"][0][0]["states"][0][0]
-    timestamps = data["SleepState"]["idx"][0][0]["timestamps"][0][0]
+    states = data["SleepState"]["idx"]["states"]
+    timestamps = data["SleepState"]["idx"]["timestamps"]
 
     # set up dict
     dict_ = {
@@ -1415,9 +1417,9 @@ def load_SleepState_states(
     }
 
     # iter through states and add to dict
-    dt = data["SleepState"]["ints"][0][0].dtype
-    for dn in dt.names:
-        dict_[dn] = data["SleepState"]["ints"][0][0][dn][0][0]
+    dt = data["SleepState"]["ints"]
+    for dn in dt.keys():
+        dict_[dn] = data["SleepState"]["ints"][dn]
 
     if not return_epoch_array:
         return dict_
