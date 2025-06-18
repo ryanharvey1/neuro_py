@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import scipy.io as sio
 
-from neuro_py.io.loading import load_brain_regions, load_spikes, load_trials
+from neuro_py.io.loading import load_brain_regions, load_spikes, load_trials, load_SleepState_states
 
 
 # test load_trials
@@ -989,8 +989,6 @@ def test_load_SleepState_states():
         # Call the function under test
         result = load_SleepState_states(basepath)
 
-        print(result["THETA"])
-
         # Assertions
         assert result is not None
         assert isinstance(result, dict)
@@ -999,3 +997,57 @@ def test_load_SleepState_states():
         assert "NREMstate" in result
         assert isinstance(result["states"], np.ndarray)
         assert result["THETA"].shape == (3, 2)
+
+def test_load_SleepState_states_missing_statenames():
+    """Test successful loading of SleepState if keywords are missing in SleepState.idx.statenames"""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session11")
+        basename = os.path.basename(basepath)
+        
+        statenames = np.array([
+            'NREM',
+            np.array([], dtype='<U1'), 
+            'REM'
+        ], dtype=object)
+
+        create_temp_mat_file(
+            basepath, 
+            {f"{basename}.SleepState.states.mat": {
+                'SleepState': {
+                'idx': {
+                    'statenames': statenames,
+                    'states': np.array([1, 2, 3]),
+                    'timestamps': np.array([[0, 1], [1, 2], [2, 3]])
+                },
+                'ints': {
+                    'WAKEstate': np.array([
+                        [0, 1],
+                        [2, 3]
+                        ]),
+                    'NREMstate': np.array([
+                        [1, 2],
+                        [3, 4]
+                        ]),
+                    'REMstate': np.array([
+                        [2, 3],
+                        [4, 5]
+                        ]),
+                    'THETA': np.array([
+                        [0.5, 1.5],
+                        [2.5, 3.5],
+                        [4.5, 5.5]
+                        ]),
+                    'nonTHETA': np.array([
+                        [1.5, 2.5],
+                        [3.5, 4.5]
+                        ])
+                }
+            }
+            }})
+
+        # Call the function under test
+        result = load_SleepState_states(basepath)
+
+        # Assertions
+        assert result["wake_id"] == None
+        assert result["rem_id"] == 3

@@ -1388,20 +1388,29 @@ def load_SleepState_states(
     data = sio.loadmat(filename,simplify_cells=True)
 
     # get epoch id
-    sleepState_names = data['SleepState']['idx']['statenames']
-    sleepState_names_cleaned = np.array([x if isinstance(x, str) else '' for x in sleepState_names])
-    wake_id = (
-        np.where(sleepState_names_cleaned == "WAKE")[0][0]
-        + 1
-    )
-    rem_id = (
-        np.where(sleepState_names_cleaned == "REM")[0][0]
-        + 1
-    )
-    nrem_id = (
-        np.where(sleepState_names_cleaned == "NREM")[0][0]
-        + 1
-    )
+    statenames = data['SleepState']['idx']['statenames']
+    statenames_cleaned = np.array([x if isinstance(x, str) else '' for x in statenames])
+    try:
+        wake_id = (
+            np.where(statenames_cleaned == "WAKE")[0][0]
+            + 1
+        )
+    except IndexError:
+        wake_id = None
+    try:
+        rem_id = (
+            np.where(statenames_cleaned == "REM")[0][0]
+            + 1
+        )
+    except IndexError:
+        rem_id = None
+    try:
+        nrem_id = (
+            np.where(statenames_cleaned == "NREM")[0][0]
+            + 1
+        )
+    except IndexError:
+        nrem_id = None
 
     # get states and timestamps vectors
     states = data["SleepState"]["idx"]["states"]
