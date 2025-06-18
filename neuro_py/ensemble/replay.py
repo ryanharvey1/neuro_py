@@ -20,29 +20,25 @@ from neuro_py.process.peri_event import crossCorr
 @njit
 def __weighted_corr_2d_jit(
     weights: np.ndarray,
-    x_coords: Optional[np.ndarray],
-    y_coords: Optional[np.ndarray],
-    time_coords: Optional[np.ndarray],
+    x_coords: np.ndarray,
+    y_coords: np.ndarray,
+    time_coords: np.ndarray,
 ) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
     # Handle NaN weights
     weights = np.nan_to_num(weights, nan=0.0)
 
-    x_dim, y_dim, t_dim = weights.shape
+    # Use the same dtype as weights for internal arrays
+    dtype = weights.dtype
 
-    if x_coords is None:
-        x_coords = np.arange(x_dim)
-    if y_coords is None:
-        y_coords = np.arange(y_dim)
-    if time_coords is None:
-        time_coords = np.arange(t_dim)
+    x_dim, y_dim, t_dim = weights.shape
 
     n_points = x_dim * y_dim * t_dim
 
     # Preallocate flattened arrays
-    w_flat = np.empty(n_points, dtype=np.float64)
-    x_flat = np.empty(n_points, dtype=np.float64)
-    y_flat = np.empty(n_points, dtype=np.float64)
-    t_flat = np.empty(n_points, dtype=np.float64)
+    w_flat = np.empty(n_points, dtype=dtype)
+    x_flat = np.empty(n_points, dtype=dtype)
+    y_flat = np.empty(n_points, dtype=dtype)
+    t_flat = np.empty(n_points, dtype=dtype)
 
     idx = 0
     for i in range(x_dim):
@@ -57,14 +53,15 @@ def __weighted_corr_2d_jit(
 
     total_weight = np.sum(w_flat)
     if total_weight == 0.0:
+        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
         return (
-            np.nan,
-            np.full(t_dim, np.nan),
-            np.full(t_dim, np.nan),
-            np.nan,
-            np.nan,
-            np.nan,
-            np.nan,
+            np.nan,  # First value remains float64 for consistency
+            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.full(t_dim, nan_val[()], dtype=dtype),
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
         )
 
     mean_x = np.sum(w_flat * x_flat) / total_weight
@@ -81,14 +78,15 @@ def __weighted_corr_2d_jit(
     denom_y = np.sqrt(cov_yy * cov_tt)
 
     if denom_x == 0.0 or denom_y == 0.0 or cov_tt == 0.0:
+        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
         return (
-            np.nan,
-            np.full(t_dim, np.nan),
-            np.full(t_dim, np.nan),
-            np.nan,
-            np.nan,
-            np.nan,
-            np.nan,
+            np.nan,  # First value remains float64 for consistency
+            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.full(t_dim, nan_val[()], dtype=dtype),
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
+            nan_val[()],
         )
 
     corr_x = cov_xt / denom_x
@@ -104,7 +102,15 @@ def __weighted_corr_2d_jit(
         corr_x + corr_y
     )
 
-    return spatiotemporal_corr, x_traj, y_traj, slope_x, slope_y, mean_x, mean_y
+    return (
+        spatiotemporal_corr,  # float64
+        x_traj.astype(dtype),  # Ensure consistent dtype
+        y_traj.astype(dtype),
+        np.array(slope_x, dtype=dtype)[()],
+        np.array(slope_y, dtype=dtype)[()],
+        np.array(mean_x, dtype=dtype)[()],
+        np.array(mean_y, dtype=dtype)[()],
+    )
 
 
 def weighted_corr_2d(
@@ -144,13 +150,178 @@ def weighted_corr_2d(
 
     """
     x_dim, y_dim, t_dim = weights.shape
-    if x_coords is None:
-        x_coords = np.arange(x_dim)
-    if y_coords is None:
-        y_coords = np.arange(y_dim)
-    if time_coords is None:
-        time_coords = np.arange(t_dim)
+    dtype = weights.dtype
+
+    x_coords = (
+        np.arange(x_dim, dtype=dtype)
+        if x_coords is None
+        else np.asarray(x_coords, dtype=dtype)
+    )
+    y_coords = (
+        np.arange(y_dim, dtype=dtype)
+        if y_coords is None
+        else np.asarray(y_coords, dtype=dtype)
+    )
+    time_coords = (
+        np.arange(t_dim, dtype=dtype)
+        if time_coords is None
+        else np.asarray(time_coords, dtype=dtype)
+    )
+
     return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
+
+
+def _position_estimator_1d(posterior_prob: np.ndarray, bin_centers: np.ndarray, method: str, n_time_bins: int):
+    """Helper function for 1D position decoding."""
+    if posterior_prob.shape[1] != len(bin_centers):
+        raise ValueError(
+            f"Posterior shape {posterior_prob.shape[1]} doesn't match "
+            f"bin_centers length {len(bin_centers)}"
+        )
+
+    position = np.full(n_time_bins, np.nan)
+
+    for t in range(n_time_bins):
+        P = posterior_prob[t]
+        if np.sum(P) > 0:
+            if method == "com":
+                # Normalize probabilities
+                P_norm = P / np.sum(P)
+                # Calculate center of mass
+                position[t] = np.sum(bin_centers * P_norm)
+            elif method == "max":
+                # Find the index of the maximum probability
+                max_idx = np.argmax(P)
+                position[t] = bin_centers[max_idx]
+
+    return position
+
+
+def _position_estimator_2d(
+    posterior_prob: np.ndarray,
+    ybin_centers: np.ndarray,
+    xbin_centers: np.ndarray,
+    method: str,
+    n_time_bins: int,
+):
+    """Helper function for 2D position decoding."""
+    if posterior_prob.shape[1] != len(ybin_centers) or posterior_prob.shape[2] != len(
+        xbin_centers
+    ):
+        raise ValueError(
+            f"Posterior shape {posterior_prob.shape[1:]} doesn't match "
+            f"bin_centers shapes ({len(ybin_centers)}, {len(xbin_centers)})"
+        )
+
+    # Create coordinate meshgrids
+    # Using xy indexing so xx contains x-coords and yy contains y-coords
+    xx, yy = np.meshgrid(xbin_centers, ybin_centers, indexing="xy")
+
+    position = np.full((n_time_bins, 2), np.nan)  # [x, y] coordinates
+
+    for t in range(n_time_bins):
+        P = posterior_prob[t]
+        if np.sum(P) > 0:
+            if method == "com":
+                # Normalize probabilities
+                P_norm = P / np.sum(P)
+
+                # Calculate center of mass
+                position[t, 0] = np.sum(xx * P_norm)  # x-coordinate
+                position[t, 1] = np.sum(yy * P_norm)  # y-coordinate
+
+            elif method == "max":
+                # Find the index of the maximum probability
+                max_idx = np.unravel_index(np.argmax(P), P.shape)
+                position[t, 0] = xx[max_idx]  # x-coordinate
+                position[t, 1] = yy[max_idx]  # y-coordinate
+
+    return position
+
+
+def position_estimator(
+    posterior_prob: np.ndarray, *bin_centers: np.ndarray, method: str = "com"
+) -> np.ndarray:
+    """
+    Decode 1D or 2D position from posterior probability distributions.
+
+    Parameters
+    ----------
+    posterior_prob : np.ndarray
+        Posterior probability distributions over spatial bins for each time bin.
+        For 1D: shape (n_time_bins, n_bins)
+        For 2D: shape (n_time_bins, n_y_bins, n_x_bins)
+        Each time slice should contain non-negative values.
+    *bin_centers : np.ndarray
+        Coordinate values for the center of each spatial bin.
+        For 1D: single array of shape (n_bins,)
+        For 2D: two arrays - y_bin_centers of shape (n_y_bins,) and
+                x_bin_centers of shape (n_x_bins,)
+    method : str, optional
+        Decoding method to use. Options are:
+        - "com" : Center of mass (weighted average) (default)
+        - "max" : Maximum a posteriori (position of maximum probability)
+
+    Returns
+    -------
+    position : np.ndarray
+        Decoded positions for each time bin.
+        For 1D: shape (n_time_bins,) containing position coordinates
+        For 2D: shape (n_time_bins, 2) where position[:, 0] contains
+                x-coordinates and position[:, 1] contains y-coordinates
+        Time bins with zero probability sum are filled with NaN.
+
+    Raises
+    ------
+    ValueError
+        If method is not "com" or "max", or if dimensions don't match expectations.
+
+    Notes
+    -----
+    For the center of mass method, probabilities are normalized before computing
+    the weighted average. For time bins where all probabilities are zero,
+    the decoded position is set to NaN.
+
+    The function automatically detects whether to perform 1D or 2D decoding
+    based on the shape of the posterior_prob array and number of bin_centers provided.
+
+    Examples
+    --------
+    1D example:
+    >>> posterior_1d = np.random.rand(10, 20)  # 10 time bins, 20 spatial bins
+    >>> bin_centers = np.linspace(0, 19, 20)
+    >>> positions = decode_position(posterior_1d, bin_centers)
+    >>> positions.shape
+    (10,)
+
+    2D example:
+    >>> posterior_2d = np.random.rand(10, 5, 4)  # 10 time bins, 5x4 spatial grid
+    >>> y_centers = np.linspace(0, 4, 5)
+    >>> x_centers = np.linspace(0, 3, 4)
+    >>> positions = decode_position(posterior_2d, y_centers, x_centers)
+    >>> positions.shape
+    (10, 2)
+    """
+    if method not in ["com", "max"]:
+        raise ValueError(f"Method '{method}' not recognized. Use 'com' or 'max'.")
+
+    n_dims = len(posterior_prob.shape) - 1  # Subtract time dimension
+    n_time_bins = posterior_prob.shape[0]
+
+    if n_dims == 1:
+        return _position_estimator_1d(
+            posterior_prob, bin_centers[0], method, n_time_bins
+        )
+    elif n_dims == 2:
+        if len(bin_centers) != 2:
+            raise ValueError(
+                "For 2D decoding, provide exactly 2 bin_centers arrays (y_centers, x_centers)"
+            )
+        return _position_estimator_2d(
+            posterior_prob, bin_centers[0], bin_centers[1], method, n_time_bins
+        )
+    else:
+        raise ValueError(f"Only 1D and 2D decoding supported, got {n_dims}D")
 
 
 def WeightedCorr(
