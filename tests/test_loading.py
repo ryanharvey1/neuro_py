@@ -1049,5 +1049,5 @@ def test_load_SleepState_states_missing_statenames():
         result = load_SleepState_states(basepath)
 
         # Assertions
-        assert result["wake_id"] == None
+        assert result["wake_id"] is None
         assert result["rem_id"] == 3
