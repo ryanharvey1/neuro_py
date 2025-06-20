@@ -292,14 +292,27 @@ def event_triggered_cross_correlation(
 
     Returns
     -------
-    np.ndarray
-        array of correlation values
-    np.ndarray
-        array of time lags
+    correlation_lags : np.ndarray
+        array of time lags in ascending order (negative to positive)
+    avg_correlation : np.ndarray
+        array of correlation values corresponding to each lag
+    
+    Notes
+    -----
+    The function computes cross-correlation between signal1 and signal2 around event times.
+    The interpretation of lags is as follows:
+    
+    - **Negative lags**: signal2 leads signal1 (signal2 peaks occur before signal1 peaks)
+    - **Zero lag**: signals are synchronized
+    - **Positive lags**: signal2 lags behind signal1 (signal2 peaks occur after signal1 peaks)
+    
+    Peak correlation at positive lag indicates signal2 is a delayed version of signal1.
+    Peak correlation at negative lag indicates signal2 precedes or predicts signal1.
 
     Examples
     --------
-    >>> event_triggered_cross_correlation(event_times, signal1_data, signal1_ts, signal2_data, signal2_ts)
+    >>> lags, corr = event_triggered_cross_correlation(event_times, signal1_data, signal1_ts, signal2_data, signal2_ts)
+    >>> peak_lag = lags[np.argmax(np.abs(corr))]  # Find lag with maximum correlation
     """
 
     if time_lags is None:
