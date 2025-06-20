@@ -257,6 +257,134 @@ def compute_cross_correlogram(
         return crosscorrs[(crosscorrs.index >= -window) & (crosscorrs.index <= window)]
 
 
+def event_triggered_cross_correlation(
+    event_times: np.ndarray,
+    signal1_data: np.ndarray,
+    signal1_ts: np.ndarray,
+    signal2_data: np.ndarray,
+    signal2_ts: np.ndarray,
+    time_lags: Union[np.ndarray, None] = None,
+    window: list = [-0.5, 0.5],
+    bin_width: float = 0.005,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Computes the cross-correlation between two signals at specific event times
+
+    Parameters
+    ----------
+    event_times : np.ndarray
+        array of event times
+    signal1_data : np.ndarray
+        data of signal 1
+    signal1_ts : np.ndarray
+        timestamps of signal 1
+    signal2_data : np.ndarray
+        data of signal 2
+    signal2_ts : np.ndarray
+        timestamps of signal 2
+    time_lags : Union[np.ndarray, None], optional
+        array of time lags to compute correlation. If None, it will be computed automatically.
+    window : list, optional
+        window to compute correlation. Default is [-0.5, 0.5]
+    bin_width : float, optional
+        bin width to compute correlation. Ideally this should be the same as the sampling rate.
+        Default is 0.005
+
+    Returns
+    -------
+    np.ndarray
+        array of correlation values
+    np.ndarray
+        array of time lags
+
+    Examples
+    --------
+    >>> event_triggered_cross_correlation(event_times, signal1_data, signal1_ts, signal2_data, signal2_ts)
+    """
+
+    if time_lags is None:
+        time_lags = np.arange(window[0], window[1], bin_width)
+
+    # Interpolate both signals at event times + all possible lags
+    n_events = len(event_times)
+    n_lags = len(time_lags)
+
+    # Handle empty event times case
+    if n_events == 0:
+        max_lag_samples = n_lags - 1
+        correlation_lags = np.arange(max_lag_samples, -max_lag_samples - 1, -1) * (
+            time_lags[1] - time_lags[0]
+        )
+        # Create zero correlation array
+        avg_correlation = np.zeros(2 * n_lags - 1)
+
+        # restrict to window
+        avg_correlation = avg_correlation[
+            (correlation_lags >= window[0]) & (correlation_lags <= window[1])
+        ]
+        correlation_lags = correlation_lags[
+            (correlation_lags >= window[0]) & (correlation_lags <= window[1])
+        ]
+
+        return correlation_lags, avg_correlation
+
+    # Create time matrix: events x lags
+    event_times = event_times[:, None] + time_lags[None, :]
+
+    # Interpolate both signals
+    signal1_matrix = np.interp(event_times.flatten(), signal1_ts, signal1_data).reshape(
+        n_events, n_lags
+    )
+    signal2_matrix = np.interp(event_times.flatten(), signal2_ts, signal2_data).reshape(
+        n_events, n_lags
+    )
+
+    # Compute cross-correlation for each event
+    correlations = np.zeros((n_events, 2 * n_lags - 1))
+
+    for i in range(n_events):
+        signal1_signal = signal1_matrix[i]
+        signal2_signal = signal2_matrix[i]
+
+        # Remove mean
+        signal1_centered = signal1_signal - np.mean(signal1_signal)
+        signal2_centered = signal2_signal - np.mean(signal2_signal)
+
+        # Compute cross-covariance using correlate
+        cross_cov = signal.correlate(signal1_centered, signal2_centered, mode="full")
+
+        # Normalize by the product of standard deviations to get correlation
+        signal1_std = np.std(signal1_signal)
+        signal2_std = np.std(signal2_signal)
+
+        if signal1_std > 1e-10 and signal2_std > 1e-10:
+            # Normalize by length and standard deviations to get proper correlation
+            correlations[i] = cross_cov / (
+                len(signal1_signal) * signal1_std * signal2_std
+            )
+        else:
+            correlations[i] = 0
+
+    # Average across events
+    avg_correlation = np.mean(correlations, axis=0)
+
+    # Create lag axis for the correlation result - FIX: Flip the sign
+    max_lag_samples = n_lags - 1
+    correlation_lags = np.arange(max_lag_samples, -max_lag_samples - 1, -1) * (
+        time_lags[1] - time_lags[0]
+    )
+
+    # restrict to window
+    avg_correlation = avg_correlation[
+        (correlation_lags >= window[0]) & (correlation_lags <= window[1])
+    ]
+    correlation_lags = correlation_lags[
+        (correlation_lags >= window[0]) & (correlation_lags <= window[1])
+    ]
+
+    return correlation_lags, avg_correlation
+
+
 def local_firfilt(x: np.ndarray, W: np.ndarray) -> np.ndarray:
     """
     Apply a FIR filter to the input signal x using the provided filter coefficients W.
@@ -325,7 +453,7 @@ def cch_conv(
         - pred : predicted values after convolution.
         - qvals : q-values (1 - pvals).
     """
-    
+
     SDG = W / 2
     if round(SDG) == SDG:  # even W
         win = local_gausskernel(SDG, 6 * SDG + 1)
@@ -346,7 +474,7 @@ def sig_mod(
     binsize: float = 0.005,
     sig_window: float = 0.2,
     alpha: float = 0.001,
-    W: int = 30
+    W: int = 30,
 ) -> Tuple[bool, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Assess the significance of cross-correlogram values using Poisson statistics.
