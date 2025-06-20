@@ -312,7 +312,7 @@ def event_triggered_cross_correlation(
     # Handle empty event times case
     if n_events == 0:
         max_lag_samples = n_lags - 1
-        correlation_lags = np.arange(max_lag_samples, -max_lag_samples - 1, -1) * (
+        correlation_lags = np.arange(-max_lag_samples, max_lag_samples + 1) * (
             time_lags[1] - time_lags[0]
         )
         # Create zero correlation array
@@ -368,11 +368,13 @@ def event_triggered_cross_correlation(
     # Average across events
     avg_correlation = np.mean(correlations, axis=0)
 
-    # Create lag axis for the correlation result - FIX: Flip the sign
+    # Create lag axis for the correlation result in ascending order
     max_lag_samples = n_lags - 1
-    correlation_lags = np.arange(max_lag_samples, -max_lag_samples - 1, -1) * (
+    correlation_lags = np.arange(-max_lag_samples, max_lag_samples + 1) * (
         time_lags[1] - time_lags[0]
     )
+    # Reverse the correlation array to match the ascending lag order
+    avg_correlation = avg_correlation[::-1]
 
     # restrict to window
     avg_correlation = avg_correlation[
