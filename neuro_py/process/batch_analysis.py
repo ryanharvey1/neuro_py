@@ -38,18 +38,20 @@ def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle")
     >>> encode_file_path(basepath, save_path)
     "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
-    # normalize paths
+    # Normalize paths using the OS separator first
     basepath = os.path.normpath(basepath)
     save_path = os.path.normpath(save_path)
 
-    # choose extension based on format
-    extension = ".h5" if format_type == "hdf5" else ".pkl"
+    # Convert all path separators to a consistent encoding character
+    # Always use '___' regardless of OS
+    encoded_name = basepath.replace(os.sep, "___").replace(":", "---")
 
-    # encode file path with unlikely characters
-    save_file = os.path.join(
-        save_path, basepath.replace(os.sep, "___").replace(":", "---") + extension
-    )
-    return save_file
+    # Add extension
+    extension = ".h5" if format_type == "hdf5" else ".pkl"
+    encoded_name += extension
+
+    # Join using os.path.join for proper OS-specific path joining
+    return os.path.join(save_path, encoded_name)
 
 
 def decode_file_path(save_file: str) -> str:
@@ -73,12 +75,15 @@ def decode_file_path(save_file: str) -> str:
     "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     """
 
-    # get basepath from save_file
-    basepath = os.path.basename(save_file).replace("___", os.sep).replace("---", ":")
-    # also remove file extension
-    basepath = os.path.splitext(basepath)[0]
+    # Get just the filename portion
+    filename = os.path.basename(save_file)
 
-    return basepath
+    # Remove extension
+    filename = os.path.splitext(filename)[0]
+
+    # Convert back to original path format
+    # Always decode '___' to OS separator
+    return filename.replace("---", ":").replace("___", os.sep)
 
 
 def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
