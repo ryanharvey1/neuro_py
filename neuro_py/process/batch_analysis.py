@@ -74,7 +74,10 @@ def decode_file_path(save_file: str) -> str:
     "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     """
 
-    # Get just the filename portion (without directory path)
+    # Normalize the path to handle cross-platform path separators
+    save_file = save_file.replace("\\", "/")
+    
+    # Get just the filename portion
     filename = os.path.basename(save_file)
 
     # Remove extension
