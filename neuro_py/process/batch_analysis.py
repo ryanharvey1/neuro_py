@@ -38,13 +38,12 @@ def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle")
     >>> encode_file_path(basepath, save_path)
     "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
-    # Normalize paths using the OS separator first
-    basepath = os.path.normpath(basepath)
+    # Normalize and convert to forward slashes for consistent encoding
+    basepath = os.path.normpath(basepath).replace(os.sep, "/")
     save_path = os.path.normpath(save_path)
 
-    # Convert all path separators to a consistent encoding character
-    # Always use '___' regardless of OS
-    encoded_name = basepath.replace(os.sep, "___").replace(":", "---")
+    # Encode with consistent forward slashes
+    encoded_name = basepath.replace("/", "___").replace(":", "---")
 
     # Add extension
     extension = ".h5" if format_type == "hdf5" else ".pkl"
@@ -76,13 +75,12 @@ def decode_file_path(save_file: str) -> str:
     """
 
     # Get just the filename portion
-    filename = os.path.basename(save_file)
-
+    filename = os.path.basename(os.path.normpath(save_file))
+    
     # Remove extension
     filename = os.path.splitext(filename)[0]
-
-    # Convert back to original path format
-    # Always decode '___' to OS separator
+    
+    # Convert back to original path format using OS separators
     return filename.replace("---", ":").replace("___", os.sep)
 
 

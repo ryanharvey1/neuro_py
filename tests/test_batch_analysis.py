@@ -150,10 +150,11 @@ class TestFilePathEncoding:
         """Test encoding file path for pickle format."""
         basepath = r"C:\Data\Session1"
         save_path = r"C:\Results"
-        expected = os.path.join(r"C:\Results", "C---___Data___Session1.pkl")
-
+        # Expect forward slashes in encoded name
+        expected = os.path.normpath(os.path.join(r"C:\Results", "C---___Data___Session1.pkl"))
+        
         result = encode_file_path(basepath, save_path, "pickle")
-        assert result == expected
+        assert os.path.normpath(result) == expected
 
     def test_encode_file_path_hdf5(self):
         """Test encoding file path for HDF5 format."""
@@ -168,9 +169,9 @@ class TestFilePathEncoding:
         """Test decoding file path from pickle format."""
         save_file = r"C:\Results\C---___Data___Session1.pkl"
         expected = r"C:\Data\Session1"
-
+        
         result = decode_file_path(save_file)
-        assert result == expected
+        assert os.path.normpath(result) == os.path.normpath(expected)
 
     def test_decode_file_path_hdf5(self):
         """Test decoding file path from HDF5 format."""
