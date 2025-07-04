@@ -38,7 +38,7 @@ def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle")
     >>> encode_file_path(basepath, save_path)
     "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
-    # Normalize and convert to forward slashes for consistent encoding
+    # Normalize path and convert to forward slashes for consistent encoding
     basepath = os.path.normpath(basepath).replace(os.sep, "/")
     save_path = os.path.normpath(save_path)
 
@@ -76,12 +76,16 @@ def decode_file_path(save_file: str) -> str:
 
     # Get just the filename portion
     filename = os.path.basename(os.path.normpath(save_file))
-    
+
     # Remove extension
     filename = os.path.splitext(filename)[0]
-    
-    # Convert back to original path format using OS separators
-    return filename.replace("---", ":").replace("___", os.sep)
+
+    # Convert back to original path format
+    # First decode the encoded separators back to forward slashes
+    decoded = filename.replace("---", ":").replace("___", "/")
+
+    # Then convert to OS-specific separators
+    return decoded.replace("/", os.sep)
 
 
 def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
@@ -444,6 +448,9 @@ def load_results(
     # Filter by supported extensions if auto-detecting
     if format_type is None:
         sessions = [s for s in sessions if s.endswith((".pkl", ".h5"))]
+
+    # Sort sessions for consistent ordering
+    sessions.sort()
 
     results = []
 

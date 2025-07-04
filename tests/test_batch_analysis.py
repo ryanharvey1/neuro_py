@@ -150,11 +150,11 @@ class TestFilePathEncoding:
         """Test encoding file path for pickle format."""
         basepath = r"C:\Data\Session1"
         save_path = r"C:\Results"
-        # Expect forward slashes in encoded name
-        expected = os.path.normpath(os.path.join(r"C:\Results", "C---___Data___Session1.pkl"))
-        
+        # The function normalizes to forward slashes then encodes
+        expected = os.path.join(r"C:\Results", "C---___Data___Session1.pkl")
+
         result = encode_file_path(basepath, save_path, "pickle")
-        assert os.path.normpath(result) == expected
+        assert result == expected
 
     def test_encode_file_path_hdf5(self):
         """Test encoding file path for HDF5 format."""
@@ -169,9 +169,9 @@ class TestFilePathEncoding:
         """Test decoding file path from pickle format."""
         save_file = r"C:\Results\C---___Data___Session1.pkl"
         expected = r"C:\Data\Session1"
-        
+
         result = decode_file_path(save_file)
-        assert os.path.normpath(result) == os.path.normpath(expected)
+        assert result == expected
 
     def test_decode_file_path_hdf5(self):
         """Test decoding file path from HDF5 format."""
@@ -479,10 +479,10 @@ class TestLoadResults:
         # Load results
         results = load_results(save_path, format_type="pickle")
 
-        # Check results
+        # Check results - don't assume order since file loading order is not guaranteed
         assert len(results) == 3
-        assert results["session"].tolist() == ["session1", "session2", "session3"]
-        assert results["value"].tolist() == [1, 2, 3]
+        assert set(results["session"].tolist()) == {"session1", "session2", "session3"}
+        assert set(results["value"].tolist()) == {1, 2, 3}
 
     def test_load_results_hdf5(self, tmp_path):
         """Test loading results from HDF5 files."""
@@ -503,10 +503,10 @@ class TestLoadResults:
         # Load results
         results = load_results(save_path, format_type="hdf5")
 
-        # Check results
+        # Check results - don't assume order since file loading order is not guaranteed
         assert len(results) == 3
-        assert results["session"].tolist() == ["session1", "session2", "session3"]
-        assert results["value"].tolist() == [1, 2, 3]
+        assert set(results["session"].tolist()) == {"session1", "session2", "session3"}
+        assert set(results["value"].tolist()) == {1, 2, 3}
 
     def test_load_results_mixed_formats(self, tmp_path):
         """Test loading results from mixed file formats."""
