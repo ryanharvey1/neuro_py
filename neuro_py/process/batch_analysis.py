@@ -74,21 +74,12 @@ def decode_file_path(save_file: str) -> str:
     "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
     """
 
-    # Normalize the path to handle cross-platform path separators
-    save_file = save_file.replace("\\", "/")
-    
-    # Get just the filename portion
-    filename = os.path.basename(save_file)
+    # get basepath from save_file
+    basepath = os.path.basename(save_file).replace("___", os.sep).replace("---", ":")
+    # also remove file extension
+    basepath = os.path.splitext(basepath)[0]
 
-    # Remove extension
-    filename = os.path.splitext(filename)[0]
-
-    # Convert back to original path format
-    # First decode the encoded separators back to forward slashes
-    decoded = filename.replace("---", ":").replace("___", "/")
-
-    # Then convert to OS-specific separators
-    return os.path.normpath(decoded)
+    return basepath
 
 
 def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
