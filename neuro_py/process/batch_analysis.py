@@ -279,24 +279,31 @@ def _save_dataframe_to_hdf5(
     """
     group = h5_group.create_group(group_name)
 
+    # Convert column names to strings for HDF5 compatibility
+    string_columns = [str(col) for col in df.columns]
+
     # Save each column
-    for col in df.columns:
+    for orig_col, str_col in zip(df.columns, string_columns):
         try:
-            if df[col].dtype == "object":
+            if df[orig_col].dtype == "object":
                 # Handle object columns (strings, mixed types)
-                string_data = df[col].astype(str).values
-                group.create_dataset(col, data=string_data.astype("S"))
+                string_data = df[orig_col].astype(str).values
+                group.create_dataset(str_col, data=string_data.astype("S"))
             else:
-                group.create_dataset(col, data=df[col].values)
+                group.create_dataset(str_col, data=df[orig_col].values)
         except Exception as e:
-            print(f"Warning: Could not save column {col}: {e}")
+            print(f"Warning: Could not save column {orig_col}: {e}")
 
     # Save index
     try:
         if hasattr(df.index, "values"):
             index_values = df.index.values
             # Convert string index to bytes
-            if isinstance(df.index.dtype, object) and isinstance(index_values[0], str):
+            if (
+                isinstance(df.index.dtype, object)
+                and len(index_values) > 0
+                and isinstance(index_values[0], str)
+            ):
                 index_values = np.array([x.encode("utf-8") for x in index_values])
             group.create_dataset("_index", data=index_values)
         else:
@@ -304,8 +311,14 @@ def _save_dataframe_to_hdf5(
     except Exception as e:
         print(f"Warning: Could not save index: {e}")
 
-    # Save column names as strings (not bytes)
-    group.attrs["columns"] = list(df.columns)
+    # Save original column names and their types for proper reconstruction
+    group.attrs["columns"] = string_columns
+    group.attrs["original_columns"] = [
+        str(col) for col in df.columns
+    ]  # String representation
+    group.attrs["column_types"] = [
+        str(type(col).__name__) for col in df.columns
+    ]  # Type info
 
 
 def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
@@ -388,23 +401,66 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
 
     # Get column names
     if "columns" in h5_group.attrs:
-        columns = h5_group.attrs["columns"]
+        string_columns = h5_group.attrs["columns"]
         # Handle both bytes and str column names
-        if isinstance(columns[0], bytes):
-            columns = [col.decode("utf-8") for col in columns]
-        elif isinstance(columns[0], str):
-            columns = list(columns)  # already strings
-    else:
-        columns = [key for key in h5_group.keys() if key != "_index"]
+        if len(string_columns) > 0 and isinstance(string_columns[0], bytes):
+            string_columns = [col.decode("utf-8") for col in string_columns]
+        elif isinstance(string_columns[0], str):
+            string_columns = list(string_columns)  # already strings
+        else:
+            # Handle case where columns might be numeric types already
+            string_columns = [str(col) for col in string_columns]
 
-    # Load each column
-    for col in columns:
-        if col in h5_group:
-            col_data = h5_group[col][:]
+        # Try to reconstruct original column names with proper types
+        if "original_columns" in h5_group.attrs and "column_types" in h5_group.attrs:
+            original_columns = h5_group.attrs["original_columns"]
+            column_types = h5_group.attrs["column_types"]
+
+            # Convert string representations back to original types
+            reconstructed_columns = []
+            for orig_col, col_type in zip(original_columns, column_types):
+                if col_type == "int64":
+                    reconstructed_columns.append(int(orig_col))
+                elif col_type == "float64":
+                    reconstructed_columns.append(float(orig_col))
+                elif col_type == "bool":
+                    reconstructed_columns.append(orig_col.lower() == "true")
+                else:
+                    reconstructed_columns.append(orig_col)  # Keep as string
+
+            columns = reconstructed_columns
+        else:
+            # Fallback: try to convert numeric strings back to numbers
+            columns = []
+            for col in string_columns:
+                try:
+                    # Convert to string first if it's not already
+                    col_str = str(col)
+                    # Try to convert to int first
+                    if col_str.isdigit() or (
+                        col_str.startswith("-") and col_str[1:].isdigit()
+                    ):
+                        columns.append(int(col_str))
+                    else:
+                        # Try to convert to float
+                        float_val = float(col_str)
+                        columns.append(float_val)
+                except (ValueError, TypeError):
+                    # Keep as string if conversion fails
+                    columns.append(col)
+    else:
+        # Fallback: get all keys except index
+        string_columns = [key for key in h5_group.keys() if key != "_index"]
+        columns = string_columns
+
+    # Load each column using string keys
+    for str_col, final_col in zip(string_columns, columns):
+        if str_col in h5_group:
+            col_data = h5_group[str_col][:]
             # Handle string columns
             if col_data.dtype.kind == "S":
                 col_data = col_data.astype(str)
-            data[col] = col_data
+            data[final_col] = col_data
 
     # Load index
     if "_index" in h5_group:
