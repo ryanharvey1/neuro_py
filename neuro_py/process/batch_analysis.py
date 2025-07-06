@@ -101,7 +101,7 @@ def _is_homogeneous_array_compatible(value):
     """
     try:
         # Try to create a numpy array - if it fails, it's inhomogeneous
-        test_array = np.array(value)
+        np.array(value)
         return True
     except (ValueError, TypeError):
         return False
