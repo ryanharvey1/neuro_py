@@ -78,16 +78,145 @@ def decode_file_path(save_file: str) -> str:
     basepath = os.path.basename(save_file).replace("___", "/").replace("---", ":")
     # also remove file extension
     basepath = os.path.splitext(basepath)[0]
-    
+
     # Convert to OS-appropriate path separators
     basepath = basepath.replace("/", os.sep)
 
     return basepath
 
 
+def _is_homogeneous_array_compatible(value):
+    """
+    Check if a nested list/array structure can be converted to a homogeneous numpy array.
+
+    Parameters
+    ----------
+    value : any
+        The value to check
+
+    Returns
+    -------
+    bool
+        True if the value can be converted to a homogeneous numpy array
+    """
+    try:
+        # Try to create a numpy array - if it fails, it's inhomogeneous
+        test_array = np.array(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def _save_inhomogeneous_data_hdf5(group, key, value):
+    """
+    Save inhomogeneous data to HDF5 using different strategies.
+
+    Parameters
+    ----------
+    group : h5py.Group
+        HDF5 group to save to
+    key : str
+        Key name for the data
+    value : any
+        The inhomogeneous data to save
+    """
+    # Strategy 1: Try to save as individual arrays if it's a list of arrays
+    if isinstance(value, (list, tuple)) and len(value) > 0:
+        # Check if all elements are numpy arrays
+        if all(isinstance(item, np.ndarray) for item in value):
+            # Create a group for this inhomogeneous array collection
+            inhom_group = group.create_group(f"{key}_inhomogeneous")
+
+            # Save each array separately with its index
+            for i, arr in enumerate(value):
+                inhom_group.create_dataset(f"array_{i}", data=arr)
+
+            # Save metadata about the structure
+            inhom_group.attrs["type"] = "inhomogeneous_array_list"
+            inhom_group.attrs["length"] = len(value)
+            return
+
+        # Check if it's a nested list where each element is a list of arrays
+        elif (
+            len(value) > 0
+            and isinstance(value[0], (list, tuple))
+            and len(value[0]) > 0
+            and isinstance(value[0][0], np.ndarray)
+        ):
+            # Handle nested structure like [[array1, array2, ...], [array3, array4, ...]]
+            inhom_group = group.create_group(f"{key}_inhomogeneous")
+
+            for i, sublist in enumerate(value):
+                subgroup = inhom_group.create_group(f"sublist_{i}")
+                for j, arr in enumerate(sublist):
+                    subgroup.create_dataset(f"array_{j}", data=arr)
+                subgroup.attrs["length"] = len(sublist)
+
+            inhom_group.attrs["type"] = "nested_inhomogeneous_array_list"
+            inhom_group.attrs["length"] = len(value)
+            return
+
+    # Strategy 2: Fall back to pickle serialization for complex structures
+    pickled_data = pickle.dumps(value)
+    # Store as bytes dataset
+    group.create_dataset(f"{key}_pickled", data=np.void(pickled_data))
+    group.attrs[f"{key}_pickled_type"] = "pickled_object"
+
+
+def _load_inhomogeneous_data_hdf5(group, key):
+    """
+    Load inhomogeneous data from HDF5.
+
+    Parameters
+    ----------
+    group : h5py.Group
+        HDF5 group to load from
+    key : str
+        Key name for the data
+
+    Returns
+    -------
+    any
+        The loaded inhomogeneous data
+    """
+    # Check for inhomogeneous array collection
+    if f"{key}_inhomogeneous" in group:
+        inhom_group = group[f"{key}_inhomogeneous"]
+        data_type = inhom_group.attrs.get("type", "")
+
+        if data_type == "inhomogeneous_array_list":
+            # Load list of arrays
+            length = inhom_group.attrs["length"]
+            arrays = []
+            for i in range(length):
+                arrays.append(inhom_group[f"array_{i}"][:])
+            return arrays
+
+        elif data_type == "nested_inhomogeneous_array_list":
+            # Load nested list of arrays
+            length = inhom_group.attrs["length"]
+            result = []
+            for i in range(length):
+                subgroup = inhom_group[f"sublist_{i}"]
+                sublength = subgroup.attrs["length"]
+                sublist = []
+                for j in range(sublength):
+                    sublist.append(subgroup[f"array_{j}"][:])
+                result.append(sublist)
+            return result
+
+    # Check for pickled object
+    elif f"{key}_pickled" in group:
+        pickled_data = group[f"{key}_pickled"][()]
+        return pickle.loads(pickled_data.tobytes())
+
+    else:
+        raise KeyError(f"Inhomogeneous data with key '{key}' not found")
+
+
 def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
     """
-    Save data to HDF5 format.
+    Save data to HDF5 format with support for inhomogeneous arrays.
 
     Parameters
     ----------
@@ -114,11 +243,23 @@ def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
                         value.encode("utf-8")
                     )  # Store string as bytes
                 elif isinstance(value, (list, tuple)):
-                    # Convert to numpy array for storage
-                    f.create_dataset(key, data=np.array(value))
+                    # Check if it can be converted to homogeneous array
+                    if _is_homogeneous_array_compatible(value):
+                        # Convert to numpy array for storage
+                        f.create_dataset(key, data=np.array(value))
+                    else:
+                        # Handle inhomogeneous data
+                        _save_inhomogeneous_data_hdf5(f, key, value)
                 else:
-                    # For other types, store as string representation
-                    f.attrs[f"{key}_str"] = np.bytes_(str(value).encode("utf-8"))
+                    # For other types, try to pickle them
+                    try:
+                        _save_inhomogeneous_data_hdf5(f, key, value)
+                    except Exception as e:
+                        # Final fallback: store as string representation
+                        f.attrs[f"{key}_str"] = np.bytes_(str(value).encode("utf-8"))
+                        print(
+                            f"Warning: Saved {key} as string representation due to: {e}"
+                        )
 
 
 def _save_dataframe_to_hdf5(
@@ -169,7 +310,7 @@ def _save_dataframe_to_hdf5(
 
 def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
     """
-    Load data from HDF5 format.
+    Load data from HDF5 format with support for inhomogeneous arrays.
 
     Parameters
     ----------
@@ -198,12 +339,33 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
 
             # Load attributes (including scalar values)
             for key, value in f.attrs.items():
-                if isinstance(value, (int, float, bool)):
+                if key.endswith("_pickled_type"):
+                    continue  # Skip metadata attributes
+                elif isinstance(value, (int, float, bool)):
                     result[key] = value
                 elif isinstance(value, (np.bytes_, bytes)):
                     result[key] = value.decode("utf-8")  # Convert bytes back to string
                 else:
                     result[key] = value
+
+            # Load inhomogeneous data
+            inhom_keys = set()
+            for key in f.keys():
+                if key.endswith("_inhomogeneous"):
+                    original_key = key.replace("_inhomogeneous", "")
+                    inhom_keys.add(original_key)
+                elif key.endswith("_pickled"):
+                    original_key = key.replace("_pickled", "")
+                    if f"{key}_type" in f.attrs:
+                        inhom_keys.add(original_key)
+
+            for key in inhom_keys:
+                try:
+                    result[key] = _load_inhomogeneous_data_hdf5(f, key)
+                except Exception as e:
+                    print(
+                        f"Warning: Could not load inhomogeneous data for key {key}: {e}"
+                    )
 
             return result
 
@@ -538,6 +700,9 @@ def load_specific_data(
                         return _load_dataframe_from_hdf5(f[key])
                     else:
                         return f[key][:]
+                elif f"{key}_inhomogeneous" in f or f"{key}_pickled" in f:
+                    # Load inhomogeneous data
+                    return _load_inhomogeneous_data_hdf5(f, key)
                 else:
                     raise KeyError(f"Key '{key}' not found in file")
     else:
