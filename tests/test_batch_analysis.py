@@ -148,38 +148,160 @@ class TestFilePathEncoding:
 
     def test_encode_file_path_pickle(self):
         """Test encoding file path for pickle format."""
-        basepath = r"C:\Data\Session1"
-        save_path = r"C:\Results"
-        # The function normalizes to forward slashes then encodes
-        expected = os.path.join(r"C:\Results", "C---___Data___Session1.pkl")
+        with tempfile.TemporaryDirectory() as save_path:
+            # extract drive letter
+            cwd = os.getcwd()
+            drive = os.path.splitdrive(cwd)[0]
 
-        result = encode_file_path(basepath, save_path, "pickle")
-        assert result == expected
+            if drive:
+                drive_letter = drive[0]
+            else:
+                drive_letter = ""  # No drive letter on Linux systems
+
+            # create a test file path
+            basepath = os.path.join(drive, os.sep, "Data", "Session1")
+            basepath = os.path.normpath(basepath)
+            
+            # encode the file path
+            result = encode_file_path(basepath, save_path, "pickle")
+            
+            # check that the encoded file path is the same as the expected file path
+            if drive_letter:
+                expected = os.path.join(
+                    save_path, drive_letter + "---___Data___Session1.pkl"
+                )
+            else:
+                expected = os.path.join(
+                    save_path, "___Data___Session1.pkl"
+                )
+
+            assert result == os.path.normpath(expected)
 
     def test_encode_file_path_hdf5(self):
         """Test encoding file path for HDF5 format."""
-        basepath = r"C:\Data\Session1"
-        save_path = r"C:\Results"
-        expected = os.path.join(r"C:\Results", "C---___Data___Session1.h5")
+        with tempfile.TemporaryDirectory() as save_path:
+            # extract drive letter
+            cwd = os.getcwd()
+            drive = os.path.splitdrive(cwd)[0]
 
-        result = encode_file_path(basepath, save_path, "hdf5")
-        assert result == expected
+            if drive:
+                drive_letter = drive[0]
+            else:
+                drive_letter = ""  # No drive letter on Linux systems
+
+            # create a test file path
+            basepath = os.path.join(drive, os.sep, "Data", "Session1")
+            basepath = os.path.normpath(basepath)
+            
+            # encode the file path
+            result = encode_file_path(basepath, save_path, "hdf5")
+            
+            # check that the encoded file path is the same as the expected file path
+            if drive_letter:
+                expected = os.path.join(
+                    save_path, drive_letter + "---___Data___Session1.h5"
+                )
+            else:
+                expected = os.path.join(
+                    save_path, "___Data___Session1.h5"
+                )
+
+            assert result == os.path.normpath(expected)
 
     def test_decode_file_path_pickle(self):
         """Test decoding file path from pickle format."""
-        save_file = r"C:\Results\C---___Data___Session1.pkl"
-        expected = r"C:\Data\Session1"
+        with tempfile.TemporaryDirectory() as save_path:
+            # extract drive letter
+            cwd = os.getcwd()
+            drive = os.path.splitdrive(cwd)[0]
 
-        result = decode_file_path(save_file)
-        assert result == expected
+            if drive:
+                drive_letter = drive[0]
+            else:
+                drive_letter = ""  # No drive letter on Linux systems
+
+            # create a test file path
+            original_path = os.path.join(drive, os.sep, "Data", "Session1")
+            original_path = os.path.normpath(original_path)
+            
+            # create the encoded file path
+            if drive_letter:
+                encoded_filename = drive_letter + "---___Data___Session1.pkl"
+            else:
+                encoded_filename = "___Data___Session1.pkl"
+            
+            save_file = os.path.join(save_path, encoded_filename)
+            
+            # decode the file path
+            result = decode_file_path(save_file)
+            
+            # check that the decoded file path matches the original
+            assert result == original_path
 
     def test_decode_file_path_hdf5(self):
         """Test decoding file path from HDF5 format."""
-        save_file = r"C:\Results\C---___Data___Session1.h5"
-        expected = r"C:\Data\Session1"
+        with tempfile.TemporaryDirectory() as save_path:
+            # extract drive letter
+            cwd = os.getcwd()
+            drive = os.path.splitdrive(cwd)[0]
 
-        result = decode_file_path(save_file)
-        assert result == expected
+            if drive:
+                drive_letter = drive[0]
+            else:
+                drive_letter = ""  # No drive letter on Linux systems
+
+            # create a test file path
+            original_path = os.path.join(drive, os.sep, "Data", "Session1")
+            original_path = os.path.normpath(original_path)
+            
+            # create the encoded file path
+            if drive_letter:
+                encoded_filename = drive_letter + "---___Data___Session1.h5"
+            else:
+                encoded_filename = "___Data___Session1.h5"
+            
+            save_file = os.path.join(save_path, encoded_filename)
+            
+            # decode the file path
+            result = decode_file_path(save_file)
+            
+            # check that the decoded file path matches the original
+            assert result == original_path
+
+    def test_round_trip_encoding_decoding(self):
+        """Test that encoding and then decoding returns the original path."""
+        with tempfile.TemporaryDirectory() as save_path:
+            # extract drive letter
+            cwd = os.getcwd()
+            drive = os.path.splitdrive(cwd)[0]
+
+            if drive:
+                drive_letter = drive[0]
+            else:
+                drive_letter = ""  # No drive letter on Linux systems
+
+            # create a test file path
+            original_path = os.path.join(drive, os.sep, "test_data", "test_data_1")
+            original_path = os.path.normpath(original_path)
+            
+            # encode and decode the file path
+            encoded_file = encode_file_path(original_path, save_path)
+            decoded_file = decode_file_path(encoded_file)
+            
+            # check that the decoded file path is the same as the original file path
+            assert decoded_file == original_path
+            
+            # check that the encoded file path is the same as the expected file path
+            if drive_letter:
+                expected_encoded_file = os.path.join(
+                    save_path, drive_letter + "---___test_data___test_data_1.pkl"
+                )
+            else:
+                expected_encoded_file = os.path.join(
+                    save_path, "___test_data___test_data_1.pkl"
+                )
+
+            assert encoded_file == os.path.normpath(expected_encoded_file)
 
 
 class TestHDF5DataFrameOperations:

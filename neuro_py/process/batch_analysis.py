@@ -39,7 +39,7 @@ def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle")
     "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
     # Normalize path separators to forward slashes for consistent encoding
-    basepath = basepath.replace("\\", "/").replace("/", "/")
+    basepath = basepath.replace("\\", "/")
     save_path = os.path.normpath(save_path)
 
     # Encode with consistent separators
@@ -75,9 +75,12 @@ def decode_file_path(save_file: str) -> str:
     """
 
     # get basepath from save_file
-    basepath = os.path.basename(save_file).replace("___", os.sep).replace("---", ":")
+    basepath = os.path.basename(save_file).replace("___", "/").replace("---", ":")
     # also remove file extension
     basepath = os.path.splitext(basepath)[0]
+    
+    # Convert to OS-appropriate path separators
+    basepath = basepath.replace("/", os.sep)
 
     return basepath
 
