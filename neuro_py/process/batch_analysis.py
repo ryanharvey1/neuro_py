@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import pickle
 import traceback
+import warnings
 from collections.abc import Callable
 from typing import Literal, Optional, Union
 
@@ -760,7 +761,19 @@ def load_specific_data(
                     # Load inhomogeneous data
                     return _load_inhomogeneous_data_hdf5(f, key)
                 else:
-                    raise KeyError(f"Key '{key}' not found in file")
+                    if isinstance(filepath, (str, os.PathLike)):
+                        if isinstance(filepath, os.PathLike):
+                            filepath_str = str(filepath)
+                        else:
+                            filepath_str = filepath
+                    else:
+                        filepath_str = str(filepath)
+
+                    warnings.warn(
+                        f"Key '{key}' not found in file '{filepath_str}'. Returning None.",
+                        UserWarning,
+                    )
+                    return None
     else:
         # Pickle format - loads everything
         with open(filepath_str, "rb") as f:
