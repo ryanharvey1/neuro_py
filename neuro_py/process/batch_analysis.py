@@ -3,7 +3,6 @@ import multiprocessing
 import os
 import pickle
 import traceback
-import warnings
 from collections.abc import Callable
 from typing import Literal, Optional, Union
 
@@ -727,7 +726,7 @@ def load_results(
 
 def load_specific_data(
     filepath: Union[str, os.PathLike], key: Optional[str] = None
-) -> Union[pd.DataFrame, dict, np.ndarray]:
+) -> Union[pd.DataFrame, dict, np.ndarray, None]:
     """
     Load specific data from a file (supports selective loading for HDF5).
 
@@ -740,17 +739,15 @@ def load_specific_data(
 
     Returns
     -------
-    Union[pd.DataFrame, dict, np.ndarray]
-        Loaded data.
+    Union[pd.DataFrame, dict, np.ndarray, None]
+        Loaded data, or None if key not found in file.
     """
-    # Convert path-like objects to string
     filepath_str = str(filepath)
 
     if filepath_str.endswith(".h5"):
         if key is None:
             return _load_from_hdf5(filepath_str)
         else:
-            # Load only specific key
             with h5py.File(filepath_str, "r") as f:
                 if key in f:
                     if isinstance(f[key], h5py.Group):
@@ -758,28 +755,15 @@ def load_specific_data(
                     else:
                         return f[key][:]
                 elif f"{key}_inhomogeneous" in f or f"{key}_pickled" in f:
-                    # Load inhomogeneous data
                     return _load_inhomogeneous_data_hdf5(f, key)
                 else:
-                    if isinstance(filepath, (str, os.PathLike)):
-                        if isinstance(filepath, os.PathLike):
-                            filepath_str = str(filepath)
-                        else:
-                            filepath_str = filepath
-                    else:
-                        filepath_str = str(filepath)
-
-                    warnings.warn(
-                        f"Key '{key}' not found in file '{filepath_str}'. Returning None.",
-                        UserWarning,
-                    )
+                    # Silent return - empty files are expected
                     return None
     else:
-        # Pickle format - loads everything
         with open(filepath_str, "rb") as f:
             data = pickle.load(f)
 
         if key is not None and isinstance(data, dict):
-            return data[key]
+            return data.get(key)  # Returns None if key not found
         else:
             return data

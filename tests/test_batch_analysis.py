@@ -740,8 +740,7 @@ class TestLoadSpecificData:
         _save_to_hdf5(data, filepath)
 
         # Try to load non-existent key
-        with pytest.raises(KeyError, match="Key 'nonexistent' not found"):
-            load_specific_data(filepath, key="nonexistent")
+        assert load_specific_data(filepath, key="nonexistent") is None
 
 
 # Integration tests
