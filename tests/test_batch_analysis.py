@@ -1378,7 +1378,7 @@ class TestLoadSpecificDataEdgeCases:
         filepath = tmp_path / "empty.h5"
 
         # Create empty HDF5 file
-        with h5py.File(filepath, "w") as f:
+        with h5py.File(filepath, "w"):
             pass  # Create empty file
 
         # Should return empty dict
