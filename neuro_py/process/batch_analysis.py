@@ -232,7 +232,10 @@ def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
         elif isinstance(data, dict):
             # Save each item in the dictionary
             for key, value in data.items():
-                if isinstance(value, pd.DataFrame):
+                if value is None:
+                    # Handle None values by storing as pickled data
+                    _save_inhomogeneous_data_hdf5(f, key, value)
+                elif isinstance(value, pd.DataFrame):
                     _save_dataframe_to_hdf5(value, f, key)
                 elif isinstance(value, np.ndarray):
                     f.create_dataset(key, data=value)
@@ -343,12 +346,38 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
             # Multiple items case
             result = {}
 
-            # Load datasets
+            # First, identify which keys are inhomogeneous data
+            inhom_keys = set()
+            for key in f.keys():
+                if key.endswith("_inhomogeneous"):
+                    original_key = key.replace("_inhomogeneous", "")
+                    inhom_keys.add(original_key)
+                elif key.endswith("_pickled"):
+                    original_key = key.replace("_pickled", "")
+                    if f"{key}_type" in f.attrs:
+                        inhom_keys.add(original_key)
+
+            # Load datasets and groups
             for key in f.keys():
                 if isinstance(f[key], h5py.Group):
-                    result[key] = _load_dataframe_from_hdf5(f[key])
+                    # Check if this is an inhomogeneous array group
+                    if key.endswith("_inhomogeneous") or key.endswith("_pickled"):
+                        # This will be handled later by the inhomogeneous data loader
+                        continue
+                    else:
+                        # This is a regular DataFrame group
+                        result[key] = _load_dataframe_from_hdf5(f[key])
                 else:
-                    result[key] = f[key][:]
+                    # Skip internal keys that will be handled by inhomogeneous data loader
+                    if key.endswith("_inhomogeneous") or key.endswith("_pickled"):
+                        continue
+
+                    # Handle datasets - check if it's a scalar dataset
+                    dataset = f[key]
+                    if dataset.shape == ():  # Scalar dataset
+                        result[key] = dataset[()]  # Use [()] for scalar datasets
+                    else:
+                        result[key] = dataset[:]  # Use [:] for array datasets
 
             # Load attributes (including scalar values)
             for key, value in f.attrs.items():
@@ -362,16 +391,6 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
                     result[key] = value
 
             # Load inhomogeneous data
-            inhom_keys = set()
-            for key in f.keys():
-                if key.endswith("_inhomogeneous"):
-                    original_key = key.replace("_inhomogeneous", "")
-                    inhom_keys.add(original_key)
-                elif key.endswith("_pickled"):
-                    original_key = key.replace("_pickled", "")
-                    if f"{key}_type" in f.attrs:
-                        inhom_keys.add(original_key)
-
             for key in inhom_keys:
                 try:
                     result[key] = _load_inhomogeneous_data_hdf5(f, key)
@@ -402,8 +421,11 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
     # Get column names
     if "columns" in h5_group.attrs:
         string_columns = h5_group.attrs["columns"]
+        # Handle empty columns case
+        if len(string_columns) == 0:
+            string_columns = []
         # Handle both bytes and str column names
-        if len(string_columns) > 0 and isinstance(string_columns[0], bytes):
+        elif isinstance(string_columns[0], bytes):
             string_columns = [col.decode("utf-8") for col in string_columns]
         elif isinstance(string_columns[0], str):
             string_columns = list(string_columns)  # already strings
@@ -411,17 +433,20 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
             # Handle case where columns might be numeric types already
             string_columns = [str(col) for col in string_columns]
 
-        # Try to reconstruct original column names with proper types
-        if "original_columns" in h5_group.attrs and "column_types" in h5_group.attrs:
+        # Try to load original column names if stored as numeric array
+        if "_original_columns" in h5_group:
+            columns = h5_group["_original_columns"][:].tolist()
+        elif "original_columns" in h5_group.attrs and "column_types" in h5_group.attrs:
+            # Legacy approach: reconstruct from string representation and type info
             original_columns = h5_group.attrs["original_columns"]
             column_types = h5_group.attrs["column_types"]
 
             # Convert string representations back to original types
             reconstructed_columns = []
             for orig_col, col_type in zip(original_columns, column_types):
-                if col_type == "int64":
+                if col_type == "int64" or col_type == "int":
                     reconstructed_columns.append(int(orig_col))
-                elif col_type == "float64":
+                elif col_type == "float64" or col_type == "float":
                     reconstructed_columns.append(float(orig_col))
                 elif col_type == "bool":
                     reconstructed_columns.append(orig_col.lower() == "true")
@@ -429,25 +454,29 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
                     reconstructed_columns.append(orig_col)  # Keep as string
 
             columns = reconstructed_columns
-        else:
+        elif len(string_columns) > 0:
             # Fallback: try to convert numeric strings back to numbers
             columns = []
             for col in string_columns:
                 try:
                     # Convert to string first if it's not already
                     col_str = str(col)
-                    # Try to convert to int first
-                    if col_str.isdigit() or (
-                        col_str.startswith("-") and col_str[1:].isdigit()
-                    ):
-                        columns.append(int(col_str))
+
+                    # Try to convert to float first (to handle both int and float)
+                    float_val = float(col_str)
+
+                    # If it's a whole number, convert to int
+                    if float_val.is_integer():
+                        columns.append(int(float_val))
                     else:
-                        # Try to convert to float
-                        float_val = float(col_str)
                         columns.append(float_val)
+
                 except (ValueError, TypeError):
                     # Keep as string if conversion fails
                     columns.append(col)
+        else:
+            # Empty columns case
+            columns = []
     else:
         # Fallback: get all keys except index
         string_columns = [key for key in h5_group.keys() if key != "_index"]
@@ -763,7 +792,10 @@ def load_specific_data(
         with open(filepath_str, "rb") as f:
             data = pickle.load(f)
 
-        if key is not None and isinstance(data, dict):
-            return data.get(key)  # Returns None if key not found
+        if key is not None:
+            if isinstance(data, dict):
+                return data.get(key)  # Returns None if key not found
+            else:
+                return None  # Return None if key is requested but data is not a dict
         else:
             return data
