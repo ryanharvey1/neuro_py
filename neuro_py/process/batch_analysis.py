@@ -85,7 +85,7 @@ def decode_file_path(save_file: str) -> str:
     return basepath
 
 
-def _is_homogeneous_array_compatible(value):
+def _is_homogeneous_array_compatible(value: object) -> bool:
     """
     Check if a nested list/array structure can be converted to a homogeneous numpy array.
 
@@ -107,7 +107,9 @@ def _is_homogeneous_array_compatible(value):
         return False
 
 
-def _save_inhomogeneous_data_hdf5(group, key, value):
+def _save_inhomogeneous_data_hdf5(
+    group: h5py.Group, key: str, value: object
+) -> None:
     """
     Save inhomogeneous data to HDF5 using different strategies.
 
@@ -163,7 +165,9 @@ def _save_inhomogeneous_data_hdf5(group, key, value):
     group.attrs[f"{key}_pickled_type"] = "pickled_object"
 
 
-def _load_inhomogeneous_data_hdf5(group, key):
+def _load_inhomogeneous_data_hdf5(
+    group: h5py.Group, key: str
+) -> object:
     """
     Load inhomogeneous data from HDF5.
 
