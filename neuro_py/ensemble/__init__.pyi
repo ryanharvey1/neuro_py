@@ -30,6 +30,7 @@ __all__ = [
     "weighted_corr_2d",
     "weighted_corr_2d_jit",
     "position_estimator",
+    "mDLAG",
 ]
 
 from . import decoding
@@ -69,5 +70,7 @@ from .replay import (
     PairwiseBias,
     weighted_corr_2d,
     weighted_corr_2d_jit,
-    position_estimator
+    position_estimator,
 )
+
+from .m_dlag import mDLAG
