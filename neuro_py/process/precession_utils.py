@@ -1,9 +1,8 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numba
 import numpy as np
 import scipy as sp
-from pyparsing import Optional
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
