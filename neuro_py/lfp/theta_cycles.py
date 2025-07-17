@@ -1,15 +1,16 @@
 import os
 import sys
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import nelpy as nel
 import numpy as np
 import pandas as pd
-from neuro_py.lfp.spectral import filter_signal
 from scipy.io import savemat
 
 from neuro_py.io import loading
+from neuro_py.lfp.spectral import filter_signal
 from neuro_py.process.intervals import find_interval
+
 
 def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
     """
@@ -35,13 +36,17 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
     if tag in channel_tags:
         ch = channel_tags[tag]["channels"] - 1  # correct for 0-based indexing
         if isinstance(ch, (np.ndarray, list)) and len(ch) > 1:
-            print(f"Multiple theta channels found for {tag} in {basepath}. Using the first one.")
+            print(
+                f"Multiple theta channels found for {tag} in {basepath}. Using the first one."
+            )
             ch = ch[0]
         return int(ch)
 
     # Then try brain_region
     if tag in brain_region:
-        print(f"Input tag: {tag} not found in {basepath} channel_tags. Looking in brain regions.")
+        print(
+            f"Input tag: {tag} not found in {basepath} channel_tags. Looking in brain regions."
+        )
         region_chan = brain_region[tag]["channels"] - 1  # 0-based indexing
 
         # Ensure iterable
@@ -55,7 +60,9 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
 
         for chan in region_chan:
             if chan not in bad_ch:
-                print(f"Multiple theta channels found for {tag} in {basepath}. Using the first good one.")
+                print(
+                    f"Multiple theta channels found for {tag} in {basepath}. Using the first good one."
+                )
                 return int(chan)
 
         print(f"Input tag: {tag} found in brain regions but all channels are bad.")
@@ -63,7 +70,6 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
 
     print(f"Input tag: {tag} not found in {basepath} channel_tags or brain regions.")
     return None
-
 
 
 def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
@@ -213,7 +219,7 @@ def get_theta_cycles(
     lowpass: int = 48,
     detection_params: Optional[dict] = None,
     ch: Optional[int] = None,
-    tag: Optional[list] = ["CA1so","CA1sp"],
+    tag: Optional[list] = ["CA1so", "CA1sp"],
 ) -> Optional[None]:
     """
     Detect theta cycles in LFP data and save the results.
@@ -231,7 +237,7 @@ def get_theta_cycles(
     ch : int or None, optional
         Channel used for theta detection (default is None).
     tag : list, optional
-        List of tags to identify the theta channel (default is ["CA1so", "CA1sp"]). 
+        List of tags to identify the theta channel (default is ["CA1so", "CA1sp"]).
         The function will first try to find the channel using the first tag, then the second.
 
     Returns
