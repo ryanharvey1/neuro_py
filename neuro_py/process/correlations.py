@@ -296,16 +296,16 @@ def event_triggered_cross_correlation(
         array of time lags in ascending order (negative to positive)
     avg_correlation : np.ndarray
         array of correlation values corresponding to each lag
-    
+
     Notes
     -----
     The function computes cross-correlation between signal1 and signal2 around event times.
     The interpretation of lags is as follows:
-    
+
     - **Negative lags**: signal2 leads signal1 (signal2 peaks occur before signal1 peaks)
     - **Zero lag**: signals are synchronized
     - **Positive lags**: signal2 lags behind signal1 (signal2 peaks occur after signal1 peaks)
-    
+
     Peak correlation at positive lag indicates signal2 is a delayed version of signal1.
     Peak correlation at negative lag indicates signal2 precedes or predicts signal1.
 
@@ -398,6 +398,66 @@ def event_triggered_cross_correlation(
     ]
 
     return correlation_lags, avg_correlation
+
+def pairwise_event_triggered_cross_correlation(
+    event_times: np.ndarray,
+    signals_data: np.ndarray,
+    signals_ts: np.ndarray,
+    time_lags: Union[np.ndarray, None] = None,
+    window: list = [-0.5, 0.5],
+    bin_width: float = 0.005,
+    pairs: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Computes event-triggered cross-correlation for all unique signal pairs.
+
+    Parameters
+    ----------
+    event_times : np.ndarray
+        Array of event times.
+    signals_data : np.ndarray
+        2D array (n_signals, n_samples) of signal data.
+    signals_ts : np.ndarray
+        Array of timestamps for each signal.
+    time_lags : Union[np.ndarray, None], optional
+        Array of time lags to compute correlation. If None, computed automatically.
+    window : list, optional
+        Window to compute correlation. Default is [-0.5, 0.5].
+    bin_width : float, optional
+        Bin width to compute correlation. Default is 0.005.
+    pairs : Optional[np.ndarray], optional
+        Array of shape (n_pairs, 2) specifying pairs of signals to compute correlations for.
+        If None, computes correlations for all unique signal pairs.
+
+    Returns
+    -------
+    correlation_lags : np.ndarray
+        Array of time lags.
+    avg_correlation : np.ndarray
+        Array of shape (n_pairs, n_lags) with average correlation for each pair.
+    pairs : np.ndarray
+        Array of shape (n_pairs, 2) with indices of signal pairs.
+    """
+
+    if pairs is None:
+        n_signals = signals_data.shape[0]
+        pairs = np.array(list(itertools.combinations(np.arange(n_signals), 2)))
+
+    results = []
+    for i, j in pairs:
+        lags, corr = event_triggered_cross_correlation(
+            event_times,
+            signals_data[i, :],
+            signals_ts,
+            signals_data[j, :],
+            signals_ts,
+            time_lags=time_lags,
+            window=window,
+            bin_width=bin_width,
+        )
+        results.append(corr)
+    avg_correlation = np.vstack(results)
+    return lags, avg_correlation, pairs
 
 
 def local_firfilt(x: np.ndarray, W: np.ndarray) -> np.ndarray:

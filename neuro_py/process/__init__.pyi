@@ -55,6 +55,7 @@ __all__ = (
     "remove_inactive_cells_pre_task_post",
     "compute_image_spread",
     "event_triggered_cross_correlation",
+    "pairwise_event_triggered_cross_correlation",
 )
 
 from . import batch_analysis
@@ -66,6 +67,7 @@ from .correlations import (
     pairwise_cross_corr,
     pairwise_spatial_corr,
     event_triggered_cross_correlation,
+    pairwise_event_triggered_cross_correlation,
 )
 from .intervals import (
     find_intersecting_intervals,
