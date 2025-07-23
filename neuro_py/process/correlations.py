@@ -7,6 +7,8 @@ from scipy import signal, stats
 from scipy.stats import poisson
 
 from neuro_py.process.peri_event import crossCorr, deconvolve_peth
+from joblib import Parallel, delayed
+import numba
 
 
 def compute_AutoCorrs(
@@ -342,41 +344,18 @@ def event_triggered_cross_correlation(
         return correlation_lags, avg_correlation
 
     # Create time matrix: events x lags
-    event_times = event_times[:, None] + time_lags[None, :]
+    event_times_matrix = event_times[:, None] + time_lags[None, :]
 
     # Interpolate both signals
-    signal1_matrix = np.interp(event_times.flatten(), signal1_ts, signal1_data).reshape(
+    signal1_matrix = np.interp(event_times_matrix.flatten(), signal1_ts, signal1_data).reshape(
         n_events, n_lags
     )
-    signal2_matrix = np.interp(event_times.flatten(), signal2_ts, signal2_data).reshape(
+    signal2_matrix = np.interp(event_times_matrix.flatten(), signal2_ts, signal2_data).reshape(
         n_events, n_lags
     )
 
     # Compute cross-correlation for each event
-    correlations = np.zeros((n_events, 2 * n_lags - 1))
-
-    for i in range(n_events):
-        signal1_signal = signal1_matrix[i]
-        signal2_signal = signal2_matrix[i]
-
-        # Remove mean
-        signal1_centered = signal1_signal - np.mean(signal1_signal)
-        signal2_centered = signal2_signal - np.mean(signal2_signal)
-
-        # Compute cross-covariance using correlate
-        cross_cov = signal.correlate(signal1_centered, signal2_centered, mode="full")
-
-        # Normalize by the product of standard deviations to get correlation
-        signal1_std = np.std(signal1_signal)
-        signal2_std = np.std(signal2_signal)
-
-        if signal1_std > 1e-10 and signal2_std > 1e-10:
-            # Normalize by length and standard deviations to get proper correlation
-            correlations[i] = cross_cov / (
-                len(signal1_signal) * signal1_std * signal2_std
-            )
-        else:
-            correlations[i] = 0
+    correlations = _jit_event_corr(signal1_matrix, signal2_matrix)
 
     # Average across events
     avg_correlation = np.mean(correlations, axis=0)
@@ -399,6 +378,25 @@ def event_triggered_cross_correlation(
 
     return correlation_lags, avg_correlation
 
+@numba.njit(parallel=True, fastmath=True)
+def _jit_event_corr(signal1_matrix, signal2_matrix):
+    n_events, n_lags = signal1_matrix.shape
+    out = np.zeros((n_events, 2 * n_lags - 1))
+    for i in numba.prange(n_events):
+        s1 = signal1_matrix[i]
+        s2 = signal2_matrix[i]
+        s1c = s1 - np.mean(s1)
+        s2c = s2 - np.mean(s2)
+        cross_cov = np.correlate(s1c, s2c, mode="full")
+        s1_std = np.std(s1)
+        s2_std = np.std(s2)
+        if s1_std > 1e-10 and s2_std > 1e-10:
+            out[i] = cross_cov / (len(s1) * s1_std * s2_std)
+        else:
+            out[i] = 0
+    return out
+
+
 def pairwise_event_triggered_cross_correlation(
     event_times: np.ndarray,
     signals_data: np.ndarray,
@@ -407,6 +405,7 @@ def pairwise_event_triggered_cross_correlation(
     window: list = [-0.5, 0.5],
     bin_width: float = 0.005,
     pairs: Optional[np.ndarray] = None,
+    n_jobs: int = -1,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Computes event-triggered cross-correlation for all unique signal pairs.
@@ -443,8 +442,7 @@ def pairwise_event_triggered_cross_correlation(
         n_signals = signals_data.shape[0]
         pairs = np.array(list(itertools.combinations(np.arange(n_signals), 2)))
 
-    results = []
-    for i, j in pairs:
+    def compute_pair(i, j):
         lags, corr = event_triggered_cross_correlation(
             event_times,
             signals_data[i, :],
@@ -455,8 +453,23 @@ def pairwise_event_triggered_cross_correlation(
             window=window,
             bin_width=bin_width,
         )
-        results.append(corr)
+        return corr
+
+    results = Parallel(n_jobs=n_jobs, prefer="processes")(
+        delayed(compute_pair)(i, j) for i, j in pairs
+    )
     avg_correlation = np.vstack(results)
+
+    # Calculate lags directly (avoid extra function call)
+    if time_lags is None:
+        time_lags_arr = np.arange(window[0], window[1], bin_width)
+    else:
+        time_lags_arr = time_lags
+    n_lags = len(time_lags_arr)
+    max_lag_samples = n_lags - 1
+    lags = np.arange(-max_lag_samples, max_lag_samples + 1) * (time_lags_arr[1] - time_lags_arr[0])
+    lags = lags[(lags >= window[0]) & (lags <= window[1])]
+
     return lags, avg_correlation, pairs
 
 
