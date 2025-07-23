@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from neuro_py.process import event_triggered_cross_correlation
+from neuro_py.process import event_triggered_cross_correlation, pairwise_event_triggered_cross_correlation
 
 
 class TestEventTriggeredCrossCorrelation:
@@ -276,3 +276,35 @@ class TestEventTriggeredCrossCorrelation:
         assert len(lags) > 0
         assert len(correlation) == len(lags)
         assert np.all(np.abs(correlation) <= 1.1)
+
+
+def test_pairwise_event_triggered_cross_correlation():
+    """Test the pairwise_event_triggered_cross_correlation function for correctness and shape."""
+    # Create simple test data: 3 signals, 1000 samples
+    dt = 0.001
+    t = np.arange(0, 1, dt)
+    n_signals = 3
+    signals = np.stack([
+        np.sin(2 * np.pi * (i + 1) * t) for i in range(n_signals)
+    ])
+    event_times = np.array([0.2, 0.5, 0.7])
+
+    # Run the function
+    lags, avg_corr, pairs = pairwise_event_triggered_cross_correlation(
+        event_times=event_times,
+        signals_data=signals,
+        signals_ts=t,
+        window=[-0.1, 0.1],
+        bin_width=0.01,
+        n_jobs=1,  # for deterministic test
+    )
+
+    # There should be n_signals choose 2 pairs
+    assert pairs.shape[0] == 3, f"Expected 3 pairs, got {pairs.shape[0]}"
+    # Output shape: (n_pairs, n_lags)
+    assert avg_corr.shape[0] == pairs.shape[0]
+    assert avg_corr.shape[1] == len(lags)
+    # Correlation values should be in [-1, 1]
+    assert np.all(avg_corr <= 1.1) and np.all(avg_corr >= -1.1)
+    # Lags should be symmetric around zero
+    assert np.any(np.isclose(lags, 0, atol=1e-8)), "Zero lag missing"
