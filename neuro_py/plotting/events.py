@@ -188,12 +188,13 @@ def plot_peth_fast(
     **kwargs,
 ) -> plt.Axes:
     """
-    Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
+    Plot a peri-event time histogram (PETH) quickly with estimator flexibility.
+    Assumes that the index is time and the columns are trials/cells/etc.
 
     Parameters
     ----------
-    peth : pd.DataFrame, np.ndarray
-        Peth to plot
+    peth : pd.DataFrame or np.ndarray
+        PETH to plot. Rows are time, columns are trials/cells/etc.
     ts : np.ndarray, optional
         Time points to plot, by default None
     ax : plt.Axes, optional
@@ -201,9 +202,9 @@ def plot_peth_fast(
     ci : float, optional
         Confidence interval to plot, by default 0.95
     smooth : bool, optional
-        Whether to smooth the peth, by default False
+        Whether to smooth the PETH, by default False
     smooth_window : float, optional
-        Window to smooth the peth, by default 0.30
+        Window to smooth the PETH, by default 0.30
     smooth_std : int, optional
         Standard deviation of the smoothing window, by default 5
     smooth_win_type : str, optional
@@ -218,10 +219,31 @@ def plot_peth_fast(
         Random seed for bootstrapping
     **kwargs
         Keyword arguments to pass to ax.plot
+
     Returns
     -------
     plt.Axes
         Axis with plot
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from neuro_py.plotting.events import plot_peth_fast
+    >>> # Simulate PETH data: 100 time points, 20 trials
+    >>> peth = np.random.randn(100, 20)
+    >>> plot_peth_fast(peth)
+
+    Use a different estimator (e.g., median):
+    >>> plot_peth_fast(peth, estimator=np.nanmedian)
+
+    Use a custom estimator (e.g., 25th percentile):
+    >>> plot_peth_fast(peth, estimator=lambda x, axis: np.nanpercentile(x, 25, axis=axis))
+
+    With a pandas DataFrame and time index:
+    >>> ts = np.linspace(-1, 1, 100)
+    >>> df = pd.DataFrame(peth, index=ts)
+    >>> plot_peth_fast(df)
     """
     if ax is None:
         fig, ax = plt.subplots()
