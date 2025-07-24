@@ -1,6 +1,7 @@
 import warnings
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
+import bottleneck as bn
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -97,7 +98,7 @@ def plot_peth(
     **kwargs,
 ) -> plt.Axes:
     """
-    Plot a peri-event time histogram (PETH). 
+    Plot a peri-event time histogram (PETH).
     Assumes that the index is time and the columns are trials/cells/etc.
 
     Parameters
@@ -182,17 +183,19 @@ def plot_peth_fast(
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
     alpha: float = 0.2,
+    estimator: Callable = np.nanmean,
+    n_boot: int = 1000,
+    random_state: Optional[int] = None,
     **kwargs,
 ) -> plt.Axes:
     """
-    Plot a peth. Assumes that the index is time and the columns are trials/cells/etc.
-
-    Less flexible, but faster version of plot_peth
+    Plot a peri-event time histogram (PETH) quickly with estimator flexibility.
+    Assumes that the index is time and the columns are trials/cells/etc.
 
     Parameters
     ----------
-    peth : pd.DataFrame, np.ndarray
-        Peth to plot
+    peth : pd.DataFrame or np.ndarray
+        PETH to plot. Rows are time, columns are trials/cells/etc.
     ts : np.ndarray, optional
         Time points to plot, by default None
     ax : plt.Axes, optional
@@ -200,16 +203,21 @@ def plot_peth_fast(
     ci : float, optional
         Confidence interval to plot, by default 0.95
     smooth : bool, optional
-        Whether to smooth the peth, by default False
+        Whether to smooth the PETH, by default False
     smooth_window : float, optional
-        Window to smooth the peth, by default 0.30
+        Window to smooth the PETH, by default 0.30
     smooth_std : int, optional
         Standard deviation of the smoothing window, by default 5
     smooth_win_type : str, optional
         Type of smoothing window, by default "gaussian"
     alpha : float, optional
         Transparency of the confidence interval, by default 0.2
-
+    estimator : Callable, optional
+        Function to use for central tendency (default: np.nanmean). You may use numpy (np.nanmean, np.nanmedian, etc.) or Bottleneck (bn.nanmean, bn.nanmedian, etc.) for faster computation.
+    n_boot : int, optional
+        Number of bootstrap samples for CI if estimator is not mean (default: 1000)
+    random_state : int, optional
+        Random seed for bootstrapping
     **kwargs
         Keyword arguments to pass to ax.plot
 
@@ -218,49 +226,34 @@ def plot_peth_fast(
     plt.Axes
         Axis with plot
 
-    Raises
-    ------
-    TypeError
-        If peth is not a pandas dataframe
-
     Examples
-    -------
-    >>> from neuro_py.plotting.events import plot_peth
-    >>> from neuro_py.process import peri_event
-    >>> from neuro_py.io import loading
-
-    >>> st, cm = loading.load_spikes(basepath)
-    >>> rippple_epochs = loading.load_ripples_events(basepath, return_epoch_array=True)
-
-    >>> ripple_peth = peri_event.compute_psth(st.data, rippple_epochs.starts)
-    >>> plot_peth_fast(ripple_peth)
-
+    --------
+    >>> import numpy as np
+    >>> import bottleneck as bn
+    >>> import pandas as pd
+    >>> from neuro_py.plotting.events import plot_peth_fast
+    >>> # Simulate PETH data: 100 time points, 20 trials
+    >>> peth = np.random.randn(100, 20)
+    >>> plot_peth_fast(peth)
+    >>> plot_peth_fast(peth, estimator=bn.nanmedian)
+    >>> plot_peth_fast(peth, estimator=np.nanmedian)
+    >>> plot_peth_fast(peth, estimator=lambda x, axis: np.nanpercentile(x, 25, axis=axis))
+    >>> ts = np.linspace(-1, 1, 100)
+    >>> df = pd.DataFrame(peth, index=ts)
+    >>> plot_peth_fast(df)
     """
     if ax is None:
         fig, ax = plt.subplots()
 
-    # verify peth is a dataframe, if not convert it
     if not isinstance(peth, pd.DataFrame):
-
-        # if ts is not provided, create a range of time points
         if ts is None:
             ts = np.arange(peth.shape[0])
-
-        # transpose peth so that time is rows and trials are columns
         if len(ts) == peth.shape[1]:
             peth = peth.T
-
-        peth = pd.DataFrame(
-            index=ts,
-            columns=np.arange(peth.shape[1]),
-            data=peth,
-        )
-        # raise TypeError("peth must be a pandas dataframe")
+        peth = pd.DataFrame(index=ts, columns=np.arange(peth.shape[1]), data=peth)
 
     if smooth:
-        # convert window to samples
         smooth_window = int(smooth_window / np.diff(peth.index)[0])
-        # smooth the peth
         peth = (
             peth.rolling(
                 window=smooth_window,
@@ -272,18 +265,23 @@ def plot_peth_fast(
             .copy()
         )
 
-    # plot the peth as a lineplot with matplotlib
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        ax.plot(peth.index, np.nanmean(peth, axis=1), **kwargs)
-
-    # drop label from kwargs, as it was already used in the plot
+    # Central tendency
+    center = estimator(peth.values if hasattr(peth, "values") else peth, axis=1)
+    ax.plot(peth.index, center, **kwargs)
     kwargs.pop("label", None)
 
-    lower, upper = confidence_intervals(peth.values.T, conf=ci)
+    # Confidence interval
+    if estimator in (np.nanmean, bn.nanmean, np.nanmedian, bn.nanmedian):
+        lower, upper = confidence_intervals(peth.values.T, conf=ci, estimator=estimator)
+    else:
+        rng = np.random.default_rng(random_state)
+        boot_stats = np.empty((n_boot, peth.shape[0]))
+        for i in range(n_boot):
+            sample_idx = rng.integers(0, peth.shape[1], size=peth.shape[1])
+            boot_stats[i] = estimator(peth.values[:, sample_idx], axis=1)
+        lower = np.percentile(boot_stats, 100 * (1 - ci) / 2, axis=0)
+        upper = np.percentile(boot_stats, 100 * (1 + ci) / 2, axis=0)
     ax.fill_between(peth.index, lower, upper, alpha=alpha, **kwargs)
-
     ax.set_xlabel("Time (s)")
     sns.despine(ax=ax)
-
     return ax

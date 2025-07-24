@@ -1,6 +1,7 @@
 import warnings
-from typing import Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
+import bottleneck as bn
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -69,9 +70,9 @@ def get_significant_events(
 
     # calculate how many standard deviations away from shuffle
     if tail == "both":
-        stddev = (np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)) / np.nanstd(
-            np.abs(shuffled_scores), axis=0
-        )
+        stddev = (
+            np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)
+        ) / np.nanstd(np.abs(shuffled_scores), axis=0)
     elif tail == "right":
         stddev = (scores - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
             shuffled_scores, axis=0
@@ -85,10 +86,14 @@ def get_significant_events(
 
 
 def confidence_intervals(
-    X: np.ndarray, conf: float = 0.95
+    X: np.ndarray,
+    conf: float = 0.95,
+    estimator: Callable = np.nanmean,
+    n_boot: int = 1000,
+    random_state: Optional[int] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Calculate upper and lower confidence intervals on a matrix.
+    Calculate upper and lower confidence intervals on a matrix using a specified estimator.
 
     Parameters
     ----------
@@ -96,6 +101,12 @@ def confidence_intervals(
         A numpy ndarray of shape (n_signals, n_samples).
     conf : float, optional
         Confidence level value (default is 0.95).
+    estimator : Callable, optional
+        Function to use for central tendency (default: np.nanmean). You may use numpy (np.nanmean, np.nanmedian, etc.) or Bottleneck (bn.nanmean, bn.nanmedian, etc.) for faster computation.
+    n_boot : int, optional
+        Number of bootstrap samples for CI if estimator is not mean/median (default: 1000).
+    random_state : int, optional
+        Random seed for bootstrapping.
 
     Returns
     -------
@@ -104,24 +115,32 @@ def confidence_intervals(
     upper : np.ndarray
         Upper bounds of the confidence intervals (shape: (n_signals,)).
     """
-    # compute interval for each column
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        interval = [
-            stats.t.interval(
-                conf,
-                len(a) - 1,
-                loc=np.nanmean(a),
-                scale=stats.sem(a, nan_policy="omit"),
-            )
-            for a in X.T
-        ]
-    # stack intervals into array
-    interval = np.vstack(interval)
-    # split into lower and upper
-    lower = interval[:, 0]
-    upper = interval[:, 1]
-
+    if estimator in (np.nanmean, bn.nanmean, np.nanmedian, bn.nanmedian):
+        # compute interval for each column using t-interval
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            interval = [
+                stats.t.interval(
+                    conf,
+                    len(a) - 1,
+                    loc=estimator(a),
+                    scale=stats.sem(a, nan_policy="omit"),
+                )
+                for a in X.T
+            ]
+        interval = np.vstack(interval)
+        lower = interval[:, 0]
+        upper = interval[:, 1]
+    else:
+        # Bootstrap CI for arbitrary estimator
+        rng = np.random.default_rng(random_state)
+        n_signals = X.shape[1]
+        boot_stats = np.empty((n_boot, n_signals))
+        for i in range(n_boot):
+            sample_idx = rng.integers(0, X.shape[0], size=X.shape[0])
+            boot_stats[i] = estimator(X[sample_idx, :], axis=0)
+        lower = np.percentile(boot_stats, 100 * (1 - conf) / 2, axis=0)
+        upper = np.percentile(boot_stats, 100 * (1 + conf) / 2, axis=0)
     return lower, upper
 
 
