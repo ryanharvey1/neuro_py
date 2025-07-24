@@ -469,7 +469,7 @@ def __find_good_laps(
                 idx = stopgoodlaps[-1] == t[0]
             except Exception:
                 idx = stopgoodlaps == t[0]
-            if (len(stopgoodlaps) > 0) & (idx):
+            if (len(stopgoodlaps) > 0) and bool(idx):
                 stopgoodlaps[-1] = t[-1]
             else:
                 startgoodlaps.append(t[0])

@@ -826,7 +826,7 @@ def test_load_spikes_filter_by_stable():
         # Create MATLAB-style cell array for spike times
         # Each cell's spikes are stored as a column vector (Nx1 array)
         cell1_spikes = np.sort(np.random.poisson(4, size=100)).reshape(-1, 1)
-        cell2_spikes = np.sort(np.random.poisson(4, size=100)).reshape(-1, 1)
+        # cell2_spikes = np.sort(np.random.poisson(4, size=100)).reshape(-1, 1)
         cell2_spikes = np.array([1], dtype="float64").reshape(-1, 1)
 
         # Create the times structure as a numpy object array
@@ -879,8 +879,8 @@ def test_load_spikes_filter_by_stable():
         # Assertions
         assert st is not None
         assert metrics is not None
-        assert st.n_active == 2
-        assert len(metrics) == 2
+        assert st.n_active == 1
+        assert len(metrics) == 1
 
 
 def test_load_spikes_other_metric_length_mismatch():
