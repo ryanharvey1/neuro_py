@@ -272,7 +272,7 @@ def plot_peth_fast(
 
     # Confidence interval
     if estimator in (np.nanmean, bn.nanmean, np.nanmedian, bn.nanmedian):
-        lower, upper = confidence_intervals(peth.values.T, conf=ci)
+        lower, upper = confidence_intervals(peth.values.T, conf=ci, estimator=estimator)
     else:
         rng = np.random.default_rng(random_state)
         boot_stats = np.empty((n_boot, peth.shape[0]))
