@@ -1,13 +1,13 @@
 import warnings
-from typing import List, Optional, Union, Callable
+from typing import Callable, List, Optional, Union
 
+import bottleneck as bn
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from nelpy.core import EpochArray
-import bottleneck as bn
 
 from neuro_py.stats.stats import confidence_intervals
 
@@ -266,7 +266,7 @@ def plot_peth_fast(
         )
 
     # Central tendency
-    center = estimator(peth.values if hasattr(peth, 'values') else peth, axis=1)
+    center = estimator(peth.values if hasattr(peth, "values") else peth, axis=1)
     ax.plot(peth.index, center, **kwargs)
     kwargs.pop("label", None)
 

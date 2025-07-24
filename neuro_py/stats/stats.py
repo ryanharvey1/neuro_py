@@ -1,10 +1,10 @@
 import warnings
-from typing import Tuple, Union, Callable, Optional
+from typing import Callable, Optional, Tuple, Union
 
+import bottleneck as bn
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-import bottleneck as bn
 
 
 def get_significant_events(
@@ -70,9 +70,9 @@ def get_significant_events(
 
     # calculate how many standard deviations away from shuffle
     if tail == "both":
-        stddev = (np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)) / np.nanstd(
-            np.abs(shuffled_scores), axis=0
-        )
+        stddev = (
+            np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)
+        ) / np.nanstd(np.abs(shuffled_scores), axis=0)
     elif tail == "right":
         stddev = (scores - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
             shuffled_scores, axis=0
