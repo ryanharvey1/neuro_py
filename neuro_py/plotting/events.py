@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from nelpy.core import EpochArray
+import bottleneck as bn
 
 from neuro_py.stats.stats import confidence_intervals
 
@@ -212,7 +213,7 @@ def plot_peth_fast(
     alpha : float, optional
         Transparency of the confidence interval, by default 0.2
     estimator : Callable, optional
-        Function to use for central tendency (default: np.nanmean)
+        Function to use for central tendency (default: np.nanmean). You may use numpy (np.nanmean, np.nanmedian, etc.) or Bottleneck (bn.nanmean, bn.nanmedian, etc.) for faster computation.
     n_boot : int, optional
         Number of bootstrap samples for CI if estimator is not mean (default: 1000)
     random_state : int, optional
@@ -228,19 +229,15 @@ def plot_peth_fast(
     Examples
     --------
     >>> import numpy as np
+    >>> import bottleneck as bn
     >>> import pandas as pd
     >>> from neuro_py.plotting.events import plot_peth_fast
     >>> # Simulate PETH data: 100 time points, 20 trials
     >>> peth = np.random.randn(100, 20)
     >>> plot_peth_fast(peth)
-
-    Use a different estimator (e.g., median):
+    >>> plot_peth_fast(peth, estimator=bn.nanmedian)
     >>> plot_peth_fast(peth, estimator=np.nanmedian)
-
-    Use a custom estimator (e.g., 25th percentile):
     >>> plot_peth_fast(peth, estimator=lambda x, axis: np.nanpercentile(x, 25, axis=axis))
-
-    With a pandas DataFrame and time index:
     >>> ts = np.linspace(-1, 1, 100)
     >>> df = pd.DataFrame(peth, index=ts)
     >>> plot_peth_fast(df)
@@ -269,15 +266,14 @@ def plot_peth_fast(
         )
 
     # Central tendency
-    center = estimator(peth, axis=1)
+    center = estimator(peth.values if hasattr(peth, 'values') else peth, axis=1)
     ax.plot(peth.index, center, **kwargs)
     kwargs.pop("label", None)
 
     # Confidence interval
-    if estimator is np.nanmean or estimator == np.nanmean:
+    if estimator in (np.nanmean, bn.nanmean, np.nanmedian, bn.nanmedian):
         lower, upper = confidence_intervals(peth.values.T, conf=ci)
     else:
-        # Bootstrap CI for arbitrary estimator
         rng = np.random.default_rng(random_state)
         boot_stats = np.empty((n_boot, peth.shape[0]))
         for i in range(n_boot):
