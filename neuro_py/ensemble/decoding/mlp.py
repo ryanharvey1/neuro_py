@@ -1,8 +1,7 @@
-from typing import List, Union, Dict, Optional
+from typing import Dict, List, Optional, Union
 
-import torch
 import lightning as L
-
+import torch
 from torch import nn
 
 
@@ -33,28 +32,38 @@ class MLP(L.LightningModule):
     main : nn.Sequential
         The main sequential container of the MLP layers
     """
-    def __init__(self, in_dim: int = 100, out_dim: int = 2,
-                 hidden_dims: List[Union[int, float]] = (),
-                 use_bias: bool = True, args: Optional[Dict] = None):
+
+    def __init__(
+        self,
+        in_dim: int = 100,
+        out_dim: int = 2,
+        hidden_dims: List[Union[int, float]] = (),
+        use_bias: bool = True,
+        args: Optional[Dict] = None,
+    ):
         super().__init__()
         self.save_hyperparameters()
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.args = args if args is not None else {}
-        activations = nn.CELU if self.args.get('activations') is None else self.args['activations']
+        activations = (
+            nn.CELU
+            if self.args.get("activations") is None
+            else self.args["activations"]
+        )
 
         layers = self._build_layers(in_dim, out_dim, hidden_dims, use_bias, activations)
         self.main = nn.Sequential(*layers)
         self._init_params()
 
     def _build_layers(
-            self,
-            in_dim: int,
-            out_dim: int,
-            hidden_dims: List[Union[int, float]],
-            use_bias: bool,
-            activations: nn.Module
-        ) -> List[nn.Module]:
+        self,
+        in_dim: int,
+        out_dim: int,
+        hidden_dims: List[Union[int, float]],
+        use_bias: bool,
+        activations: nn.Module,
+    ) -> List[nn.Module]:
         """
         Build the layers of the MLP.
 
@@ -85,33 +94,39 @@ class MLP(L.LightningModule):
         for i, hidden_dim in enumerate(hidden_dims[:-1]):
             if isinstance(hidden_dim, float):
                 continue
-            if isinstance(hidden_dims[i+1], float):
-                layers.extend([
-                    nn.Linear(hidden_dim, hidden_dims[i + 2], bias=use_bias),
-                    nn.Dropout(p=hidden_dims[i+1]),
-                    activations() if i < len(hidden_dims)-1 else nn.Tanh()
-                ])
+            if isinstance(hidden_dims[i + 1], float):
+                layers.extend(
+                    [
+                        nn.Linear(hidden_dim, hidden_dims[i + 2], bias=use_bias),
+                        nn.Dropout(p=hidden_dims[i + 1]),
+                        activations() if i < len(hidden_dims) - 1 else nn.Tanh(),
+                    ]
+                )
             else:
-                layers.extend([
-                    nn.Linear(hidden_dim, hidden_dims[i + 1], bias=use_bias),
-                    activations() if i < len(hidden_dims)-1 else nn.Tanh()
-                ])
+                layers.extend(
+                    [
+                        nn.Linear(hidden_dim, hidden_dims[i + 1], bias=use_bias),
+                        activations() if i < len(hidden_dims) - 1 else nn.Tanh(),
+                    ]
+                )
 
         layers.append(nn.Linear(hidden_dims[-1], out_dim, bias=use_bias))
-        if self.args.get('clf', False):
+        if self.args.get("clf", False):
             layers.append(nn.LogSoftmax(dim=1))
 
         return layers
 
     def _init_params(self) -> None:
         """Initialize the parameters of the model."""
+
         def init_params(m: nn.Module) -> None:
             if isinstance(m, nn.Linear):
-                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='leaky_relu')
+                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity="leaky_relu")
                 if m.bias is not None:
                     fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
                     bound = 1 / torch.math.sqrt(fan_in)
                     nn.init.uniform_(m.bias, -bound, bound)  # LeCunn init
+
         self.main.apply(init_params)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -148,7 +163,7 @@ class MLP(L.LightningModule):
         """
         xs, ys = batch
         outs = self(xs)
-        loss = self.args['criterion'](outs, ys)
+        loss = self.args["criterion"](outs, ys)
         return loss
 
     def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -168,7 +183,7 @@ class MLP(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -188,7 +203,7 @@ class MLP(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('val_loss', loss)
+        self.log("val_loss", loss)
         return loss
 
     def test_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -208,7 +223,7 @@ class MLP(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('test_loss', loss)
+        self.log("test_loss", loss)
         return loss
 
     def configure_optimizers(self):
@@ -222,19 +237,20 @@ class MLP(L.LightningModule):
         """
         optimizer = torch.optim.AdamW(
             self.parameters(),
-            weight_decay=self.args['weight_decay'],
+            weight_decay=self.args["weight_decay"],
             betas=(0.9, 0.999),
-            amsgrad=True
+            amsgrad=True,
         )
         scheduler = torch.optim.lr_scheduler.CyclicLR(
-            optimizer, 
-            base_lr=self.args['base_lr'],
-            max_lr=self.args['lr'],
-            step_size_up=self.args['scheduler_step_size_multiplier'] * self.args['num_training_batches'],
+            optimizer,
+            base_lr=self.args["base_lr"],
+            max_lr=self.args["lr"],
+            step_size_up=self.args["scheduler_step_size_multiplier"]
+            * self.args["num_training_batches"],
             cycle_momentum=False,
-            mode='triangular2',
+            mode="triangular2",
             gamma=0.99994,
             last_epoch=-1,
         )
-        lr_scheduler = {'scheduler': scheduler, 'interval': 'step'}
+        lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]

@@ -1,11 +1,11 @@
 """Generate the code reference pages."""
+
 from pathlib import Path
 
 import mkdocs_gen_files
 
-
 nav = mkdocs_gen_files.Nav()
-mod_symbol = ''
+mod_symbol = ""
 
 root = Path(__file__).parent.parent
 src = root

@@ -171,7 +171,9 @@ def weighted_corr_2d(
     return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
 
 
-def _position_estimator_1d(posterior_prob: np.ndarray, bin_centers: np.ndarray, method: str, n_time_bins: int):
+def _position_estimator_1d(
+    posterior_prob: np.ndarray, bin_centers: np.ndarray, method: str, n_time_bins: int
+):
     """Helper function for 1D position decoding."""
     if posterior_prob.shape[1] != len(bin_centers):
         raise ValueError(

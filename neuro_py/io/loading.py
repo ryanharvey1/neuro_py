@@ -1385,30 +1385,21 @@ def load_SleepState_states(
         return None
 
     # load cell_metrics file
-    data = sio.loadmat(filename,simplify_cells=True)
+    data = sio.loadmat(filename, simplify_cells=True)
 
     # get epoch id
-    statenames = data['SleepState']['idx']['statenames']
-    statenames_cleaned = np.array([x if isinstance(x, str) else '' for x in statenames])
+    statenames = data["SleepState"]["idx"]["statenames"]
+    statenames_cleaned = np.array([x if isinstance(x, str) else "" for x in statenames])
     try:
-        wake_id = (
-            np.where(statenames_cleaned == "WAKE")[0][0]
-            + 1
-        )
+        wake_id = np.where(statenames_cleaned == "WAKE")[0][0] + 1
     except IndexError:
         wake_id = None
     try:
-        rem_id = (
-            np.where(statenames_cleaned == "REM")[0][0]
-            + 1
-        )
+        rem_id = np.where(statenames_cleaned == "REM")[0][0] + 1
     except IndexError:
         rem_id = None
     try:
-        nrem_id = (
-            np.where(statenames_cleaned == "NREM")[0][0]
-            + 1
-        )
+        nrem_id = np.where(statenames_cleaned == "NREM")[0][0] + 1
     except IndexError:
         nrem_id = None
 
@@ -2497,5 +2488,5 @@ def load_events(
             ):
                 event_df[key] = data[epoch_name][key]
         return event_df
-    
+
     return nel.EpochArray(data[epoch_name]["timestamps"])

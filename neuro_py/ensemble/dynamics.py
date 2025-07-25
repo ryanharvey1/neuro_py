@@ -2,7 +2,6 @@ from typing import Tuple, Union
 
 import numpy as np
 import sklearn.metrics
-
 from scipy.stats import binned_statistic_dd
 
 from ..util.array import (

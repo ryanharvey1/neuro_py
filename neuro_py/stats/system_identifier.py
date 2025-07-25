@@ -16,13 +16,16 @@ This is a linear dynamical system.
 """
 
 from typing import Tuple, Union
+
 import numpy as np
 import scipy as sp
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
 
 
-def ideal_data(num: int, dimU: int, dimY: int, dimX: int, noise: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+def ideal_data(
+    num: int, dimU: int, dimY: int, dimX: int, noise: float = 1.0
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate linear system data.
 
@@ -89,7 +92,7 @@ class SystemIdentifier(object):
     Simple Subspace System Identifier.
 
     This class identifies a linear dynamical system based on given input and output data using subspace methods.
-    
+
     Parameters
     ----------
     U : np.ndarray
@@ -113,7 +116,13 @@ class SystemIdentifier(object):
         Feedforward matrix.
     """
 
-    def __init__(self, U: np.ndarray, Y: np.ndarray, statedim: int, reg: Union[float, None] = None):
+    def __init__(
+        self,
+        U: np.ndarray,
+        Y: np.ndarray,
+        statedim: int,
+        reg: Union[float, None] = None,
+    ):
         if np.size(np.shape(U)) == 1:
             U = np.reshape(U, (-1, 1))
         if np.size(np.shape(Y)) == 1:

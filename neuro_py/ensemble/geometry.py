@@ -33,9 +33,7 @@ def proximity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
     norm_diff = np.linalg.norm(pv1 - pv2, axis=1)
 
     norm_diff_mean = np.apply_along_axis(
-        lambda e: np.mean(np.linalg.norm(e - pv2, axis=1)),
-        arr=pv1,
-        axis=1
+        lambda e: np.mean(np.linalg.norm(e - pv2, axis=1)), arr=pv1, axis=1
     )
 
     # Calculate proximity

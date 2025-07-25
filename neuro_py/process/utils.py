@@ -426,7 +426,7 @@ def compute_image_spread(
     """
     if np.allclose(X, 0):
         return np.nan, np.nan  # Return NaN if the input is all zero
-    
+
     if normalize:
         X = X / np.nansum(X)  # Normalize the input
 

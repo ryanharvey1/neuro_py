@@ -127,7 +127,9 @@ def filter_signal(
         if len(sig.shape) == 1:
             sig_filt = np.convolve(sig, fir_coefs, mode="same")
         else:
-            sig_filt = np.vstack([np.convolve(sig_, fir_coefs, mode="same") for sig_ in sig])
+            sig_filt = np.vstack(
+                [np.convolve(sig_, fir_coefs, mode="same") for sig_ in sig]
+            )
 
     # IIR filter implementation
     elif filter_type == "iir":

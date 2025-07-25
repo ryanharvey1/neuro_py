@@ -63,11 +63,11 @@ from .batch_analysis import decode_file_path, encode_file_path, load_results
 from .correlations import (
     compute_AutoCorrs,
     compute_cross_correlogram,
+    event_triggered_cross_correlation,
     pairwise_corr,
     pairwise_cross_corr,
-    pairwise_spatial_corr,
-    event_triggered_cross_correlation,
     pairwise_event_triggered_cross_correlation,
+    pairwise_spatial_corr,
 )
 from .intervals import (
     find_intersecting_intervals,
@@ -110,18 +110,18 @@ from .pychronux import (
     dpsschk,
     get_tapers,
     getfgrid,
+    mtcoherencept,
+    mtcsdpt,
     mtfftc,
     mtfftpt,
     mtspectrumc,
     mtspectrumpt,
     point_spectra,
-    mtcsdpt,
-    mtcoherencept,
 )
 from .utils import (
     average_diagonal,
     circular_shift,
+    compute_image_spread,
     remove_inactive_cells,
     remove_inactive_cells_pre_task_post,
-    compute_image_spread,
 )

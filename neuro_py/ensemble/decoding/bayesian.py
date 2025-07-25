@@ -111,6 +111,7 @@ def decode(
 
     return p
 
+
 @njit(parallel=True, fastmath=True, cache=True)
 def decode_with_prior_fallback(
     ct: np.ndarray,
@@ -223,6 +224,7 @@ def decode_with_prior_fallback(
 
     return p
 
+
 # @njit(parallel=True, fastmath=True, cache=True)
 # def decode_with_prior_fallback(
 #     ct: np.ndarray,
@@ -241,7 +243,7 @@ def decode_with_prior_fallback(
 #     n_cells = tc.shape[-1]
 #     spatial_shape = tc.shape[:-1]
 #     n_spatial_bins = np.prod(np.array(spatial_shape))  # Faster than manual product
-    
+
 #     tc_flat = tc.reshape(n_spatial_bins, n_cells)
 #     occupancy_flat = occupancy.ravel()  # Slightly faster than flatten()
 
@@ -263,24 +265,24 @@ def decode_with_prior_fallback(
 #     # Main computation loop - optimized
 #     for i in prange(n_bins):
 #         current_ct = ct[i, :]
-        
+
 #         if not np.any(current_ct):
 #             # Manual broadcasting without tile
 #             p[i, :] = uniform_prob
 #             continue
-        
+
 #         # Optimized dot product
 #         log_likelihood = log_p1 + log_p2
 #         for j in range(n_cells):
 #             ct_val = current_ct[j]
 #             if ct_val > 0:  # Skip zero counts
 #                 log_likelihood += log_tc_flat[:, j] * ct_val
-        
+
 #         # Numerical stability
 #         max_ll = log_likelihood.max()
 #         p_exp = np.exp(log_likelihood - max_ll)
 #         p_sum = p_exp.sum()
-        
+
 #         if p_sum > 0:
 #             p[i, :] = p_exp / p_sum
 #         else:
@@ -300,11 +302,11 @@ def decode_with_prior_fallback(
 #     n_bins, n_cells = ct.shape
 #     spatial_shape = tc.shape[:-1]
 #     n_spatial_bins = np.prod(np.array(spatial_shape))
-    
+
 #     # Reshape arrays
 #     tc_flat = tc.reshape(n_spatial_bins, n_cells)
 #     occupancy_flat = occupancy.ravel()
-    
+
 #     # Precompute constants
 #     if uniform_prior:
 #         log_p2 = np.zeros(n_spatial_bins)
@@ -315,24 +317,24 @@ def decode_with_prior_fallback(
 #         log_p2 = np.log(occupancy_flat * inv_occupancy_sum)
 #         uniform_val_array = occupancy_flat * inv_occupancy_sum
 #         uniform_val_scalar = 0.0  # Dummy scalar
-    
+
 #     log_tc_flat = np.log(tc_flat + 1e-10)
 #     log_p1 = (-tc_flat.sum(axis=1) * bin_size_s)
-    
+
 #     # Output array
 #     p = np.empty((n_bins, n_spatial_bins))
-    
+
 #     # Main computation loop
 #     for i in prange(n_bins):
 #         current_ct = ct[i, :]
 #         any_nonzero = False
-        
+
 #         # Check for any spikes
 #         for j in range(n_cells):
 #             if current_ct[j] > 0:
 #                 any_nonzero = True
 #                 break
-        
+
 #         if not any_nonzero:
 #             # Handle zero-count case
 #             if uniform_prior:
@@ -342,7 +344,7 @@ def decode_with_prior_fallback(
 #                 for k in range(n_spatial_bins):
 #                     p[i, k] = uniform_val_array[k]
 #             continue
-        
+
 #         # Compute log-likelihood
 #         log_likelihood = log_p1 + log_p2
 #         for j in range(n_cells):
@@ -350,22 +352,22 @@ def decode_with_prior_fallback(
 #             if ct_val > 0:
 #                 for k in range(n_spatial_bins):
 #                     log_likelihood[k] += log_tc_flat[k, j] * ct_val
-        
+
 #         # Find max for numerical stability
 #         max_ll = log_likelihood[0]
 #         for k in range(1, n_spatial_bins):
 #             if log_likelihood[k] > max_ll:
 #                 max_ll = log_likelihood[k]
-        
+
 #         # Compute exp and sum
 #         p_sum = 0.0
 #         for k in range(n_spatial_bins):
 #             p[i, k] = np.exp(log_likelihood[k] - max_ll)
 #             p_sum += p[i, k]
-        
+
 #         # Normalize
 #         inv_p_sum = 1.0 / p_sum
 #         for k in range(n_spatial_bins):
 #             p[i, k] *= inv_p_sum
-    
+
 #     return p.reshape((n_bins,) + spatial_shape)

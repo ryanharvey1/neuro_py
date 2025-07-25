@@ -101,6 +101,3 @@ def clean_lfp(
     )
 
     return (values, bad) if return_bad_intervals else values
-
-
-

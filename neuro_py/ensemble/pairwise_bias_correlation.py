@@ -1,4 +1,3 @@
-from joblib import Parallel, delayed
 from typing import List, Tuple
 
 import nelpy as nel
@@ -6,8 +5,9 @@ import numba
 import numpy as np
 import sklearn
 import sklearn.metrics
-
+from joblib import Parallel, delayed
 from numba import njit
+
 from neuro_py.io import loading
 from neuro_py.process import intervals
 from neuro_py.session.locate_epochs import (
@@ -21,7 +21,7 @@ def skew_bias_matrix(
     spike_times: np.ndarray,
     neuron_ids: np.ndarray,
     total_neurons: int,
-    fillneutral: float = 0
+    fillneutral: float = 0,
 ) -> np.ndarray:
     r"""
     Compute the pairwise skew-bias matrix for a given sequence of spikes.
@@ -72,7 +72,7 @@ def skew_bias_matrix(
         biases. arXiv, 11-16. https://arxiv.org/abs/1603.02916
     """
     bias = np.empty((total_neurons, total_neurons))
-    nrn_spk_rindices = np.empty(total_neurons+1, dtype=np.int64)
+    nrn_spk_rindices = np.empty(total_neurons + 1, dtype=np.int64)
     nrn_spk_rindices[0] = 0
 
     nrns_st = numba.typed.List()
@@ -81,15 +81,17 @@ def skew_bias_matrix(
     for i, nrn_id in enumerate(neuron_ids):
         nrns_st[nrn_id].append(spike_times[i])
     for nnrn in range(total_neurons):
-        nrn_spk_rindices[nnrn+1] = nrn_spk_rindices[nnrn] + len(nrns_st[nnrn])
+        nrn_spk_rindices[nnrn + 1] = nrn_spk_rindices[nnrn] + len(nrns_st[nnrn])
 
     nrns_st_all = np.empty(nrn_spk_rindices[-1], dtype=np.float64)
     for nnrn in range(total_neurons):
-        nrns_st_all[nrn_spk_rindices[nnrn]:nrn_spk_rindices[nnrn+1]] = np.asarray(nrns_st[nnrn])
+        nrns_st_all[nrn_spk_rindices[nnrn] : nrn_spk_rindices[nnrn + 1]] = np.asarray(
+            nrns_st[nnrn]
+        )
 
     # Build bias matrix
     for i in range(total_neurons):
-        spikes_i = nrns_st_all[nrn_spk_rindices[i]:nrn_spk_rindices[i+1]]
+        spikes_i = nrns_st_all[nrn_spk_rindices[i] : nrn_spk_rindices[i + 1]]
         nspikes_i = len(spikes_i)
 
         for j in range(i + 1, total_neurons):
@@ -97,11 +99,9 @@ def skew_bias_matrix(
             if (nspikes_i == 0) or (nspikes_j == 0):
                 bias[i, j] = bias[j, i] = fillneutral
             else:
-                spikes_j = nrns_st_all[
-                    nrn_spk_rindices[j]:nrn_spk_rindices[j+1]]
+                spikes_j = nrns_st_all[nrn_spk_rindices[j] : nrn_spk_rindices[j + 1]]
 
-                nspikes_ij = np.searchsorted(
-                    spikes_i, spikes_j, side='right').sum()
+                nspikes_ij = np.searchsorted(spikes_i, spikes_j, side="right").sum()
                 bias[i, j] = 2 * (nspikes_ij / (nspikes_i * nspikes_j)) - 1
                 bias[j, i] = -bias[i, j]
 
@@ -112,10 +112,7 @@ def skew_bias_matrix(
     return bias
 
 
-def cosine_similarity_matrices(
-    matrix1: np.ndarray,
-    matrix2: np.ndarray
-) -> float:
+def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
     """
     Compute the cosine similarity between two flattened matrices
 
@@ -259,20 +256,20 @@ def shuffled_significance(
     Returns
     -------
     z_score : np.ndarray
-        Z-scores of the observed correlations compared to the shuffled distributions. 
+        Z-scores of the observed correlations compared to the shuffled distributions.
         Shape is (n_intervals,).
     p_value : np.ndarray
-        P-values indicating the significance of the observed correlation. 
+        P-values indicating the significance of the observed correlation.
         Shape is (n_intervals,).
 
     Notes
     -----
-    The function uses parallel processing to compute observed and shuffled 
+    The function uses parallel processing to compute observed and shuffled
     correlations for each post-task interval. The z-score is calculated as:
 
         z_score = (observed_correlation - mean(shuffled_correlations)) / std(shuffled_correlations)
 
-    The p-value is computed as the proportion of shuffled correlations greater than 
+    The p-value is computed as the proportion of shuffled correlations greater than
     the observed correlation, with a small constant added for numerical stability.
 
     Examples
@@ -293,9 +290,7 @@ def shuffled_significance(
     np.random.seed(0)
 
     # Compute bias matrices for task epochs
-    task_bias_matrix = skew_bias_matrix(
-        task_spikes, task_neurons, total_neurons
-    )
+    task_bias_matrix = skew_bias_matrix(task_spikes, task_neurons, total_neurons)
 
     # Get shuffled and observed correlations using parallel processing
     observed_correlation, shuffled_correlations = zip(
@@ -312,9 +307,10 @@ def shuffled_significance(
             for interval_i in range(post_intervals.shape[0])
         )
     )
-    observed_correlation, shuffled_correlations = np.array(
-        observed_correlation
-    ), np.array(shuffled_correlations)
+    observed_correlation, shuffled_correlations = (
+        np.array(observed_correlation),
+        np.array(shuffled_correlations),
+    )
     # Compute z-score
     shuffled_mean = np.mean(shuffled_correlations, axis=1)
     shuffled_std = np.std(shuffled_correlations, axis=1)

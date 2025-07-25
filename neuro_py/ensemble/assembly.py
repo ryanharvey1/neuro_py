@@ -1,5 +1,5 @@
 """
-Codes for PCA/ICA methods described in Detecting cell assemblies in large neuronal populations, Lopes-dos-Santos et al (2013). 
+Codes for PCA/ICA methods described in Detecting cell assemblies in large neuronal populations, Lopes-dos-Santos et al (2013).
 https://doi.org/10.1016/j.jneumeth.2013.04.010
 This implementation was written in Feb 2019.
 Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
@@ -11,7 +11,6 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 from scipy import stats
 from sklearn.decomposition import PCA, FastICA
-
 
 __author__ = "Vítor Lopes dos Santos"
 __version__ = "2019.1"

@@ -13,7 +13,6 @@ from neuro_py.ensemble import assembly
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
-
 logging.getLogger().setLevel(logging.ERROR)
 
 
@@ -276,10 +275,10 @@ class AssemblyReact:
                 whiten=self.whiten,
             )
 
-            if patterns is None: 
+            if patterns is None:
                 self.patterns = None
-                return 
-            
+                return
+
             # flip patterns to have positive max
             self.patterns = np.array(
                 [

@@ -1,4 +1,3 @@
-
 __all__ = [
     "behavior",
     "detectors",
@@ -14,7 +13,6 @@ __all__ = [
     "tuning",
     "util",
 ]
-
 
 from . import (
     behavior,

@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d, label
 from scipy.ndimage.filters import gaussian_filter, maximum_filter
@@ -38,6 +37,7 @@ def detect_firing_fields(
         Threshold for Determinant of Hessian blobs.
     """
     from skimage.feature import blob_dog, blob_doh, blob_log
+
     plt.imshow(image_gray, origin="lower")
 
     blobs_log = blob_log(
@@ -106,7 +106,7 @@ def find_peaks(image: np.ndarray) -> np.ndarray:
 def sort_fields_by_rate(
     rate_map: np.ndarray,
     fields: np.ndarray,
-    func: Optional[Callable[[np.ndarray], Any]] = None
+    func: Optional[Callable[[np.ndarray], Any]] = None,
 ) -> np.ndarray:
     """
     Sort fields by the rate value of each field.
@@ -150,7 +150,7 @@ def sort_fields_by_rate(
 def remove_fields_by_area(
     fields: np.ndarray,
     minimum_field_area: int,
-    maximum_field_area: Optional[int] = None
+    maximum_field_area: Optional[int] = None,
 ) -> np.ndarray:
     """
     Sets fields below minimum area to zero, measured as the number of bins in a field.
@@ -168,7 +168,7 @@ def remove_fields_by_area(
     -------
     np.ndarray
         Fields with number of bins below minimum_field_area are set to zero.
-    
+
     Raises
     ------
     ValueError
@@ -194,9 +194,7 @@ def remove_fields_by_area(
 
 
 def separate_fields_by_laplace(
-    rate_map: np.ndarray,
-    threshold: float = 0,
-    minimum_field_area: Optional[int] = None
+    rate_map: np.ndarray, threshold: float = 0, minimum_field_area: Optional[int] = None
 ) -> np.ndarray:
     """
     Separates fields using the Laplacian to identify fields separated by
@@ -237,7 +235,7 @@ def separate_fields_by_dilation(
     rate_map: np.ndarray,
     seed: float = 2.5,
     sigma: float = 2.5,
-    minimum_field_area: Optional[int] = None
+    minimum_field_area: Optional[int] = None,
 ) -> np.ndarray:
     """
     Separates fields by the Laplace of Gaussian (LoG)
@@ -282,9 +280,7 @@ def separate_fields_by_dilation(
 
 
 def separate_fields_by_laplace_of_gaussian(
-    rate_map: np.ndarray,
-    sigma: float = 2,
-    minimum_field_area: Optional[int] = None
+    rate_map: np.ndarray, sigma: float = 2, minimum_field_area: Optional[int] = None
 ) -> np.ndarray:
     """
     Separates fields using the Laplace of Gaussian (LoG) to identify fields
@@ -320,9 +316,7 @@ def separate_fields_by_laplace_of_gaussian(
 
 
 def calculate_field_centers(
-    rate_map: np.ndarray,
-    labels: np.ndarray,
-    center_method: str = "maxima"
+    rate_map: np.ndarray, labels: np.ndarray, center_method: str = "maxima"
 ) -> np.ndarray:
     """
     Finds center of fields at labels.
@@ -340,7 +334,7 @@ def calculate_field_centers(
     -------
     np.ndarray
         Coordinates of the center for each field.
-    
+
     Raises
     ------
     ValueError
@@ -364,10 +358,7 @@ def calculate_field_centers(
 
 
 def which_field(
-    x: np.ndarray,
-    y: np.ndarray,
-    fields: np.ndarray,
-    box_size: List[float]
+    x: np.ndarray, y: np.ndarray, fields: np.ndarray, box_size: List[float]
 ) -> np.ndarray:
     """
     Returns which spatial field each (x, y) position is in.
@@ -441,7 +432,7 @@ def distance_to_edge_function(
     y_c: float,
     field: np.ndarray,
     box_size: Tuple[float, float],
-    interpolation: str = "linear"
+    interpolation: str = "linear",
 ) -> Callable[[float], float]:
     """
     Returns a function which, for a given angle, returns the distance to
@@ -525,7 +516,7 @@ def map_pass_to_unit_circle(
     y_c: float,
     field: Optional[np.ndarray] = None,
     box_size: Optional[Tuple[float, float]] = None,
-    dist_func: Optional[Callable[[float], float]] = None
+    dist_func: Optional[Callable[[float], float]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Uses three vectors {v, p, q} to map the passes to the unit circle. v
@@ -573,9 +564,9 @@ def map_pass_to_unit_circle(
            Philos Trans R Soc Lond B Biol Sci. 2013 Dec 23;369(1635):20120532
     """
     if dist_func is None:
-        assert (
-            field is not None and box_size is not None
-        ), 'either provide "dist_func" or "field" and "box_size"'
+        assert field is not None and box_size is not None, (
+            'either provide "dist_func" or "field" and "box_size"'
+        )
         dist_func = distance_to_edge_function(
             x_c, y_c, field, box_size, interpolation="linear"
         )
@@ -634,7 +625,7 @@ def find_fields_1d(
     hz_thresh: float = 5,
     min_length: int = 1,
     max_length: int = 20,
-    max_mean_firing: float = 10
+    max_mean_firing: float = 10,
 ) -> dict:
     """
     Finds the location of maximum spiking.
@@ -691,7 +682,7 @@ def compute_linear_place_fields(
     firing_rate: np.ndarray,
     min_window_size: int = 5,
     min_firing_rate: float = 1.0,
-    thresh: float = 0.5
+    thresh: float = 0.5,
 ) -> np.ndarray:
     """
     Find consecutive bins where all are >= threshold of local max firing rate
@@ -732,7 +723,7 @@ def compute_2d_place_fields(
     thresh: float = 0.2,
     min_size: int = 100,
     max_size: int = 200,
-    sigma: Optional[float] = None
+    sigma: Optional[float] = None,
 ) -> np.ndarray:
     """
     Compute place fields from the firing rate.
@@ -793,8 +784,7 @@ def compute_2d_place_fields(
 
 
 def find_field(
-    firing_rate: np.ndarray,
-    threshold: float
+    firing_rate: np.ndarray, threshold: float
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the field in the firing rate that exceeds the threshold.
@@ -821,8 +811,7 @@ def find_field(
 
 
 def find_field2(
-    firing_rate: np.ndarray,
-    thresh: float
+    firing_rate: np.ndarray, thresh: float
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the field in a 1D firing rate array that exceeds the threshold.
@@ -837,7 +826,7 @@ def find_field2(
     Returns
     -------
     Tuple[np.ndarray, np.ndarray]
-        Tuple containing two boolean arrays: 
+        Tuple containing two boolean arrays:
         the first indicates the buffer area and the second indicates the field.
     """
     firing_rate = np.array(firing_rate)
@@ -869,7 +858,7 @@ def map_stats2(
     min_size: int = 5,
     max_size: Optional[int] = None,
     min_peak: float = 1.0,
-    sigma: Optional[float] = None
+    sigma: Optional[float] = None,
 ) -> Dict[str, List[float]]:
     """
     Map statistics of firing rate fields.

@@ -198,24 +198,25 @@ def regress_out(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     https://github.com/mwaskom/seaborn/blob/824c102525e6a29cde9bca1ce0096d50588fda6b/seaborn/regression.py#L337
     """
     # remove nans and infs from a and b, and make a_result vector for output
-    a_result = np.full_like(a, np.nan)
-
     valid_mask = np.isfinite(a) & np.isfinite(b)
-    a = np.asarray(a)[valid_mask]
-    b = np.asarray(b)[valid_mask]
+    a_valid = np.asarray(a)[valid_mask]
+    b_valid = np.asarray(b)[valid_mask]
 
     # remove mean from a and b
-    a_mean = a.mean()
-    a = a - a_mean
-    b = b - b.mean()
+    a_mean = a_valid.mean() if a_valid.size > 0 else 0.0
+    a_centered = a_valid - a_mean
+    b_centered = b_valid - b_valid.mean() if b_valid.size > 0 else b_valid
 
     # calculate regression and subtract from a to get a_prime
-    b = np.c_[b]
-    a_prime = a - b @ np.linalg.pinv(b) @ a
+    if b_centered.size > 0:
+        b_mat = np.c_[b_centered]
+        a_prime = a_centered - b_mat @ np.linalg.pinv(b_mat) @ a_centered
+        a_prime = np.asarray(a_prime + a_mean).reshape(a_centered.shape)
+    else:
+        a_prime = a_centered
 
-    # add mean back to a_prime
-    a_prime = np.asarray(a_prime + a_mean).reshape(a.shape)
-
-    # put a_prime back into a_result vector to preserve nans
+    # Build output: fill with np.nan where invalid, otherwise with result
+    a_result = np.empty_like(a, dtype=float)
+    a_result[:] = np.nan
     a_result[valid_mask] = a_prime
     return a_result
