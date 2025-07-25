@@ -17,7 +17,7 @@ def filter_tracker_jumps(
     Parameters
     ----------
     beh_df : pd.DataFrame
-        Behavior data with columns x, y, and ts.
+        Behavior data with columns x, y, and timestamps.
     max_speed : Union[int,float], optional
         Maximum allowed speed in cm per second.
 
@@ -36,7 +36,7 @@ def filter_tracker_jumps(
     beh_df["distance"] = np.sqrt(beh_df["dx"] ** 2 + beh_df["dy"] ** 2)
 
     # Calculate the time difference between consecutive timestamps
-    beh_df["dt"] = beh_df["ts"].diff()
+    beh_df["dt"] = beh_df["timestamps"].diff()
 
     # Calculate the speed between consecutive points (distance / time)
     beh_df["speed"] = beh_df["distance"] / beh_df["dt"]
@@ -81,7 +81,7 @@ def filter_tracker_jumps_in_file(
     """
 
     # Load the behavior data
-    file = os.path.join(basepath, os.path.basename(basepath) + "animal.behavior.mat")
+    file = os.path.join(basepath, os.path.basename(basepath) + ".animal.behavior.mat")
 
     behavior = loadmat(file, simplify_cells=True)
 
@@ -103,7 +103,7 @@ def filter_tracker_jumps_in_file(
     x = behavior["behavior"]["position"]["x"][idx]
     y = behavior["behavior"]["position"]["y"][idx]
     ts = behavior["behavior"]["timestamps"][idx]
-    beh_df = pd.DataFrame({"x": x, "y": y, "ts": ts})
+    beh_df = pd.DataFrame({"x": x, "y": y, "timestamps": ts})
 
     # Filter out tracker jumps
     beh_df = filter_tracker_jumps(beh_df)
