@@ -28,7 +28,7 @@ def detect_up_down_states(
 
     UP and DOWN states are identified by computing the total firing rate of all
     simultaneously recorded neurons in bins of 10 ms, smoothed with a Gaussian kernel
-    of 20 ms s.d. Epochs with a firing rate below the specified percentile threshold 
+    of 20 ms s.d. Epochs with a firing rate below the specified percentile threshold
     are considered DOWN states, while the intervals between DOWN states are classified
     as UP states. Epochs shorter than `min_dur` or longer than `max_dur` are discarded.
 
@@ -139,7 +139,6 @@ def detect_up_down_states(
 
 
 if __name__ == "__main__":
-
     basepath = sys.argv[1]
 
     detect_up_down_states(basepath)

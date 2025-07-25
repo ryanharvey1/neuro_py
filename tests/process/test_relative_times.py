@@ -14,7 +14,7 @@ def test_relative_times():
         ),
         atol=1e-6,
         equal_nan=True,
-    ) 
+    )
 
     # Test 2: with values assigned to each interval
     t = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -51,4 +51,6 @@ def test_relative_times():
         (np.array([0.0]), np.array([0.0])),
         atol=1e-6,
     )
+
+
 # %%

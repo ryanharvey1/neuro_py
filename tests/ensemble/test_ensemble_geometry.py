@@ -25,5 +25,5 @@ class TestProximity(unittest.TestCase):
         self.assertGreater(np.sum(result), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

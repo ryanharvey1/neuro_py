@@ -231,10 +231,8 @@ def adjust_box_widths(g: sns.axisgrid.FacetGrid, fac: float) -> None:
 
     # iterating through Axes instances
     for ax in g.axes:
-
         # iterating through axes artists:
         for c in ax.get_children():
-
             # searching for PathPatches
             if isinstance(c, PathPatch):
                 # getting current width of box:
@@ -397,6 +395,6 @@ def clean_plot3d(ax):
     ax.set_yticks([])
     ax.set_zticks([])
     ax.xaxis.labelpad = ax.yaxis.labelpad = ax.zaxis.labelpad = 0
-    ax.xaxis._axinfo['label']['space_factor'] = 0
+    ax.xaxis._axinfo["label"]["space_factor"] = 0
 
     return ax

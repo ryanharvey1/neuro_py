@@ -139,7 +139,7 @@ def test_find_good_lap_epochs_and_find_good_lap_epochs(analog_signal_array):
 
     outbound_epochs = find_good_lap_epochs(pos, outbound_epochs, min_laps=0)
     inbound_epochs = find_good_lap_epochs(pos, inbound_epochs, min_laps=0)
-    
+
     assert isinstance(outbound_epochs, nel.EpochArray)
     assert isinstance(inbound_epochs, nel.EpochArray)
     assert outbound_epochs.n_intervals == 5

@@ -1,5 +1,6 @@
 from neuro_py.process import intervals
 
+
 def test_find_interval():
     # Test empty list
     logical = []

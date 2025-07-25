@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import lightning as L
 
+
 class PositionalEncoding(nn.Module):
     """
     Positional Encoding module for Transformer models.
@@ -24,15 +25,18 @@ class PositionalEncoding(nn.Module):
     pe : torch.Tensor
         Positional encoding tensor
     """
+
     def __init__(self, in_dim: int, max_context_len: int, args: Dict):
         super().__init__()
         pe = torch.zeros(max_context_len, in_dim)
         position = torch.arange(0, max_context_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, in_dim, 2).float() * (-np.log(1e4) / in_dim))
+        div_term = torch.exp(
+            torch.arange(0, in_dim, 2).float() * (-np.log(1e4) / in_dim)
+        )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)  # t x 1 x d
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -49,8 +53,9 @@ class PositionalEncoding(nn.Module):
             Input tensor with added positional encoding
         """
         self.pe = self.pe.to(x.device)
-        x = x + self.pe[:x.size(0), :]  # t x 1 x d, # t x b x d
+        x = x + self.pe[: x.size(0), :]  # t x 1 x d, # t x b x d
         return x
+
 
 class NDT(L.LightningModule):
     """
@@ -67,7 +72,7 @@ class NDT(L.LightningModule):
         Number of output columns, by default 2
     hidden_dims : Tuple[int], optional
         Architectural parameters of the model
-        (dim_feedforward, num_layers, nhead, dropout, rate_dropout), 
+        (dim_feedforward, num_layers, nhead, dropout, rate_dropout),
         by default [400, 1, 1, 0.0, 0.0]
     max_context_len : int, optional
         Maximum context length, by default 2
@@ -87,15 +92,25 @@ class NDT(L.LightningModule):
     src_mask : Dict[str, torch.Tensor]
         Dictionary to store source masks for different devices
     """
-    def __init__(self, in_dim: int = 100, out_dim: int = 2,
-                 hidden_dims: Tuple[int] = (400, 1, 1, 0.0, 0.0),
-                 max_context_len: int = 2, args: Optional[Dict] = None):
+
+    def __init__(
+        self,
+        in_dim: int = 100,
+        out_dim: int = 2,
+        hidden_dims: Tuple[int] = (400, 1, 1, 0.0, 0.0),
+        max_context_len: int = 2,
+        args: Optional[Dict] = None,
+    ):
         super().__init__()
         self.save_hyperparameters()
         self.max_context_len = max_context_len
         self.in_dim = in_dim
         self.args = args if args is not None else {}
-        activations = nn.CELU if self.args.get('activations') is None else self.args['activations']
+        activations = (
+            nn.CELU
+            if self.args.get("activations") is None
+            else self.args["activations"]
+        )
 
         self.src_mask: Dict[str, torch.Tensor] = {}
 
@@ -106,12 +121,13 @@ class NDT(L.LightningModule):
             nhead=hidden_dims[2],
             dim_feedforward=hidden_dims[0],
             dropout=hidden_dims[3],
-            activation=nn.functional.relu
+            activation=nn.functional.relu,
         )
 
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_lyr, hidden_dims[1], nn.LayerNorm(in_dim))
-        
+            encoder_lyr, hidden_dims[1], nn.LayerNorm(in_dim)
+        )
+
         self.rate_dropout = nn.Dropout(hidden_dims[4])
 
         self.decoder = nn.Sequential(
@@ -122,16 +138,20 @@ class NDT(L.LightningModule):
 
     def _init_params(self) -> None:
         """Initialize the parameters of the decoder."""
+
         def init_params(m: nn.Module) -> None:
             if isinstance(m, nn.Linear):
-                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='leaky_relu')
+                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity="leaky_relu")
                 if m.bias is not None:
                     fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
                     bound = 1 / np.sqrt(fan_in)
                     nn.init.uniform_(m.bias, -bound, bound)  # LeCunn init
+
         self.decoder.apply(init_params)
 
-    def forward(self, x: torch.Tensor, mask_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask_labels: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Forward pass of the model.
 
@@ -153,7 +173,7 @@ class NDT(L.LightningModule):
         z = self.transformer_encoder(x, x_mask)
         z = self.rate_dropout(z)
         out = self.decoder(z).permute(1, 0, 2)  # B x L x out_dim
-        if self.args.get('clf', False):
+        if self.args.get("clf", False):
             out = F.log_softmax(out, dim=-1)
         return out
 
@@ -173,7 +193,12 @@ class NDT(L.LightningModule):
         """
         context_forward = 4
         size = src.size(0)  # T
-        mask = (torch.triu(torch.ones(size, size, device=src.device), diagonal=-context_forward) == 1).transpose(0, 1)
+        mask = (
+            torch.triu(
+                torch.ones(size, size, device=src.device), diagonal=-context_forward
+            )
+            == 1
+        ).transpose(0, 1)
         mask = mask.float()
         self.src_mask[str(src.device)] = mask
         return self.src_mask[str(src.device)]
@@ -196,7 +221,7 @@ class NDT(L.LightningModule):
         """
         xs, ys = batch
         outs = self(xs)
-        loss = self.args['criterion'](outs, ys)
+        loss = self.args["criterion"](outs, ys)
         return loss
 
     def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -216,7 +241,7 @@ class NDT(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -236,7 +261,7 @@ class NDT(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('val_loss', loss)
+        self.log("val_loss", loss)
         return loss
 
     def test_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
@@ -256,7 +281,7 @@ class NDT(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('test_loss', loss)
+        self.log("test_loss", loss)
         return loss
 
     def configure_optimizers(self) -> tuple:
@@ -269,11 +294,13 @@ class NDT(L.LightningModule):
             List of optimizers and a list of scheduler configurations
         """
         optimizer = torch.optim.AdamW(
-            self.parameters(), weight_decay=self.args['weight_decay'])
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=self.args['lr'],
-            epochs=self.args['epochs'],
-            total_steps=self.trainer.estimated_stepping_batches
+            self.parameters(), weight_decay=self.args["weight_decay"]
         )
-        lr_scheduler = {'scheduler': scheduler, 'interval': 'step'}
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=self.args["lr"],
+            epochs=self.args["epochs"],
+            total_steps=self.trainer.estimated_stepping_batches,
+        )
+        lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]

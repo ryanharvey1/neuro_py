@@ -12,7 +12,9 @@ from neuro_py.io import loading
 from neuro_py.process.intervals import find_interval
 
 
-def get_linear_maze_trials(basepath: str, epoch_input: None = None) -> Tuple[
+def get_linear_maze_trials(
+    basepath: str, epoch_input: None = None
+) -> Tuple[
     Union[nel.PositionArray, None],
     Union[nel.EpochArray, None],
     Union[nel.EpochArray, None],
@@ -335,7 +337,7 @@ def get_cheeseboard_trials(
     """
     Get epochs of cheeseboard trials.
 
-    This function retrieves epochs for cheeseboard trials based on specified 
+    This function retrieves epochs for cheeseboard trials based on specified
     distance and time criteria.
 
     Parameters
@@ -448,7 +450,9 @@ def get_openfield_trials(
     spatial_binsize: int = 3,
     n_time_bins: int = 1,  # for bin_method = "fixed", not used for bin_method = "dynamic"
     bin_method: str = "dynamic",
-    trial_time_bin_size: Union[int, float] = 60,  # in seconds for bin_method = "dynamic", not used for bin_method = "fixed"
+    trial_time_bin_size: Union[
+        int, float
+    ] = 60,  # in seconds for bin_method = "dynamic", not used for bin_method = "fixed"
     prop_trial_sampled: float = 0.5,
     environments: List[str] = [
         "box",
@@ -476,24 +480,24 @@ def get_openfield_trials(
     spatial_binsize : int, optional
         The size of spatial bins to use for occupancy. Default is 3.
     n_time_bins : int, optional
-        The number of time bins to use for occupancy for fixed bin method. 
+        The number of time bins to use for occupancy for fixed bin method.
         Default is 1.
     bin_method : str, optional
-        The method to use for binning time ('dynamic' or 'fixed'). 
+        The method to use for binning time ('dynamic' or 'fixed').
         Default is 'dynamic'.
     trial_time_bin_size : Union[int, float], optional
-        The size of time bins to use for occupancy for dynamic bin method 
+        The size of time bins to use for occupancy for dynamic bin method
         (in seconds). Default is 60.
     prop_trial_sampled : float, optional
         The proportion of trials to sample. Default is 0.5.
     environments : List[str], optional
-        A list of environments to include as open field. Default includes 
+        A list of environments to include as open field. Default includes
         several environments such as 'box' and 'plus'.
     minimum_correlation : float, optional
-        The minimum correlation between trials to be considered a trial. 
+        The minimum correlation between trials to be considered a trial.
         Default is 0.6.
     method : str, optional
-        The method to use ('correlation' or 'proportion'). Default is 
+        The method to use ('correlation' or 'proportion'). Default is
         'correlation'. `correlation` - use correlation between the trial map and
         the overall map to determine if it is a trial. `proportion` - use the
         proportion of the trial map that is sampled to determine if it is a
@@ -521,7 +525,7 @@ def get_openfield_trials(
         pos_run: object, x_edges: list, y_edges: list
     ) -> np.ndarray:
         """Compute occupancy of 2D position
-        
+
         Parameters
         ----------
         pos_run : object
@@ -530,7 +534,7 @@ def get_openfield_trials(
             Bin edges of x position
         y_edges : list
             Bin edges of y position
-        
+
         Returns
         -------
         np.ndarray

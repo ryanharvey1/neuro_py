@@ -17,10 +17,10 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
     def simulate_sequential_spikes(
         self,
         nneurons=30,
-        minseqduration=.05,
-        maxseqduration=.15,
+        minseqduration=0.05,
+        maxseqduration=0.15,
         duration=1.0,
-        jitter=.01,
+        jitter=0.01,
         reverseseqprob=0.0,
         random=False,
     ):
@@ -28,21 +28,23 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
         neuron_ids = []
         max_nsequences = np.ceil(duration / minseqduration)
         sequence_durations = np.random.uniform(
-            minseqduration, maxseqduration, int(max_nsequences))
+            minseqduration, maxseqduration, int(max_nsequences)
+        )
         # get index of last sequence that fits into duration
         last_sequence = np.where(np.cumsum(sequence_durations) <= duration)[0][-1]
-        sequence_durations = sequence_durations[:last_sequence+1]
+        sequence_durations = sequence_durations[: last_sequence + 1]
         sequence_epochs = np.cumsum(sequence_durations)
-        sequence_epochs = np.asarray((
-            np.r_[0, sequence_epochs][:-1],
-            sequence_epochs
-        )).T  # shape (nsequences, 2)
+        sequence_epochs = np.asarray(
+            (np.r_[0, sequence_epochs][:-1], sequence_epochs)
+        ).T  # shape (nsequences, 2)
 
         for seq_start, seq_end in sequence_epochs:
             spike_ts = np.linspace(seq_start, seq_end, nneurons)
             neuron_seqids = (
-                np.arange(nneurons) if np.random.rand() > reverseseqprob
-                else np.arange(nneurons)[::-1])
+                np.arange(nneurons)
+                if np.random.rand() > reverseseqprob
+                else np.arange(nneurons)[::-1]
+            )
             # add jitter
             spike_ts += np.random.uniform(-jitter, jitter, nneurons)
             spike_ts = np.sort(spike_ts)
@@ -130,7 +132,7 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
         self.assertTrue(np.all(p_value_sig < 0.05))
         # comparing means to account for stochasticity due to small number of shuffles
         self.assertTrue(np.mean(p_value_sig) < np.mean(p_value_nonsig))
-    
+
     def test_pairwise_bias_analysis_with_reverse_seqs(self):
         """Test the PairwiseBias analysis with reverse sequences."""
         task_spikes, task_neurons, task_seq_epochs = self.simulate_sequential_spikes(
@@ -138,7 +140,7 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
             minseqduration=self.minseqduration,
             maxseqduration=self.maxseqduration,
             duration=self.duration,
-            reverseseqprob=0.,
+            reverseseqprob=0.0,
             random=False,
         )
 
@@ -179,7 +181,9 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
 
         # Analyze non-significant replay
         z_score_nonsig, p_value_nonsig, cosine_val_nonsig = transformer.transform(
-            post_spikes_nonsig, post_neurons_nonsig, post_nonsig_seq_epochs,
+            post_spikes_nonsig,
+            post_neurons_nonsig,
+            post_nonsig_seq_epochs,
             allow_reverse_replay=False,
         )
 

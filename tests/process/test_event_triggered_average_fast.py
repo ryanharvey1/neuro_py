@@ -3,7 +3,6 @@ from neuro_py.process.peri_event import event_triggered_average_fast
 
 
 def test_event_triggered_average_fast():
-
     # Test 1: events are at the right time
 
     # make 5 random signals

@@ -81,7 +81,6 @@ def get_csd(
     from elephant.current_source_density import estimate_csd
     from neo import AnalogSignal
 
-
     coords = get_coords(basepath, shank=shank)
 
     signal = AnalogSignal(

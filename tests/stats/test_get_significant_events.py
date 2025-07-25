@@ -1,6 +1,7 @@
 import numpy as np
 from neuro_py.stats.stats import get_significant_events
 
+
 def test_get_significant_events():
     # Test case 1:
     shuffled_scores = np.random.rand(1000, 10)

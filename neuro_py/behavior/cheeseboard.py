@@ -4,26 +4,26 @@ import numpy as np
 
 def plot_grid_with_circle_and_random_dots():
     """
-    Plots a 15x15 grid of dots within a circle, highlights 3 randomly chosen dots 
+    Plots a 15x15 grid of dots within a circle, highlights 3 randomly chosen dots
     within the circle, and draws a grey box at the bottom.
 
-    The function generates a grid of points within a circle of a specified radius 
-    and randomly selects three points from within the circle. These points are 
-    colored red and slightly enlarged. Additionally, a grey box is drawn at the 
+    The function generates a grid of points within a circle of a specified radius
+    and randomly selects three points from within the circle. These points are
+    colored red and slightly enlarged. Additionally, a grey box is drawn at the
     bottom of the plot.
 
     Notes
     -----
-    - The grid is plotted on a 15x15 layout, with points that fall within the 
+    - The grid is plotted on a 15x15 layout, with points that fall within the
       circle of radius 6.8 being displayed.
     - The randomly selected points must be at least 4 grid units apart.
-    - A grey rectangular box is drawn near the bottom of the plot for aesthetic 
+    - A grey rectangular box is drawn near the bottom of the plot for aesthetic
       purposes.
 
     Examples
     --------
     >>> plot_grid_with_circle_and_random_dots()
-    # This will display a plot of a circle containing a grid of dots with 
+    # This will display a plot of a circle containing a grid of dots with
     # 3 randomly chosen dots highlighted in red.
     """
     # Create a 15x15 grid of dots within the circle

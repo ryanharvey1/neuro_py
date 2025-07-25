@@ -21,8 +21,7 @@ def test_lazy_loading():
     )
 
     # ensure that no submodules have been imported yet
-    assert npy_submodules == set(), \
-        f"Submodules already loaded: {npy_submodules}"
+    assert npy_submodules == set(), f"Submodules already loaded: {npy_submodules}"
 
     # ensure that only the accessed submodule has been imported
     neuro_py.behavior
@@ -36,6 +35,6 @@ def test_lazy_loading():
             and sys.modules[x] is not None
         )
     )
-    assert npy_submodules == {
-        "behavior"
-    }, f"Submodules already loaded: {npy_submodules}"
+    assert npy_submodules == {"behavior"}, (
+        f"Submodules already loaded: {npy_submodules}"
+    )

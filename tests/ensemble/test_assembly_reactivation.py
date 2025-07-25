@@ -25,7 +25,6 @@ def test_assembly_reactivation():
 
         # Loop over steps
         for i in range(1, n_steps):
-
             # Update v
             dv = alpha * exc[i]
             v[i] = v[i - 1] + dv

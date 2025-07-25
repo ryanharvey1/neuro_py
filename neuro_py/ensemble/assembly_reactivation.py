@@ -276,10 +276,10 @@ class AssemblyReact:
                 whiten=self.whiten,
             )
 
-            if patterns is None: 
+            if patterns is None:
                 self.patterns = None
-                return 
-            
+                return
+
             # flip patterns to have positive max
             self.patterns = np.array(
                 [

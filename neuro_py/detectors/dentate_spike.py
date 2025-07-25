@@ -135,7 +135,6 @@ class DetectDS(object):
         clean_lfp: bool = False,
         emg_threshold: float = 0.9,
     ) -> None:
-
         # adding all the parameters to the class
         self.__dict__.update(locals())
         del self.__dict__["self"]
@@ -520,7 +519,6 @@ class DetectDS(object):
             return pickle.load(f)
 
     def __repr__(self) -> str:
-
         address_str = " at " + str(hex(id(self)))
 
         if not hasattr(self, "ds_epoch"):
@@ -559,7 +557,6 @@ class DetectDS(object):
 
 
 if __name__ == "__main__":
-
     basepath = sys.argv[1]
     channel_tags = loading.load_channel_tags(basepath)
 

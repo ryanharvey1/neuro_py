@@ -22,23 +22,21 @@ def setup_test_folder(tmp_path):
     # Create amplifier.dat file
     amplifier_path = folder / "amplifier.dat"
     amplifier_data = np.random.randint(
-        np.iinfo(precision).min, np.iinfo(precision).max, 
-        size=(n_samples, n_channels_amplifier), dtype=precision
+        np.iinfo(precision).min,
+        np.iinfo(precision).max,
+        size=(n_samples, n_channels_amplifier),
+        dtype=precision,
     )
     amplifier_data.tofile(amplifier_path)
 
     # Create auxiliary.dat file
     auxiliary_path = folder / "auxiliary.dat"
-    auxiliary_data = np.random.randint(
-        0, 65535, size=(n_samples, 2), dtype=np.uint16
-    )
+    auxiliary_data = np.random.randint(0, 65535, size=(n_samples, 2), dtype=np.uint16)
     auxiliary_data.tofile(auxiliary_path)
 
     # Create digitalin.dat file
     digitalin_path = folder / "digitalin.dat"
-    digitalin_data = np.random.randint(
-        0, 65535, size=(n_samples, 1), dtype=np.uint16
-    )
+    digitalin_data = np.random.randint(0, 65535, size=(n_samples, 1), dtype=np.uint16)
     digitalin_data.tofile(digitalin_path)
 
     # Create time.dat file
@@ -47,6 +45,7 @@ def setup_test_folder(tmp_path):
     time_data.tofile(time_path)
 
     return folder, n_samples, n_channels_amplifier
+
 
 def test_cut_artifacts_intan(setup_test_folder):
     """
@@ -72,8 +71,8 @@ def test_cut_artifacts_intan(setup_test_folder):
         # Verify that the file size matches the expected size after cutting
         original_size = n_samples
         for start, end in cut_intervals:
-            original_size -= (end - start)
-        
+            original_size -= end - start
+
         # Amplifier and auxiliary have multiple channels, adjust size calculation
         if file_name in ["amplifier", "auxiliary"]:
             n_channels = n_channels_amplifier if file_name == "amplifier" else 2

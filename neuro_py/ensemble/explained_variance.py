@@ -205,12 +205,12 @@ class ExplainedVariance(object):
 
     def __validate_window_sizes(self, control_window_size, matching_window_size):
         """Validate window sizes."""
-        assert (
-            control_window_size <= self.control.duration
-        ), "window is bigger than matching"
-        assert (
-            matching_window_size <= self.matching.duration
-        ), "window is bigger than matching"
+        assert control_window_size <= self.control.duration, (
+            "window is bigger than matching"
+        )
+        assert matching_window_size <= self.matching.duration, (
+            "window is bigger than matching"
+        )
 
     def __get_template_corr(self):
         """Get pairwise correlations for template period."""

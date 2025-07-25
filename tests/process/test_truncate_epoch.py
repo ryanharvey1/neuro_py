@@ -6,7 +6,7 @@ import numpy as np
 def test_truncate_epoch():
     # Create a sample epoch with intervals of various lengths
     start_times = [0, 5, 10, 15, 20]
-    end_times =   [2, 7, 13, 18, 25]
+    end_times = [2, 7, 13, 18, 25]
     epoch_data = [(start, end) for start, end in zip(start_times, end_times)]
     epoch = nel.EpochArray(epoch_data)
 
@@ -24,7 +24,7 @@ def test_truncate_epoch():
 
     # Test case 4: Truncation with multiple intervals
     start_times = [0, 5, 10, 15, 20]
-    end_times =   [2, 7, 10.5, 18, 25]
+    end_times = [2, 7, 10.5, 18, 25]
     epoch_data = [(start, end) for start, end in zip(start_times, end_times)]
     epoch = nel.EpochArray(epoch_data)
 
@@ -33,7 +33,7 @@ def test_truncate_epoch():
 
     # Test case 5: Truncation with partial interval
     start_times = [0, 5, 10, 15, 20]
-    end_times =   [2, 7, 10.1, 18, 25]
+    end_times = [2, 7, 10.1, 18, 25]
     epoch_data = [(start, end) for start, end in zip(start_times, end_times)]
     epoch = nel.EpochArray(epoch_data)
 

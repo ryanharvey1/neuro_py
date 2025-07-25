@@ -347,12 +347,12 @@ def event_triggered_cross_correlation(
     event_times_matrix = event_times[:, None] + time_lags[None, :]
 
     # Interpolate both signals
-    signal1_matrix = np.interp(event_times_matrix.flatten(), signal1_ts, signal1_data).reshape(
-        n_events, n_lags
-    )
-    signal2_matrix = np.interp(event_times_matrix.flatten(), signal2_ts, signal2_data).reshape(
-        n_events, n_lags
-    )
+    signal1_matrix = np.interp(
+        event_times_matrix.flatten(), signal1_ts, signal1_data
+    ).reshape(n_events, n_lags)
+    signal2_matrix = np.interp(
+        event_times_matrix.flatten(), signal2_ts, signal2_data
+    ).reshape(n_events, n_lags)
 
     # Compute cross-correlation for each event
     correlations = _jit_event_corr(signal1_matrix, signal2_matrix)
@@ -377,6 +377,7 @@ def event_triggered_cross_correlation(
     ]
 
     return correlation_lags, avg_correlation
+
 
 @numba.njit(parallel=True, fastmath=True)
 def _jit_event_corr(signal1_matrix, signal2_matrix):
@@ -467,7 +468,9 @@ def pairwise_event_triggered_cross_correlation(
         time_lags_arr = time_lags
     n_lags = len(time_lags_arr)
     max_lag_samples = n_lags - 1
-    lags = np.arange(-max_lag_samples, max_lag_samples + 1) * (time_lags_arr[1] - time_lags_arr[0])
+    lags = np.arange(-max_lag_samples, max_lag_samples + 1) * (
+        time_lags_arr[1] - time_lags_arr[0]
+    )
     lags = lags[(lags >= window[0]) & (lags <= window[1])]
 
     return lags, avg_correlation, pairs

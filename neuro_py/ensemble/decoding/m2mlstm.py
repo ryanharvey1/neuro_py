@@ -39,22 +39,35 @@ class M2MLSTM(L.LightningModule):
     cell_state : Optional[torch.Tensor]
         Cell state of the LSTM
     """
-    def __init__(self, in_dim: int = 100, out_dim: int = 2,
-                 hidden_dims: Tuple[int, int, float] = (400, 1, 0.0),
-                 use_bias: bool = True, args: Dict = {}):
+
+    def __init__(
+        self,
+        in_dim: int = 100,
+        out_dim: int = 2,
+        hidden_dims: Tuple[int, int, float] = (400, 1, 0.0),
+        use_bias: bool = True,
+        args: Dict = {},
+    ):
         super().__init__()
         self.save_hyperparameters()
         self.in_dim = in_dim
         self.out_dim = out_dim
         if len(hidden_dims) != 3:
-            raise ValueError('`hidden_dims` should be of size 3')
+            raise ValueError("`hidden_dims` should be of size 3")
         self.hidden_size, self.nlayers, self.dropout = hidden_dims
         self.args = args
 
-        self.lstm = nn.LSTM(input_size=in_dim, hidden_size=self.hidden_size,
-                            num_layers=self.nlayers, batch_first=True, 
-                            dropout=self.dropout, bidirectional=False)
-        self.fc = nn.Linear(in_features=self.hidden_size, out_features=out_dim, bias=use_bias)
+        self.lstm = nn.LSTM(
+            input_size=in_dim,
+            hidden_size=self.hidden_size,
+            num_layers=self.nlayers,
+            batch_first=True,
+            dropout=self.dropout,
+            bidirectional=False,
+        )
+        self.fc = nn.Linear(
+            in_features=self.hidden_size, out_features=out_dim, bias=use_bias
+        )
         self.hidden_state: Optional[torch.Tensor] = None
         self.cell_state: Optional[torch.Tensor] = None
 
@@ -62,13 +75,15 @@ class M2MLSTM(L.LightningModule):
 
     def _init_params(self) -> None:
         """Initialize model parameters."""
+
         def init_params(m: nn.Module) -> None:
             if isinstance(m, nn.Linear):
-                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='leaky_relu')
+                torch.nn.init.kaiming_uniform_(m.weight, nonlinearity="leaky_relu")
                 if m.bias is not None:
                     fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
                     bound = 1 / np.sqrt(fan_in)
                     nn.init.uniform_(m.bias, -bound, bound)  # LeCunn init
+
         init_params(self.fc)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -92,14 +107,15 @@ class M2MLSTM(L.LightningModule):
         self.cell_state.data.fill_(0.0)
         lstm_outs = []
         for i in range(L):
-            lstm_out, (self.hidden_state, self.cell_state) = \
-                self.lstm(x[:, i].unsqueeze(1), (self.hidden_state, self.cell_state))
+            lstm_out, (self.hidden_state, self.cell_state) = self.lstm(
+                x[:, i].unsqueeze(1), (self.hidden_state, self.cell_state)
+            )
             lstm_outs.append(lstm_out)
 
         lstm_outs = torch.stack(lstm_outs, dim=1)  # B, L, N
         out = self.fc(lstm_outs)
         out = out.view(B, L, self.out_dim)
-        if self.args.get('clf', False):
+        if self.args.get("clf", False):
             out = F.log_softmax(out, dim=-1)
 
         return out
@@ -114,10 +130,16 @@ class M2MLSTM(L.LightningModule):
             Batch size for initialization
         """
         self.batch_size = batch_size
-        self.hidden_state = torch.zeros((self.nlayers, batch_size, self.hidden_size), requires_grad=False)
-        self.cell_state = torch.zeros((self.nlayers, batch_size, self.hidden_size), requires_grad=False)
+        self.hidden_state = torch.zeros(
+            (self.nlayers, batch_size, self.hidden_size), requires_grad=False
+        )
+        self.cell_state = torch.zeros(
+            (self.nlayers, batch_size, self.hidden_size), requires_grad=False
+        )
 
-    def _step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def _step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """
         Perform a single step (forward pass + loss calculation).
 
@@ -135,10 +157,12 @@ class M2MLSTM(L.LightningModule):
         """
         xs, ys = batch
         outs = self(xs)
-        loss = self.args['criterion'](outs, ys)
+        loss = self.args["criterion"](outs, ys)
         return loss
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def training_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """
         Lightning method for training step.
 
@@ -155,7 +179,7 @@ class M2MLSTM(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         return loss
 
     def on_after_backward(self) -> None:
@@ -163,7 +187,9 @@ class M2MLSTM(L.LightningModule):
         self.hidden_state = self.hidden_state.detach()
         self.cell_state = self.cell_state.detach()
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def validation_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """
         Lightning method for validation step.
 
@@ -180,10 +206,12 @@ class M2MLSTM(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('val_loss', loss)
+        self.log("val_loss", loss)
         return loss
 
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def test_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """
         Lightning method for test step.
 
@@ -200,7 +228,7 @@ class M2MLSTM(L.LightningModule):
             Computed loss
         """
         loss = self._step(batch, batch_idx)
-        self.log('test_loss', loss)
+        self.log("test_loss", loss)
         return loss
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict]]:
@@ -213,13 +241,15 @@ class M2MLSTM(L.LightningModule):
             Tuple containing a list of optimizers and a list of scheduler configurations
         """
         optimizer = torch.optim.AdamW(
-            self.parameters(), weight_decay=self.args['weight_decay'])
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=self.args['lr'],
-            epochs=self.args['epochs'],
-            total_steps=self.trainer.estimated_stepping_batches
+            self.parameters(), weight_decay=self.args["weight_decay"]
         )
-        lr_scheduler = {'scheduler': scheduler, 'interval': 'step'}
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=self.args["lr"],
+            epochs=self.args["epochs"],
+            total_steps=self.trainer.estimated_stepping_batches,
+        )
+        lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]
 
 
@@ -241,6 +271,7 @@ class NSVDataset(torch.utils.data.Dataset):
     dv : List[np.ndarray]
         List of trial-segmented behavioral state vector arrays as float32
     """
+
     def __init__(self, nsv: List[np.ndarray], dv: List[np.ndarray]):
         self.nsv = [i.astype(np.float32) for i in nsv]
         self.dv = [i.astype(np.float32) for i in dv]

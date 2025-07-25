@@ -2,6 +2,7 @@ import numpy as np
 from neuro_py.process.intervals import shift_epoch_array
 import nelpy as nel
 
+
 def test_shift_epoch_array():
     # Create some example data for testing
     epoch_data = np.array([[1, 3], [5, 8], [10, 12]])
@@ -16,9 +17,8 @@ def test_shift_epoch_array():
 
     # Test if the shifted epoch array has the expected intervals
     expected_shifted_data = np.array([[0, 1], [2, 3]])
-    assert(np.all(epoch_shifted.data == expected_shifted_data))
+    assert np.all(epoch_shifted.data == expected_shifted_data)
 
     # Test if the shifted epoch array has the correct domain
     expected_domain = nel.EpochArray([-np.inf, np.inf])
-    assert(np.all(epoch_shifted.domain.data == expected_domain.domain.data))
-
+    assert np.all(epoch_shifted.domain.data == expected_domain.domain.data)

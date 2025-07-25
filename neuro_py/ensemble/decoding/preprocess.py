@@ -6,7 +6,9 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 
 
-def split_data(trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0.8, seed: int = 0) -> List[np.ndarray]:
+def split_data(
+    trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0.8, seed: int = 0
+) -> List[np.ndarray]:
     """
     Split data into stratified folds.
 
@@ -31,7 +33,10 @@ def split_data(trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0
     folds = [fold_indices for _, fold_indices in skf.split(trial_nsvs, splitby)]
     return folds
 
-def partition_indices(folds: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+
+def partition_indices(
+    folds: List[np.ndarray],
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """
     Partition indices into train, validation, and test sets.
 
@@ -59,11 +64,14 @@ def partition_indices(folds: List[np.ndarray]) -> List[Tuple[np.ndarray, np.ndar
         partitions_indices.append((train_indices, val_indices, test_indices))
     return partitions_indices
 
+
 def partition_sets(
     partitions_indices: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
     nsv_trial_segs: Union[np.ndarray, pd.DataFrame],
-    bv_trial_segs: Union[np.ndarray, pd.DataFrame]
-) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+    bv_trial_segs: Union[np.ndarray, pd.DataFrame],
+) -> List[
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+]:
     """
     Partition neural state vectors and behavioral variables into train,
     validation, and test sets.
@@ -88,7 +96,7 @@ def partition_sets(
     """
     partitions = []
     is_2D = nsv_trial_segs[0].ndim == 1
-    for (train_indices, val_indices, test_indices) in partitions_indices:
+    for train_indices, val_indices, test_indices in partitions_indices:
         if is_2D:
             if isinstance(nsv_trial_segs, pd.DataFrame):
                 nsv_trial_segs = nsv_trial_segs.loc

@@ -69,5 +69,5 @@ from .replay import (
     PairwiseBias,
     weighted_corr_2d,
     weighted_corr_2d_jit,
-    position_estimator
+    position_estimator,
 )

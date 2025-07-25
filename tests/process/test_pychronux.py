@@ -24,12 +24,12 @@ def test_getfgrid():
 
     f, findx = px.getfgrid(Fs, nfft, fpass)
 
-    assert np.allclose(
-        f, expected_f
-    ), "Frequency vector does not match expected values."
-    assert np.array_equal(
-        findx, expected_findx
-    ), "Index array does not match expected values."
+    assert np.allclose(f, expected_f), (
+        "Frequency vector does not match expected values."
+    )
+    assert np.array_equal(findx, expected_findx), (
+        "Index array does not match expected values."
+    )
 
 
 def test_dpsschk():
@@ -48,9 +48,9 @@ def test_dpsschk():
     result_tapers = px.dpsschk(tapers, N, Fs)
 
     # Check if the result matches the expected tapers
-    assert np.allclose(
-        result_tapers, expected_tapers
-    ), "DPSS tapers do not match expected values."
+    assert np.allclose(result_tapers, expected_tapers), (
+        "DPSS tapers do not match expected values."
+    )
 
 
 def test_get_tapers():
@@ -83,9 +83,9 @@ def test_get_tapers():
 
     # Check if the result matches the expected tapers and lambdas
     assert np.allclose(tapers, expected_tapers), "Tapers do not match expected values."
-    assert np.allclose(
-        lambdas, expected_lambdas
-    ), "Lambdas do not match expected values."
+    assert np.allclose(lambdas, expected_lambdas), (
+        "Lambdas do not match expected values."
+    )
 
 
 def test_get_tapers_value_error():
@@ -243,9 +243,9 @@ def test_mtspectrumpt():
     # Assertions
     assert isinstance(spectrum_df, pd.DataFrame), "Output should be a pandas DataFrame."
     assert len(spectrum_df) > 0, "Spectrum DataFrame should not be empty."
-    assert all(
-        fpass[0] <= f <= fpass[1] for f in spectrum_df.index
-    ), "Frequencies should lie within fpass."
+    assert all(fpass[0] <= f <= fpass[1] for f in spectrum_df.index), (
+        "Frequencies should lie within fpass."
+    )
 
     # Test Case 2: Precomputed tapers from scipy
     mintime = np.min(np.concatenate(data))
@@ -260,18 +260,18 @@ def test_mtspectrumpt():
     )
 
     # Assertions
-    assert isinstance(
-        spectrum_df_precomputed, pd.DataFrame
-    ), "Output with precomputed tapers should be a DataFrame."
+    assert isinstance(spectrum_df_precomputed, pd.DataFrame), (
+        "Output with precomputed tapers should be a DataFrame."
+    )
 
     # Test Case 3: Empty data
     empty_data = np.array([])
     spectrum_df_empty = px.mtspectrumpt(empty_data, Fs, fpass, NW, n_tapers)
 
     # Assertions
-    assert (
-        spectrum_df_empty.empty
-    ), "Output for empty data should be an empty DataFrame."
+    assert spectrum_df_empty.empty, (
+        "Output for empty data should be an empty DataFrame."
+    )
 
     # Test Case 4: Invalid frequency range
     invalid_fpass = [50, 1]  # Invalid frequency range
@@ -288,12 +288,12 @@ def test_mtspectrumpt():
     spectrum_df_single = px.mtspectrumpt(single_channel_data, Fs, fpass, NW, n_tapers)
 
     # Assertions
-    assert isinstance(
-        spectrum_df_single, pd.DataFrame
-    ), "Output should be a pandas DataFrame for single channel."
-    assert (
-        spectrum_df_single.shape[1] == 1
-    ), "Output DataFrame should have one column for single channel."
+    assert isinstance(spectrum_df_single, pd.DataFrame), (
+        "Output should be a pandas DataFrame for single channel."
+    )
+    assert spectrum_df_single.shape[1] == 1, (
+        "Output DataFrame should have one column for single channel."
+    )
 
     # Test Case 6: Custom time support
     time_support = [0.0, 0.8]  # Custom time range
@@ -302,9 +302,9 @@ def test_mtspectrumpt():
     )
 
     # Assertions
-    assert isinstance(
-        spectrum_df_support, pd.DataFrame
-    ), "Output with custom time support should be a DataFrame."
+    assert isinstance(spectrum_df_support, pd.DataFrame), (
+        "Output with custom time support should be a DataFrame."
+    )
 
     # Test Case 7: validate frequency peak
     # Parameters
@@ -384,9 +384,9 @@ def test_mtfftc():
 
     # Check the peak frequency is 8 Hz
     peak_freq = f[np.argmax(S)]
-    assert np.isclose(
-        peak_freq, 8, atol=0.2
-    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    assert np.isclose(peak_freq, 8, atol=0.2), (
+        f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    )
 
 
 def test_mtspectrumc():
@@ -402,9 +402,9 @@ def test_mtspectrumc():
 
     # Check the peak frequency is 8 Hz
     peak_freq = df.index[np.argmax(df.values)]
-    assert np.isclose(
-        peak_freq, 8, atol=0.2
-    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    assert np.isclose(peak_freq, 8, atol=0.2), (
+        f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    )
 
 
 def test_point_spectra():
@@ -432,16 +432,16 @@ def test_point_spectra():
     # Assertions
     assert isinstance(spectra, np.ndarray), "Spectra should be a numpy array."
     assert isinstance(freqs, np.ndarray), "Frequencies should be a numpy array."
-    assert len(spectra) == len(
-        freqs
-    ), "Spectra and frequencies should have the same length."
+    assert len(spectra) == len(freqs), (
+        "Spectra and frequencies should have the same length."
+    )
     assert len(freqs) > 0, "There should be frequencies in the output."
-    assert (
-        freq_range[0] <= freqs[0]
-    ), "Frequencies should start at or above freq_range[0]."
-    assert (
-        freq_range[1] >= freqs[-1]
-    ), "Frequencies should end at or below freq_range[1]."
+    assert freq_range[0] <= freqs[0], (
+        "Frequencies should start at or above freq_range[0]."
+    )
+    assert freq_range[1] >= freqs[-1], (
+        "Frequencies should end at or below freq_range[1]."
+    )
     assert np.all(spectra >= 0), "Power spectrum values should be non-negative."
 
     # Test Case 2: validate frequency peak
@@ -464,9 +464,9 @@ def test_point_spectra():
     # peak is at 8 Hz
     peak_freq = freqs[np.argmax(spectra)]
 
-    assert np.isclose(
-        peak_freq, 8, atol=0.2
-    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    assert np.isclose(peak_freq, 8, atol=0.2), (
+        f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    )
 
 
 def test_mtcsdpt():
@@ -508,18 +508,18 @@ def test_mtcoherencept():
 
     # Check the shape of the output
     assert isinstance(coherence_df, pd.DataFrame), "Output is not a DataFrame."
-    assert (
-        "Coherence" in coherence_df.columns
-    ), "Coherence column is missing in the output DataFrame."
+    assert "Coherence" in coherence_df.columns, (
+        "Coherence column is missing in the output DataFrame."
+    )
     assert len(coherence_df) > 0, "Output DataFrame is empty."
 
     # Check if the frequency range is correct
-    assert (
-        coherence_df.index.min() >= fpass[0]
-    ), "Minimum frequency is less than fpass[0]."
-    assert (
-        coherence_df.index.max() <= fpass[1]
-    ), "Maximum frequency is greater than fpass[1]."
+    assert coherence_df.index.min() >= fpass[0], (
+        "Minimum frequency is less than fpass[0]."
+    )
+    assert coherence_df.index.max() <= fpass[1], (
+        "Maximum frequency is greater than fpass[1]."
+    )
 
     # Check if the coherence values are between 0 and 1
     assert np.all(
@@ -540,7 +540,6 @@ def test_mtcoherencept():
     coherence_df = px.mtcoherencept(times_1, times_2, Fs, fpass, NW, n_tapers)
     # peak is at 8 Hz
     peak_freq = coherence_df.index[np.argmax(coherence_df["Coherence"])]
-    assert np.isclose(
-        peak_freq, 8, atol=0.2
-    ), f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
-
+    assert np.isclose(peak_freq, 8, atol=0.2), (
+        f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
+    )

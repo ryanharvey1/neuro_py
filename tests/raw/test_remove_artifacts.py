@@ -24,7 +24,14 @@ def test_remove_artifacts():
             original_data.tofile(f)
 
         # Test mode "zeros"
-        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="zeros", channels_to_remove=channels_to_remove)
+        remove_artifacts(
+            filepath,
+            n_channels,
+            zero_intervals,
+            precision,
+            mode="zeros",
+            channels_to_remove=channels_to_remove,
+        )
         data = np.memmap(
             filepath, dtype=precision, mode="r", shape=(n_samples, n_channels)
         )
@@ -39,7 +46,14 @@ def test_remove_artifacts():
         with open(filepath, "wb") as f:
             original_data.tofile(f)
 
-        remove_artifacts(filepath, n_channels, zero_intervals, precision, mode="linear", channels_to_remove=channels_to_remove)
+        remove_artifacts(
+            filepath,
+            n_channels,
+            zero_intervals,
+            precision,
+            mode="linear",
+            channels_to_remove=channels_to_remove,
+        )
 
         data = np.memmap(
             filepath, dtype=precision, mode="r", shape=(n_samples, n_channels)
@@ -51,9 +65,7 @@ def test_remove_artifacts():
                     original_data[start, ch],
                     original_data[end, ch],
                     end - start,
-                ).astype(
-                    data.dtype
-                )  # Explicit dtype match
+                ).astype(data.dtype)  # Explicit dtype match
                 np.testing.assert_array_equal(data[start:end, ch], expected)
         del data
         os.remove(filepath)

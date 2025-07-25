@@ -8,7 +8,6 @@ from scipy import stats
 
 
 def test_explained_variance():
-
     def lif_neuron(n_steps=1000, alpha=0.01, rate=10):
         """Simulate a linear integrate-and-fire neuron.
 
@@ -27,7 +26,6 @@ def test_explained_variance():
 
         # Loop over steps
         for i in range(1, n_steps):
-
             # Update v
             dv = alpha * exc[i]
             v[i] = v[i - 1] + dv

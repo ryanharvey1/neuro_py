@@ -8,7 +8,7 @@ __all__ = (
     "process_lfp",
     "save_theta_cycles",
     "get_theta_cycles",
-    "filter_signal"
+    "filter_signal",
 )
 
 from .CSD import get_coords, get_csd

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pytest
+
 from neuro_py.spikes import spike_tools
 
 

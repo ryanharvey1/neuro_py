@@ -26,10 +26,7 @@ def get_spindices(data: np.ndarray) -> pd.DataFrame:
     """
     spikes_id = np.repeat(np.arange(len(data)), [len(spk) for spk in data])
 
-    spikes = pd.DataFrame({
-        'spike_times': np.concatenate(data),
-        'spike_id': spikes_id
-    })
+    spikes = pd.DataFrame({"spike_times": np.concatenate(data), "spike_id": spikes_id})
     spikes.sort_values("spike_times", inplace=True)
     return spikes
 
@@ -62,10 +59,7 @@ def spindices_to_ndarray(
     """
     if spike_id is None:
         spike_id = spikes.spike_id.unique()
-    data = [
-        spikes[spikes.spike_id == spk_i].spike_times.values
-        for spk_i in spike_id
-    ]
+    data = [spikes[spikes.spike_id == spk_i].spike_times.values for spk_i in spike_id]
     return data
 
 
@@ -105,7 +99,6 @@ def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
 
     burst_idx = []
     for p, b in zip(peak, baseline):
-
         if (p is None) | (b is None):
             burst_idx.append(np.nan)
             continue

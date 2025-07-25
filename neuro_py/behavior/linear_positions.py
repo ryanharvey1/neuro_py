@@ -520,7 +520,7 @@ def get_linear_track_lap_epochs(
     ------
     - This function calls `find_laps` to determine the lap structure, then segregates epochs into outbound and inbound directions.
     - The EpochArray objects represent the start and stop timestamps for each identified lap.
-    
+
     Examples
     -------
     >>> outbound_epochs, inbound_epochs = get_linear_track_lap_epochs(ts, x)
@@ -593,7 +593,7 @@ def find_good_lap_epochs(
     Examples
     -------
     >>> good_laps = find_good_lap_epochs(pos, dir_epoch)
-        
+
     Notes
     -----
     The function calculates the percent occupancy over position bins per lap,

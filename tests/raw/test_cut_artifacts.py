@@ -53,7 +53,9 @@ def test_cut_artifacts(create_test_file):
         cut_data = np.frombuffer(f.read(), dtype=precision).reshape(-1, n_channels)
 
     # Assertions
-    assert len(cut_data) == len(expected_data), "The output file length does not match the expected length."
+    assert len(cut_data) == len(expected_data), (
+        "The output file length does not match the expected length."
+    )
     np.testing.assert_array_equal(
         cut_data, expected_data, "The output data does not match the expected data."
     )

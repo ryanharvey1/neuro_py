@@ -1,6 +1,7 @@
 from neuro_py.process import peri_event
 import numpy as np
 
+
 def test_count_events():
     events = np.array([1, 2, 3, 4, 5])
     time_ref = np.array([0, 1, 2, 3])

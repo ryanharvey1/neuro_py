@@ -31,6 +31,7 @@ def test_filter_tracker_jumps():
     # Check if the output matches the expected DataFrame
     pd.testing.assert_frame_equal(filtered_df, expected_df)
 
+
 def test_filter_tracker_jumps_multi_jumps():
     """
     Test the filter_tracker_jumps function.
@@ -56,6 +57,7 @@ def test_filter_tracker_jumps_multi_jumps():
 
     # Check if the output matches the expected DataFrame
     pd.testing.assert_frame_equal(filtered_df, expected_df)
+
 
 def test_filter_tracker_jumps_no_jumps():
     """

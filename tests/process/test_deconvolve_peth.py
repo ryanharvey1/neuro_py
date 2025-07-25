@@ -13,9 +13,9 @@ def test_deconvolve_peth():
         signal, events, n_bins=10, bin_width=0.1
     )
 
-    assert np.allclose(
-        result_deconvolved, expected_deconvolved, atol=1
-    ), f"Expected {expected_deconvolved}, but got {result_deconvolved}"
-    assert np.allclose(
-        result_times, expected_times, atol=1e-6
-    ), f"Expected {expected_times}, but got {result_times}"
+    assert np.allclose(result_deconvolved, expected_deconvolved, atol=1), (
+        f"Expected {expected_deconvolved}, but got {result_deconvolved}"
+    )
+    assert np.allclose(result_times, expected_times, atol=1e-6), (
+        f"Expected {expected_times}, but got {result_times}"
+    )

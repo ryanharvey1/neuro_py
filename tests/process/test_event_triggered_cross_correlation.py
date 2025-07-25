@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from neuro_py.process import event_triggered_cross_correlation, pairwise_event_triggered_cross_correlation
+from neuro_py.process import (
+    event_triggered_cross_correlation,
+    pairwise_event_triggered_cross_correlation,
+)
 
 
 class TestEventTriggeredCrossCorrelation:
@@ -284,9 +287,7 @@ def test_pairwise_event_triggered_cross_correlation():
     dt = 0.001
     t = np.arange(0, 1, dt)
     n_signals = 3
-    signals = np.stack([
-        np.sin(2 * np.pi * (i + 1) * t) for i in range(n_signals)
-    ])
+    signals = np.stack([np.sin(2 * np.pi * (i + 1) * t) for i in range(n_signals)])
     event_times = np.array([0.2, 0.5, 0.7])
 
     # Run the function

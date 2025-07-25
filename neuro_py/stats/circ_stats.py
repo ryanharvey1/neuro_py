@@ -1,4 +1,14 @@
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 import warnings
 from collections import namedtuple
 
@@ -12,10 +22,10 @@ CI = namedtuple("confidence_interval", ["lower", "upper"])
 
 
 def nd_bootstrap(
-    data: Iterable[np.ndarray], 
-    iterations: int, 
-    axis: Union[int, None] = None, 
-    strip_tuple_if_one: bool = True
+    data: Iterable[np.ndarray],
+    iterations: int,
+    axis: Union[int, None] = None,
+    strip_tuple_if_one: bool = True,
 ) -> Generator[Union[np.ndarray, Tuple[np.ndarray, ...]], None, None]:
     """
     Bootstrap iterator for several n-dimensional data arrays.
@@ -144,7 +154,6 @@ class bootstrap:
         return val
 
     def __call__(self, f):
-
         def wrapper(f, *args, **kwargs):
             args = list(args)
             ci = self._get_var(f, "ci", None, args, kwargs, remove=True)
@@ -207,7 +216,7 @@ def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
     q0 : float
         Value of the 0 percentile.
     axis : int, optional
-        Percentiles will be computed along this axis. 
+        Percentiles will be computed along this axis.
         If None, percentiles will be computed over the entire array.
     ci : float, optional
         If not None, confidence level is bootstrapped.
@@ -249,7 +258,12 @@ def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
         return np.asarray(ret)
 
 
-def _complex_mean(alpha: np.ndarray, w: Optional[np.ndarray] = None, axis: Optional[int] = None, axial_correction: float = 1) -> np.ndarray:
+def _complex_mean(
+    alpha: np.ndarray,
+    w: Optional[np.ndarray] = None,
+    axis: Optional[int] = None,
+    axial_correction: float = 1,
+) -> np.ndarray:
     """
     Compute the weighted mean of complex values.
 
@@ -294,7 +308,7 @@ def resultant_vector_length(
     axis: Optional[int] = None,
     axial_correction: int = 1,
     ci: Optional[float] = None,
-    bootstrap_iter: Optional[int] = None
+    bootstrap_iter: Optional[int] = None,
 ) -> float:
     """
     Computes the mean resultant vector length for circular data.
@@ -359,7 +373,7 @@ def mean_ci_limits(
     ci: float = 0.95,
     w: Optional[np.ndarray] = None,
     d: Optional[float] = None,
-    axis: Optional[int] = None
+    axis: Optional[int] = None,
 ) -> np.ndarray:
     """
     Computes the confidence limits on the mean for circular data.
@@ -430,7 +444,7 @@ def mean(
     ci: Optional[float] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
-    axial_correction: int = 1
+    axial_correction: int = 1,
 ) -> Union[float, Tuple[float, CI]]:
     """
     Compute mean direction of circular data.
@@ -520,7 +534,9 @@ def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...
         )
 
 
-def get_var(f: Callable, varnames: List[str], args: List[Any], kwargs: Dict[str, Any]) -> Tuple[List[int], List[str]]:
+def get_var(
+    f: Callable, varnames: List[str], args: List[Any], kwargs: Dict[str, Any]
+) -> Tuple[List[int], List[str]]:
     """
     Retrieve indices of specified variables from a function's argument list.
 
@@ -541,7 +557,7 @@ def get_var(f: Callable, varnames: List[str], args: List[Any], kwargs: Dict[str,
         A tuple containing two elements:
         - A list of indices of the specified variables in the function's argument list.
         - A list of keys for the keyword arguments that correspond to the specified variables.
-    
+
     Raises
     ------
     ValueError
@@ -592,10 +608,10 @@ class swap2zeroaxis:
     >>>    return np.mean(x[::2, ...], axis=0), np.mean(y[::2, ...], axis=0), z
 
     This creates a new function that:
-    
-    - Either swaps the specified axes to zero for the arguments `x` and `y` 
+
+    - Either swaps the specified axes to zero for the arguments `x` and `y`
       if `axis` is specified in the wrapped function, or flattens `x` and `y`.
-    - Swaps back the axes from the output arguments, assuming the outputs lost 
+    - Swaps back the axes from the output arguments, assuming the outputs lost
       one dimension during the function (e.g., like `numpy.mean(x, axis=1)`).
     """
 
@@ -604,9 +620,7 @@ class swap2zeroaxis:
         self.out_idx = out_idx
 
     def __call__(self, f: callable) -> callable:
-
         def _deco(f: callable, *args: tuple, **kwargs: dict) -> tuple:
-
             to_swap_idx, to_swap_keys = get_var(f, self.inputs, args, kwargs)
             args = list(args)
 
@@ -666,7 +680,9 @@ class swap2zeroaxis:
 
 
 @swap2zeroaxis(["alpha", "w"], [0, 1])
-def rayleigh(alpha: np.ndarray, w: np.ndarray = None, d: float = None, axis: int = None) -> Tuple[float, float]:
+def rayleigh(
+    alpha: np.ndarray, w: np.ndarray = None, d: float = None, axis: int = None
+) -> Tuple[float, float]:
     """
     Computes Rayleigh test for non-uniformity of circular data.
 
