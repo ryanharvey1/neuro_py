@@ -19,8 +19,9 @@ def test_regress_out():
     b = np.array([2, 4, 6, 8, 10])
     out = nstats.regress_out(a, b)
     assert out.shape == a.shape
-    # Should remove linear relationship
-    assert np.allclose(np.corrcoef(out, b)[0, 1], 0, atol=1e-12)
+    # Output should be finite and constant (since a and b are perfectly collinear)
+    assert np.all(np.isfinite(out))
+    assert np.allclose(out, out[0])
 
 
 def test_ideal_data():
@@ -66,7 +67,8 @@ def test_resultant_vector_length():
 
 
 def test_mean():
-    alpha = np.linspace(0, 2 * np.pi, 100)
+    # Use a concentrated sample for valid CI
+    alpha = np.random.vonmises(mu=0, kappa=4, size=100)
     mu = ncirc.mean(alpha)
     assert np.isscalar(mu)
     mu, ci = ncirc.mean(alpha, ci=0.95)
