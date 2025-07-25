@@ -86,7 +86,7 @@ class ReducedRankRegressor(object):
         """Predict Y from X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
-        return X @ (self.A.T @ self.W.T)
+        return np.asarray(X @ (self.A.T @ self.W.T))
 
     def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         """Score the model."""
@@ -186,11 +186,11 @@ class kernelReducedRankRegressor(BaseEstimator):
         # use try/except blog with exceptions!
         self.rank = int(self.rank)
 
-        K_X = scipy.dot(X, X.T)
-        tmp_1 = self.reg * scipy.identity(K_X.shape[0]) + K_X
+        K_X = np.dot(X, X.T)
+        tmp_1 = self.reg * np.identity(K_X.shape[0]) + K_X
         Q_fr = np.linalg.solve(tmp_1, Y)
-        P_fr = scipy.linalg.eig(scipy.dot(Y.T, scipy.dot(K_X, Q_fr)))[1].real
-        P_rr = scipy.dot(P_fr[:, 0 : self.rank], P_fr[:, 0 : self.rank].T)
+        P_fr = scipy.linalg.eig(np.dot(Y.T, np.dot(K_X, Q_fr)))[1].real
+        P_rr = np.dot(P_fr[:, 0 : self.rank], P_fr[:, 0 : self.rank].T)
 
         self.Q_fr = Q_fr
         self.P_rr = P_rr
@@ -199,8 +199,8 @@ class kernelReducedRankRegressor(BaseEstimator):
     def predict(self, testX: np.ndarray) -> np.ndarray:
         # use try/except blog with exceptions!
 
-        K_Xx = scipy.dot(testX, self.trainX.T)
-        Yhat = scipy.dot(K_Xx, scipy.dot(self.Q_fr, self.P_rr))
+        K_Xx = np.dot(testX, self.trainX.T)
+        Yhat = np.dot(K_Xx, np.dot(self.Q_fr, self.P_rr))
 
         return Yhat
 
