@@ -1,8 +1,7 @@
-from typing import List, Union, Dict, Optional
+from typing import Dict, List, Optional, Union
 
-import torch
 import lightning as L
-
+import torch
 from torch import nn
 
 

@@ -1,8 +1,7 @@
 import numpy as np
-
+from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
-from nelpy.core._analogsignalarray import AnalogSignalArray
 from numba import jit
 
 

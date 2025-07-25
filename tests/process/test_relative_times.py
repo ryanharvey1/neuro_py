@@ -1,4 +1,5 @@
 import numpy as np
+
 from neuro_py.process import peri_event
 
 

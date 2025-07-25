@@ -1,4 +1,5 @@
 import numpy as np
+
 from neuro_py.process.intervals import in_intervals
 
 

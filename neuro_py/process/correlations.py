@@ -1,14 +1,14 @@
 import itertools
 from typing import Optional, Tuple, Union
 
+import numba
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from scipy import signal, stats
 from scipy.stats import poisson
 
 from neuro_py.process.peri_event import crossCorr, deconvolve_peth
-from joblib import Parallel, delayed
-import numba
 
 
 def compute_AutoCorrs(

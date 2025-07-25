@@ -38,6 +38,7 @@ from .linear_positions import (
     linearize_position,
 )
 from .linearization_pipeline import NodePicker
+from .preprocessing import filter_tracker_jumps, filter_tracker_jumps_in_file
 from .well_traversal_classification import (
     enter_exit_target,
     enter_exit_target_dio,
@@ -48,4 +49,3 @@ from .well_traversal_classification import (
     segment_path,
     shift_well_enters,
 )
-from .preprocessing import filter_tracker_jumps, filter_tracker_jumps_in_file

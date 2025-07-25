@@ -1,9 +1,9 @@
 import os
+import pickle
 import sys
 from copy import deepcopy
 from typing import Union
 
-import pickle
 import nelpy as nel
 import numpy as np
 from scipy.io import savemat

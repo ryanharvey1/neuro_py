@@ -1,4 +1,3 @@
-from joblib import Parallel, delayed
 from typing import List, Tuple
 
 import nelpy as nel
@@ -6,8 +5,9 @@ import numba
 import numpy as np
 import sklearn
 import sklearn.metrics
-
+from joblib import Parallel, delayed
 from numba import njit
+
 from neuro_py.io import loading
 from neuro_py.process import intervals
 from neuro_py.session.locate_epochs import (

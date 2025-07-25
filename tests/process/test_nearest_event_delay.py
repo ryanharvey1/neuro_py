@@ -1,6 +1,7 @@
-import pytest
-from neuro_py.process.peri_event import nearest_event_delay
 import numpy as np
+import pytest
+
+from neuro_py.process.peri_event import nearest_event_delay
 
 
 def test_nearest_event_delay():

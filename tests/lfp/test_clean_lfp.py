@@ -1,5 +1,6 @@
-import numpy as np
 import nelpy as nel
+import numpy as np
+
 from neuro_py.lfp.preprocessing import clean_lfp
 
 

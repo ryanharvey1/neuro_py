@@ -1,9 +1,9 @@
 import os
 import sys
+from typing import Optional, Tuple
 
 import nelpy as nel
 import numpy as np
-from typing import Optional, Tuple
 
 from neuro_py.io import loading
 from neuro_py.io.saving import epoch_to_mat

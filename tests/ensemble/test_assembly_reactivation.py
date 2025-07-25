@@ -2,8 +2,9 @@ from itertools import chain
 
 import nelpy as nel
 import numpy as np
-from neuro_py.ensemble import assembly_reactivation
 from scipy import stats
+
+from neuro_py.ensemble import assembly_reactivation
 
 
 def test_assembly_reactivation():

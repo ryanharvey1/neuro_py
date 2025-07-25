@@ -1,12 +1,13 @@
-import numpy as np
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from neuro_py.plotting.events import plot_peth_fast
-import pandas as pd
-from neuro_py.stats.stats import confidence_intervals
 import bottleneck as bn
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from neuro_py.plotting.events import plot_peth_fast
+from neuro_py.stats.stats import confidence_intervals
 
 
 def test_plot_peth_fast_runs():

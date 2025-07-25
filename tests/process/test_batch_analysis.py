@@ -10,14 +10,13 @@ import pandas as pd
 import pytest
 
 from neuro_py.process import batch_analysis
-
 from neuro_py.process.batch_analysis import (
     _is_homogeneous_array_compatible,
-    _load_inhomogeneous_data_hdf5,
-    _save_inhomogeneous_data_hdf5,
     _load_dataframe_from_hdf5,
     _load_from_hdf5,
+    _load_inhomogeneous_data_hdf5,
     _save_dataframe_to_hdf5,
+    _save_inhomogeneous_data_hdf5,
     _save_to_hdf5,
     decode_file_path,
     encode_file_path,

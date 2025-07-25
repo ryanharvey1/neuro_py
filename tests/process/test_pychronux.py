@@ -1,9 +1,11 @@
 import re
-from neuro_py.process import pychronux as px
+
 import numpy as np
+import pandas as pd
 import pytest
 from scipy.signal.windows import dpss
-import pandas as pd
+
+from neuro_py.process import pychronux as px
 
 
 def test_pychronux():

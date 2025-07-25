@@ -1,10 +1,10 @@
-from typing import Tuple, Dict, Optional
+from typing import Dict, Optional, Tuple
 
+import lightning as L
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import lightning as L
 
 
 class PositionalEncoding(nn.Module):

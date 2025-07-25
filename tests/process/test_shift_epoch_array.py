@@ -1,6 +1,7 @@
-import numpy as np
-from neuro_py.process.intervals import shift_epoch_array
 import nelpy as nel
+import numpy as np
+
+from neuro_py.process.intervals import shift_epoch_array
 
 
 def test_shift_epoch_array():

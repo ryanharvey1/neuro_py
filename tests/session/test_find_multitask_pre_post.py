@@ -1,6 +1,7 @@
-import pandas as pd
-from neuro_py.session import locate_epochs
 import numpy as np
+import pandas as pd
+
+from neuro_py.session import locate_epochs
 
 
 def test_find_multitask_pre_post():

@@ -13,7 +13,7 @@ __all__ = (
 
 from .CSD import get_coords, get_csd
 from .preprocessing import clean_lfp
-from .spectral import event_triggered_wavelet, whiten_lfp, filter_signal
+from .spectral import event_triggered_wavelet, filter_signal, whiten_lfp
 from .theta_cycles import (
     get_theta_channel,
     get_theta_cycles,

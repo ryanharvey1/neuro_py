@@ -45,29 +45,29 @@ from .assembly import (
     toyExample,
 )
 from .assembly_reactivation import AssemblyReact
-from .explained_variance import ExplainedVariance
 from .dynamics import (
     cosine_similarity,
     potential_landscape,
     potential_landscape_nd,
 )
+from .explained_variance import ExplainedVariance
 from .geometry import proximity
-from .similarity_index import similarity_index
-from .similaritymat import similaritymat
 from .pairwise_bias_correlation import (
     cosine_similarity_matrices,
-    skew_bias_matrix,
     observed_and_shuffled_correlation,
     shuffled_significance,
+    skew_bias_matrix,
 )
 from .replay import (
+    PairwiseBias,
     WeightedCorr,
     WeightedCorrCirc,
-    weighted_correlation,
+    position_estimator,
     shuffle_and_score,
     trajectory_score_bst,
-    PairwiseBias,
     weighted_corr_2d,
     weighted_corr_2d_jit,
-    position_estimator,
+    weighted_correlation,
 )
+from .similarity_index import similarity_index
+from .similaritymat import similaritymat

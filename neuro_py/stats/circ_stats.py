@@ -1,3 +1,5 @@
+import warnings
+from collections import namedtuple
 from typing import (
     Any,
     Callable,
@@ -9,8 +11,6 @@ from typing import (
     Tuple,
     Union,
 )
-import warnings
-from collections import namedtuple
 
 import numpy as np
 from decorator import decorator

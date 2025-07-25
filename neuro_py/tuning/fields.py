@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d, label
 from scipy.ndimage.filters import gaussian_filter, maximum_filter

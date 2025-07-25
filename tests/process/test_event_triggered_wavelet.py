@@ -1,4 +1,5 @@
 import numpy as np
+
 from neuro_py.lfp.spectral import event_triggered_wavelet
 
 

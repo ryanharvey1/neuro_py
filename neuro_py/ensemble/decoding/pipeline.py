@@ -1,24 +1,21 @@
 import copy
 import os
 import random
+import zlib
+from typing import Any, Dict, List, Optional, Tuple
 
-from typing import List, Tuple, Dict, Optional, Any
-
-import sklearn.preprocessing
-
-import numpy as np
-import pandas as pd
 import bottleneck as bn
 import lightning.pytorch as pl
+import numpy as np
+import pandas as pd
 import sklearn
+import sklearn.preprocessing
 import torch
-import zlib
-
 from numpy.typing import NDArray
 
-from .mlp import MLP  # noqa
 from .lstm import LSTM  # noqa
 from .m2mlstm import M2MLSTM, NSVDataset  # noqa
+from .mlp import MLP  # noqa
 from .transformer import NDT  # noqa
 
 

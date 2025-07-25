@@ -13,7 +13,6 @@ from neuro_py.ensemble import assembly
 from neuro_py.io import loading
 from neuro_py.session.locate_epochs import compress_repeated_epochs, find_pre_task_post
 
-
 logging.getLogger().setLevel(logging.ERROR)
 
 

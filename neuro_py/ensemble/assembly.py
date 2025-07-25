@@ -12,7 +12,6 @@ import numpy as np
 from scipy import stats
 from sklearn.decomposition import PCA, FastICA
 
-
 __author__ = "Vítor Lopes dos Santos"
 __version__ = "2019.1"
 

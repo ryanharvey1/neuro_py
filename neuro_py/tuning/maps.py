@@ -2,8 +2,9 @@ import copy
 import logging
 import multiprocessing
 import os
-from typing import Any, List, Optional, Union
 import warnings
+from typing import Any, List, Optional, Union
+
 import nelpy as nel
 import numpy as np
 from joblib import Parallel, delayed

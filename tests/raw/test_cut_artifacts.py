@@ -1,8 +1,9 @@
-import pytest
-import numpy as np
 import os
 import tempfile
 from typing import List, Tuple
+
+import numpy as np
+import pytest
 
 from neuro_py.raw.preprocessing import cut_artifacts
 

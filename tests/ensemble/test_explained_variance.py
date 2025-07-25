@@ -3,8 +3,9 @@ from itertools import chain
 import nelpy as nel
 import numpy as np
 import pytest
-from neuro_py.ensemble.explained_variance import ExplainedVariance
 from scipy import stats
+
+from neuro_py.ensemble.explained_variance import ExplainedVariance
 
 
 def test_explained_variance():

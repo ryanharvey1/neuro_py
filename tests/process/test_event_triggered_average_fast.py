@@ -1,4 +1,5 @@
 import numpy as np
+
 from neuro_py.process.peri_event import event_triggered_average_fast
 
 

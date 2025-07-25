@@ -1,13 +1,13 @@
-import unittest
 import random
+import unittest
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-import neuro_py as npy
-
 from torch import nn
+
+import neuro_py as npy
 
 
 def set_seed(seed=None, seed_torch=True):

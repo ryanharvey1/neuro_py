@@ -11,9 +11,9 @@ import scipy.io as sio
 
 from neuro_py.io.loading import (
     load_brain_regions,
+    load_SleepState_states,
     load_spikes,
     load_trials,
-    load_SleepState_states,
 )
 
 

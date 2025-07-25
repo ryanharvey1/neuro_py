@@ -1,6 +1,7 @@
-from neuro_py.process.intervals import truncate_epoch
 import nelpy as nel
 import numpy as np
+
+from neuro_py.process.intervals import truncate_epoch
 
 
 def test_truncate_epoch():

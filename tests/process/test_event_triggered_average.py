@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from neuro_py.process.peri_event import event_triggered_average
 
 

@@ -1,5 +1,6 @@
-from neuro_py.process import peri_event
 import numpy as np
+
+from neuro_py.process import peri_event
 
 
 def test_count_events():

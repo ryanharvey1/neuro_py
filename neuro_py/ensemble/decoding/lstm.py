@@ -1,9 +1,8 @@
-from typing import List, Dict, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
+import lightning as L
 import torch
 import torch.nn.functional as F
-import lightning as L
-
 from torch import nn
 
 

@@ -1,7 +1,9 @@
 import os
 import tempfile
 import warnings
+
 import numpy as np
+
 from neuro_py.raw.preprocessing import remove_artifacts
 
 

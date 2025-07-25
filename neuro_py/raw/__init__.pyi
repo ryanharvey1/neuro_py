@@ -10,10 +10,9 @@ __all__ = [
 
 from .preprocessing import (
     cut_artifacts,
+    cut_artifacts_intan,
     fill_missing_channels,
     remove_artifacts,
-    cut_artifacts_intan,
     reorder_channels,
 )
-
 from .spike_sorting import phy_log_to_epocharray, spike_sorting_progress

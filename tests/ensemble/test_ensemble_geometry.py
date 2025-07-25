@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 from neuro_py.ensemble.geometry import (
