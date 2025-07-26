@@ -1763,7 +1763,7 @@ def load_brain_regions(
         mapped_df["shank"] = shanks
 
         for key in brainRegions.keys():
-            idx = np.in1d(channels, brainRegions[key]["channels"])
+            idx = np.isin(channels, brainRegions[key]["channels"])
             mapped_df.loc[idx, "region"] = key
 
         # save channel as zero-indexed

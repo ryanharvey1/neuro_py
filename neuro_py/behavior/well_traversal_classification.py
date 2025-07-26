@@ -162,7 +162,7 @@ def segment_path(
     distance_traveled, from_well, to_well = [], [], []
 
     for segment_label in segment_labels:
-        is_seg = np.in1d(labeled_segments, segment_label)
+        is_seg = np.isin(labeled_segments, segment_label)
         segment_time = time[is_seg]
         start_time.append(segment_time.min())
         end_time.append(segment_time.max())
