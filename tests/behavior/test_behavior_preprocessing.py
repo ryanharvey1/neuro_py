@@ -13,7 +13,7 @@ def test_filter_tracker_jumps():
     data = {
         "x": [0, 1, 2, 100, 3, 4],  # Example x coordinates with a jump
         "y": [0, 1, 2, 100, 3, 4],  # Example y coordinates with a jump
-        "ts": [0, 1, 2, 3, 4, 5],  # Example timestamps
+        "timestamps": [0, 1, 2, 3, 4, 5],  # Example timestamps
     }
     beh_df = pd.DataFrame(data)
 
@@ -21,7 +21,7 @@ def test_filter_tracker_jumps():
     expected_data = {
         "x": [0, 1, 2, np.nan, 3, 4],  # Jump replaced with NaN
         "y": [0, 1, 2, np.nan, 3, 4],  # Jump replaced with NaN
-        "ts": [0, 1, 2, 3, 4, 5],  # Timestamps remain unchanged
+        "timestamps": [0, 1, 2, 3, 4, 5],  # Timestamps remain unchanged
     }
     expected_df = pd.DataFrame(expected_data)
 
@@ -40,7 +40,7 @@ def test_filter_tracker_jumps_multi_jumps():
     data = {
         "x": [0, 1, 2, 100, 3, 4, 100, 5],  # Example x coordinates with a jump
         "y": [0, 1, 2, 100, 3, 4, 100, 5],  # Example y coordinates with a jump
-        "ts": [0, 1, 2, 3, 4, 5, 6, 7],  # Example timestamps
+        "timestamps": [0, 1, 2, 3, 4, 5, 6, 7],  # Example timestamps
     }
     beh_df = pd.DataFrame(data)
 
@@ -48,7 +48,7 @@ def test_filter_tracker_jumps_multi_jumps():
     expected_data = {
         "x": [0, 1, 2, np.nan, 3, 4, np.nan, 5],  # Jump replaced with NaN
         "y": [0, 1, 2, np.nan, 3, 4, np.nan, 5],  # Jump replaced with NaN
-        "ts": [0, 1, 2, 3, 4, 5, 6, 7],  # Timestamps remain unchanged
+        "timestamps": [0, 1, 2, 3, 4, 5, 6, 7],  # Timestamps remain unchanged
     }
     expected_df = pd.DataFrame(expected_data)
 
@@ -67,7 +67,7 @@ def test_filter_tracker_jumps_no_jumps():
     data = {
         "x": [0, 1, 2, 3, 4],  # Example x coordinates without jumps
         "y": [0, 1, 2, 3, 4],  # Example y coordinates without jumps
-        "ts": [0, 1, 2, 3, 4],  # Example timestamps
+        "timestamps": [0, 1, 2, 3, 4],  # Example timestamps
     }
     beh_df = pd.DataFrame(data)
 
@@ -86,7 +86,7 @@ def test_filter_tracker_jumps_empty_input():
     Test the filter_tracker_jumps function with an empty DataFrame.
     """
     # Create an empty DataFrame
-    beh_df = pd.DataFrame(columns=["x", "y", "ts"])
+    beh_df = pd.DataFrame(columns=["x", "y", "timestamps"])
 
     # Expected output (empty DataFrame)
     expected_df = beh_df.copy()
