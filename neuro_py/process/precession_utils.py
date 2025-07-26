@@ -415,7 +415,7 @@ def acf_power(acf: np.ndarray, norm: Optional[bool] = True) -> np.ndarray:
 
     # Normalize if required
     if norm:
-        psd = psd / np.trapz(psd)
+        psd = psd / np.trapezoid(psd)
 
     return psd
 
@@ -511,7 +511,7 @@ def nonspatial_phase_precession(
     max_peak = np.max(psd[freqs_of_interest][all_peaks])
     max_idx = [all_peaks[np.argmax(psd[freqs_of_interest][all_peaks])]]
     max_freq = frequencies[freqs_of_interest][max_idx]
-    MI = max_peak / np.trapz(psd[freqs_of_interest])
+    MI = max_peak / np.trapezoid(psd[freqs_of_interest])
 
     return max_freq, MI, psd[freqs_of_interest], frequencies[freqs_of_interest], acf
 
@@ -590,6 +590,6 @@ def nonspatial_phase_precession(
 #     max_peak = np.max(psd[freqs_of_interest][all_peaks])
 #     max_idx = [all_peaks[np.argmax(psd[freqs_of_interest][all_peaks])]]
 #     max_freq = frequencies[freqs_of_interest][max_idx]
-#     MI = max_peak / np.trapz(psd[freqs_of_interest])
+#     MI = max_peak / np.trapezoid(psd[freqs_of_interest])
 
 #     return max_freq, MI, psd[freqs_of_interest], frequencies[freqs_of_interest], acf

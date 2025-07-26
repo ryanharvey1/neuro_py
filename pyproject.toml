@@ -84,3 +84,6 @@ all = [
 [tool.setuptools.packages.find]
 include = ['neuro_py']
 exclude = ['docs']
+
+[tool.ruff.lint]
+select = ["NPY201"]
