@@ -1,19 +1,239 @@
 import os
 import pickle
 import sys
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat, savemat
-from track_linearization import get_linearized_position, make_track_graph
+from scipy.optimize import minimize
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import shortest_path
+from scipy.spatial.distance import cdist
 
-"""
-TODO: 
--fix bugs in removing nodes and edges
--add option to input your own nodes and edges
-"""
+
+class TrackGraph:
+    """
+    A simple track graph implementation for linearization.
+
+    Parameters
+    ----------
+    node_positions : np.ndarray
+        Array of node positions (n_nodes, 2)
+    edges : list
+        List of edge connections between nodes
+    """
+
+    def __init__(self, node_positions: np.ndarray, edges: List[List[int]]):
+        self.node_positions = np.asarray(node_positions)
+        self.edges = edges
+        self.n_nodes = len(node_positions)
+
+        # Create adjacency matrix
+        self.adjacency_matrix = self._create_adjacency_matrix()
+
+        # Calculate distances between connected nodes
+        self.edge_distances = self._calculate_edge_distances()
+
+        # Calculate cumulative distances for linearization
+        self.cumulative_distances = self._calculate_cumulative_distances()
+
+    def _create_adjacency_matrix(self) -> csr_matrix:
+        """Create sparse adjacency matrix from edges."""
+        row_indices = []
+        col_indices = []
+
+        for edge in self.edges:
+            if len(edge) >= 2:
+                for i in range(len(edge) - 1):
+                    row_indices.extend([edge[i], edge[i + 1]])
+                    col_indices.extend([edge[i + 1], edge[i]])
+
+        data = np.ones(len(row_indices))
+        return csr_matrix(
+            (data, (row_indices, col_indices)), shape=(self.n_nodes, self.n_nodes)
+        )
+
+    def _calculate_edge_distances(self) -> dict:
+        """Calculate distances between connected nodes."""
+        distances = {}
+        for edge in self.edges:
+            if len(edge) >= 2:
+                for i in range(len(edge) - 1):
+                    node1, node2 = edge[i], edge[i + 1]
+                    dist = np.linalg.norm(
+                        self.node_positions[node1] - self.node_positions[node2]
+                    )
+                    distances[(node1, node2)] = dist
+                    distances[(node2, node1)] = dist
+        return distances
+
+    def _calculate_cumulative_distances(self) -> np.ndarray:
+        """Calculate cumulative distances along the track."""
+        # Find the main path through the track
+        # For simplicity, we'll use the first edge as the starting point
+        if not self.edges or len(self.edges[0]) < 2:
+            return np.zeros(self.n_nodes)
+
+        cumulative = np.zeros(self.n_nodes)
+        visited = set()
+
+        # Start from the first edge
+        current_edge = self.edges[0]
+        if len(current_edge) >= 2:
+            for i in range(len(current_edge) - 1):
+                node1, node2 = current_edge[i], current_edge[i + 1]
+                if node1 not in visited:
+                    visited.add(node1)
+                if node2 not in visited:
+                    visited.add(node2)
+                    cumulative[node2] = cumulative[node1] + self.edge_distances.get(
+                        (node1, node2), 0
+                    )
+
+        return cumulative
+
+
+def project_position_to_track(
+    position: np.ndarray, track_graph: TrackGraph
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Project 2D positions onto the track graph.
+
+    Parameters
+    ----------
+    position : np.ndarray
+        Array of 2D positions (n_positions, 2)
+    track_graph : TrackGraph
+        Track graph object
+
+    Returns
+    -------
+    linear_position : np.ndarray
+        Linearized positions along the track
+    track_segment_id : np.ndarray
+        Track segment IDs for each position
+    projected_position : np.ndarray
+        Projected 2D positions on the track
+    """
+    n_positions = position.shape[0]
+    linear_position = np.full(n_positions, np.nan)
+    track_segment_id = np.full(n_positions, -1, dtype=int)
+    projected_position = np.full((n_positions, 2), np.nan)
+
+    for i, pos in enumerate(position):
+        # Find closest node
+        distances_to_nodes = np.linalg.norm(track_graph.node_positions - pos, axis=1)
+        closest_node = np.argmin(distances_to_nodes)
+
+        # Find closest edge
+        min_distance = np.inf
+        best_segment = -1
+        best_projection = None
+
+        for edge_idx, edge in enumerate(track_graph.edges):
+            if len(edge) >= 2:
+                for j in range(len(edge) - 1):
+                    node1, node2 = edge[j], edge[j + 1]
+                    p1 = track_graph.node_positions[node1]
+                    p2 = track_graph.node_positions[node2]
+
+                    # Project point onto line segment
+                    v = p2 - p1
+                    u = pos - p1
+                    t = np.dot(u, v) / np.dot(v, v)
+                    t = np.clip(t, 0, 1)
+
+                    projection = p1 + t * v
+                    distance = np.linalg.norm(pos - projection)
+
+                    if distance < min_distance:
+                        min_distance = distance
+                        best_segment = edge_idx
+                        best_projection = projection
+
+        if best_segment >= 0 and best_projection is not None:
+            # Calculate linear position
+            edge = track_graph.edges[best_segment]
+            for j in range(len(edge) - 1):
+                node1, node2 = edge[j], edge[j + 1]
+                p1 = track_graph.node_positions[node1]
+                p2 = track_graph.node_positions[node2]
+
+                # Check if projection is on this segment
+                v = p2 - p1
+                u = best_projection - p1
+                t = np.dot(u, v) / np.dot(v, v)
+
+                if 0 <= t <= 1:
+                    # Linear position is cumulative distance to node1 + distance along segment
+                    linear_position[i] = track_graph.cumulative_distances[
+                        node1
+                    ] + t * np.linalg.norm(v)
+                    track_segment_id[i] = best_segment
+                    projected_position[i] = best_projection
+                    break
+
+    return linear_position, track_segment_id, projected_position
+
+
+def get_linearized_position(
+    position: np.ndarray,
+    track_graph: TrackGraph,
+    edge_order: Optional[List[List[int]]] = None,
+    use_HMM: bool = False,
+) -> pd.DataFrame:
+    """
+    Get linearized position from 2D positions using track graph.
+
+    Parameters
+    ----------
+    position : np.ndarray
+        Array of 2D positions (n_positions, 2)
+    track_graph : TrackGraph
+        Track graph object
+    edge_order : list, optional
+        Order of edges to use (for compatibility)
+    use_HMM : bool, optional
+        Whether to use HMM (not implemented in this version)
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with linearized position, track segment ID, and projected positions
+    """
+    linear_position, track_segment_id, projected_position = project_position_to_track(
+        position, track_graph
+    )
+
+    return pd.DataFrame(
+        {
+            "linear_position": linear_position,
+            "track_segment_id": track_segment_id,
+            "projected_x_position": projected_position[:, 0],
+            "projected_y_position": projected_position[:, 1],
+        }
+    )
+
+
+def make_track_graph(node_positions: np.ndarray, edges: List[List[int]]) -> TrackGraph:
+    """
+    Create a track graph from node positions and edges.
+
+    Parameters
+    ----------
+    node_positions : np.ndarray
+        Array of node positions (n_nodes, 2)
+    edges : list
+        List of edge connections between nodes
+
+    Returns
+    -------
+    TrackGraph
+        Track graph object
+    """
+    return TrackGraph(node_positions, edges)
 
 
 class NodePicker:
@@ -33,6 +253,7 @@ class NodePicker:
     epoch : int, optional
         The epoch number, by default None.
     interval : Tuple[float, float], optional
+        Time interval to process, by default None.
 
     Attributes
     ----------
@@ -85,18 +306,13 @@ class NodePicker:
     Examples
     --------
     # in command line
-    >>> python linearization_pipeline.py path/to/session
+    >>> python linearization.py path/to/session
 
     # for a specific epoch
-    >>> python linearization_pipeline.py path/to/session 1
+    >>> python linearization.py path/to/session 1
 
     # for a specific interval
-    >>> python linearization_pipeline.py path/to/session 0 100
-
-    References
-    ----------
-    https://github.com/LorenFrankLab/track_linearization
-
+    >>> python linearization.py path/to/session 0 100
     """
 
     def __init__(
@@ -123,6 +339,8 @@ class NodePicker:
             The size of the nodes, by default 100.
         epoch : int, optional
             The epoch number, by default None.
+        interval : Tuple[float, float], optional
+            Time interval to process, by default None.
         """
         if ax is None:
             ax = plt.gca()
@@ -149,7 +367,6 @@ class NodePicker:
         )
 
         self.canvas.draw()
-
         self.connect()
 
     @property
@@ -165,19 +382,15 @@ class NodePicker:
         return np.asarray(self._nodes)
 
     def connect(self) -> None:
-        """
-        Connect the event handlers.
-        """
+        """Connect the event handlers."""
         print("Connecting to events")
         if self.cid is None:
             self.cid = self.canvas.mpl_connect("button_press_event", self.click_event)
             self.canvas.mpl_connect("key_press_event", self.process_key)
-            print("Mouse click event connected!")  # Debugging
+            print("Mouse click event connected!")
 
     def disconnect(self) -> None:
-        """
-        Disconnect the event handlers.
-        """
+        """Disconnect the event handlers."""
         if self.cid is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.cid = None
@@ -203,10 +416,9 @@ class NodePicker:
         event : Any
             The mouse click event.
         """
-
         print(
             f"Mouse clicked at: {event.xdata}, {event.ydata}, button: {event.button}, key: {event.key}"
-        )  # Debugging
+        )
         if not event.inaxes:
             return
 
@@ -238,9 +450,7 @@ class NodePicker:
         self.redraw()
 
     def redraw(self) -> None:
-        """
-        Redraw the nodes and edges.
-        """
+        """Redraw the nodes and edges."""
         # Draw Node Circles
         if len(self.node_positions) > 0:
             self._nodes_plot.set_offsets(self.node_positions)
@@ -286,17 +496,13 @@ class NodePicker:
             self._nodes.pop(closest_node_ind)
 
     def clear(self) -> None:
-        """
-        Clear all nodes and edges.
-        """
+        """Clear all nodes and edges."""
         self._nodes = []
         self.edges = [[]]
         self.redraw()
 
     def format_and_save(self) -> None:
-        """
-        Format the data and save it to disk.
-        """
+        """Format the data and save it to disk."""
         behave_df = load_animal_behavior(self.basepath)
 
         if self.epoch is not None:
@@ -316,7 +522,7 @@ class NodePicker:
         else:
             cur_epoch = ~np.isnan(behave_df.x)
 
-        print("running hmm...")
+        print("running linearization...")
         track_graph = make_track_graph(self.node_positions, self.edges)
 
         position = np.vstack(
@@ -340,7 +546,9 @@ class NodePicker:
             position_df.projected_y_position.values
         )
 
-        filename = os.path.join(basepath, os.path.basename(basepath) + ".animal.behavior.mat")
+        filename = os.path.join(
+            self.basepath, os.path.basename(self.basepath) + ".animal.behavior.mat"
+        )
 
         data = loadmat(filename, simplify_cells=True)
 
@@ -363,9 +571,7 @@ class NodePicker:
         plt.close()
 
     def save_nodes_edges(self) -> None:
-        """
-        Save the nodes and edges to a pickle file.
-        """
+        """Save the nodes and edges to a pickle file."""
         results = {"node_positions": self.node_positions, "edges": self.edges}
         save_file = os.path.join(self.basepath, "linearization_nodes_edges.pkl")
         with open(save_file, "wb") as f:
@@ -444,7 +650,9 @@ def load_animal_behavior(basepath: str) -> pd.DataFrame:
     pd.DataFrame
         A DataFrame containing the animal behavior data.
     """
-    filename = os.path.join(basepath, os.path.basename(basepath) + ".animal.behavior.mat")
+    filename = os.path.join(
+        basepath, os.path.basename(basepath) + ".animal.behavior.mat"
+    )
     data = loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["time"] = data["behavior"]["timestamps"]
@@ -474,7 +682,6 @@ def load_epoch(basepath: str) -> pd.DataFrame:
     pd.DataFrame
         A DataFrame containing the epoch information.
     """
-
     filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
     data = loadmat(filename, simplify_cells=True)
     try:
@@ -498,6 +705,7 @@ def run(
     epoch : int, optional
         The epoch number to process, by default None.
     interval : Tuple[float, float], optional
+        Time interval to process, by default None.
 
     Returns
     -------
