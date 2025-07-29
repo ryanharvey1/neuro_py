@@ -1,4 +1,3 @@
-import glob
 import os
 import pickle
 import sys
@@ -137,7 +136,7 @@ class NodePicker:
         self.basepath = basepath
         self.epoch = epoch
         self.interval = interval
-        self.use_HMM = True
+        self.use_HMM = False
 
         if self.epoch is not None:
             self.epoch = int(self.epoch)
@@ -341,7 +340,8 @@ class NodePicker:
             position_df.projected_y_position.values
         )
 
-        filename = glob.glob(os.path.join(self.basepath, "*.animal.behavior.mat"))[0]
+        filename = os.path.join(basepath, os.path.basename(basepath) + ".animal.behavior.mat")
+
         data = loadmat(filename, simplify_cells=True)
 
         data["behavior"]["position"]["linearized"] = behave_df.linearized.values
@@ -444,7 +444,7 @@ def load_animal_behavior(basepath: str) -> pd.DataFrame:
     pd.DataFrame
         A DataFrame containing the animal behavior data.
     """
-    filename = glob.glob(os.path.join(basepath, "*.animal.behavior.mat"))[0]
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".animal.behavior.mat")
     data = loadmat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["time"] = data["behavior"]["timestamps"]
@@ -474,8 +474,8 @@ def load_epoch(basepath: str) -> pd.DataFrame:
     pd.DataFrame
         A DataFrame containing the epoch information.
     """
-    filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
+    filename = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
     data = loadmat(filename, simplify_cells=True)
     try:
         return pd.DataFrame(data["session"]["epochs"])
