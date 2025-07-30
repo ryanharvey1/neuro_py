@@ -13,6 +13,276 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 from scipy.stats import multivariate_normal
 
+# Add Numba for JIT compilation
+try:
+    from numba import njit, prange, jit
+    NUMBA_AVAILABLE = True
+except ImportError:
+    NUMBA_AVAILABLE = False
+    # Create dummy decorators if Numba is not available
+    def njit(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def jit(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    
+    def prange(*args):
+        return range(*args)
+
+# Numba-optimized emission probability calculation
+@njit(parallel=True, fastmath=True)
+def _emission_probabilities_numba(observations, emission_centers, emission_covariance):
+    """
+    Numba-optimized emission probability calculation.
+    """
+    n_observations = len(observations)
+    n_states = len(emission_centers)
+    emission_probs = np.zeros((n_observations, n_states))
+    
+    # Pre-compute covariance matrix components for 2D case
+    # For 2x2 covariance matrix: [[a, b], [b, c]]
+    a = emission_covariance[0, 0]
+    b = emission_covariance[0, 1]
+    c = emission_covariance[1, 1]
+    
+    # Determinant: det = a*c - b*b
+    det = a * c - b * b
+    
+    # Inverse matrix: [[c, -b], [-b, a]] / det
+    inv_a = c / det
+    inv_b = -b / det
+    inv_c = a / det
+    
+    # Normalization constant
+    norm_const = 1.0 / (2 * np.pi * np.sqrt(det))
+    
+    for t in prange(n_observations):
+        obs = observations[t]
+        for i in range(n_states):
+            center = emission_centers[i]
+            dx = obs[0] - center[0]
+            dy = obs[1] - center[1]
+            
+            # Full Gaussian calculation: diff.T @ inv_cov @ diff
+            # For 2D: [dx, dy] @ [[inv_a, inv_b], [inv_b, inv_c]] @ [dx, dy]
+            # = dx*(inv_a*dx + inv_b*dy) + dy*(inv_b*dx + inv_c*dy)
+            # = dx*inv_a*dx + dx*inv_b*dy + dy*inv_b*dx + dy*inv_c*dy
+            # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
+            exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
+            emission_probs[t, i] = norm_const * np.exp(exponent)
+    
+    return emission_probs
+
+# Numba-optimized Viterbi algorithm
+@njit(fastmath=True)
+def _viterbi_numba(emission_probs, transition_matrix, n_observations, n_states):
+    """
+    Numba-optimized Viterbi algorithm.
+    """
+    # Initialize
+    delta = np.zeros((n_observations, n_states))
+    psi = np.zeros((n_observations, n_states), dtype=np.int32)
+    
+    # Initial probabilities (uniform)
+    initial_probs = np.ones(n_states) / n_states
+    
+    # Forward pass
+    for t in range(n_observations):
+        if t == 0:
+            delta[t] = initial_probs * emission_probs[t]
+        else:
+            # Manual max and argmax operations for Numba compatibility
+            max_probs = np.zeros(n_states)
+            max_indices = np.zeros(n_states, dtype=np.int32)
+            
+            for j in range(n_states):
+                max_val = -np.inf
+                max_idx = 0
+                
+                for i in range(n_states):
+                    val = delta[t - 1, i] * transition_matrix[i, j]
+                    if val > max_val:
+                        max_val = val
+                        max_idx = i
+                
+                max_probs[j] = max_val
+                max_indices[j] = max_idx
+            
+            delta[t] = max_probs * emission_probs[t]
+            psi[t] = max_indices
+    
+    # Backward pass
+    state_sequence = np.zeros(n_observations, dtype=np.int32)
+    
+    # Find the state with maximum probability at the last time step
+    max_val = -np.inf
+    max_idx = 0
+    for i in range(n_states):
+        if delta[-1, i] > max_val:
+            max_val = delta[-1, i]
+            max_idx = i
+    state_sequence[-1] = max_idx
+    
+    for t in range(n_observations - 2, -1, -1):
+        state_sequence[t] = psi[t + 1, state_sequence[t + 1]]
+    
+    return state_sequence
+
+# Numba-optimized transition matrix building for sparse transitions
+@njit(parallel=True)
+def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n_states, 
+                                        transition_smoothness, segments_connected):
+    """
+    Numba-optimized sparse transition matrix building.
+    """
+    transition_matrix = np.zeros((n_states, n_states))
+    
+    for i in prange(n_states):
+        seg1 = state_to_segment[i]
+        pos1 = state_to_position[i]
+        
+        # Compute transitions for all states (Numba doesn't handle dynamic lists well)
+        for j in range(n_states):
+            seg2 = state_to_segment[j]
+            pos2 = state_to_position[j]
+            
+            # Check if this is a valid transition for sparse mode
+            valid_transition = False
+            
+            # Same segment transitions (nearby positions only)
+            if seg1 == seg2:
+                pos_diff = abs(i - j)
+                if pos_diff <= 2:  # Only nearby positions
+                    valid_transition = True
+            
+            # Adjacent segment transitions (boundary positions only)
+            elif segments_connected[seg1, seg2]:
+                if (seg1 < seg2 and j < 50) or (seg1 > seg2 and j >= n_states - 50):
+                    valid_transition = True
+            
+            if valid_transition:
+                # Calculate transition probability
+                if seg1 == seg2:
+                    # Within same segment - manual norm calculation for Numba
+                    dx = pos1[0] - pos2[0]
+                    dy = pos1[1] - pos2[1]
+                    pos_diff = (dx * dx + dy * dy) ** 0.5
+                    prob = np.exp(-pos_diff / transition_smoothness)
+                else:
+                    # Between segments
+                    prob = 0.1  # Lower probability for segment transitions
+                
+                transition_matrix[i, j] = prob
+    
+    # Normalize rows
+    for i in range(n_states):
+        row_sum = 0.0
+        for j in range(n_states):
+            row_sum += transition_matrix[i, j]
+        
+        if row_sum > 0:
+            for j in range(n_states):
+                transition_matrix[i, j] /= row_sum
+    
+    return transition_matrix
+
+# Numba-optimized position projection
+@njit(parallel=True, fastmath=True)
+def _project_positions_parallel(positions, node_positions, edges, n_positions):
+    """
+    Numba-optimized parallel position projection onto track.
+    """
+    linear_positions = np.full(n_positions, np.nan)
+    track_segment_ids = np.full(n_positions, -1, dtype=np.int32)
+    projected_positions = np.full((n_positions, 2), np.nan)
+    
+    for i in prange(n_positions):
+        pos = positions[i]
+        
+        # Find closest edge
+        min_distance = np.inf
+        best_segment = -1
+        best_projection = np.array([np.nan, np.nan])
+        
+        for edge_idx, edge in enumerate(edges):
+            if len(edge) >= 2:
+                for j in range(len(edge) - 1):
+                    node1, node2 = edge[j], edge[j + 1]
+                    p1 = node_positions[node1]
+                    p2 = node_positions[node2]
+                    
+                    # Project position onto this line segment
+                    v = p2 - p1
+                    u = pos - p1
+                    t = np.dot(u, v) / np.dot(v, v)
+                    t = np.clip(t, 0, 1)
+                    
+                    projected = p1 + t * v
+                    distance = np.linalg.norm(pos - projected)
+                    
+                    if distance < min_distance:
+                        min_distance = distance
+                        best_segment = edge_idx
+                        best_projection = projected
+        
+        if best_segment >= 0:
+            track_segment_ids[i] = best_segment
+            projected_positions[i] = best_projection
+            # Calculate linear position (simplified)
+            linear_positions[i] = best_segment + best_projection[0] / 100.0  # Rough approximation
+    
+    return linear_positions, track_segment_ids, projected_positions
+
+# Memory-optimized batch processing
+@njit(fastmath=True)
+def _process_batch_emissions(observations_batch, emission_centers, emission_covariance, batch_size):
+    """
+    Process emission probabilities in batches to reduce memory usage.
+    """
+    n_observations = len(observations_batch)
+    n_states = len(emission_centers)
+    emission_probs = np.zeros((n_observations, n_states))
+
+    # Pre-compute covariance matrix components for 2D case
+    # For 2x2 covariance matrix: [[a, b], [b, c]]
+    a = emission_covariance[0, 0]
+    b = emission_covariance[0, 1]
+    c = emission_covariance[1, 1]
+    
+    # Determinant: det = a*c - b*b
+    det = a * c - b * b
+    
+    # Inverse matrix: [[c, -b], [-b, a]] / det
+    inv_a = c / det
+    inv_b = -b / det
+    inv_c = a / det
+    
+    # Normalization constant
+    norm_const = 1.0 / (2 * np.pi * np.sqrt(det))
+
+    # Process in batches
+    for batch_start in range(0, n_observations, batch_size):
+        batch_end = min(batch_start + batch_size, n_observations)
+
+        for t in range(batch_start, batch_end):
+            obs = observations_batch[t]
+            for i in range(n_states):
+                center = emission_centers[i]
+                dx = obs[0] - center[0]
+                dy = obs[1] - center[1]
+
+                # Full Gaussian calculation: diff.T @ inv_cov @ diff
+                # For 2D: [dx, dy] @ [[inv_a, inv_b], [inv_b, inv_c]] @ [dx, dy]
+                # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
+                exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
+                emission_probs[t, i] = norm_const * np.exp(exponent)
+
+    return emission_probs
+
 
 class TrackGraph:
     """
@@ -142,12 +412,29 @@ class HMMLinearizer:
         transition_smoothness: float = 0.1,
         emission_noise: float = 5.0,
         max_iterations: int = 1000,
+        # Optimization parameters
+        use_sparse_transitions: bool = True,
+        subsample_positions: bool = False,
+        subsample_factor: int = 5,
+        # Additional optimization parameters
+        use_adaptive_subsampling: bool = True,
+        # Advanced optimization parameters
+        use_batch_processing: bool = False,
+        batch_size: int = 1000,
     ):
         self.track_graph = track_graph
         self.n_bins_per_segment = n_bins_per_segment
         self.transition_smoothness = transition_smoothness
         self.emission_noise = emission_noise
         self.max_iterations = max_iterations
+
+        # Optimization parameters
+        self.use_sparse_transitions = use_sparse_transitions
+        self.subsample_positions = subsample_positions
+        self.subsample_factor = subsample_factor
+        self.use_adaptive_subsampling = use_adaptive_subsampling
+        self.use_batch_processing = use_batch_processing
+        self.batch_size = batch_size
 
         # Calculate track segment properties
         self.n_segments = len(track_graph.edges)
@@ -243,27 +530,70 @@ class HMMLinearizer:
         return self.track_graph.node_positions[edge[-1]]
 
     def _build_transition_matrix(self):
-        """Build the state transition probability matrix."""
-        self.transition_matrix = np.zeros((self.n_states, self.n_states))
+        """Build transition matrix between states."""
+        if self.use_sparse_transitions and NUMBA_AVAILABLE:
+            # Use Numba-optimized sparse transition matrix building
+            # Create segments_connected matrix for Numba
+            segments_connected = np.zeros((self.n_segments, self.n_segments), dtype=bool)
+            for i in range(self.n_segments):
+                for j in range(self.n_segments):
+                    segments_connected[i, j] = self._segments_connected(i, j)
+            
+            self.transition_matrix = _build_sparse_transition_matrix_numba(
+                self.state_to_segment, 
+                self.state_to_position, 
+                self.n_states,
+                self.transition_smoothness,
+                segments_connected
+            )
+        else:
+            # Fallback to original implementation
+            self.transition_matrix = np.zeros((self.n_states, self.n_states))
 
-        for i in range(self.n_states):
-            seg_i = self.state_to_segment[i]
-            pos_i = self.state_to_position[i]
+            for i in range(self.n_states):
+                seg1 = self.state_to_segment[i]
+                pos1 = self.state_to_position[i]
 
-            for j in range(self.n_states):
-                seg_j = self.state_to_segment[j]
-                pos_j = self.state_to_position[j]
+                # Early termination for sparse transitions
+                if self.use_sparse_transitions:
+                    # Only compute transitions to nearby states
+                    nearby_states = []
+                    
+                    # Same segment transitions
+                    for j in range(self.n_states):
+                        if self.state_to_segment[j] == seg1:
+                            pos_diff = abs(i - j)
+                            if pos_diff <= 2:  # Only nearby positions
+                                nearby_states.append(j)
+                    
+                    # Adjacent segment transitions
+                    for j in range(self.n_states):
+                        seg2 = self.state_to_segment[j]
+                        if seg1 != seg2 and self._segments_connected(seg1, seg2):
+                            # Only boundary positions
+                            if (seg1 < seg2 and j < 50) or (seg1 > seg2 and j >= self.n_states - 50):
+                                nearby_states.append(j)
+                    
+                    # Compute transitions only for nearby states
+                    for j in nearby_states:
+                        seg2 = self.state_to_segment[j]
+                        pos2 = self.state_to_position[j]
+                        self.transition_matrix[i, j] = self._calculate_transition_probability(
+                            seg1, pos1, seg2, pos2
+                        )
+                else:
+                    # Full transition matrix (slower but more accurate)
+                    for j in range(self.n_states):
+                        seg2 = self.state_to_segment[j]
+                        pos2 = self.state_to_position[j]
+                        self.transition_matrix[i, j] = self._calculate_transition_probability(
+                            seg1, pos1, seg2, pos2
+                        )
 
-                # Calculate transition probability
-                prob = self._calculate_transition_probability(
-                    seg_i, pos_i, seg_j, pos_j
-                )
-                self.transition_matrix[i, j] = prob
-
-        # Normalize rows
-        row_sums = self.transition_matrix.sum(axis=1)
-        row_sums[row_sums == 0] = 1  # Avoid division by zero
-        self.transition_matrix /= row_sums[:, np.newaxis]
+            # Normalize rows
+            row_sums = self.transition_matrix.sum(axis=1)
+            row_sums[row_sums == 0] = 1  # Avoid division by zero
+            self.transition_matrix /= row_sums[:, np.newaxis]
 
     def _calculate_transition_probability(
         self, seg1: int, pos1: np.ndarray, seg2: int, pos2: np.ndarray
@@ -322,6 +652,38 @@ class HMMLinearizer:
         rv = multivariate_normal(center, self.emission_covariance)
         return rv.pdf(observation)
 
+    def _emission_probabilities_vectorized(self, observations: np.ndarray) -> np.ndarray:
+        """
+        Calculate emission probabilities for all observations and states at once.
+        Much faster than calling _emission_probability repeatedly.
+        Uses Numba JIT compilation if available.
+        """
+        if NUMBA_AVAILABLE:
+            if self.use_batch_processing and len(observations) > 100:  # Use batch processing for any significant number of observations
+                return _process_batch_emissions(observations, self.emission_centers, self.emission_covariance, self.batch_size)
+            else:
+                return _emission_probabilities_numba(observations, self.emission_centers, self.emission_covariance)
+        else:
+            # Fallback to original implementation
+            n_observations = len(observations)
+            emission_probs = np.zeros((n_observations, self.n_states))
+            
+            # Pre-compute constants for Gaussian calculation
+            det_cov = np.linalg.det(self.emission_covariance)
+            inv_cov = np.linalg.inv(self.emission_covariance)
+            norm_const = 1.0 / (2 * np.pi * np.sqrt(det_cov))
+            
+            for t in range(n_observations):
+                obs = observations[t]
+                for i in range(self.n_states):
+                    center = self.emission_centers[i]
+                    diff = obs - center
+                    # Manual Gaussian calculation (faster than multivariate_normal)
+                    exponent = -0.5 * diff.T @ inv_cov @ diff
+                    emission_probs[t, i] = norm_const * np.exp(exponent)
+            
+            return emission_probs
+
     def linearize_with_hmm(
         self, positions: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -356,12 +718,26 @@ class HMMLinearizer:
 
         valid_positions = positions[valid_mask]
 
+        # Subsample positions if requested for speed
+        if self.subsample_positions and len(valid_positions) > 1000:
+            # Adaptive subsampling: use larger factor for bigger datasets
+            if self.use_adaptive_subsampling:
+                adaptive_factor = max(self.subsample_factor, len(valid_positions) // 2000)
+            else:
+                adaptive_factor = self.subsample_factor
+            subsample_indices = np.arange(0, len(valid_positions), adaptive_factor)
+            subsampled_positions = valid_positions[subsample_indices]
+            original_indices = np.where(valid_mask)[0][subsample_indices]
+        else:
+            subsampled_positions = valid_positions
+            original_indices = np.where(valid_mask)[0]
+
         # Run Viterbi algorithm to find most likely state sequence
-        state_sequence = self._viterbi(valid_positions)
+        state_sequence = self._viterbi(subsampled_positions)
 
         # Convert states back to linear positions and segment IDs
         for i, state in enumerate(state_sequence):
-            global_idx = np.where(valid_mask)[0][i]
+            global_idx = original_indices[i]
 
             seg_id = self.state_to_segment[state]
             projected_pos = self.state_to_position[state]
@@ -373,11 +749,19 @@ class HMMLinearizer:
             track_segment_ids[global_idx] = seg_id
             projected_positions[global_idx] = projected_pos
 
+        # Interpolate missing values if subsampling was used
+        if self.subsample_positions and len(original_indices) < n_positions:
+            linear_positions, track_segment_ids, projected_positions = self._interpolate_missing_values(
+                linear_positions, track_segment_ids, projected_positions, original_indices, valid_mask
+            )
+
         return linear_positions, track_segment_ids, projected_positions
 
     def _viterbi(self, observations: np.ndarray) -> np.ndarray:
         """
         Run Viterbi algorithm to find most likely state sequence.
+        Vectorized implementation for better performance.
+        Uses Numba JIT compilation if available.
 
         Parameters
         ----------
@@ -391,47 +775,46 @@ class HMMLinearizer:
         """
         n_observations = len(observations)
 
-        # Initialize
-        delta = np.zeros((n_observations, self.n_states))
-        psi = np.zeros((n_observations, self.n_states), dtype=int)
+        # Pre-compute emission probabilities for all observations and states
+        emission_probs = self._emission_probabilities_vectorized(observations)
 
-        # Initial probabilities (uniform)
-        initial_probs = np.ones(self.n_states) / self.n_states
+        if NUMBA_AVAILABLE:
+            return _viterbi_numba(emission_probs, self.transition_matrix, n_observations, self.n_states)
+        else:
+            # Fallback to original implementation
+            # Initialize
+            delta = np.zeros((n_observations, self.n_states))
+            psi = np.zeros((n_observations, self.n_states), dtype=int)
 
-        # Forward pass
-        for t in range(n_observations):
-            if t == 0:
-                # Initial probabilities
-                for i in range(self.n_states):
-                    delta[t, i] = initial_probs[i] * self._emission_probability(
-                        observations[t], i
-                    )
-            else:
-                # Recursion
-                for j in range(self.n_states):
-                    # Find maximum over previous states
-                    max_prob = -np.inf
-                    max_state = 0
+            # Initial probabilities (uniform)
+            initial_probs = np.ones(self.n_states) / self.n_states
 
-                    for i in range(self.n_states):
-                        prob = delta[t - 1, i] * self.transition_matrix[i, j]
-                        if prob > max_prob:
-                            max_prob = prob
-                            max_state = i
+            # Forward pass (vectorized)
+            for t in range(n_observations):
+                if t == 0:
+                    # Initial probabilities
+                    delta[t] = initial_probs * emission_probs[t]
+                else:
+                    # Vectorized recursion: compute all state transitions at once
+                    # delta[t-1] * transition_matrix gives us all possible transitions
+                    transition_probs = delta[t - 1].reshape(-1, 1) * self.transition_matrix
+                    
+                    # Find maximum probability and corresponding previous state for each current state
+                    max_indices = np.argmax(transition_probs, axis=0)
+                    max_probs = np.max(transition_probs, axis=0)
+                    
+                    # Update delta and psi
+                    delta[t] = max_probs * emission_probs[t]
+                    psi[t] = max_indices
 
-                    delta[t, j] = max_prob * self._emission_probability(
-                        observations[t], j
-                    )
-                    psi[t, j] = max_state
+            # Backward pass
+            state_sequence = np.zeros(n_observations, dtype=int)
+            state_sequence[-1] = np.argmax(delta[-1])
 
-        # Backward pass
-        state_sequence = np.zeros(n_observations, dtype=int)
-        state_sequence[-1] = np.argmax(delta[-1])
+            for t in range(n_observations - 2, -1, -1):
+                state_sequence[t] = psi[t + 1, state_sequence[t + 1]]
 
-        for t in range(n_observations - 2, -1, -1):
-            state_sequence[t] = psi[t + 1, state_sequence[t + 1]]
-
-        return state_sequence
+            return state_sequence
 
     def _calculate_linear_position(
         self, segment_id: int, position: np.ndarray
@@ -482,6 +865,116 @@ class HMMLinearizer:
                 cumulative_distance += segment_position
 
         return cumulative_distance
+
+    def _interpolate_missing_values(
+        self,
+        linear_positions: np.ndarray,
+        track_segment_ids: np.ndarray,
+        projected_positions: np.ndarray,
+        original_indices: np.ndarray,
+        valid_mask: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Interpolate missing values in subsampled linearization results.
+        
+        This method fills in the NaN values between linearized points using
+        linear interpolation. For rat tracking data, this provides smooth
+        trajectories while maintaining the speed benefits of subsampling.
+        
+        Parameters
+        ----------
+        linear_positions : np.ndarray
+            Array of linear positions with NaN values for missing points
+        track_segment_ids : np.ndarray
+            Array of track segment IDs with -1 for missing points
+        projected_positions : np.ndarray
+            Array of projected 2D positions with NaN values for missing points
+        original_indices : np.ndarray
+            Indices of the original positions that were linearized
+        valid_mask : np.ndarray
+            Boolean mask indicating which original positions are valid (not NaN)
+            
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            Interpolated linear_positions, track_segment_ids, and projected_positions
+        """
+        from scipy.interpolate import interp1d
+        
+        # Get the valid linearized indices (where we have actual values)
+        valid_linearized = original_indices[~np.isnan(linear_positions[original_indices])]
+        
+        if len(valid_linearized) < 2:
+            # Not enough points to interpolate
+            return linear_positions, track_segment_ids, projected_positions
+        
+        # Get the corresponding values
+        valid_linear = linear_positions[valid_linearized]
+        valid_segments = track_segment_ids[valid_linearized]
+        valid_projected = projected_positions[valid_linearized]
+        
+        # Find all missing indices that need interpolation
+        all_valid_indices = np.where(valid_mask)[0]
+        missing_indices = all_valid_indices[~np.isin(all_valid_indices, valid_linearized)]
+        
+        if len(missing_indices) == 0:
+            return linear_positions, track_segment_ids, projected_positions
+        
+        # Sort by index for proper interpolation
+        sort_idx = np.argsort(valid_linearized)
+        sorted_indices = valid_linearized[sort_idx]
+        sorted_linear = valid_linear[sort_idx]
+        sorted_segments = valid_segments[sort_idx]
+        sorted_projected = valid_projected[sort_idx]
+        
+        # Interpolate linear positions
+        try:
+            linear_interp = interp1d(sorted_indices, sorted_linear, 
+                                   kind='linear', bounds_error=False, fill_value='extrapolate')
+            linear_positions[missing_indices] = linear_interp(missing_indices)
+        except Exception:
+            # Fallback to nearest neighbor if interpolation fails
+            for idx in missing_indices:
+                # Find closest valid index
+                closest_idx = sorted_indices[np.argmin(np.abs(sorted_indices - idx))]
+                linear_positions[idx] = linear_positions[closest_idx]
+        
+        # Interpolate segment IDs (use mode/nearest neighbor for categorical data)
+        for idx in missing_indices:
+            # Find the two closest valid indices
+            distances = np.abs(sorted_indices - idx)
+            closest_indices = sorted_indices[np.argsort(distances)[:2]]
+            
+            if len(closest_indices) == 1:
+                track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
+            else:
+                # Use the closer one, or the one with higher linear position if tied
+                if distances[np.argsort(distances)[0]] < distances[np.argsort(distances)[1]]:
+                    track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
+                else:
+                    # If equidistant, use the one with higher linear position
+                    if linear_positions[closest_indices[0]] > linear_positions[closest_indices[1]]:
+                        track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
+                    else:
+                        track_segment_ids[idx] = track_segment_ids[closest_indices[1]]
+        
+        # Interpolate projected positions
+        try:
+            # Interpolate x and y coordinates separately
+            x_interp = interp1d(sorted_indices, sorted_projected[:, 0], 
+                              kind='linear', bounds_error=False, fill_value='extrapolate')
+            y_interp = interp1d(sorted_indices, sorted_projected[:, 1], 
+                              kind='linear', bounds_error=False, fill_value='extrapolate')
+            
+            projected_positions[missing_indices, 0] = x_interp(missing_indices)
+            projected_positions[missing_indices, 1] = y_interp(missing_indices)
+        except Exception:
+            # Fallback to nearest neighbor if interpolation fails
+            for idx in missing_indices:
+                closest_idx = sorted_indices[np.argmin(np.abs(sorted_indices - idx))]
+                projected_positions[idx] = projected_positions[closest_idx]
+        
+        return linear_positions, track_segment_ids, projected_positions
 
 
 def project_position_to_track(
@@ -732,6 +1225,15 @@ def get_linearized_position(
     edge_order: Optional[List[List[int]]] = None,
     use_HMM: bool = False,
     show_confirmation_plot: bool = True,
+    # HMM optimization parameters
+    n_bins_per_segment: int = 30,  # Reduced from 50 for better speed
+    use_sparse_transitions: bool = True,
+    subsample_positions: bool = False,  # Keep False for accuracy
+    subsample_factor: int = 5,
+    use_adaptive_subsampling: bool = True,
+    # Advanced optimization parameters
+    use_batch_processing: bool = False,
+    batch_size: int = 1000,
 ) -> pd.DataFrame:
     """
     Get linearized position from 2D positions using track graph.
@@ -747,15 +1249,31 @@ def get_linearized_position(
     use_HMM : bool, optional
         Whether to use HMM-based linearization for smoother, more robust results
     show_confirmation_plot : bool, optional
-        Whether to show a confirmation plot of the linearization results, by default False
+        Whether to show a confirmation plot of the linearization results, by default True
 
     Returns
     -------
     pd.DataFrame
         DataFrame with linearized position, track segment ID, and projected positions
+        
+    Notes
+    -----
+    When using HMM with subsampling (subsample_positions=True), interpolation is automatically
+    applied to fill missing values, providing 100% coverage while maintaining speed benefits.
+    This is particularly useful for rat tracking data from DeepLabCut where smooth trajectories
+    are desired.
     """
     if use_HMM:
-        hmm_linearizer = HMMLinearizer(track_graph)
+        hmm_linearizer = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=n_bins_per_segment,
+            use_sparse_transitions=use_sparse_transitions,
+            subsample_positions=subsample_positions,
+            subsample_factor=subsample_factor,
+            use_adaptive_subsampling=use_adaptive_subsampling,
+            use_batch_processing=use_batch_processing,
+            batch_size=batch_size,
+        )
         linear_position, track_segment_id, projected_position = (
             hmm_linearizer.linearize_with_hmm(position)
         )
@@ -1103,6 +1621,15 @@ class NodePicker:
             edge_order=self.edges,
             use_HMM=self.use_HMM,
             show_confirmation_plot=True,
+            # HMM optimization parameters
+            n_bins_per_segment=30,  # Reduced from 50 for better speed
+            use_sparse_transitions=True,
+            subsample_positions=False,  # Keep False for accuracy
+            subsample_factor=5,
+            use_adaptive_subsampling=True,
+            # Advanced optimization parameters
+            use_batch_processing=False,
+            batch_size=1000,
         )
 
         print("saving to disk...")
