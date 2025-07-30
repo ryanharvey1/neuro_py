@@ -21,6 +21,12 @@ __all__ = [
     "score_inbound_outbound",
     "filter_tracker_jumps",
     "filter_tracker_jumps_in_file",
+    "HMMLinearizer",
+    "make_track_graph",
+    "get_linearized_position",
+    "project_position_to_track",
+    "plot_linearization_confirmation",
+    "TrackGraph",
 ]
 
 from .cheeseboard import plot_grid_with_circle_and_random_dots
@@ -37,7 +43,15 @@ from .linear_positions import (
     get_linear_track_lap_epochs,
     linearize_position,
 )
-from .linearization_pipeline import NodePicker
+from .linearization import (
+    HMMLinearizer,
+    NodePicker,
+    TrackGraph,
+    get_linearized_position,
+    make_track_graph,
+    plot_linearization_confirmation,
+    project_position_to_track,
+)
 from .preprocessing import filter_tracker_jumps, filter_tracker_jumps_in_file
 from .well_traversal_classification import (
     enter_exit_target,
