@@ -1,6 +1,7 @@
 import os
 import pickle
 import sys
+import warnings
 from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,16 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat, savemat
 from .linearization import get_linearized_position, make_track_graph
+
+# Deprecation warning
+warnings.warn(
+    "The linearization_pipeline module is deprecated and will be removed in a future version. "
+    "Please use the new linearization module instead, which provides improved functionality "
+    "including HMM-based linearization, better performance, and enhanced features. "
+    "Import from 'neuro_py.behavior.linearization' instead of 'neuro_py.behavior.linearization_pipeline'.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 """
 TODO: 
@@ -19,6 +30,11 @@ TODO:
 class NodePicker:
     """
     Interactive creation of track graph by looking at video frames.
+    
+    .. deprecated:: 1.0
+        This class is deprecated. Use the new implementation in 
+        :mod:`neuro_py.behavior.linearization` instead, which provides
+        improved functionality including HMM-based linearization.
 
     Parameters
     ----------
@@ -490,6 +506,11 @@ def run(
 ) -> None:
     """
     Run the linearization pipeline.
+    
+    .. deprecated:: 1.0
+        This function is deprecated. Use the new implementation in 
+        :mod:`neuro_py.behavior.linearization` instead, which provides
+        improved functionality including HMM-based linearization.
 
     Parameters
     ----------
@@ -539,6 +560,11 @@ def run(
 
 
 if __name__ == "__main__":
+    print("WARNING: This script is deprecated. Please use the new linearization module instead.")
+    print("The new module provides improved functionality including HMM-based linearization.")
+    print("Import from 'neuro_py.behavior.linearization' instead.")
+    print()
+    
     print(len(sys.argv))
     if len(sys.argv) == 2:
         run(sys.argv[1])
