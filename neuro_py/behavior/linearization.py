@@ -1358,7 +1358,7 @@ def plot_linearization_confirmation(
             ax1.scatter(
                 original_positions[:, 0],
                 original_positions[:, 1],
-                c="lightblue",
+                color="lightblue", 
                 s=1,
                 alpha=0.6,
             )
@@ -1366,14 +1366,16 @@ def plot_linearization_confirmation(
         ax1.scatter(
             original_positions[:, 0],
             original_positions[:, 1],
-            c="lightblue",
+            color="lightblue", 
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
     node_positions = track_graph.node_positions
-    ax1.scatter(node_positions[:, 0], node_positions[:, 1], c="red", s=50, zorder=5)
+    ax1.scatter(
+        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
+    ) 
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1413,7 +1415,7 @@ def plot_linearization_confirmation(
             ax2.scatter(
                 linearized_df["projected_x_position"],
                 linearized_df["projected_y_position"],
-                c="green",
+                color="green", 
                 s=1,
                 alpha=0.6,
             )
@@ -1421,13 +1423,15 @@ def plot_linearization_confirmation(
         ax2.scatter(
             linearized_df["projected_x_position"],
             linearized_df["projected_y_position"],
-            c="green",
+            color="green", 
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
-    ax2.scatter(node_positions[:, 0], node_positions[:, 1], c="red", s=50, zorder=5)
+    ax2.scatter(
+        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
+    ) 
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1462,16 +1466,22 @@ def plot_linearization_confirmation(
                     segment_positions = linearized_df.loc[
                         segment_mask, "linear_position"
                     ]
+                    # Use the color directly from the colormap, not as a list
+                    segment_color = segment_colors[segment_id]
                     ax3.scatter(
                         segment_times,
                         segment_positions,
-                        c=segment_colors[segment_id],
+                        color=segment_color, 
                         s=1,
                         alpha=0.7,
                     )
     else:
         ax3.scatter(
-            time_points, linearized_df["linear_position"], c="blue", s=1, alpha=0.7
+            time_points,
+            linearized_df["linear_position"],
+            color="blue", 
+            s=1,
+            alpha=0.7,
         )
 
     ax3.set_xlabel("Time Point")
