@@ -38,10 +38,11 @@ except ImportError:
 def _emission_probabilities_numba(observations, emission_centers, emission_covariance):
     """
     Numba-optimized emission probability calculation.
+    Returns log-probabilities for numerical stability.
     """
     n_observations = len(observations)
     n_states = len(emission_centers)
-    emission_probs = np.zeros((n_observations, n_states))
+    log_emission_probs = np.zeros((n_observations, n_states))
     
     # Pre-compute covariance matrix components for 2D case
     # For 2x2 covariance matrix: [[a, b], [b, c]]
@@ -57,8 +58,8 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
     inv_b = -b / det
     inv_c = a / det
     
-    # Normalization constant
-    norm_const = 1.0 / (2 * np.pi * np.sqrt(det))
+    # Log normalization constant
+    log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
     
     for t in prange(n_observations):
         obs = observations[t]
@@ -73,45 +74,33 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
             # = dx*inv_a*dx + dx*inv_b*dy + dy*inv_b*dx + dy*inv_c*dy
             # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
             exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
-            emission_probs[t, i] = norm_const * np.exp(exponent)
+            log_emission_probs[t, i] = log_norm_const + exponent
     
-    return emission_probs
+    return log_emission_probs
 
-# Numba-optimized Viterbi algorithm
+# Numba-optimized Viterbi algorithm using log-probabilities
 @njit(fastmath=True)
-def _viterbi_numba(emission_probs, transition_matrix, n_observations, n_states):
+def _viterbi_numba(log_emission_probs, log_transition_matrix, n_observations, n_states):
     """
-    Numba-optimized Viterbi algorithm.
+    Numba-optimized Viterbi algorithm using log-probabilities for numerical stability.
     """
-    # Initialize
-    delta = np.zeros((n_observations, n_states))
+    # Initialize log-probabilities
+    log_delta = np.zeros((n_observations, n_states))
     psi = np.zeros((n_observations, n_states), dtype=np.int32)
     
-    # Better initial probabilities based on first observation
-    # Use emission probabilities of first observation as initial state probabilities
-    # This helps when emission noise is high and all states are equally likely
-    initial_probs = np.zeros(n_states)
-    sum_probs = 0.0
+    # Initialize with log-emission probabilities of first observation
+    # Add small constant to avoid log(0)
+    log_initial_probs = np.zeros(n_states)
     for i in range(n_states):
-        initial_probs[i] = emission_probs[0, i]
-        sum_probs += emission_probs[0, i]
-    
-    # Normalize to ensure they sum to 1
-    if sum_probs > 0:
-        for i in range(n_states):
-            initial_probs[i] = initial_probs[i] / sum_probs
-    else:
-        # Fallback to uniform if all probabilities are zero
-        for i in range(n_states):
-            initial_probs[i] = 1.0 / n_states
+        log_initial_probs[i] = log_emission_probs[0, i]
     
     # Forward pass
     for t in range(n_observations):
         if t == 0:
-            delta[t] = initial_probs * emission_probs[t]
+            log_delta[t] = log_initial_probs
         else:
-            # Manual max and argmax operations for Numba compatibility
-            max_probs = np.zeros(n_states)
+            # Manual max operations for Numba compatibility
+            max_log_probs = np.zeros(n_states)
             max_indices = np.zeros(n_states, dtype=np.int32)
             
             for j in range(n_states):
@@ -119,26 +108,28 @@ def _viterbi_numba(emission_probs, transition_matrix, n_observations, n_states):
                 max_idx = 0
                 
                 for i in range(n_states):
-                    val = delta[t - 1, i] * transition_matrix[i, j]
+                    # Add log-probabilities instead of multiplying
+                    val = log_delta[t - 1, i] + log_transition_matrix[i, j]
                     if val > max_val:
                         max_val = val
                         max_idx = i
                 
-                max_probs[j] = max_val
+                max_log_probs[j] = max_val
                 max_indices[j] = max_idx
             
-            delta[t] = max_probs * emission_probs[t]
+            # Add emission log-probabilities
+            log_delta[t] = max_log_probs + log_emission_probs[t]
             psi[t] = max_indices
     
     # Backward pass
     state_sequence = np.zeros(n_observations, dtype=np.int32)
     
-    # Find the state with maximum probability at the last time step
+    # Find the state with maximum log-probability at the last time step
     max_val = -np.inf
     max_idx = 0
     for i in range(n_states):
-        if delta[-1, i] > max_val:
-            max_val = delta[-1, i]
+        if log_delta[-1, i] > max_val:
+            max_val = log_delta[-1, i]
             max_idx = i
     state_sequence[-1] = max_idx
     
@@ -153,8 +144,9 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
                                         transition_smoothness, segments_connected):
     """
     Numba-optimized sparse transition matrix building.
+    Returns log-probabilities for numerical stability.
     """
-    transition_matrix = np.zeros((n_states, n_states))
+    log_transition_matrix = np.full((n_states, n_states), -np.inf)  # Initialize with log(0) = -inf
     
     for i in prange(n_states):
         seg1 = state_to_segment[i]
@@ -171,7 +163,7 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
             # Same segment transitions (nearby positions only)
             if seg1 == seg2:
                 pos_diff = abs(i - j)
-                if pos_diff <= 2:  # Only nearby positions
+                if pos_diff <= 3:  # Allow more transitions within segments
                     valid_transition = True
             
             # Inter-segment transitions - allow transitions to connected segments
@@ -187,35 +179,56 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
                             seg2_start = k
                         seg2_end = k
                 
-                # Allow transitions to first 3 and last 3 states of connected segments
-                if (j >= seg2_start and j < seg2_start + 3) or (j <= seg2_end and j > seg2_end - 3):
+                # Allow transitions to first 5 and last 5 states of connected segments
+                if (j >= seg2_start and j < seg2_start + 5) or (j <= seg2_end and j > seg2_end - 5):
                     valid_transition = True
             
             if valid_transition:
-                # Calculate transition probability
+                # Calculate transition log-probability
                 if seg1 == seg2:
-                    # Within same segment - manual norm calculation for Numba
+                    # Within same segment
                     dx = pos1[0] - pos2[0]
                     dy = pos1[1] - pos2[1]
-                    pos_diff = (dx * dx + dy * dy) ** 0.5
-                    prob = np.exp(-pos_diff / transition_smoothness)
+                    distance = (dx * dx + dy * dy) ** 0.5
+                    log_prob = -(distance**2) / (2 * transition_smoothness**2)
                 else:
-                    # Between segments
-                    prob = 0.1  # Lower probability for segment transitions
+                    # Between segments - increase probability for better transitions
+                    dx = pos1[0] - pos2[0]
+                    dy = pos1[1] - pos2[1]
+                    distance = (dx * dx + dy * dy) ** 0.5
+                    log_prob = np.log(0.5) - (distance**2) / (2 * transition_smoothness**2)
                 
-                transition_matrix[i, j] = prob
+                log_transition_matrix[i, j] = log_prob
     
-    # Normalize rows
+    # Normalize rows in log-space
     for i in range(n_states):
-        row_sum = 0.0
+        # Find max log-probability in row for numerical stability
+        max_log_prob = -np.inf
         for j in range(n_states):
-            row_sum += transition_matrix[i, j]
+            if log_transition_matrix[i, j] > max_log_prob:
+                max_log_prob = log_transition_matrix[i, j]
         
-        if row_sum > 0:
+        # If all transitions are -inf, set uniform distribution
+        if max_log_prob == -np.inf:
+            uniform_log_prob = np.log(1.0 / n_states)
             for j in range(n_states):
-                transition_matrix[i, j] /= row_sum
+                log_transition_matrix[i, j] = uniform_log_prob
+        else:
+            # Subtract max and normalize
+            sum_exp = 0.0
+            for j in range(n_states):
+                if log_transition_matrix[i, j] > -np.inf:
+                    sum_exp += np.exp(log_transition_matrix[i, j] - max_log_prob)
+            
+            if sum_exp > 0:
+                log_sum = np.log(sum_exp)
+                for j in range(n_states):
+                    if log_transition_matrix[i, j] > -np.inf:
+                        log_transition_matrix[i, j] = log_transition_matrix[i, j] - max_log_prob - log_sum
+                    else:
+                        log_transition_matrix[i, j] = -np.inf
     
-    return transition_matrix
+    return log_transition_matrix
 
 # Numba-optimized position projection
 @njit(parallel=True, fastmath=True)
@@ -268,11 +281,12 @@ def _project_positions_parallel(positions, node_positions, edges, n_positions):
 @njit(fastmath=True)
 def _process_batch_emissions(observations_batch, emission_centers, emission_covariance, batch_size):
     """
-    Process emission probabilities in batches to reduce memory usage.
+    Process emission log-probabilities in batches to reduce memory usage.
+    Returns log-probabilities for numerical stability.
     """
     n_observations = len(observations_batch)
     n_states = len(emission_centers)
-    emission_probs = np.zeros((n_observations, n_states))
+    log_emission_probs = np.zeros((n_observations, n_states))
 
     # Pre-compute covariance matrix components for 2D case
     # For 2x2 covariance matrix: [[a, b], [b, c]]
@@ -288,8 +302,8 @@ def _process_batch_emissions(observations_batch, emission_centers, emission_cova
     inv_b = -b / det
     inv_c = a / det
     
-    # Normalization constant
-    norm_const = 1.0 / (2 * np.pi * np.sqrt(det))
+    # Log normalization constant
+    log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
 
     # Process in batches
     for batch_start in range(0, n_observations, batch_size):
@@ -306,9 +320,9 @@ def _process_batch_emissions(observations_batch, emission_centers, emission_cova
                 # For 2D: [dx, dy] @ [[inv_a, inv_b], [inv_b, inv_c]] @ [dx, dy]
                 # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
                 exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
-                emission_probs[t, i] = norm_const * np.exp(exponent)
+                log_emission_probs[t, i] = log_norm_const + exponent
 
-    return emission_probs
+    return log_emission_probs
 
 
 class TrackGraph:
@@ -442,8 +456,8 @@ class HMMLinearizer:
         self,
         track_graph: "TrackGraph",
         n_bins_per_segment: int = 50,
-        transition_smoothness: float = 0.1,
-        emission_noise: float = 5.0,
+        transition_smoothness: float = 1.0,  # Increased for better segment transitions
+        emission_noise: float = 8.0,  # Increased for better coverage of real tracking data
         max_iterations: int = 1000,
         # Optimization parameters
         use_sparse_transitions: bool = True,
@@ -563,7 +577,7 @@ class HMMLinearizer:
         return self.track_graph.node_positions[edge[-1]]
 
     def _build_transition_matrix(self):
-        """Build transition matrix between states."""
+        """Build transition matrix between states using log-probabilities for numerical stability."""
         if self.use_sparse_transitions and NUMBA_AVAILABLE:
             # Use Numba-optimized sparse transition matrix building
             # Create segments_connected matrix for Numba
@@ -580,8 +594,8 @@ class HMMLinearizer:
                 segments_connected
             )
         else:
-            # Fallback to original implementation
-            self.transition_matrix = np.zeros((self.n_states, self.n_states))
+            # Fallback to original implementation with log-probabilities
+            self.transition_matrix = np.full((self.n_states, self.n_states), -np.inf)  # Initialize with log(0) = -inf
 
             for i in range(self.n_states):
                 seg1 = self.state_to_segment[i]
@@ -596,7 +610,7 @@ class HMMLinearizer:
                     for j in range(self.n_states):
                         if self.state_to_segment[j] == seg1:
                             pos_diff = abs(i - j)
-                            if pos_diff <= 2:  # Only nearby positions
+                            if pos_diff <= 3:  # Allow more transitions within segments
                                 nearby_states.append(j)
                     
                     # Inter-segment transitions - allow transitions to connected segments
@@ -607,10 +621,10 @@ class HMMLinearizer:
                             # For each segment, allow transitions to first and last few states
                             states_in_seg2 = np.where(self.state_to_segment == seg2)[0]
                             if len(states_in_seg2) > 0:
-                                # Allow transitions to first 3 and last 3 states of connected segments
+                                # Allow transitions to first 5 and last 5 states of connected segments
                                 boundary_states = np.concatenate([
-                                    states_in_seg2[:3],  # First 3 states
-                                    states_in_seg2[-3:]  # Last 3 states
+                                    states_in_seg2[:5],  # First 5 states
+                                    states_in_seg2[-5:]  # Last 5 states
                                 ])
                                 if j in boundary_states:
                                     nearby_states.append(j)
@@ -631,35 +645,48 @@ class HMMLinearizer:
                             seg1, pos1, seg2, pos2
                         )
 
-            # Normalize rows
-            row_sums = self.transition_matrix.sum(axis=1)
-            row_sums[row_sums == 0] = 1  # Avoid division by zero
-            self.transition_matrix /= row_sums[:, np.newaxis]
+            # Normalize rows in log-space
+            for i in range(self.n_states):
+                # Find max log-probability in row for numerical stability
+                max_log_prob = np.max(self.transition_matrix[i])
+                
+                # If all transitions are -inf, set uniform distribution
+                if max_log_prob == -np.inf:
+                    uniform_log_prob = np.log(1.0 / self.n_states)
+                    self.transition_matrix[i, :] = uniform_log_prob
+                else:
+                    # Subtract max and normalize
+                    sum_exp = np.sum(np.exp(self.transition_matrix[i] - max_log_prob))
+                    if sum_exp > 0:
+                        log_sum = np.log(sum_exp)
+                        self.transition_matrix[i, :] = self.transition_matrix[i, :] - max_log_prob - log_sum
+                    else:
+                        # If sum is zero, set uniform distribution
+                        uniform_log_prob = np.log(1.0 / self.n_states)
+                        self.transition_matrix[i, :] = uniform_log_prob
 
     def _calculate_transition_probability(
         self, seg1: int, pos1: np.ndarray, seg2: int, pos2: np.ndarray
     ) -> float:
-        """Calculate transition probability between two states."""
+        """Calculate transition log-probability between two states."""
         # Distance-based probability
         distance = np.linalg.norm(pos2 - pos1)
 
         # Same segment: high probability for nearby positions
         if seg1 == seg2:
             # Gaussian kernel for smooth transitions
-            prob = np.exp(-(distance**2) / (2 * self.transition_smoothness**2))
+            log_prob = -(distance**2) / (2 * self.transition_smoothness**2)
         else:
-            # Different segments: lower probability, but allow transitions
+            # Different segments: allow more transitions for real data
             # Check if segments are connected
             if self._segments_connected(seg1, seg2):
-                prob = 0.1 * np.exp(
-                    -(distance**2) / (2 * self.transition_smoothness**2)
-                )
+                # Increase probability for connected segments - much higher for real data
+                log_prob = np.log(0.8) - (distance**2) / (2 * self.transition_smoothness**2)
             else:
-                prob = 0.01 * np.exp(
-                    -(distance**2) / (2 * self.transition_smoothness**2)
-                )
+                # Still allow some transitions to unconnected segments
+                log_prob = np.log(0.1) - (distance**2) / (2 * self.transition_smoothness**2)
 
-        return prob
+        return log_prob
 
     def _segments_connected(self, seg1: int, seg2: int) -> bool:
         """Check if two segments are connected in the track graph."""
@@ -677,13 +704,85 @@ class HMMLinearizer:
         nodes2 = set(edge2)
         return len(nodes1.intersection(nodes2)) > 0
 
+    def _auto_tune_parameters(self, positions: np.ndarray) -> dict:
+        """
+        Automatically tune HMM parameters based on data characteristics.
+        Optimized for real rat tracking data from DeepLabCut.
+        
+        Parameters
+        ----------
+        positions : np.ndarray
+            Position data to analyze
+            
+        Returns
+        -------
+        dict
+            Optimized parameters
+        """
+        # Analyze data characteristics
+        data_range = np.ptp(positions, axis=0)  # Peak-to-peak range
+        data_std = np.std(positions, axis=0)    # Standard deviation
+        
+        # Estimate appropriate emission noise based on data spread
+        # For DeepLabCut data, we need higher emission noise to account for tracking errors
+        avg_std = np.mean(data_std)
+        if avg_std < 1.0:
+            emission_noise = 3.0  # Very precise tracking
+        elif avg_std < 3.0:
+            emission_noise = 5.0  # Good tracking
+        elif avg_std < 8.0:
+            emission_noise = 8.0  # Moderate tracking
+        else:
+            emission_noise = 12.0  # Noisy tracking
+        
+        # Estimate transition smoothness based on track complexity
+        track_length = 0
+        for edge in self.track_graph.edges:
+            if len(edge) >= 2:
+                for i in range(len(edge) - 1):
+                    node1, node2 = edge[i], edge[i + 1]
+                    p1 = self.track_graph.node_positions[node1]
+                    p2 = self.track_graph.node_positions[node2]
+                    track_length += np.linalg.norm(p2 - p1)
+        
+        # More aggressive transition smoothness for better segment transitions
+        if track_length < 10:
+            transition_smoothness = 0.5
+        elif track_length < 30:
+            transition_smoothness = 0.8
+        elif track_length < 80:
+            transition_smoothness = 1.2
+        else:
+            transition_smoothness = 1.5
+        
+        # Adjust number of bins based on track complexity and data size
+        n_positions = len(positions)
+        if len(self.track_graph.edges) <= 2:
+            n_bins_per_segment = min(40, max(20, n_positions // 100))
+        elif len(self.track_graph.edges) <= 4:
+            n_bins_per_segment = min(60, max(30, n_positions // 80))
+        else:
+            n_bins_per_segment = min(80, max(40, n_positions // 60))
+        
+        return {
+            'n_bins_per_segment': n_bins_per_segment,
+            'emission_noise': emission_noise,
+            'transition_smoothness': transition_smoothness,
+            'use_sparse_transitions': True
+        }
+
     def _build_emission_model(self):
         """Build the emission probability model."""
         # Use the state positions as emission centers
         self.emission_centers = self.state_to_position
 
         # Create covariance matrix for emission noise
+        # Use larger noise for better coverage of real tracking data
+        # This is more similar to the original LorenFrankLab approach
         self.emission_covariance = np.eye(2) * self.emission_noise**2
+        
+        # For real tracking data, we need to ensure positions can be assigned to states
+        # even if they're not exactly on the track due to tracking noise
 
     def _emission_probability(self, observation: np.ndarray, state: int) -> float:
         """Calculate emission probability P(observation | state)."""
@@ -695,9 +794,10 @@ class HMMLinearizer:
 
     def _emission_probabilities_vectorized(self, observations: np.ndarray) -> np.ndarray:
         """
-        Calculate emission probabilities for all observations and states at once.
+        Calculate emission log-probabilities for all observations and states at once.
         Much faster than calling _emission_probability repeatedly.
         Uses Numba JIT compilation if available.
+        Returns log-probabilities for numerical stability.
         """
         if NUMBA_AVAILABLE:
             if self.use_batch_processing and len(observations) > 100:  # Use batch processing for any significant number of observations
@@ -705,14 +805,14 @@ class HMMLinearizer:
             else:
                 return _emission_probabilities_numba(observations, self.emission_centers, self.emission_covariance)
         else:
-            # Fallback to original implementation
+            # Fallback to original implementation with log-probabilities
             n_observations = len(observations)
-            emission_probs = np.zeros((n_observations, self.n_states))
+            log_emission_probs = np.zeros((n_observations, self.n_states))
             
             # Pre-compute constants for Gaussian calculation
             det_cov = np.linalg.det(self.emission_covariance)
             inv_cov = np.linalg.inv(self.emission_covariance)
-            norm_const = 1.0 / (2 * np.pi * np.sqrt(det_cov))
+            log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det_cov)))
             
             for t in range(n_observations):
                 obs = observations[t]
@@ -721,9 +821,9 @@ class HMMLinearizer:
                     diff = obs - center
                     # Manual Gaussian calculation (faster than multivariate_normal)
                     exponent = -0.5 * diff.T @ inv_cov @ diff
-                    emission_probs[t, i] = norm_const * np.exp(exponent)
+                    log_emission_probs[t, i] = log_norm_const + exponent
             
-            return emission_probs
+            return log_emission_probs
 
     def linearize_with_hmm(
         self, positions: np.ndarray
@@ -801,6 +901,7 @@ class HMMLinearizer:
     def _viterbi(self, observations: np.ndarray) -> np.ndarray:
         """
         Run Viterbi algorithm to find most likely state sequence.
+        Uses log-probabilities for numerical stability.
         Vectorized implementation for better performance.
         Uses Numba JIT compilation if available.
 
@@ -816,45 +917,41 @@ class HMMLinearizer:
         """
         n_observations = len(observations)
 
-        # Pre-compute emission probabilities for all observations and states
-        emission_probs = self._emission_probabilities_vectorized(observations)
+        # Pre-compute log emission probabilities for all observations and states
+        log_emission_probs = self._emission_probabilities_vectorized(observations)
 
         if NUMBA_AVAILABLE:
-            return _viterbi_numba(emission_probs, self.transition_matrix, n_observations, self.n_states)
+            return _viterbi_numba(log_emission_probs, self.transition_matrix, n_observations, self.n_states)
         else:
-            # Fallback to original implementation
+            # Fallback to original implementation with log-probabilities
             # Initialize
-            delta = np.zeros((n_observations, self.n_states))
+            log_delta = np.zeros((n_observations, self.n_states))
             psi = np.zeros((n_observations, self.n_states), dtype=int)
 
-            # Better initial probabilities based on first observation
-            # Use emission probabilities of first observation as initial state probabilities
-            # This helps when emission noise is high and all states are equally likely
-            initial_probs = emission_probs[0]
-            # Normalize to ensure they sum to 1
-            initial_probs = initial_probs / np.sum(initial_probs)
+            # Initialize with log-emission probabilities of first observation
+            log_initial_probs = log_emission_probs[0]
 
             # Forward pass (vectorized)
             for t in range(n_observations):
                 if t == 0:
-                    # Initial probabilities
-                    delta[t] = initial_probs * emission_probs[t]
+                    # Initial log-probabilities
+                    log_delta[t] = log_initial_probs
                 else:
                     # Vectorized recursion: compute all state transitions at once
-                    # delta[t-1] * transition_matrix gives us all possible transitions
-                    transition_probs = delta[t - 1].reshape(-1, 1) * self.transition_matrix
+                    # log_delta[t-1] + log_transition_matrix gives us all possible log-transitions
+                    log_transition_probs = log_delta[t - 1].reshape(-1, 1) + self.transition_matrix
                     
-                    # Find maximum probability and corresponding previous state for each current state
-                    max_indices = np.argmax(transition_probs, axis=0)
-                    max_probs = np.max(transition_probs, axis=0)
+                    # Find maximum log-probability and corresponding previous state for each current state
+                    max_indices = np.argmax(log_transition_probs, axis=0)
+                    max_log_probs = np.max(log_transition_probs, axis=0)
                     
-                    # Update delta and psi
-                    delta[t] = max_probs * emission_probs[t]
+                    # Update log_delta and psi
+                    log_delta[t] = max_log_probs + log_emission_probs[t]
                     psi[t] = max_indices
 
             # Backward pass
             state_sequence = np.zeros(n_observations, dtype=int)
-            state_sequence[-1] = np.argmax(delta[-1])
+            state_sequence[-1] = np.argmax(log_delta[-1])
 
             for t in range(n_observations - 2, -1, -1):
                 state_sequence[t] = psi[t + 1, state_sequence[t + 1]]
@@ -1270,8 +1367,8 @@ def get_linearized_position(
     edge_order: Optional[List[List[int]]] = None,
     use_HMM: bool = False,
     show_confirmation_plot: bool = True,
-    # HMM optimization parameters - Updated defaults based on diagnostic results
-    n_bins_per_segment: int = 50,  # Increased from 30 for better accuracy
+    # HMM optimization parameters - Updated defaults for real data
+    n_bins_per_segment: int = 50,  # Good balance of accuracy and speed
     use_sparse_transitions: bool = True,  # Essential for multi-segment classification
     subsample_positions: bool = False,  # Keep False for accuracy
     subsample_factor: int = 5,
@@ -1279,6 +1376,8 @@ def get_linearized_position(
     # Advanced optimization parameters
     use_batch_processing: bool = False,
     batch_size: int = 1000,
+    # Auto-tuning parameter
+    auto_tune: bool = True,  # Automatically tune parameters based on data for better results
 ) -> pd.DataFrame:
     """
     Get linearized position from 2D positions using track graph.
@@ -1309,16 +1408,39 @@ def get_linearized_position(
     are desired.
     """
     if use_HMM:
-        hmm_linearizer = HMMLinearizer(
-            track_graph,
-            n_bins_per_segment=n_bins_per_segment,
-            use_sparse_transitions=use_sparse_transitions,
-            subsample_positions=subsample_positions,
-            subsample_factor=subsample_factor,
-            use_adaptive_subsampling=use_adaptive_subsampling,
-            use_batch_processing=use_batch_processing,
-            batch_size=batch_size,
-        )
+        # Auto-tune parameters if requested
+        if auto_tune:
+            # Create a temporary HMM to get auto-tuned parameters
+            temp_hmm = HMMLinearizer(track_graph)
+            tuned_params = temp_hmm._auto_tune_parameters(position)
+            print(f"Auto-tuned HMM parameters: {tuned_params}")
+            
+            # Use tuned parameters
+            hmm_linearizer = HMMLinearizer(
+                track_graph,
+                n_bins_per_segment=tuned_params['n_bins_per_segment'],
+                emission_noise=tuned_params['emission_noise'],
+                transition_smoothness=tuned_params['transition_smoothness'],
+                use_sparse_transitions=tuned_params['use_sparse_transitions'],
+                subsample_positions=subsample_positions,
+                subsample_factor=subsample_factor,
+                use_adaptive_subsampling=use_adaptive_subsampling,
+                use_batch_processing=use_batch_processing,
+                batch_size=batch_size,
+            )
+        else:
+            # Use provided parameters
+            hmm_linearizer = HMMLinearizer(
+                track_graph,
+                n_bins_per_segment=n_bins_per_segment,
+                use_sparse_transitions=use_sparse_transitions,
+                subsample_positions=subsample_positions,
+                subsample_factor=subsample_factor,
+                use_adaptive_subsampling=use_adaptive_subsampling,
+                use_batch_processing=use_batch_processing,
+                batch_size=batch_size,
+            )
+        
         linear_position, track_segment_id, projected_position = (
             hmm_linearizer.linearize_with_hmm(position)
         )
@@ -1485,7 +1607,7 @@ class NodePicker:
         self.basepath = basepath
         self.epoch = epoch
         self.interval = interval
-        self.use_HMM = False
+        self.use_HMM = True
 
         if self.epoch is not None:
             self.epoch = int(self.epoch)
