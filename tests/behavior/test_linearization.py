@@ -588,5 +588,53 @@ class TestNodePicker:
                 assert picker.edges == [[0, 1]]
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+def test_plot_linearization_confirmation_pytest():
+    """Test the linearization confirmation plot function (pytest style)."""
+    from neuro_py.behavior.linearization import (
+        get_linearized_position,
+        make_track_graph,
+        plot_linearization_confirmation,
+    )
+
+    node_positions = np.array([[0, 0], [10, 0], [10, 10], [0, 10]])
+    edges = [[0, 1], [1, 2], [2, 3], [3, 0]]
+    track_graph = make_track_graph(node_positions, edges)
+    positions = np.array([[5, 5], [8, 2], [12, 8], [2, 8]])
+    result_df = get_linearized_position(positions, track_graph, use_HMM=False)
+    plot_linearization_confirmation(positions, result_df, track_graph, show_plot=False)
+    assert True  # If we get here, the function worked without errors
+
+
+def test_get_linearized_position_with_confirmation_plot_pytest():
+    """Test linearization with confirmation plot enabled (pytest style)."""
+    from neuro_py.behavior.linearization import (
+        get_linearized_position,
+        make_track_graph,
+    )
+
+    node_positions = np.array([[0, 0], [10, 0], [10, 10], [0, 10]])
+    edges = [[0, 1], [1, 2], [2, 3], [3, 0]]
+    track_graph = make_track_graph(node_positions, edges)
+    positions = np.array([[5, 5], [8, 2], [12, 8], [2, 8]])
+    import matplotlib.pyplot as plt
+
+    original_show = plt.show
+
+    def mock_show(*args, **kwargs):
+        pass
+
+    plt.show = mock_show
+    try:
+        result_df = get_linearized_position(
+            positions, track_graph, use_HMM=False, show_confirmation_plot=True
+        )
+        assert len(result_df) == 4
+        assert "linear_position" in result_df.columns
+        assert "track_segment_id" in result_df.columns
+        assert "projected_x_position" in result_df.columns
+        assert "projected_y_position" in result_df.columns
+    finally:
+        plt.show = original_show
+
+
+# === END: Additional tests merged from neuro_py/tests/behavior/test_linearization.py ===
