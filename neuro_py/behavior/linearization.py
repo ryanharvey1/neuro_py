@@ -15,23 +15,28 @@ from scipy.stats import multivariate_normal
 
 # Add Numba for JIT compilation
 try:
-    from numba import njit, prange, jit
+    from numba import jit, njit, prange
+
     NUMBA_AVAILABLE = True
 except ImportError:
     NUMBA_AVAILABLE = False
+
     # Create dummy decorators if Numba is not available
     def njit(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator
-    
+
     def jit(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator
-    
+
     def prange(*args):
         return range(*args)
+
 
 # Numba-optimized emission probability calculation
 @njit(parallel=True, fastmath=True)
@@ -43,31 +48,31 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
     n_observations = len(observations)
     n_states = len(emission_centers)
     log_emission_probs = np.zeros((n_observations, n_states))
-    
+
     # Pre-compute covariance matrix components for 2D case
     # For 2x2 covariance matrix: [[a, b], [b, c]]
     a = emission_covariance[0, 0]
     b = emission_covariance[0, 1]
     c = emission_covariance[1, 1]
-    
+
     # Determinant: det = a*c - b*b
     det = a * c - b * b
-    
+
     # Inverse matrix: [[c, -b], [-b, a]] / det
     inv_a = c / det
     inv_b = -b / det
     inv_c = a / det
-    
+
     # Log normalization constant
     log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
-    
+
     for t in prange(n_observations):
         obs = observations[t]
         for i in range(n_states):
             center = emission_centers[i]
             dx = obs[0] - center[0]
             dy = obs[1] - center[1]
-            
+
             # Full Gaussian calculation: diff.T @ inv_cov @ diff
             # For 2D: [dx, dy] @ [[inv_a, inv_b], [inv_b, inv_c]] @ [dx, dy]
             # = dx*(inv_a*dx + inv_b*dy) + dy*(inv_b*dx + inv_c*dy)
@@ -75,8 +80,9 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
             # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
             exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
             log_emission_probs[t, i] = log_norm_const + exponent
-    
+
     return log_emission_probs
+
 
 # Numba-optimized Viterbi algorithm using log-probabilities
 @njit(fastmath=True)
@@ -87,13 +93,13 @@ def _viterbi_numba(log_emission_probs, log_transition_matrix, n_observations, n_
     # Initialize log-probabilities
     log_delta = np.zeros((n_observations, n_states))
     psi = np.zeros((n_observations, n_states), dtype=np.int32)
-    
+
     # Initialize with log-emission probabilities of first observation
     # Add small constant to avoid log(0)
     log_initial_probs = np.zeros(n_states)
     for i in range(n_states):
         log_initial_probs[i] = log_emission_probs[0, i]
-    
+
     # Forward pass
     for t in range(n_observations):
         if t == 0:
@@ -102,28 +108,28 @@ def _viterbi_numba(log_emission_probs, log_transition_matrix, n_observations, n_
             # Manual max operations for Numba compatibility
             max_log_probs = np.zeros(n_states)
             max_indices = np.zeros(n_states, dtype=np.int32)
-            
+
             for j in range(n_states):
                 max_val = -np.inf
                 max_idx = 0
-                
+
                 for i in range(n_states):
                     # Add log-probabilities instead of multiplying
                     val = log_delta[t - 1, i] + log_transition_matrix[i, j]
                     if val > max_val:
                         max_val = val
                         max_idx = i
-                
+
                 max_log_probs[j] = max_val
                 max_indices[j] = max_idx
-            
+
             # Add emission log-probabilities
             log_delta[t] = max_log_probs + log_emission_probs[t]
             psi[t] = max_indices
-    
+
     # Backward pass
     state_sequence = np.zeros(n_observations, dtype=np.int32)
-    
+
     # Find the state with maximum log-probability at the last time step
     max_val = -np.inf
     max_idx = 0
@@ -132,40 +138,48 @@ def _viterbi_numba(log_emission_probs, log_transition_matrix, n_observations, n_
             max_val = log_delta[-1, i]
             max_idx = i
     state_sequence[-1] = max_idx
-    
+
     for t in range(n_observations - 2, -1, -1):
         state_sequence[t] = psi[t + 1, state_sequence[t + 1]]
-    
+
     return state_sequence
+
 
 # Numba-optimized transition matrix building for sparse transitions
 @njit(parallel=True)
-def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n_states, 
-                                        transition_smoothness, segments_connected):
+def _build_sparse_transition_matrix_numba(
+    state_to_segment,
+    state_to_position,
+    n_states,
+    transition_smoothness,
+    segments_connected,
+):
     """
     Numba-optimized sparse transition matrix building.
     Returns log-probabilities for numerical stability.
     """
-    log_transition_matrix = np.full((n_states, n_states), -np.inf)  # Initialize with log(0) = -inf
-    
+    log_transition_matrix = np.full(
+        (n_states, n_states), -np.inf
+    )  # Initialize with log(0) = -inf
+
     for i in prange(n_states):
         seg1 = state_to_segment[i]
         pos1 = state_to_position[i]
-        
+
         # Compute transitions for all states (Numba doesn't handle dynamic lists well)
         for j in range(n_states):
             seg2 = state_to_segment[j]
             pos2 = state_to_position[j]
-            
+
             # Check if this is a valid transition for sparse mode
             valid_transition = False
-            
+
             # Same segment transitions (nearby positions only)
             if seg1 == seg2:
                 pos_diff = abs(i - j)
                 if pos_diff <= 3:  # Allow more transitions within segments
                     valid_transition = True
-            
+
             # Inter-segment transitions - allow transitions to connected segments
             elif segments_connected[seg1, seg2]:
                 # Allow transitions to boundary states of connected segments
@@ -178,11 +192,13 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
                         if seg2_start == 0:
                             seg2_start = k
                         seg2_end = k
-                
+
                 # Allow transitions to first 5 and last 5 states of connected segments
-                if (j >= seg2_start and j < seg2_start + 5) or (j <= seg2_end and j > seg2_end - 5):
+                if (j >= seg2_start and j < seg2_start + 5) or (
+                    j <= seg2_end and j > seg2_end - 5
+                ):
                     valid_transition = True
-            
+
             if valid_transition:
                 # Calculate transition log-probability
                 if seg1 == seg2:
@@ -196,10 +212,12 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
                     dx = pos1[0] - pos2[0]
                     dy = pos1[1] - pos2[1]
                     distance = (dx * dx + dy * dy) ** 0.5
-                    log_prob = np.log(0.5) - (distance**2) / (2 * transition_smoothness**2)
-                
+                    log_prob = np.log(0.5) - (distance**2) / (
+                        2 * transition_smoothness**2
+                    )
+
                 log_transition_matrix[i, j] = log_prob
-    
+
     # Normalize rows in log-space
     for i in range(n_states):
         # Find max log-probability in row for numerical stability
@@ -207,7 +225,7 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
         for j in range(n_states):
             if log_transition_matrix[i, j] > max_log_prob:
                 max_log_prob = log_transition_matrix[i, j]
-        
+
         # If all transitions are -inf, set uniform distribution
         if max_log_prob == -np.inf:
             uniform_log_prob = np.log(1.0 / n_states)
@@ -219,16 +237,19 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
             for j in range(n_states):
                 if log_transition_matrix[i, j] > -np.inf:
                     sum_exp += np.exp(log_transition_matrix[i, j] - max_log_prob)
-            
+
             if sum_exp > 0:
                 log_sum = np.log(sum_exp)
                 for j in range(n_states):
                     if log_transition_matrix[i, j] > -np.inf:
-                        log_transition_matrix[i, j] = log_transition_matrix[i, j] - max_log_prob - log_sum
+                        log_transition_matrix[i, j] = (
+                            log_transition_matrix[i, j] - max_log_prob - log_sum
+                        )
                     else:
                         log_transition_matrix[i, j] = -np.inf
-    
+
     return log_transition_matrix
+
 
 # Numba-optimized position projection
 @njit(parallel=True, fastmath=True)
@@ -239,47 +260,52 @@ def _project_positions_parallel(positions, node_positions, edges, n_positions):
     linear_positions = np.full(n_positions, np.nan)
     track_segment_ids = np.full(n_positions, -1, dtype=np.int32)
     projected_positions = np.full((n_positions, 2), np.nan)
-    
+
     for i in prange(n_positions):
         pos = positions[i]
-        
+
         # Find closest edge
         min_distance = np.inf
         best_segment = -1
         best_projection = np.array([np.nan, np.nan])
-        
+
         for edge_idx, edge in enumerate(edges):
             if len(edge) >= 2:
                 for j in range(len(edge) - 1):
                     node1, node2 = edge[j], edge[j + 1]
                     p1 = node_positions[node1]
                     p2 = node_positions[node2]
-                    
+
                     # Project position onto this line segment
                     v = p2 - p1
                     u = pos - p1
                     t = np.dot(u, v) / np.dot(v, v)
                     t = np.clip(t, 0, 1)
-                    
+
                     projected = p1 + t * v
                     distance = np.linalg.norm(pos - projected)
-                    
+
                     if distance < min_distance:
                         min_distance = distance
                         best_segment = edge_idx
                         best_projection = projected
-        
+
         if best_segment >= 0:
             track_segment_ids[i] = best_segment
             projected_positions[i] = best_projection
             # Calculate linear position (simplified)
-            linear_positions[i] = best_segment + best_projection[0] / 100.0  # Rough approximation
-    
+            linear_positions[i] = (
+                best_segment + best_projection[0] / 100.0
+            )  # Rough approximation
+
     return linear_positions, track_segment_ids, projected_positions
+
 
 # Memory-optimized batch processing
 @njit(fastmath=True)
-def _process_batch_emissions(observations_batch, emission_centers, emission_covariance, batch_size):
+def _process_batch_emissions(
+    observations_batch, emission_centers, emission_covariance, batch_size
+):
     """
     Process emission log-probabilities in batches to reduce memory usage.
     Returns log-probabilities for numerical stability.
@@ -293,15 +319,15 @@ def _process_batch_emissions(observations_batch, emission_centers, emission_cova
     a = emission_covariance[0, 0]
     b = emission_covariance[0, 1]
     c = emission_covariance[1, 1]
-    
+
     # Determinant: det = a*c - b*b
     det = a * c - b * b
-    
+
     # Inverse matrix: [[c, -b], [-b, a]] / det
     inv_a = c / det
     inv_b = -b / det
     inv_c = a / det
-    
+
     # Log normalization constant
     log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
 
@@ -319,7 +345,9 @@ def _process_batch_emissions(observations_batch, emission_centers, emission_cova
                 # Full Gaussian calculation: diff.T @ inv_cov @ diff
                 # For 2D: [dx, dy] @ [[inv_a, inv_b], [inv_b, inv_c]] @ [dx, dy]
                 # = inv_a*dx*dx + 2*inv_b*dx*dy + inv_c*dy*dy
-                exponent = -0.5 * (inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy)
+                exponent = -0.5 * (
+                    inv_a * dx * dx + 2 * inv_b * dx * dy + inv_c * dy * dy
+                )
                 log_emission_probs[t, i] = log_norm_const + exponent
 
     return log_emission_probs
@@ -410,7 +438,7 @@ class TrackGraph:
 class HMMLinearizer:
     """
     Hidden Markov Model for track linearization.
-    
+
     This class implements an HMM that infers the most likely position on a track
     given noisy 2D position measurements. The hidden states represent positions
     along track segments, and observations are 2D coordinates.
@@ -581,21 +609,25 @@ class HMMLinearizer:
         if self.use_sparse_transitions and NUMBA_AVAILABLE:
             # Use Numba-optimized sparse transition matrix building
             # Create segments_connected matrix for Numba
-            segments_connected = np.zeros((self.n_segments, self.n_segments), dtype=bool)
+            segments_connected = np.zeros(
+                (self.n_segments, self.n_segments), dtype=bool
+            )
             for i in range(self.n_segments):
                 for j in range(self.n_segments):
                     segments_connected[i, j] = self._segments_connected(i, j)
-            
+
             self.transition_matrix = _build_sparse_transition_matrix_numba(
-                self.state_to_segment, 
-                self.state_to_position, 
+                self.state_to_segment,
+                self.state_to_position,
                 self.n_states,
                 self.transition_smoothness,
-                segments_connected
+                segments_connected,
             )
         else:
             # Fallback to original implementation with log-probabilities
-            self.transition_matrix = np.full((self.n_states, self.n_states), -np.inf)  # Initialize with log(0) = -inf
+            self.transition_matrix = np.full(
+                (self.n_states, self.n_states), -np.inf
+            )  # Initialize with log(0) = -inf
 
             for i in range(self.n_states):
                 seg1 = self.state_to_segment[i]
@@ -605,14 +637,14 @@ class HMMLinearizer:
                 if self.use_sparse_transitions:
                     # Only compute transitions to nearby states
                     nearby_states = []
-                    
+
                     # Same segment transitions
                     for j in range(self.n_states):
                         if self.state_to_segment[j] == seg1:
                             pos_diff = abs(i - j)
                             if pos_diff <= 3:  # Allow more transitions within segments
                                 nearby_states.append(j)
-                    
+
                     # Inter-segment transitions - allow transitions to connected segments
                     for j in range(self.n_states):
                         seg2 = self.state_to_segment[j]
@@ -622,34 +654,40 @@ class HMMLinearizer:
                             states_in_seg2 = np.where(self.state_to_segment == seg2)[0]
                             if len(states_in_seg2) > 0:
                                 # Allow transitions to first 5 and last 5 states of connected segments
-                                boundary_states = np.concatenate([
-                                    states_in_seg2[:5],  # First 5 states
-                                    states_in_seg2[-5:]  # Last 5 states
-                                ])
+                                boundary_states = np.concatenate(
+                                    [
+                                        states_in_seg2[:5],  # First 5 states
+                                        states_in_seg2[-5:],  # Last 5 states
+                                    ]
+                                )
                                 if j in boundary_states:
                                     nearby_states.append(j)
-                    
+
                     # Compute transitions only for nearby states
                     for j in nearby_states:
                         seg2 = self.state_to_segment[j]
                         pos2 = self.state_to_position[j]
-                        self.transition_matrix[i, j] = self._calculate_transition_probability(
-                            seg1, pos1, seg2, pos2
+                        self.transition_matrix[i, j] = (
+                            self._calculate_transition_probability(
+                                seg1, pos1, seg2, pos2
+                            )
                         )
                 else:
                     # Full transition matrix (slower but more accurate)
                     for j in range(self.n_states):
                         seg2 = self.state_to_segment[j]
                         pos2 = self.state_to_position[j]
-                        self.transition_matrix[i, j] = self._calculate_transition_probability(
-                            seg1, pos1, seg2, pos2
+                        self.transition_matrix[i, j] = (
+                            self._calculate_transition_probability(
+                                seg1, pos1, seg2, pos2
+                            )
                         )
 
             # Normalize rows in log-space
             for i in range(self.n_states):
                 # Find max log-probability in row for numerical stability
                 max_log_prob = np.max(self.transition_matrix[i])
-                
+
                 # If all transitions are -inf, set uniform distribution
                 if max_log_prob == -np.inf:
                     uniform_log_prob = np.log(1.0 / self.n_states)
@@ -659,7 +697,9 @@ class HMMLinearizer:
                     sum_exp = np.sum(np.exp(self.transition_matrix[i] - max_log_prob))
                     if sum_exp > 0:
                         log_sum = np.log(sum_exp)
-                        self.transition_matrix[i, :] = self.transition_matrix[i, :] - max_log_prob - log_sum
+                        self.transition_matrix[i, :] = (
+                            self.transition_matrix[i, :] - max_log_prob - log_sum
+                        )
                     else:
                         # If sum is zero, set uniform distribution
                         uniform_log_prob = np.log(1.0 / self.n_states)
@@ -681,10 +721,14 @@ class HMMLinearizer:
             # Check if segments are connected
             if self._segments_connected(seg1, seg2):
                 # Increase probability for connected segments - much higher for real data
-                log_prob = np.log(0.8) - (distance**2) / (2 * self.transition_smoothness**2)
+                log_prob = np.log(0.8) - (distance**2) / (
+                    2 * self.transition_smoothness**2
+                )
             else:
                 # Still allow some transitions to unconnected segments
-                log_prob = np.log(0.1) - (distance**2) / (2 * self.transition_smoothness**2)
+                log_prob = np.log(0.1) - (distance**2) / (
+                    2 * self.transition_smoothness**2
+                )
 
         return log_prob
 
@@ -708,12 +752,12 @@ class HMMLinearizer:
         """
         Automatically tune HMM parameters based on data characteristics.
         Optimized for real rat tracking data from DeepLabCut.
-        
+
         Parameters
         ----------
         positions : np.ndarray
             Position data to analyze
-            
+
         Returns
         -------
         dict
@@ -721,8 +765,8 @@ class HMMLinearizer:
         """
         # Analyze data characteristics
         data_range = np.ptp(positions, axis=0)  # Peak-to-peak range
-        data_std = np.std(positions, axis=0)    # Standard deviation
-        
+        data_std = np.std(positions, axis=0)  # Standard deviation
+
         # Estimate appropriate emission noise based on data spread
         # For DeepLabCut data, we need higher emission noise to account for tracking errors
         avg_std = np.mean(data_std)
@@ -734,7 +778,7 @@ class HMMLinearizer:
             emission_noise = 8.0  # Moderate tracking
         else:
             emission_noise = 12.0  # Noisy tracking
-        
+
         # Estimate transition smoothness based on track complexity
         track_length = 0
         for edge in self.track_graph.edges:
@@ -744,7 +788,7 @@ class HMMLinearizer:
                     p1 = self.track_graph.node_positions[node1]
                     p2 = self.track_graph.node_positions[node2]
                     track_length += np.linalg.norm(p2 - p1)
-        
+
         # More aggressive transition smoothness for better segment transitions
         if track_length < 10:
             transition_smoothness = 0.5
@@ -754,7 +798,7 @@ class HMMLinearizer:
             transition_smoothness = 1.2
         else:
             transition_smoothness = 1.5
-        
+
         # Adjust number of bins based on track complexity and data size
         n_positions = len(positions)
         if len(self.track_graph.edges) <= 2:
@@ -763,12 +807,12 @@ class HMMLinearizer:
             n_bins_per_segment = min(60, max(30, n_positions // 80))
         else:
             n_bins_per_segment = min(80, max(40, n_positions // 60))
-        
+
         return {
-            'n_bins_per_segment': n_bins_per_segment,
-            'emission_noise': emission_noise,
-            'transition_smoothness': transition_smoothness,
-            'use_sparse_transitions': True
+            "n_bins_per_segment": n_bins_per_segment,
+            "emission_noise": emission_noise,
+            "transition_smoothness": transition_smoothness,
+            "use_sparse_transitions": True,
         }
 
     def _build_emission_model(self):
@@ -780,7 +824,7 @@ class HMMLinearizer:
         # Use larger noise for better coverage of real tracking data
         # This is more similar to the original LorenFrankLab approach
         self.emission_covariance = np.eye(2) * self.emission_noise**2
-        
+
         # For real tracking data, we need to ensure positions can be assigned to states
         # even if they're not exactly on the track due to tracking noise
 
@@ -792,7 +836,9 @@ class HMMLinearizer:
         rv = multivariate_normal(center, self.emission_covariance)
         return rv.pdf(observation)
 
-    def _emission_probabilities_vectorized(self, observations: np.ndarray) -> np.ndarray:
+    def _emission_probabilities_vectorized(
+        self, observations: np.ndarray
+    ) -> np.ndarray:
         """
         Calculate emission log-probabilities for all observations and states at once.
         Much faster than calling _emission_probability repeatedly.
@@ -800,20 +846,29 @@ class HMMLinearizer:
         Returns log-probabilities for numerical stability.
         """
         if NUMBA_AVAILABLE:
-            if self.use_batch_processing and len(observations) > 100:  # Use batch processing for any significant number of observations
-                return _process_batch_emissions(observations, self.emission_centers, self.emission_covariance, self.batch_size)
+            if (
+                self.use_batch_processing and len(observations) > 100
+            ):  # Use batch processing for any significant number of observations
+                return _process_batch_emissions(
+                    observations,
+                    self.emission_centers,
+                    self.emission_covariance,
+                    self.batch_size,
+                )
             else:
-                return _emission_probabilities_numba(observations, self.emission_centers, self.emission_covariance)
+                return _emission_probabilities_numba(
+                    observations, self.emission_centers, self.emission_covariance
+                )
         else:
             # Fallback to original implementation with log-probabilities
             n_observations = len(observations)
             log_emission_probs = np.zeros((n_observations, self.n_states))
-            
+
             # Pre-compute constants for Gaussian calculation
             det_cov = np.linalg.det(self.emission_covariance)
             inv_cov = np.linalg.inv(self.emission_covariance)
             log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det_cov)))
-            
+
             for t in range(n_observations):
                 obs = observations[t]
                 for i in range(self.n_states):
@@ -822,7 +877,7 @@ class HMMLinearizer:
                     # Manual Gaussian calculation (faster than multivariate_normal)
                     exponent = -0.5 * diff.T @ inv_cov @ diff
                     log_emission_probs[t, i] = log_norm_const + exponent
-            
+
             return log_emission_probs
 
     def linearize_with_hmm(
@@ -863,7 +918,9 @@ class HMMLinearizer:
         if self.subsample_positions and len(valid_positions) > 1000:
             # Adaptive subsampling: use larger factor for bigger datasets
             if self.use_adaptive_subsampling:
-                adaptive_factor = max(self.subsample_factor, len(valid_positions) // 2000)
+                adaptive_factor = max(
+                    self.subsample_factor, len(valid_positions) // 2000
+                )
             else:
                 adaptive_factor = self.subsample_factor
             subsample_indices = np.arange(0, len(valid_positions), adaptive_factor)
@@ -892,8 +949,14 @@ class HMMLinearizer:
 
         # Interpolate missing values if subsampling was used
         if self.subsample_positions and len(original_indices) < n_positions:
-            linear_positions, track_segment_ids, projected_positions = self._interpolate_missing_values(
-                linear_positions, track_segment_ids, projected_positions, original_indices, valid_mask
+            linear_positions, track_segment_ids, projected_positions = (
+                self._interpolate_missing_values(
+                    linear_positions,
+                    track_segment_ids,
+                    projected_positions,
+                    original_indices,
+                    valid_mask,
+                )
             )
 
         return linear_positions, track_segment_ids, projected_positions
@@ -921,7 +984,12 @@ class HMMLinearizer:
         log_emission_probs = self._emission_probabilities_vectorized(observations)
 
         if NUMBA_AVAILABLE:
-            return _viterbi_numba(log_emission_probs, self.transition_matrix, n_observations, self.n_states)
+            return _viterbi_numba(
+                log_emission_probs,
+                self.transition_matrix,
+                n_observations,
+                self.n_states,
+            )
         else:
             # Fallback to original implementation with log-probabilities
             # Initialize
@@ -939,12 +1007,14 @@ class HMMLinearizer:
                 else:
                     # Vectorized recursion: compute all state transitions at once
                     # log_delta[t-1] + log_transition_matrix gives us all possible log-transitions
-                    log_transition_probs = log_delta[t - 1].reshape(-1, 1) + self.transition_matrix
-                    
+                    log_transition_probs = (
+                        log_delta[t - 1].reshape(-1, 1) + self.transition_matrix
+                    )
+
                     # Find maximum log-probability and corresponding previous state for each current state
                     max_indices = np.argmax(log_transition_probs, axis=0)
                     max_log_probs = np.max(log_transition_probs, axis=0)
-                    
+
                     # Update log_delta and psi
                     log_delta[t] = max_log_probs + log_emission_probs[t]
                     psi[t] = max_indices
@@ -1018,11 +1088,11 @@ class HMMLinearizer:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Interpolate missing values in subsampled linearization results.
-        
+
         This method fills in the NaN values between linearized points using
         linear interpolation. For rat tracking data, this provides smooth
         trajectories while maintaining the speed benefits of subsampling.
-        
+
         Parameters
         ----------
         linear_positions : np.ndarray
@@ -1035,44 +1105,53 @@ class HMMLinearizer:
             Indices of the original positions that were linearized
         valid_mask : np.ndarray
             Boolean mask indicating which original positions are valid (not NaN)
-            
+
         Returns
         -------
         Tuple[np.ndarray, np.ndarray, np.ndarray]
             Interpolated linear_positions, track_segment_ids, and projected_positions
         """
         from scipy.interpolate import interp1d
-        
+
         # Get the valid linearized indices (where we have actual values)
-        valid_linearized = original_indices[~np.isnan(linear_positions[original_indices])]
-        
+        valid_linearized = original_indices[
+            ~np.isnan(linear_positions[original_indices])
+        ]
+
         if len(valid_linearized) < 2:
             # Not enough points to interpolate
             return linear_positions, track_segment_ids, projected_positions
-        
+
         # Get the corresponding values
         valid_linear = linear_positions[valid_linearized]
         valid_segments = track_segment_ids[valid_linearized]
         valid_projected = projected_positions[valid_linearized]
-        
+
         # Find all missing indices that need interpolation
         all_valid_indices = np.where(valid_mask)[0]
-        missing_indices = all_valid_indices[~np.isin(all_valid_indices, valid_linearized)]
-        
+        missing_indices = all_valid_indices[
+            ~np.isin(all_valid_indices, valid_linearized)
+        ]
+
         if len(missing_indices) == 0:
             return linear_positions, track_segment_ids, projected_positions
-        
+
         # Sort by index for proper interpolation
         sort_idx = np.argsort(valid_linearized)
         sorted_indices = valid_linearized[sort_idx]
         sorted_linear = valid_linear[sort_idx]
         sorted_segments = valid_segments[sort_idx]
         sorted_projected = valid_projected[sort_idx]
-        
+
         # Interpolate linear positions
         try:
-            linear_interp = interp1d(sorted_indices, sorted_linear, 
-                                   kind='linear', bounds_error=False, fill_value='extrapolate')
+            linear_interp = interp1d(
+                sorted_indices,
+                sorted_linear,
+                kind="linear",
+                bounds_error=False,
+                fill_value="extrapolate",
+            )
             linear_positions[missing_indices] = linear_interp(missing_indices)
         except Exception:
             # Fallback to nearest neighbor if interpolation fails
@@ -1080,34 +1159,50 @@ class HMMLinearizer:
                 # Find closest valid index
                 closest_idx = sorted_indices[np.argmin(np.abs(sorted_indices - idx))]
                 linear_positions[idx] = linear_positions[closest_idx]
-        
+
         # Interpolate segment IDs (use mode/nearest neighbor for categorical data)
         for idx in missing_indices:
             # Find the two closest valid indices
             distances = np.abs(sorted_indices - idx)
             closest_indices = sorted_indices[np.argsort(distances)[:2]]
-            
+
             if len(closest_indices) == 1:
                 track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
             else:
                 # Use the closer one, or the one with higher linear position if tied
-                if distances[np.argsort(distances)[0]] < distances[np.argsort(distances)[1]]:
+                if (
+                    distances[np.argsort(distances)[0]]
+                    < distances[np.argsort(distances)[1]]
+                ):
                     track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
                 else:
                     # If equidistant, use the one with higher linear position
-                    if linear_positions[closest_indices[0]] > linear_positions[closest_indices[1]]:
+                    if (
+                        linear_positions[closest_indices[0]]
+                        > linear_positions[closest_indices[1]]
+                    ):
                         track_segment_ids[idx] = track_segment_ids[closest_indices[0]]
                     else:
                         track_segment_ids[idx] = track_segment_ids[closest_indices[1]]
-        
+
         # Interpolate projected positions
         try:
             # Interpolate x and y coordinates separately
-            x_interp = interp1d(sorted_indices, sorted_projected[:, 0], 
-                              kind='linear', bounds_error=False, fill_value='extrapolate')
-            y_interp = interp1d(sorted_indices, sorted_projected[:, 1], 
-                              kind='linear', bounds_error=False, fill_value='extrapolate')
-            
+            x_interp = interp1d(
+                sorted_indices,
+                sorted_projected[:, 0],
+                kind="linear",
+                bounds_error=False,
+                fill_value="extrapolate",
+            )
+            y_interp = interp1d(
+                sorted_indices,
+                sorted_projected[:, 1],
+                kind="linear",
+                bounds_error=False,
+                fill_value="extrapolate",
+            )
+
             projected_positions[missing_indices, 0] = x_interp(missing_indices)
             projected_positions[missing_indices, 1] = y_interp(missing_indices)
         except Exception:
@@ -1115,7 +1210,7 @@ class HMMLinearizer:
             for idx in missing_indices:
                 closest_idx = sorted_indices[np.argmin(np.abs(sorted_indices - idx))]
                 projected_positions[idx] = projected_positions[closest_idx]
-        
+
         return linear_positions, track_segment_ids, projected_positions
 
 
@@ -1211,7 +1306,7 @@ def plot_linearization_confirmation(
 ) -> None:
     """
     Create a confirmation plot showing the linearization results.
-    
+
     Parameters
     ----------
     original_positions : np.ndarray
@@ -1227,136 +1322,183 @@ def plot_linearization_confirmation(
     """
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     fig.suptitle(title, fontsize=16)
-    
+
     # Create color map for segments
-    unique_segments = sorted(linearized_df['track_segment_id'].unique())
+    unique_segments = sorted(linearized_df["track_segment_id"].unique())
     if len(unique_segments) > 0:
         colors = plt.cm.tab10(np.linspace(0, 1, len(unique_segments)))
         segment_colors = dict(zip(unique_segments, colors))
     else:
         segment_colors = {}
-    
+
     # Plot 1: Original 2D positions with track graph (color coded by segment)
     ax1 = axes[0, 0]
-    
+
     # Color code original positions by their corresponding segment
     if len(segment_colors) > 0:
         # Get segment IDs for original positions (assuming they correspond to linearized_df order)
-        segment_ids = linearized_df['track_segment_id'].values
+        segment_ids = linearized_df["track_segment_id"].values
         valid_mask = segment_ids >= 0  # Only plot valid segments
-        
+
         if np.any(valid_mask):
             valid_positions = original_positions[valid_mask]
             valid_segments = segment_ids[valid_mask]
-            colors_for_positions = [segment_colors.get(seg, 'gray') for seg in valid_segments]
-            
-            ax1.scatter(valid_positions[:, 0], valid_positions[:, 1], 
-                        c=colors_for_positions, s=1, alpha=0.6)
+            colors_for_positions = [
+                segment_colors.get(seg, "gray") for seg in valid_segments
+            ]
+
+            ax1.scatter(
+                valid_positions[:, 0],
+                valid_positions[:, 1],
+                c=colors_for_positions,
+                s=1,
+                alpha=0.6,
+            )
         else:
-            ax1.scatter(original_positions[:, 0], original_positions[:, 1], 
-                        c='lightblue', s=1, alpha=0.6)
+            ax1.scatter(
+                original_positions[:, 0],
+                original_positions[:, 1],
+                c="lightblue",
+                s=1,
+                alpha=0.6,
+            )
     else:
-        ax1.scatter(original_positions[:, 0], original_positions[:, 1], 
-                    c='lightblue', s=1, alpha=0.6)
-    
+        ax1.scatter(
+            original_positions[:, 0],
+            original_positions[:, 1],
+            c="lightblue",
+            s=1,
+            alpha=0.6,
+        )
+
     # Plot track graph nodes and edges with color coding
     node_positions = track_graph.node_positions
-    ax1.scatter(node_positions[:, 0], node_positions[:, 1], 
-                c='red', s=50, zorder=5)
-    
+    ax1.scatter(node_positions[:, 0], node_positions[:, 1], c="red", s=50, zorder=5)
+
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
         start_pos = node_positions[edge[0]]
         end_pos = node_positions[edge[1]]
-        edge_color = segment_colors.get(i, 'black')
-        ax1.plot([start_pos[0], end_pos[0]], [start_pos[1], end_pos[1]], 
-                 color=edge_color, linewidth=3, alpha=0.8)
-    
-    ax1.set_xlabel('X Position (cm)')
-    ax1.set_ylabel('Y Position (cm)')
-    ax1.set_title('Original 2D Positions with Track Graph (Color Coded by Segment)')
+        edge_color = segment_colors.get(i, "black")
+        ax1.plot(
+            [start_pos[0], end_pos[0]],
+            [start_pos[1], end_pos[1]],
+            color=edge_color,
+            linewidth=3,
+            alpha=0.8,
+        )
+
+    ax1.set_xlabel("X Position (cm)")
+    ax1.set_ylabel("Y Position (cm)")
+    ax1.set_title("Original 2D Positions with Track Graph (Color Coded by Segment)")
     ax1.grid(True, alpha=0.3)
-    ax1.axis('equal')
-    
+    ax1.axis("equal")
+
     # Plot 2: Projected positions on track (color coded by segment)
     ax2 = axes[0, 1]
-    
+
     # Color code projected positions by segment
     if len(segment_colors) > 0:
-        valid_mask = linearized_df['track_segment_id'] >= 0
+        valid_mask = linearized_df["track_segment_id"] >= 0
         if np.any(valid_mask):
-            valid_proj_x = linearized_df.loc[valid_mask, 'projected_x_position']
-            valid_proj_y = linearized_df.loc[valid_mask, 'projected_y_position']
-            valid_segments = linearized_df.loc[valid_mask, 'track_segment_id']
-            colors_for_proj = [segment_colors.get(seg, 'gray') for seg in valid_segments]
-            
-            ax2.scatter(valid_proj_x, valid_proj_y, 
-                        c=colors_for_proj, s=1, alpha=0.6)
+            valid_proj_x = linearized_df.loc[valid_mask, "projected_x_position"]
+            valid_proj_y = linearized_df.loc[valid_mask, "projected_y_position"]
+            valid_segments = linearized_df.loc[valid_mask, "track_segment_id"]
+            colors_for_proj = [
+                segment_colors.get(seg, "gray") for seg in valid_segments
+            ]
+
+            ax2.scatter(valid_proj_x, valid_proj_y, c=colors_for_proj, s=1, alpha=0.6)
         else:
-            ax2.scatter(linearized_df['projected_x_position'], linearized_df['projected_y_position'], 
-                        c='green', s=1, alpha=0.6)
+            ax2.scatter(
+                linearized_df["projected_x_position"],
+                linearized_df["projected_y_position"],
+                c="green",
+                s=1,
+                alpha=0.6,
+            )
     else:
-        ax2.scatter(linearized_df['projected_x_position'], linearized_df['projected_y_position'], 
-                    c='green', s=1, alpha=0.6)
-    
+        ax2.scatter(
+            linearized_df["projected_x_position"],
+            linearized_df["projected_y_position"],
+            c="green",
+            s=1,
+            alpha=0.6,
+        )
+
     # Plot track graph nodes and edges with color coding
-    ax2.scatter(node_positions[:, 0], node_positions[:, 1], 
-                c='red', s=50, zorder=5)
-    
+    ax2.scatter(node_positions[:, 0], node_positions[:, 1], c="red", s=50, zorder=5)
+
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
         start_pos = node_positions[edge[0]]
         end_pos = node_positions[edge[1]]
-        edge_color = segment_colors.get(i, 'black')
-        ax2.plot([start_pos[0], end_pos[0]], [start_pos[1], end_pos[1]], 
-                 color=edge_color, linewidth=3, alpha=0.8)
-    
-    ax2.set_xlabel('X Position (cm)')
-    ax2.set_ylabel('Y Position (cm)')
-    ax2.set_title('Projected Positions on Track (Color Coded by Segment)')
+        edge_color = segment_colors.get(i, "black")
+        ax2.plot(
+            [start_pos[0], end_pos[0]],
+            [start_pos[1], end_pos[1]],
+            color=edge_color,
+            linewidth=3,
+            alpha=0.8,
+        )
+
+    ax2.set_xlabel("X Position (cm)")
+    ax2.set_ylabel("Y Position (cm)")
+    ax2.set_title("Projected Positions on Track (Color Coded by Segment)")
     ax2.grid(True, alpha=0.3)
-    ax2.axis('equal')
-    
+    ax2.axis("equal")
+
     # Plot 3: Linear position over time (color coded by segment)
     ax3 = axes[1, 0]
     time_points = np.arange(len(linearized_df))
-    
+
     if len(segment_colors) > 0:
         # Plot each segment separately with different colors using scatter
         for segment_id in unique_segments:
             if segment_id >= 0:  # Only plot valid segments
-                segment_mask = linearized_df['track_segment_id'] == segment_id
+                segment_mask = linearized_df["track_segment_id"] == segment_id
                 if np.any(segment_mask):
                     segment_times = time_points[segment_mask]
-                    segment_positions = linearized_df.loc[segment_mask, 'linear_position']
-                    ax3.scatter(segment_times, segment_positions, 
-                               c=segment_colors[segment_id], s=1, alpha=0.7)
+                    segment_positions = linearized_df.loc[
+                        segment_mask, "linear_position"
+                    ]
+                    ax3.scatter(
+                        segment_times,
+                        segment_positions,
+                        c=segment_colors[segment_id],
+                        s=1,
+                        alpha=0.7,
+                    )
     else:
-        ax3.scatter(time_points, linearized_df['linear_position'], c='blue', s=1, alpha=0.7)
-    
-    ax3.set_xlabel('Time Point')
-    ax3.set_ylabel('Linear Position (cm)')
-    ax3.set_title('Linear Position Over Time (Color Coded by Segment)')
+        ax3.scatter(
+            time_points, linearized_df["linear_position"], c="blue", s=1, alpha=0.7
+        )
+
+    ax3.set_xlabel("Time Point")
+    ax3.set_ylabel("Linear Position (cm)")
+    ax3.set_title("Linear Position Over Time (Color Coded by Segment)")
     ax3.grid(True, alpha=0.3)
-    
+
     # Plot 4: Track segment distribution (color coded)
     ax4 = axes[1, 1]
-    segment_counts = linearized_df['track_segment_id'].value_counts().sort_index()
-    
+    segment_counts = linearized_df["track_segment_id"].value_counts().sort_index()
+
     if len(segment_colors) > 0:
         # Color code the bars by segment
-        bar_colors = [segment_colors.get(seg, 'gray') for seg in segment_counts.index]
-        ax4.bar(segment_counts.index, segment_counts.values, alpha=0.7, color=bar_colors)
+        bar_colors = [segment_colors.get(seg, "gray") for seg in segment_counts.index]
+        ax4.bar(
+            segment_counts.index, segment_counts.values, alpha=0.7, color=bar_colors
+        )
     else:
-        ax4.bar(segment_counts.index, segment_counts.values, alpha=0.7, color='orange')
-    
-    ax4.set_xlabel('Track Segment ID')
-    ax4.set_ylabel('Number of Positions')
-    ax4.set_title('Distribution Across Track Segments (Color Coded)')
+        ax4.bar(segment_counts.index, segment_counts.values, alpha=0.7, color="orange")
+
+    ax4.set_xlabel("Track Segment ID")
+    ax4.set_ylabel("Number of Positions")
+    ax4.set_title("Distribution Across Track Segments (Color Coded)")
     ax4.grid(True, alpha=0.3)
-    
+
     plt.tight_layout()
-    
+
     if show_plot:
         plt.show(block=True)
 
@@ -1399,7 +1541,7 @@ def get_linearized_position(
     -------
     pd.DataFrame
         DataFrame with linearized position, track segment ID, and projected positions
-        
+
     Notes
     -----
     When using HMM with subsampling (subsample_positions=True), interpolation is automatically
@@ -1414,14 +1556,14 @@ def get_linearized_position(
             temp_hmm = HMMLinearizer(track_graph)
             tuned_params = temp_hmm._auto_tune_parameters(position)
             print(f"Auto-tuned HMM parameters: {tuned_params}")
-            
+
             # Use tuned parameters
             hmm_linearizer = HMMLinearizer(
                 track_graph,
-                n_bins_per_segment=tuned_params['n_bins_per_segment'],
-                emission_noise=tuned_params['emission_noise'],
-                transition_smoothness=tuned_params['transition_smoothness'],
-                use_sparse_transitions=tuned_params['use_sparse_transitions'],
+                n_bins_per_segment=tuned_params["n_bins_per_segment"],
+                emission_noise=tuned_params["emission_noise"],
+                transition_smoothness=tuned_params["transition_smoothness"],
+                use_sparse_transitions=tuned_params["use_sparse_transitions"],
                 subsample_positions=subsample_positions,
                 subsample_factor=subsample_factor,
                 use_adaptive_subsampling=use_adaptive_subsampling,
@@ -1440,7 +1582,7 @@ def get_linearized_position(
                 use_batch_processing=use_batch_processing,
                 batch_size=batch_size,
             )
-        
+
         linear_position, track_segment_id, projected_position = (
             hmm_linearizer.linearize_with_hmm(position)
         )
@@ -1457,16 +1599,16 @@ def get_linearized_position(
             "projected_y_position": projected_position[:, 1],
         }
     )
-    
+
     if show_confirmation_plot:
         method_name = "HMM-based" if use_HMM else "Standard"
         plot_linearization_confirmation(
-            position, 
-            result_df, 
-            track_graph, 
-            title=f"Linearization Confirmation ({method_name})"
+            position,
+            result_df,
+            track_graph,
+            title=f"Linearization Confirmation ({method_name})",
         )
-    
+
     return result_df
 
 
