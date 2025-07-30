@@ -511,48 +511,44 @@ def run_circular_linearization(
     return linearizer
 
 
-if __name__ == "__main__":
-    basepath = r"X:\data\Barrage\HS2\day27"
-
-    run_circular_linearization(basepath)
 # Example usage
-# if __name__ == "__main__":
-#     import sys
+if __name__ == "__main__":
+    import sys
 
-#     if len(sys.argv) >= 2:
-#         basepath = sys.argv[1]
-#         epoch = int(sys.argv[2]) if len(sys.argv) >= 3 else None
-#         interval = (
-#             (float(sys.argv[2]), float(sys.argv[3])) if len(sys.argv) >= 4 else None
-#         )
+    if len(sys.argv) >= 2:
+        basepath = sys.argv[1]
+        epoch = int(sys.argv[2]) if len(sys.argv) >= 3 else None
+        interval = (
+            (float(sys.argv[2]), float(sys.argv[3])) if len(sys.argv) >= 4 else None
+        )
 
-#         run_circular_linearization(basepath, epoch=epoch, interval=interval)
-#     else:
-#         print(
-#             "Usage: python circular_linearization.py <basepath> [epoch] or [start_time end_time]"
-#         )
+        run_circular_linearization(basepath, epoch=epoch, interval=interval)
+    else:
+        print(
+            "Usage: python circular_linearization.py <basepath> [epoch] or [start_time end_time]"
+        )
 
-#         # Demo with synthetic circular data
-#         print("Running demo with synthetic data...")
+        # Demo with synthetic circular data
+        print("Running demo with synthetic data...")
 
-#         # Generate synthetic circular track data
-#         n_points = 1000
-#         theta_true = np.linspace(0, 4 * np.pi, n_points)  # Two laps
-#         radius = 50
-#         center_x, center_y = 100, 150
+        # Generate synthetic circular track data
+        n_points = 1000
+        theta_true = np.linspace(0, 4 * np.pi, n_points)  # Two laps
+        radius = 50
+        center_x, center_y = 100, 150
 
-#         # Add some noise
-#         noise_level = 5
-#         x_demo = (
-#             center_x
-#             + radius * np.cos(theta_true)
-#             + np.random.normal(0, noise_level, n_points)
-#         )
-#         y_demo = (
-#             center_y
-#             + radius * np.sin(theta_true)
-#             + np.random.normal(0, noise_level, n_points)
-#         )
+        # Add some noise
+        noise_level = 5
+        x_demo = (
+            center_x
+            + radius * np.cos(theta_true)
+            + np.random.normal(0, noise_level, n_points)
+        )
+        y_demo = (
+            center_y
+            + radius * np.sin(theta_true)
+            + np.random.normal(0, noise_level, n_points)
+        )
 
-#         # Create demo linearizer
-#         demo_linearizer = CircularTrackLinearizer(x_demo, y_demo)
+        # Create demo linearizer
+        demo_linearizer = CircularTrackLinearizer(x_demo, y_demo)
