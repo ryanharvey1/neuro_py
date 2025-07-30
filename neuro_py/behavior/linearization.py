@@ -87,8 +87,23 @@ def _viterbi_numba(emission_probs, transition_matrix, n_observations, n_states):
     delta = np.zeros((n_observations, n_states))
     psi = np.zeros((n_observations, n_states), dtype=np.int32)
     
-    # Initial probabilities (uniform)
-    initial_probs = np.ones(n_states) / n_states
+    # Better initial probabilities based on first observation
+    # Use emission probabilities of first observation as initial state probabilities
+    # This helps when emission noise is high and all states are equally likely
+    initial_probs = np.zeros(n_states)
+    sum_probs = 0.0
+    for i in range(n_states):
+        initial_probs[i] = emission_probs[0, i]
+        sum_probs += emission_probs[0, i]
+    
+    # Normalize to ensure they sum to 1
+    if sum_probs > 0:
+        for i in range(n_states):
+            initial_probs[i] = initial_probs[i] / sum_probs
+    else:
+        # Fallback to uniform if all probabilities are zero
+        for i in range(n_states):
+            initial_probs[i] = 1.0 / n_states
     
     # Forward pass
     for t in range(n_observations):
@@ -159,9 +174,21 @@ def _build_sparse_transition_matrix_numba(state_to_segment, state_to_position, n
                 if pos_diff <= 2:  # Only nearby positions
                     valid_transition = True
             
-            # Adjacent segment transitions (boundary positions only)
+            # Inter-segment transitions - allow transitions to connected segments
             elif segments_connected[seg1, seg2]:
-                if (seg1 < seg2 and j < 50) or (seg1 > seg2 and j >= n_states - 50):
+                # Allow transitions to boundary states of connected segments
+                # For each segment, allow transitions to first and last few states
+                # Count states in seg2 to find boundary states
+                seg2_start = 0
+                seg2_end = 0
+                for k in range(n_states):
+                    if state_to_segment[k] == seg2:
+                        if seg2_start == 0:
+                            seg2_start = k
+                        seg2_end = k
+                
+                # Allow transitions to first 3 and last 3 states of connected segments
+                if (j >= seg2_start and j < seg2_start + 3) or (j <= seg2_end and j > seg2_end - 3):
                     valid_transition = True
             
             if valid_transition:
@@ -369,10 +396,16 @@ class TrackGraph:
 class HMMLinearizer:
     """
     Hidden Markov Model for track linearization.
-
+    
     This class implements an HMM that infers the most likely position on a track
     given noisy 2D position measurements. The hidden states represent positions
     along track segments, and observations are 2D coordinates.
+
+    The default parameters are optimized for multi-segment classification:
+    - emission_noise=5.0: Good balance for tracking data
+    - transition_smoothness=0.1: Allows segment transitions while maintaining smoothness
+    - use_sparse_transitions=True: Essential for multi-segment classification
+    - n_bins_per_segment=50: Provides good spatial resolution
 
     Parameters
     ----------
@@ -566,13 +599,21 @@ class HMMLinearizer:
                             if pos_diff <= 2:  # Only nearby positions
                                 nearby_states.append(j)
                     
-                    # Adjacent segment transitions
+                    # Inter-segment transitions - allow transitions to connected segments
                     for j in range(self.n_states):
                         seg2 = self.state_to_segment[j]
                         if seg1 != seg2 and self._segments_connected(seg1, seg2):
-                            # Only boundary positions
-                            if (seg1 < seg2 and j < 50) or (seg1 > seg2 and j >= self.n_states - 50):
-                                nearby_states.append(j)
+                            # Allow transitions to boundary states of connected segments
+                            # For each segment, allow transitions to first and last few states
+                            states_in_seg2 = np.where(self.state_to_segment == seg2)[0]
+                            if len(states_in_seg2) > 0:
+                                # Allow transitions to first 3 and last 3 states of connected segments
+                                boundary_states = np.concatenate([
+                                    states_in_seg2[:3],  # First 3 states
+                                    states_in_seg2[-3:]  # Last 3 states
+                                ])
+                                if j in boundary_states:
+                                    nearby_states.append(j)
                     
                     # Compute transitions only for nearby states
                     for j in nearby_states:
@@ -786,8 +827,12 @@ class HMMLinearizer:
             delta = np.zeros((n_observations, self.n_states))
             psi = np.zeros((n_observations, self.n_states), dtype=int)
 
-            # Initial probabilities (uniform)
-            initial_probs = np.ones(self.n_states) / self.n_states
+            # Better initial probabilities based on first observation
+            # Use emission probabilities of first observation as initial state probabilities
+            # This helps when emission noise is high and all states are equally likely
+            initial_probs = emission_probs[0]
+            # Normalize to ensure they sum to 1
+            initial_probs = initial_probs / np.sum(initial_probs)
 
             # Forward pass (vectorized)
             for t in range(n_observations):
@@ -1225,9 +1270,9 @@ def get_linearized_position(
     edge_order: Optional[List[List[int]]] = None,
     use_HMM: bool = False,
     show_confirmation_plot: bool = True,
-    # HMM optimization parameters
-    n_bins_per_segment: int = 30,  # Reduced from 50 for better speed
-    use_sparse_transitions: bool = True,
+    # HMM optimization parameters - Updated defaults based on diagnostic results
+    n_bins_per_segment: int = 50,  # Increased from 30 for better accuracy
+    use_sparse_transitions: bool = True,  # Essential for multi-segment classification
     subsample_positions: bool = False,  # Keep False for accuracy
     subsample_factor: int = 5,
     use_adaptive_subsampling: bool = True,
@@ -1440,7 +1485,7 @@ class NodePicker:
         self.basepath = basepath
         self.epoch = epoch
         self.interval = interval
-        self.use_HMM = True
+        self.use_HMM = False
 
         if self.epoch is not None:
             self.epoch = int(self.epoch)
@@ -1621,9 +1666,9 @@ class NodePicker:
             edge_order=self.edges,
             use_HMM=self.use_HMM,
             show_confirmation_plot=True,
-            # HMM optimization parameters
-            n_bins_per_segment=30,  # Reduced from 50 for better speed
-            use_sparse_transitions=True,
+            # HMM optimization parameters - Updated defaults based on diagnostic results
+            n_bins_per_segment=50,  # Increased from 30 for better accuracy
+            use_sparse_transitions=True,  # Essential for multi-segment classification
             subsample_positions=False,  # Keep False for accuracy
             subsample_factor=5,
             use_adaptive_subsampling=True,
