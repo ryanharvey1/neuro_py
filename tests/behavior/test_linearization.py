@@ -206,7 +206,7 @@ class TestGetLinearizedPosition:
         assert result["linear_position"].iloc[0] == 5.0
 
     def test_get_linearized_position_with_hmm_flag(self):
-        """Test linearization with HMM flag (should be ignored)."""
+        """Test HMM-based linearization."""
         node_positions = np.array([[0, 0], [10, 0]])
         edges = [[0, 1]]
         track_graph = TrackGraph(node_positions, edges)
@@ -215,8 +215,99 @@ class TestGetLinearizedPosition:
 
         result = get_linearized_position(position, track_graph, use_HMM=True)
 
-        # HMM flag should be ignored in our implementation
-        assert result["linear_position"].iloc[0] == 5.0
+        # HMM should provide similar results to standard linearization
+        assert result["linear_position"].iloc[0] == pytest.approx(5.0, abs=1.0)
+        assert result["track_segment_id"].iloc[0] == 0
+        assert result["projected_x_position"].iloc[0] == pytest.approx(5.0, abs=1.0)
+        assert result["projected_y_position"].iloc[0] == pytest.approx(0.0, abs=1.0)
+
+    def test_hmm_linearizer_initialization(self):
+        """Test HMMLinearizer initialization."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+        
+        node_positions = np.array([[0, 0], [10, 0], [10, 10]])
+        edges = [[0, 1], [1, 2]]
+        track_graph = TrackGraph(node_positions, edges)
+        
+        hmm = HMMLinearizer(track_graph)
+        
+        assert hmm.n_segments == 2
+        assert hmm.n_states > 0
+        assert hmm.transition_matrix.shape == (hmm.n_states, hmm.n_states)
+        assert len(hmm.state_to_segment) == hmm.n_states
+        assert len(hmm.state_to_position) == hmm.n_states
+
+    def test_hmm_linearizer_with_noisy_data(self):
+        """Test HMM linearization with noisy position data."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+        
+        # Create a simple track
+        node_positions = np.array([[0, 0], [10, 0], [20, 0]])
+        edges = [[0, 1], [1, 2]]
+        track_graph = TrackGraph(node_positions, edges)
+        
+        hmm = HMMLinearizer(track_graph, emission_noise=2.0)
+        
+        # Create noisy positions along the track
+        true_positions = np.array([[5, 0], [15, 0]])
+        noisy_positions = true_positions + np.random.normal(0, 1, true_positions.shape)
+        
+        # Linearize with HMM
+        linear_pos, segment_ids, projected_pos = hmm.linearize_with_hmm(noisy_positions)
+        
+        # Check results
+        assert len(linear_pos) == 2
+        assert len(segment_ids) == 2
+        assert len(projected_pos) == 2
+        assert not np.any(np.isnan(linear_pos))
+        assert not np.any(np.isnan(segment_ids))
+        assert not np.any(np.isnan(projected_pos))
+
+    def test_hmm_linearizer_with_nan_positions(self):
+        """Test HMM linearization with NaN positions."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+        
+        node_positions = np.array([[0, 0], [10, 0]])
+        edges = [[0, 1]]
+        track_graph = TrackGraph(node_positions, edges)
+        
+        hmm = HMMLinearizer(track_graph)
+        
+        # Create positions with some NaN values
+        positions = np.array([[5, 0], [np.nan, np.nan], [8, 0]])
+        
+        linear_pos, segment_ids, projected_pos = hmm.linearize_with_hmm(positions)
+        
+        # Check that NaN positions are handled correctly
+        assert np.isnan(linear_pos[1])
+        assert segment_ids[1] == -1
+        assert np.all(np.isnan(projected_pos[1]))
+        
+        # Valid positions should be processed
+        assert not np.isnan(linear_pos[0])
+        assert not np.isnan(linear_pos[2])
+
+    def test_hmm_vs_standard_linearization(self):
+        """Test that HMM and standard linearization give similar results for clean data."""
+        node_positions = np.array([[0, 0], [10, 0]])
+        edges = [[0, 1]]
+        track_graph = TrackGraph(node_positions, edges)
+
+        position = np.array([[5, 0], [8, 0]])
+
+        # Standard linearization
+        result_standard = get_linearized_position(position, track_graph, use_HMM=False)
+        
+        # HMM linearization
+        result_hmm = get_linearized_position(position, track_graph, use_HMM=True)
+
+        # Results should be similar for clean data
+        assert np.allclose(
+            result_standard["linear_position"], 
+            result_hmm["linear_position"], 
+            atol=2.0
+        )
+        assert np.array_equal(result_standard["track_segment_id"], result_hmm["track_segment_id"])
 
 
 class TestMakeTrackGraph:
