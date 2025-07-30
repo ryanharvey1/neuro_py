@@ -830,14 +830,14 @@ class TestAdaptiveBinning:
         assert hmm.n_bins_per_segment == expected_bins
         assert hmm.n_states == 50 * expected_bins
 
-                # Test with max_total_states equal to number of segments
+        # Test with max_total_states equal to number of segments
         hmm2 = HMMLinearizer(
             track_graph,
             n_bins_per_segment=100,
             adaptive_binning=True,
             max_total_states=50,
         )
-        
+
         # Should have minimum 10 bins per segment (due to max(10, ...) logic)
         expected_bins2 = min(100, max(10, 50 // 50))  # Should be 10 (max(10, 1))
         assert hmm2.n_bins_per_segment == expected_bins2
