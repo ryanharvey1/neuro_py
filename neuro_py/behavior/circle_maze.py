@@ -8,7 +8,6 @@ from matplotlib.patches import Circle
 from scipy.io import loadmat, savemat
 
 
-
 class CircularTrackLinearizer:
     """
     Simple GUI for fitting a circle to circular track data and linearizing positions.
@@ -253,7 +252,12 @@ class CircularTrackLinearizer:
             )
             ax1.add_patch(circle_plot)
             ax1.scatter(
-                [self.center_x], [self.center_y], c="red", s=100, marker="x", linewidth=3
+                [self.center_x],
+                [self.center_y],
+                c="red",
+                s=100,
+                marker="x",
+                linewidth=3,
             )
             ax1.set_aspect("equal")
             ax1.set_title("Original Data with Fitted Circle")
@@ -422,7 +426,8 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         return pd.DataFrame(data["session"]["epochs"])
     except Exception:
         return pd.DataFrame([data["session"]["epochs"]])
-    
+
+
 def load_animal_behavior(basepath: str) -> pd.DataFrame:
     """
     Load animal behavior data from a .mat file.
@@ -504,6 +509,7 @@ def run_circular_linearization(
     )
 
     return linearizer
+
 
 if __name__ == "__main__":
     basepath = r"X:\data\Barrage\HS2\day27"
