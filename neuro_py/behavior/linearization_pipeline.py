@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat, savemat
 
-from .linearization import get_linearized_position, make_track_graph
+from track_linearization import get_linearized_position, make_track_graph
 
 # Deprecation warning
 warnings.warn(
