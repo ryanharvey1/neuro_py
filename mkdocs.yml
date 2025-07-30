@@ -65,7 +65,7 @@ plugins:
         options:
           docstring_style: numpy
           docstring_section_style: table
-          filters: ["!__"] # exclude all members starting with __
+          filters: ["!__", "!tests", "!test_*"] # exclude all members starting with __ and test modules
 - include-markdown:  # https://github.com/mondeja/mkdocs-include-markdown-plugin
     opening_tag: "{%"
     closing_tag: "%}"

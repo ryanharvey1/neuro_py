@@ -11,6 +11,12 @@ root = Path(__file__).parent.parent
 src = root
 
 for path in sorted(src.rglob("*.py")):
+    # Skip test directories and files
+    if any(part.startswith("test") for part in path.relative_to(src).parts):
+        continue
+    if "tests" in path.relative_to(src).parts:
+        continue
+    
     if path.relative_to(src).parts[0] != "neuro_py":
         continue
     module_path = path.relative_to(src).with_suffix("")
