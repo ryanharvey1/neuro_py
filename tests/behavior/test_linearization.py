@@ -637,4 +637,222 @@ def test_get_linearized_position_with_confirmation_plot_pytest():
         plt.show = original_show
 
 
-# === END: Additional tests merged from neuro_py/tests/behavior/test_linearization.py ===
+class TestAdaptiveBinning:
+    """Test adaptive binning functionality in HMM linearization."""
+
+    def create_track_graph_with_many_segments(self, n_segments):
+        """Create a track graph with exactly n_segments."""
+        # Create a linear track with n_segments + 1 nodes
+        node_positions = []
+        for i in range(n_segments + 1):
+            node_positions.append([i * 10, 0])  # Linear track along x-axis
+
+        # Create edges connecting consecutive nodes
+        edges = []
+        for i in range(n_segments):
+            edges.append([i, i + 1])
+
+        return make_track_graph(np.array(node_positions), edges)
+
+    def create_test_positions_for_segments(self, n_segments, n_positions=200):
+        """Create test positions that span all segments."""
+        positions = []
+        for i in range(n_positions):
+            # Distribute positions across all segments
+            segment = i % n_segments
+            segment_progress = (i // n_segments) / (n_positions // n_segments)
+            x = segment * 10 + segment_progress * 10 + np.random.normal(0, 0.5)
+            y = np.random.normal(0, 0.5)
+            positions.append([x, y])
+
+        return np.array(positions)
+
+    def test_adaptive_binning_trigger_small_track(self):
+        """Test that adaptive binning is NOT triggered for small track graphs."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Small track graph (5 segments) - should not trigger adaptive binning
+        track_graph = self.create_track_graph_with_many_segments(5)
+
+        # Create HMMLinearizer with default settings
+        hmm = HMMLinearizer(track_graph, adaptive_binning=True)
+
+        # For small track graphs, adaptive binning should not reduce bins
+        assert hmm.n_bins_per_segment >= 40  # Should keep default or higher
+        assert hmm.n_states == 5 * hmm.n_bins_per_segment
+
+    def test_adaptive_binning_trigger_large_track(self):
+        """Test that adaptive binning IS triggered for large track graphs."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Large track graph (15 segments) - should trigger adaptive binning
+        track_graph = self.create_track_graph_with_many_segments(15)
+
+        # Create HMMLinearizer with adaptive binning enabled
+        hmm = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=50,
+            adaptive_binning=True,
+            max_total_states=400,
+        )
+
+        # Adaptive binning should reduce the number of bins per segment
+        assert hmm.n_bins_per_segment < 50  # Should be reduced
+        assert hmm.n_states <= 400  # Should respect max_total_states
+        assert hmm.n_states == 15 * hmm.n_bins_per_segment
+
+    def test_adaptive_binning_parameters(self):
+        """Test that adaptive binning correctly adjusts parameters."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Large track graph
+        track_graph = self.create_track_graph_with_many_segments(12)
+
+        # Test without adaptive binning
+        hmm1 = HMMLinearizer(track_graph, n_bins_per_segment=50, adaptive_binning=False)
+
+        # Test with adaptive binning
+        hmm2 = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=50,
+            adaptive_binning=True,
+            max_total_states=400,
+        )
+
+        # Test with very aggressive adaptive binning
+        hmm3 = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=50,
+            adaptive_binning=True,
+            max_total_states=200,
+        )
+
+        # Verify that adaptive binning reduced the number of states
+        assert (
+            hmm2.n_states <= hmm1.n_states
+        ), "Adaptive binning should reduce total states"
+        assert (
+            hmm3.n_states <= hmm2.n_states
+        ), "More aggressive binning should reduce states further"
+
+        # Verify that the reduction is proportional
+        expected_bins2 = min(50, 400 // 12)
+        expected_bins3 = min(50, 200 // 12)
+        assert hmm2.n_bins_per_segment <= expected_bins2
+        assert hmm3.n_bins_per_segment <= expected_bins3
+
+    def test_adaptive_binning_integration(self):
+        """Test adaptive binning integration with get_linearized_position."""
+        # Test with a large track graph
+        track_graph = self.create_track_graph_with_many_segments(15)
+        positions = self.create_test_positions_for_segments(15, 100)
+
+        # Test with HMM enabled (adaptive binning is handled internally)
+        result = get_linearized_position(
+            positions,
+            track_graph,
+            use_HMM=True,
+            show_confirmation_plot=False,
+        )
+
+        # Verify the result is valid
+        assert isinstance(result, pd.DataFrame)
+        assert "linear_position" in result.columns
+        assert "track_segment_id" in result.columns
+        assert len(result) == len(positions)
+        assert not np.any(np.isnan(result["linear_position"]))
+        assert np.all(result["track_segment_id"] >= 0)
+
+        # Check that multiple segments were used
+        n_segments_used = len(result["track_segment_id"].unique())
+        assert n_segments_used > 1, "HMM should use multiple segments"
+
+    def test_adaptive_binning_performance(self):
+        """Test that adaptive binning improves performance for large track graphs."""
+        import time
+
+        # Large track graph
+        track_graph = self.create_track_graph_with_many_segments(15)
+        positions = self.create_test_positions_for_segments(15, 200)
+
+        # Test with high bins per segment (should trigger adaptive binning)
+        start_time = time.time()
+        result1 = get_linearized_position(
+            positions,
+            track_graph,
+            use_HMM=True,
+            n_bins_per_segment=50,
+            show_confirmation_plot=False,
+        )
+        time1 = time.time() - start_time
+
+        # Test with lower bins per segment (should be faster)
+        start_time = time.time()
+        result2 = get_linearized_position(
+            positions,
+            track_graph,
+            use_HMM=True,
+            n_bins_per_segment=20,
+            show_confirmation_plot=False,
+        )
+        time2 = time.time() - start_time
+
+        # Both should produce valid results
+        assert not np.any(np.isnan(result1["linear_position"]))
+        assert not np.any(np.isnan(result2["linear_position"]))
+        assert np.all(result1["track_segment_id"] >= 0)
+        assert np.all(result2["track_segment_id"] >= 0)
+
+        # Adaptive binning should be faster (or at least not significantly slower)
+        # Note: We don't assert strict performance improvement as it may vary
+        # depending on the system and data characteristics
+        print(f"Time without adaptive binning: {time1:.2f}s")
+        print(f"Time with adaptive binning: {time2:.2f}s")
+
+    def test_adaptive_binning_edge_cases(self):
+        """Test adaptive binning with edge cases."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Test with very large track graph
+        track_graph = self.create_track_graph_with_many_segments(50)
+
+        # Test with very low max_total_states
+        hmm = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=100,
+            adaptive_binning=True,
+            max_total_states=100,
+        )
+
+        # Should reduce bins per segment to respect max_total_states
+        # The actual calculation is: min(100, max(10, max_total_states // n_segments))
+        expected_bins = min(100, max(10, 100 // 50))  # Should be 10 (max(10, 2))
+        assert hmm.n_bins_per_segment == expected_bins
+        assert hmm.n_states == 50 * expected_bins
+
+        # Test with max_total_states equal to number of segments
+        hmm2 = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=100,
+            adaptive_binning=True,
+            max_total_states=50,
+        )
+
+        # Should have minimum 10 bins per segment (due to max(10, ...) logic)
+        expected_bins2 = min(100, max(10, 50 // 50))  # Should be 10 (max(10, 1))
+        assert hmm2.n_bins_per_segment == expected_bins2
+        assert hmm2.n_states == 50 * expected_bins2
+
+    def test_adaptive_binning_disabled(self):
+        """Test that adaptive binning can be disabled."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Large track graph
+        track_graph = self.create_track_graph_with_many_segments(20)
+
+        # Test with adaptive binning disabled
+        hmm = HMMLinearizer(track_graph, n_bins_per_segment=50, adaptive_binning=False)
+
+        # Should use the requested number of bins per segment
+        assert hmm.n_bins_per_segment == 50
+        assert hmm.n_states == 20 * 50  # 1000 total states

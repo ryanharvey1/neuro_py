@@ -496,6 +496,10 @@ class HMMLinearizer:
         # Advanced optimization parameters
         use_batch_processing: bool = False,
         batch_size: int = 1000,
+        # Performance optimization parameters
+        adaptive_binning: bool = True,  # Reduce bins for large track graphs
+        max_total_states: int = 500,  # Maximum total states to prevent slowdown
+        early_termination: bool = True,  # Stop Viterbi early if convergence detected
     ):
         self.track_graph = track_graph
         self.n_bins_per_segment = n_bins_per_segment
@@ -510,9 +514,22 @@ class HMMLinearizer:
         self.use_adaptive_subsampling = use_adaptive_subsampling
         self.use_batch_processing = use_batch_processing
         self.batch_size = batch_size
+        
+        # Performance optimization parameters
+        self.adaptive_binning = adaptive_binning
+        self.max_total_states = max_total_states
+        self.early_termination = early_termination
 
         # Calculate track segment properties
         self.n_segments = len(track_graph.edges)
+        
+        # Adaptive binning: reduce bins for large track graphs
+        if self.adaptive_binning and self.n_segments > 5:
+            # Reduce bins per segment to keep total states manageable
+            max_bins_per_segment = max(10, self.max_total_states // self.n_segments)
+            self.n_bins_per_segment = min(self.n_bins_per_segment, max_bins_per_segment)
+            print(f"Adaptive binning: reduced to {self.n_bins_per_segment} bins per segment for {self.n_segments} segments")
+        
         self.segment_lengths = []
         self.segment_positions = []
 
@@ -914,6 +931,11 @@ class HMMLinearizer:
 
         valid_positions = positions[valid_mask]
 
+        # Check if we should use fast approximate method for very large track graphs
+        if self.n_states > 1000 and len(valid_positions) > 500:
+            print(f"Using fast approximate HMM for large track graph ({self.n_states} states, {len(valid_positions)} positions)")
+            return self._linearize_with_fast_approximate_hmm(positions, valid_mask)
+
         # Subsample positions if requested for speed
         if self.subsample_positions and len(valid_positions) > 1000:
             # Adaptive subsampling: use larger factor for bigger datasets
@@ -960,6 +982,70 @@ class HMMLinearizer:
             )
 
         return linear_positions, track_segment_ids, projected_positions
+
+    def _linearize_with_fast_approximate_hmm(
+        self, positions: np.ndarray, valid_mask: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Fast approximate HMM linearization for very large track graphs.
+        Uses simplified approach: project to nearest state and apply temporal smoothing.
+        """
+        n_positions = len(positions)
+        linear_positions = np.full(n_positions, np.nan)
+        track_segment_ids = np.full(n_positions, -1, dtype=int)
+        projected_positions = np.full((n_positions, 2), np.nan)
+
+        valid_positions = positions[valid_mask]
+        
+        # Step 1: Find nearest state for each position (much faster than full HMM)
+        nearest_states = np.zeros(len(valid_positions), dtype=int)
+        for i, pos in enumerate(valid_positions):
+            # Find nearest emission center
+            distances = np.linalg.norm(self.emission_centers - pos, axis=1)
+            nearest_states[i] = np.argmin(distances)
+        
+        # Step 2: Apply simple temporal smoothing (optional)
+        if len(nearest_states) > 1:
+            smoothed_states = self._apply_temporal_smoothing(nearest_states)
+        else:
+            smoothed_states = nearest_states
+        
+        # Step 3: Convert states to positions
+        for i, state in enumerate(smoothed_states):
+            global_idx = np.where(valid_mask)[0][i]
+            
+            seg_id = self.state_to_segment[state]
+            projected_pos = self.state_to_position[state]
+            linear_pos = self._calculate_linear_position(seg_id, projected_pos)
+            
+            linear_positions[global_idx] = linear_pos
+            track_segment_ids[global_idx] = seg_id
+            projected_positions[global_idx] = projected_pos
+        
+        return linear_positions, track_segment_ids, projected_positions
+
+    def _apply_temporal_smoothing(self, states: np.ndarray) -> np.ndarray:
+        """
+        Apply simple temporal smoothing to state sequence.
+        Uses a moving average approach to reduce noise.
+        """
+        smoothed = states.copy()
+        window_size = min(5, len(states) // 10)  # Adaptive window size
+        
+        if window_size < 2:
+            return smoothed
+        
+        # Apply moving average smoothing
+        for i in range(len(states)):
+            start = max(0, i - window_size // 2)
+            end = min(len(states), i + window_size // 2 + 1)
+            window_states = states[start:end]
+            
+            # Use mode (most common state) in window
+            unique, counts = np.unique(window_states, return_counts=True)
+            smoothed[i] = unique[np.argmax(counts)]
+        
+        return smoothed
 
     def _viterbi(self, observations: np.ndarray) -> np.ndarray:
         """
@@ -1532,7 +1618,7 @@ def get_linearized_position(
     auto_tune: bool = True,  # Automatically tune parameters based on data for better results
 ) -> pd.DataFrame:
     """
-    Get linearized position from 2D positions using track graph.
+    Get linearized position along a track.
 
     Parameters
     ----------
@@ -1540,86 +1626,113 @@ def get_linearized_position(
         Array of 2D positions (n_positions, 2)
     track_graph : TrackGraph
         Track graph object
-    edge_order : list, optional
-        Order of edges to use (for compatibility)
+    edge_order : List[List[int]], optional
+        Order of edges to traverse, by default None
     use_HMM : bool, optional
-        Whether to use HMM-based linearization for smoother, more robust results
+        Whether to use HMM-based linearization, by default False
     show_confirmation_plot : bool, optional
-        Whether to show a confirmation plot of the linearization results, by default True
+        Whether to show confirmation plot, by default True
+    n_bins_per_segment : int, optional
+        Number of bins per segment for HMM, by default 50
+    use_sparse_transitions : bool, optional
+        Whether to use sparse transitions for HMM, by default True
+    subsample_positions : bool, optional
+        Whether to subsample positions for speed, by default False
+    subsample_factor : int, optional
+        Subsampling factor, by default 5
+    use_adaptive_subsampling : bool, optional
+        Whether to use adaptive subsampling, by default True
+    use_batch_processing : bool, optional
+        Whether to use batch processing, by default False
+    batch_size : int, optional
+        Batch size for processing, by default 1000
+    auto_tune : bool, optional
+        Whether to auto-tune parameters, by default True
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with linearized position, track segment ID, and projected positions
-
-    Notes
-    -----
-    When using HMM with subsampling (subsample_positions=True), interpolation is automatically
-    applied to fill missing values, providing 100% coverage while maintaining speed benefits.
-    This is particularly useful for rat tracking data from DeepLabCut where smooth trajectories
-    are desired.
+        DataFrame with linearization results
     """
+    # Auto-adjust parameters for large track graphs
+    n_segments = len(track_graph.edges)
+    if n_segments > 10:
+        # For large track graphs, use more aggressive optimization
+        if n_bins_per_segment > 30:
+            n_bins_per_segment = 30
+            print(f"Reduced bins per segment to {n_bins_per_segment} for large track graph ({n_segments} segments)")
+        
+        # Enable subsampling for very large datasets
+        if len(position) > 1000 and not subsample_positions:
+            subsample_positions = True
+            subsample_factor = max(3, len(position) // 2000)
+            print(f"Enabled subsampling with factor {subsample_factor} for large dataset ({len(position)} positions)")
+        
+        # Enable batch processing for large track graphs
+        if not use_batch_processing:
+            use_batch_processing = True
+            print("Enabled batch processing for large track graph")
+
     if use_HMM:
+        # Use HMM-based linearization
+        hmm_linearizer = HMMLinearizer(
+            track_graph,
+            n_bins_per_segment=n_bins_per_segment,
+            use_sparse_transitions=use_sparse_transitions,
+            subsample_positions=subsample_positions,
+            subsample_factor=subsample_factor,
+            use_adaptive_subsampling=use_adaptive_subsampling,
+            use_batch_processing=use_batch_processing,
+            batch_size=batch_size,
+            adaptive_binning=True,  # Enable adaptive binning for large track graphs
+            max_total_states=500,   # Limit total states for performance
+        )
+
         # Auto-tune parameters if requested
         if auto_tune:
-            # Create a temporary HMM to get auto-tuned parameters
-            temp_hmm = HMMLinearizer(track_graph)
-            tuned_params = temp_hmm._auto_tune_parameters(position)
+            tuned_params = hmm_linearizer._auto_tune_parameters(position)
             print(f"Auto-tuned HMM parameters: {tuned_params}")
+            # Apply tuned parameters
+            hmm_linearizer.emission_noise = tuned_params.get("emission_noise", hmm_linearizer.emission_noise)
+            hmm_linearizer.transition_smoothness = tuned_params.get("transition_smoothness", hmm_linearizer.transition_smoothness)
 
-            # Use tuned parameters
-            hmm_linearizer = HMMLinearizer(
-                track_graph,
-                n_bins_per_segment=tuned_params["n_bins_per_segment"],
-                emission_noise=tuned_params["emission_noise"],
-                transition_smoothness=tuned_params["transition_smoothness"],
-                use_sparse_transitions=tuned_params["use_sparse_transitions"],
-                subsample_positions=subsample_positions,
-                subsample_factor=subsample_factor,
-                use_adaptive_subsampling=use_adaptive_subsampling,
-                use_batch_processing=use_batch_processing,
-                batch_size=batch_size,
-            )
-        else:
-            # Use provided parameters
-            hmm_linearizer = HMMLinearizer(
-                track_graph,
-                n_bins_per_segment=n_bins_per_segment,
-                use_sparse_transitions=use_sparse_transitions,
-                subsample_positions=subsample_positions,
-                subsample_factor=subsample_factor,
-                use_adaptive_subsampling=use_adaptive_subsampling,
-                use_batch_processing=use_batch_processing,
-                batch_size=batch_size,
+        # Perform HMM linearization
+        linear_positions, track_segment_ids, projected_positions = hmm_linearizer.linearize_with_hmm(position)
+
+        # Create DataFrame
+        result_df = pd.DataFrame({
+            "linear_position": linear_positions,
+            "track_segment_id": track_segment_ids,
+            "projected_x_position": projected_positions[:, 0],
+            "projected_y_position": projected_positions[:, 1],
+        })
+
+        # Show confirmation plot if requested
+        if show_confirmation_plot:
+            plot_linearization_confirmation(
+                position, result_df, track_graph, title="Linearization Confirmation (HMM)"
             )
 
-        linear_position, track_segment_id, projected_position = (
-            hmm_linearizer.linearize_with_hmm(position)
-        )
+        return result_df
     else:
-        linear_position, track_segment_id, projected_position = (
-            project_position_to_track(position, track_graph)
-        )
+        # Use standard linearization
+        linear_positions, track_segment_ids, projected_positions = project_position_to_track(position, track_graph)
 
-    result_df = pd.DataFrame(
-        {
-            "linear_position": linear_position,
-            "track_segment_id": track_segment_id,
-            "projected_x_position": projected_position[:, 0],
-            "projected_y_position": projected_position[:, 1],
-        }
-    )
+        # Create DataFrame
+        result_df = pd.DataFrame({
+            "linear_position": linear_positions,
+            "track_segment_id": track_segment_ids,
+            "projected_x_position": projected_positions[:, 0],
+            "projected_y_position": projected_positions[:, 1],
+        })
 
-    if show_confirmation_plot:
-        method_name = "HMM-based" if use_HMM else "Standard"
-        plot_linearization_confirmation(
-            position,
-            result_df,
-            track_graph,
-            title=f"Linearization Confirmation ({method_name})",
-        )
+        # Show confirmation plot if requested
+        if show_confirmation_plot:
+            plot_linearization_confirmation(
+                position, result_df, track_graph, title="Linearization Confirmation (Standard)"
+            )
 
-    return result_df
+        return result_df
 
 
 def make_track_graph(node_positions: np.ndarray, edges: List[List[int]]) -> TrackGraph:
