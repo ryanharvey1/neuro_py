@@ -33,7 +33,6 @@ dependencies = [
     "nelpy @ git+https://github.com/nelpy/nelpy.git",
     "lazy-loader>=0.4",
     "PyWavelets>=1.6.0",
-    "track-linearization @ git+https://github.com/LorenFrankLab/track_linearization.git",
     "Bottleneck>=1.4.2",
     "tensorboard>=2.18.0",
     "lightning>=2.4.0",

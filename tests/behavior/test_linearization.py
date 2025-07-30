@@ -3,10 +3,14 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
+# Set matplotlib to use non-interactive backend for testing
+import matplotlib
 import numpy as np
 import pandas as pd
 import pytest
 from scipy.sparse import csr_matrix
+
+matplotlib.use("Agg")
 
 from neuro_py.behavior.linearization import (
     NodePicker,
@@ -180,7 +184,9 @@ class TestGetLinearizedPosition:
         # Test positions
         position = np.array([[2, 0], [8, 1]])
 
-        result = get_linearized_position(position, track_graph)
+        result = get_linearized_position(
+            position, track_graph, show_confirmation_plot=False
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert "linear_position" in result.columns
@@ -201,22 +207,127 @@ class TestGetLinearizedPosition:
         position = np.array([[5, 0]])
         edge_order = [[0, 1]]  # Should be ignored in our implementation
 
-        result = get_linearized_position(position, track_graph, edge_order=edge_order)
+        result = get_linearized_position(
+            position, track_graph, edge_order=edge_order, show_confirmation_plot=False
+        )
 
         assert result["linear_position"].iloc[0] == 5.0
 
     def test_get_linearized_position_with_hmm_flag(self):
-        """Test linearization with HMM flag (should be ignored)."""
+        """Test HMM-based linearization."""
         node_positions = np.array([[0, 0], [10, 0]])
         edges = [[0, 1]]
         track_graph = TrackGraph(node_positions, edges)
 
         position = np.array([[5, 0]])
 
-        result = get_linearized_position(position, track_graph, use_HMM=True)
+        result = get_linearized_position(
+            position, track_graph, use_HMM=True, show_confirmation_plot=False
+        )
 
-        # HMM flag should be ignored in our implementation
-        assert result["linear_position"].iloc[0] == 5.0
+        # HMM should provide similar results to standard linearization
+        assert result["linear_position"].iloc[0] == pytest.approx(5.0, abs=1.0)
+        assert result["track_segment_id"].iloc[0] == 0
+        assert result["projected_x_position"].iloc[0] == pytest.approx(5.0, abs=1.0)
+        assert result["projected_y_position"].iloc[0] == pytest.approx(0.0, abs=1.0)
+
+    def test_hmm_linearizer_initialization(self):
+        """Test HMMLinearizer initialization."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        node_positions = np.array([[0, 0], [10, 0], [10, 10]])
+        edges = [[0, 1], [1, 2]]
+        track_graph = TrackGraph(node_positions, edges)
+
+        hmm = HMMLinearizer(track_graph)
+
+        assert hmm.n_segments == 2
+        assert hmm.n_states > 0
+        assert hmm.transition_matrix.shape == (hmm.n_states, hmm.n_states)
+        assert len(hmm.state_to_segment) == hmm.n_states
+        assert len(hmm.state_to_position) == hmm.n_states
+
+    def test_hmm_linearizer_with_noisy_data(self):
+        """Test HMM linearization with noisy position data."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        # Create a simple track
+        node_positions = np.array([[0, 0], [10, 0], [20, 0]])
+        edges = [[0, 1], [1, 2]]
+        track_graph = TrackGraph(node_positions, edges)
+
+        hmm = HMMLinearizer(track_graph, emission_noise=2.0)
+
+        # Create noisy positions along the track
+        true_positions = np.array([[5, 0], [15, 0]])
+        noisy_positions = true_positions + np.random.normal(0, 1, true_positions.shape)
+
+        # Linearize with HMM
+        linear_pos, segment_ids, projected_pos = hmm.linearize_with_hmm(noisy_positions)
+
+        # Check results
+        assert len(linear_pos) == 2
+        assert len(segment_ids) == 2
+        assert len(projected_pos) == 2
+        assert not np.any(np.isnan(linear_pos))
+        assert not np.any(np.isnan(segment_ids))
+        assert not np.any(np.isnan(projected_pos))
+
+    def test_hmm_linearizer_with_nan_positions(self):
+        """Test HMM linearization with NaN positions."""
+        from neuro_py.behavior.linearization import HMMLinearizer
+
+        node_positions = np.array([[0, 0], [10, 0]])
+        edges = [[0, 1]]
+        track_graph = TrackGraph(node_positions, edges)
+
+        hmm = HMMLinearizer(track_graph)
+
+        # Create positions with some NaN values
+        positions = np.array([[5, 0], [np.nan, np.nan], [8, 0]])
+
+        linear_pos, segment_ids, projected_pos = hmm.linearize_with_hmm(positions)
+
+        # Check that NaN positions are handled correctly
+        assert np.isnan(linear_pos[1])
+        assert segment_ids[1] == -1
+        assert np.all(np.isnan(projected_pos[1]))
+
+        # Valid positions should be processed
+        assert not np.isnan(linear_pos[0])
+        assert not np.isnan(linear_pos[2])
+
+    def test_hmm_vs_standard_linearization(self):
+        """Test that HMM and standard linearization give reasonable results for clean data."""
+        node_positions = np.array([[0, 0], [10, 0]])
+        edges = [[0, 1]]
+        track_graph = TrackGraph(node_positions, edges)
+
+        position = np.array([[5, 0], [8, 0]])
+
+        # Standard linearization
+        result_standard = get_linearized_position(
+            position, track_graph, use_HMM=False, show_confirmation_plot=False
+        )
+
+        # HMM linearization
+        result_hmm = get_linearized_position(
+            position, track_graph, use_HMM=True, show_confirmation_plot=False
+        )
+
+        # For clean data, both methods should produce reasonable results
+        # Standard linearization should give exact projections
+        assert np.allclose(result_standard["linear_position"], [5.0, 8.0], atol=0.1)
+
+        # HMM linearization may have discretization error but should be reasonable
+        # Check that both positions are in the expected range (0-10)
+        assert np.all(result_hmm["linear_position"] >= 0)
+        assert np.all(result_hmm["linear_position"] <= 10)
+
+        # Check that both methods assign positions to the same segment
+        assert np.array_equal(
+            result_standard["track_segment_id"], result_hmm["track_segment_id"]
+        )
 
 
 class TestMakeTrackGraph:
@@ -356,7 +467,7 @@ class TestNodePicker:
             assert picker._nodes == []
             assert picker.edges == [[]]
             assert picker.node_color == "#177ee6"
-            assert picker.use_HMM is False
+            assert picker.use_HMM is True
 
     def test_node_positions_property(self):
         """Test node_positions property."""
@@ -426,8 +537,9 @@ class TestNodePicker:
     @patch("neuro_py.behavior.linearization.load_epoch")
     @patch("neuro_py.behavior.linearization.loadmat")
     @patch("neuro_py.behavior.linearization.savemat")
+    @patch("neuro_py.behavior.linearization.plot_linearization_confirmation")
     def test_format_and_save(
-        self, mock_savemat, mock_loadmat, mock_load_epoch, mock_load_behavior
+        self, mock_plot, mock_savemat, mock_loadmat, mock_load_epoch, mock_load_behavior
     ):
         """Test format_and_save method."""
         with patch("matplotlib.pyplot.gca") as mock_gca:
@@ -476,5 +588,53 @@ class TestNodePicker:
                 assert picker.edges == [[0, 1]]
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+def test_plot_linearization_confirmation_pytest():
+    """Test the linearization confirmation plot function (pytest style)."""
+    from neuro_py.behavior.linearization import (
+        get_linearized_position,
+        make_track_graph,
+        plot_linearization_confirmation,
+    )
+
+    node_positions = np.array([[0, 0], [10, 0], [10, 10], [0, 10]])
+    edges = [[0, 1], [1, 2], [2, 3], [3, 0]]
+    track_graph = make_track_graph(node_positions, edges)
+    positions = np.array([[5, 5], [8, 2], [12, 8], [2, 8]])
+    result_df = get_linearized_position(positions, track_graph, use_HMM=False)
+    plot_linearization_confirmation(positions, result_df, track_graph, show_plot=False)
+    assert True  # If we get here, the function worked without errors
+
+
+def test_get_linearized_position_with_confirmation_plot_pytest():
+    """Test linearization with confirmation plot enabled (pytest style)."""
+    from neuro_py.behavior.linearization import (
+        get_linearized_position,
+        make_track_graph,
+    )
+
+    node_positions = np.array([[0, 0], [10, 0], [10, 10], [0, 10]])
+    edges = [[0, 1], [1, 2], [2, 3], [3, 0]]
+    track_graph = make_track_graph(node_positions, edges)
+    positions = np.array([[5, 5], [8, 2], [12, 8], [2, 8]])
+    import matplotlib.pyplot as plt
+
+    original_show = plt.show
+
+    def mock_show(*args, **kwargs):
+        pass
+
+    plt.show = mock_show
+    try:
+        result_df = get_linearized_position(
+            positions, track_graph, use_HMM=False, show_confirmation_plot=True
+        )
+        assert len(result_df) == 4
+        assert "linear_position" in result_df.columns
+        assert "track_segment_id" in result_df.columns
+        assert "projected_x_position" in result_df.columns
+        assert "projected_y_position" in result_df.columns
+    finally:
+        plt.show = original_show
+
+
+# === END: Additional tests merged from neuro_py/tests/behavior/test_linearization.py ===
