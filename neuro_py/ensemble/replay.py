@@ -8,7 +8,7 @@ from nelpy import TuningCurve1D
 from nelpy.analysis import replay
 from nelpy.core import BinnedSpikeTrainArray
 from nelpy.decoding import decode1D as decode
-from numba import jit, njit
+from numba import jit, njit, prange
 
 from neuro_py.ensemble.pairwise_bias_correlation import (
     cosine_similarity_matrices,
@@ -17,7 +17,7 @@ from neuro_py.ensemble.pairwise_bias_correlation import (
 from neuro_py.process.peri_event import crossCorr
 
 
-@njit
+@njit(parallel=True, fastmath=False, cache=True)
 def __weighted_corr_2d_jit(
     weights: np.ndarray,
     x_coords: np.ndarray,
@@ -29,34 +29,15 @@ def __weighted_corr_2d_jit(
 
     # Use the same dtype as weights for internal arrays
     dtype = weights.dtype
-
     x_dim, y_dim, t_dim = weights.shape
 
-    n_points = x_dim * y_dim * t_dim
-
-    # Preallocate flattened arrays
-    w_flat = np.empty(n_points, dtype=dtype)
-    x_flat = np.empty(n_points, dtype=dtype)
-    y_flat = np.empty(n_points, dtype=dtype)
-    t_flat = np.empty(n_points, dtype=dtype)
-
-    idx = 0
-    for i in range(x_dim):
-        for j in range(y_dim):
-            for k in range(t_dim):
-                w = weights[i, j, k]
-                w_flat[idx] = w
-                x_flat[idx] = x_coords[i]
-                y_flat[idx] = y_coords[j]
-                t_flat[idx] = time_coords[k]
-                idx += 1
-
-    total_weight = np.sum(w_flat)
+    # Early exit if no valid weights
+    total_weight = np.sum(weights)
     if total_weight == 0.0:
-        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
+        nan_val = np.array(np.nan, dtype=dtype)
         return (
-            np.nan,  # First value remains float64 for consistency
-            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.nan,
+            np.full(t_dim, nan_val[()], dtype=dtype),
             np.full(t_dim, nan_val[()], dtype=dtype),
             nan_val[()],
             nan_val[()],
@@ -64,24 +45,59 @@ def __weighted_corr_2d_jit(
             nan_val[()],
         )
 
-    mean_x = np.sum(w_flat * x_flat) / total_weight
-    mean_y = np.sum(w_flat * y_flat) / total_weight
-    mean_t = np.sum(w_flat * t_flat) / total_weight
+    # Compute weighted means more efficiently
+    mean_x = 0.0
+    mean_y = 0.0
+    mean_t = 0.0
 
-    cov_xt = np.sum(w_flat * (x_flat - mean_x) * (t_flat - mean_t)) / total_weight
-    cov_yt = np.sum(w_flat * (y_flat - mean_y) * (t_flat - mean_t)) / total_weight
-    cov_tt = np.sum(w_flat * (t_flat - mean_t) ** 2) / total_weight
-    cov_xx = np.sum(w_flat * (x_flat - mean_x) ** 2) / total_weight
-    cov_yy = np.sum(w_flat * (y_flat - mean_y) ** 2) / total_weight
+    for i in prange(x_dim):
+        for j in range(y_dim):
+            for k in range(t_dim):
+                w = weights[i, j, k]
+                mean_x += w * x_coords[i]
+                mean_y += w * y_coords[j]
+                mean_t += w * time_coords[k]
 
+    mean_x /= total_weight
+    mean_y /= total_weight
+    mean_t /= total_weight
+
+    # Compute covariances efficiently
+    cov_xt = 0.0
+    cov_yt = 0.0
+    cov_tt = 0.0
+    cov_xx = 0.0
+    cov_yy = 0.0
+
+    for i in prange(x_dim):
+        for j in range(y_dim):
+            for k in range(t_dim):
+                w = weights[i, j, k]
+                dx = x_coords[i] - mean_x
+                dy = y_coords[j] - mean_y
+                dt = time_coords[k] - mean_t
+
+                cov_xt += w * dx * dt
+                cov_yt += w * dy * dt
+                cov_tt += w * dt * dt
+                cov_xx += w * dx * dx
+                cov_yy += w * dy * dy
+
+    cov_xt /= total_weight
+    cov_yt /= total_weight
+    cov_tt /= total_weight
+    cov_xx /= total_weight
+    cov_yy /= total_weight
+
+    # Compute denominators
     denom_x = np.sqrt(cov_xx * cov_tt)
     denom_y = np.sqrt(cov_yy * cov_tt)
 
     if denom_x == 0.0 or denom_y == 0.0 or cov_tt == 0.0:
-        nan_val = np.array(np.nan, dtype=dtype)  # Create NaN in correct dtype
+        nan_val = np.array(np.nan, dtype=dtype)
         return (
-            np.nan,  # First value remains float64 for consistency
-            np.full(t_dim, nan_val[()], dtype=dtype),  # Use same dtype as weights
+            np.nan,
+            np.full(t_dim, nan_val[()], dtype=dtype),
             np.full(t_dim, nan_val[()], dtype=dtype),
             nan_val[()],
             nan_val[()],
@@ -89,23 +105,29 @@ def __weighted_corr_2d_jit(
             nan_val[()],
         )
 
+    # Compute correlations and slopes
     corr_x = cov_xt / denom_x
     corr_y = cov_yt / denom_y
-
     slope_x = cov_xt / cov_tt
     slope_y = cov_yt / cov_tt
 
-    x_traj = mean_x + slope_x * (time_coords - mean_t)
-    y_traj = mean_y + slope_y * (time_coords - mean_t)
+    # Compute trajectories vectorized
+    x_traj = np.empty(t_dim, dtype=dtype)
+    y_traj = np.empty(t_dim, dtype=dtype)
 
+    for k in prange(t_dim):
+        x_traj[k] = mean_x + slope_x * (time_coords[k] - mean_t)
+        y_traj[k] = mean_y + slope_y * (time_coords[k] - mean_t)
+
+    # Compute spatiotemporal correlation
     spatiotemporal_corr = np.sqrt((corr_x**2 + corr_y**2) / 2) * np.sign(
         corr_x + corr_y
     )
 
     return (
-        spatiotemporal_corr,  # float64
-        x_traj.astype(dtype),  # Ensure consistent dtype
-        y_traj.astype(dtype),
+        spatiotemporal_corr,
+        x_traj,
+        y_traj,
         np.array(slope_x, dtype=dtype)[()],
         np.array(slope_y, dtype=dtype)[()],
         np.array(mean_x, dtype=dtype)[()],
