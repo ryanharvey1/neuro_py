@@ -140,3 +140,44 @@ def is_nested(array: np.ndarray) -> bool:
     if array.dtype != object:
         return False
     return any(isinstance(item, np.ndarray) for item in array)
+
+
+def circular_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """
+    Circular interpolation of data.
+    This function performs interpolation on circular data, such as angles, using sine and cosine.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        The x-coordinates at which to evaluate the interpolated values.
+    xp : np.ndarray
+        The x-coordinates of the data points, must be increasing.
+    fp : np.ndarray
+        The y-coordinates of the data points, same length as `xp`, [-π, π] or [0, 2π].
+
+    Returns
+    -------
+    np.ndarray
+        The interpolated values in radians, in the same range as the input fp data.
+    """
+    if len(xp) != len(fp):
+        raise ValueError("xp and fp must have the same length.")
+    if len(xp) < 2:
+        raise ValueError("At least two points are required for interpolation.")
+    if not np.all(np.diff(xp) > 0):
+        raise ValueError("xp must be strictly increasing.")
+
+    # interpolate sine and cosine components
+    s = np.interp(x, xp, np.sin(fp))
+    c = np.interp(x, xp, np.cos(fp))
+    # return the angle formed by sine and cosine
+    result = np.arctan2(s, c)
+    
+    # Detect if input data uses [0, 2π] convention instead of [-π, π]
+    # Simple heuristic: if all input values are non-negative, assume [0, 2π]
+    if np.all(fp >= 0):
+        # Convert from [-π, π] to [0, 2π]
+        result = (result + 2 * np.pi) % (2 * np.pi)
+    
+    return result
