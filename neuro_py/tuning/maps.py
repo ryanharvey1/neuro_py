@@ -34,7 +34,9 @@ class NDimensionalBinner:
         bin_edges: List[np.ndarray],
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
-        tuning_curve_sigma: Optional[Union[int, float]] = None,
+        tuning_curve_sigma: Optional[
+            Union[int, float, List[Union[int, float]], np.ndarray]
+        ] = None,
         smooth_mode: str = "reflect",
     ) -> tuple:
         """
@@ -52,8 +54,9 @@ class NDimensionalBinner:
             Minimum duration for a valid bin. Default is 0.1.
         minbgrate : Union[int, float], optional
             Minimum background firing rate. Default is 0.
-        tuning_curve_sigma : Optional[Union[int, float]], optional
-            Sigma for smoothing. Default is None (no smoothing).
+        tuning_curve_sigma : Optional[Union[int, float, List[Union[int, float]], np.ndarray]], optional
+            Sigma for smoothing. Can be a single value (used for all dimensions)
+            or an array/list with sigma values for each dimension. Default is None (no smoothing).
         smooth_mode : str, optional
             Smoothing mode. Default is "reflect".
 
@@ -110,9 +113,24 @@ class NDimensionalBinner:
         tc._occupancy = occupancy
 
         # Apply smoothing if requested
-        if tuning_curve_sigma is not None and tuning_curve_sigma > 0:
-            if hasattr(tc, "smooth"):
-                tc.smooth(sigma=tuning_curve_sigma, inplace=True, mode=smooth_mode)
+        if tuning_curve_sigma is not None:
+            # Handle array or scalar sigma values
+            if np.isscalar(tuning_curve_sigma):
+                # Single value: use for all dimensions
+                if tuning_curve_sigma > 0 and hasattr(tc, "smooth"):
+                    tc.smooth(sigma=tuning_curve_sigma, inplace=True, mode=smooth_mode)
+            else:
+                # Array/list: convert to numpy array
+                sigma_array = np.asarray(tuning_curve_sigma)
+                if len(sigma_array) != n_dims:
+                    raise ValueError(
+                        f"Length of tuning_curve_sigma array ({len(sigma_array)}) must match "
+                        f"number of dimensions ({n_dims})"
+                    )
+
+                # Check if any sigma values are positive and smooth if so
+                if np.any(sigma_array > 0) and hasattr(tc, "smooth"):
+                    tc.smooth(sigma=sigma_array, inplace=True, mode=smooth_mode)
 
         return tc, occupancy, ratemap
 
@@ -304,8 +322,9 @@ class SpatialMap(NDimensionalBinner):
         Min and max values for each dimension. Should be a list of [min, max] pairs,
         one for each dimension. If provided, takes precedence over x_minmax and y_minmax.
         Example: [[0, 100], [-50, 50], [0, 200]] for 3D data.
-    tuning_curve_sigma : Union[int, float], optional
-        Sigma for the tuning curve. Default is 3.
+    tuning_curve_sigma : Union[int, float, List[Union[int, float]], np.ndarray], optional
+        Sigma for the tuning curve. Can be a single value (used for all dimensions)
+        or an array/list with sigma values for each dimension. Default is 3.
     smooth_mode : str, optional
         Mode for smoothing curve (str) reflect, constant, nearest, mirror, wrap. Default is "reflect".
     min_duration : float, optional
@@ -378,7 +397,7 @@ class SpatialMap(NDimensionalBinner):
         dir_epoch: Optional[object] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         s_binsize: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
-        tuning_curve_sigma: Union[int, float] = 3,
+        tuning_curve_sigma: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
         x_minmax: Optional[List[Union[int, float]]] = None,
         y_minmax: Optional[List[Union[int, float]]] = None,
         dim_minmax: Optional[List[List[Union[int, float]]]] = None,
@@ -451,6 +470,26 @@ class SpatialMap(NDimensionalBinner):
                     self.dim_minmax_array[dim_idx, 1] = np.ceil(
                         np.nanmax(pos.data[dim_idx, :])
                     )
+
+        # Handle tuning_curve_sigma input: normalize to array format
+        if np.isscalar(tuning_curve_sigma):
+            # Single value: use for all dimensions
+            self.tuning_curve_sigma_array = np.full(self.dim, tuning_curve_sigma)
+        else:
+            # Array/list: convert to numpy array
+            self.tuning_curve_sigma_array = np.asarray(tuning_curve_sigma)
+            if len(self.tuning_curve_sigma_array) != self.dim:
+                raise ValueError(
+                    f"Length of tuning_curve_sigma array ({len(self.tuning_curve_sigma_array)}) must match "
+                    f"number of position dimensions ({self.dim})"
+                )
+
+        # Keep original tuning_curve_sigma for backward compatibility in some methods
+        if np.isscalar(tuning_curve_sigma):
+            self.tuning_curve_sigma = tuning_curve_sigma
+        else:
+            # For backward compatibility, use the first dimension's sigma
+            self.tuning_curve_sigma = self.tuning_curve_sigma_array[0]
 
         # Verify inputs: make sure pos and st are nelpy objects
         if not isinstance(
@@ -563,7 +602,7 @@ class SpatialMap(NDimensionalBinner):
                 bin_edges=bin_edges,
                 min_duration=self.min_duration,
                 minbgrate=self.minbgrate,
-                tuning_curve_sigma=self.tuning_curve_sigma,
+                tuning_curve_sigma=self.tuning_curve_sigma_array,
                 smooth_mode=self.smooth_mode,
             )
             return tc, st_run
@@ -733,7 +772,7 @@ class SpatialMap(NDimensionalBinner):
                 bin_edges=bin_edges,
                 min_duration=self.min_duration,
                 minbgrate=self.minbgrate,
-                tuning_curve_sigma=self.tuning_curve_sigma,
+                tuning_curve_sigma=self.tuning_curve_sigma_array,
                 smooth_mode=self.smooth_mode,
             )
             return tc, st_run
@@ -904,7 +943,7 @@ class SpatialMap(NDimensionalBinner):
             bin_edges=bin_edges,
             min_duration=self.min_duration,
             minbgrate=self.minbgrate,
-            tuning_curve_sigma=self.tuning_curve_sigma,
+            tuning_curve_sigma=self.tuning_curve_sigma_array,
             smooth_mode=self.smooth_mode,
         )
 
