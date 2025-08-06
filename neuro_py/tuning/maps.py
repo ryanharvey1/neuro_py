@@ -101,59 +101,11 @@ class NDimensionalBinner:
                 ext_nx=len(bin_edges[0]) - 1,
             )
         else:
-            # For N-dimensional (N > 2), create a custom TuningCurveND class
-            class TuningCurveND:
-                def __init__(self, ratemap, bin_edges, occupancy):
-                    self.ratemap = ratemap
-                    self.bin_edges = bin_edges
-                    self.n_dims = len(bin_edges)
-                    self.shape = ratemap.shape
-                    self._occupancy = occupancy
-                    self.n_units = ratemap.shape[0]
-                    self.isempty = ratemap.size == 0
-
-                def spatial_information(self):
-                    # Basic spatial information calculation for ND
-                    # This is a simplified version - could be enhanced
-                    total_occupancy = np.sum(occupancy)
-                    if total_occupancy == 0:
-                        return np.zeros(self.ratemap.shape[0])
-
-                    pi = occupancy / total_occupancy
-                    # Flatten all spatial dimensions for mean calculation
-                    spatial_dims = tuple(range(1, len(self.ratemap.shape)))
-                    mean_rate = np.nanmean(self.ratemap, axis=spatial_dims)
-
-                    info = np.zeros(self.ratemap.shape[0])
-                    for unit in range(self.ratemap.shape[0]):
-                        if mean_rate[unit] > 0:
-                            rate_ratio = self.ratemap[unit] / mean_rate[unit]
-                            rate_ratio[rate_ratio <= 0] = 1e-10  # Avoid log(0)
-                            # Flatten pi to match flattened rate_ratio
-                            pi_flat = pi.flatten()
-                            rate_ratio_flat = rate_ratio.flatten()
-                            info[unit] = np.nansum(
-                                pi_flat * rate_ratio_flat * np.log2(rate_ratio_flat)
-                            )
-                    return info
-
-                def spatial_sparsity(self):
-                    # Basic spatial sparsity calculation for ND
-                    spatial_dims = tuple(range(1, len(self.ratemap.shape)))
-                    mean_rate = np.nanmean(self.ratemap, axis=spatial_dims)
-                    mean_sq_rate = np.nanmean(self.ratemap**2, axis=spatial_dims)
-
-                    sparsity = np.zeros(self.ratemap.shape[0])
-                    for unit in range(self.ratemap.shape[0]):
-                        if mean_sq_rate[unit] > 0:
-                            sparsity[unit] = (mean_rate[unit] ** 2) / mean_sq_rate[unit]
-                    return sparsity
-
-                @property
-                def occupancy(self):
-                    return self._occupancy
-
-            tc = TuningCurveND(ratemap, bin_edges, occupancy)
+            # For N-dimensional (N > 2), use nelpy's TuningCurveND class
+            # Calculate extents for each dimension
+            ext_min = [bin_edges[i][0] for i in range(n_dims)]
+            ext_max = [bin_edges[i][-1] for i in range(n_dims)]
+            tc = nel.TuningCurveND(ratemap=ratemap, ext_min=ext_min, ext_max=ext_max)
 
         tc._occupancy = occupancy
 
@@ -341,12 +293,17 @@ class SpatialMap(NDimensionalBinner):
         Epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*.
     speed_thres : Union[int, float], optional
         Speed threshold for running. Default is 4.
-    s_binsize : Union[int, float], optional
-        Bin size for the spatial map. Default is 3.
+    s_binsize : Union[int, float, List[Union[int, float]], np.ndarray], optional
+        Bin size for the spatial map. Can be a single value (used for all dimensions)
+        or an array/list with bin sizes for each dimension. Default is 3.
     x_minmax : Optional[List[Union[int, float]]], optional
         Min and max x values for the spatial map.
     y_minmax : Optional[List[Union[int, float]]], optional
         Min and max y values for the spatial map.
+    dim_minmax : Optional[List[List[Union[int, float]]]], optional
+        Min and max values for each dimension. Should be a list of [min, max] pairs,
+        one for each dimension. If provided, takes precedence over x_minmax and y_minmax.
+        Example: [[0, 100], [-50, 50], [0, 200]] for 3D data.
     tuning_curve_sigma : Union[int, float], optional
         Sigma for the tuning curve. Default is 3.
     smooth_mode : str, optional
@@ -398,6 +355,18 @@ class SpatialMap(NDimensionalBinner):
     ----
     Place field detector currently collects field width and peak rate for peak place field.
     In the future, these should be stored for all sub fields.
+
+    Examples
+    --------
+    >>> import nelpy as nel
+    >>> from neuro_py.tuning.maps import SpatialMap
+    >>> # Create synthetic position and spike data
+    >>> pos = nel.AnalogSignalArray(data=np.random.rand(2, 1000)*20, timestamps=np.linspace(0, 100, 1000))
+    >>> st = nel.SpikeTrainArray(time=np.sort(np.random.rand(10, 1000), axis=1), fs=1000.0)
+    >>> # Create a spatial map with 3 cm bins
+    >>> spatial_map = SpatialMap(pos=pos, st=st, s_binsize=3)
+    >>> print(spatial_map)
+    <TuningCurve2D at 0x21ea37a9110> with shape (10, 7, 7)
     """
 
     def __init__(
@@ -408,10 +377,11 @@ class SpatialMap(NDimensionalBinner):
         dim: Optional[int] = None,  # deprecated
         dir_epoch: Optional[object] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
-        s_binsize: Union[int, float] = 3,
+        s_binsize: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
         tuning_curve_sigma: Union[int, float] = 3,
         x_minmax: Optional[List[Union[int, float]]] = None,
         y_minmax: Optional[List[Union[int, float]]] = None,
+        dim_minmax: Optional[List[List[Union[int, float]]]] = None,
         smooth_mode: str = "reflect",
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
@@ -429,6 +399,58 @@ class SpatialMap(NDimensionalBinner):
         # add all the inputs to self
         self.__dict__.update(locals())
         del self.__dict__["self"]
+
+        # Handle s_binsize input: normalize to array format
+        self.dim = pos.n_signals
+        if np.isscalar(s_binsize):
+            # Single value: use for all dimensions
+            self.s_binsize_array = np.full(self.dim, s_binsize)
+        else:
+            # Array/list: convert to numpy array
+            self.s_binsize_array = np.asarray(s_binsize)
+            if len(self.s_binsize_array) != self.dim:
+                raise ValueError(
+                    f"Length of s_binsize array ({len(self.s_binsize_array)}) must match "
+                    f"number of position dimensions ({self.dim})"
+                )
+
+        # Keep original s_binsize for backward compatibility in some methods
+        if np.isscalar(s_binsize):
+            self.s_binsize = s_binsize
+        else:
+            # For backward compatibility, use the first dimension's bin size
+            self.s_binsize = self.s_binsize_array[0]
+
+        # Handle dim_minmax input: normalize min/max values for each dimension
+        if dim_minmax is not None:
+            # Convert to numpy array for easier handling
+            self.dim_minmax_array = np.asarray(dim_minmax)
+            if self.dim_minmax_array.shape != (self.dim, 2):
+                raise ValueError(
+                    f"dim_minmax must be a list of [min, max] pairs with shape ({self.dim}, 2), "
+                    f"got shape {self.dim_minmax_array.shape}"
+                )
+            # Override x_minmax and y_minmax if provided
+            if self.dim >= 1:
+                self.x_minmax = list(self.dim_minmax_array[0])
+            if self.dim >= 2:
+                self.y_minmax = list(self.dim_minmax_array[1])
+        else:
+            # Create dim_minmax_array from existing x_minmax, y_minmax, or auto-determine
+            self.dim_minmax_array = np.zeros((self.dim, 2))
+            for dim_idx in range(self.dim):
+                if dim_idx == 0 and self.x_minmax is not None:
+                    self.dim_minmax_array[dim_idx] = self.x_minmax
+                elif dim_idx == 1 and self.y_minmax is not None:
+                    self.dim_minmax_array[dim_idx] = self.y_minmax
+                else:
+                    # Auto-determine min/max for this dimension
+                    self.dim_minmax_array[dim_idx, 0] = np.floor(
+                        np.nanmin(pos.data[dim_idx, :])
+                    )
+                    self.dim_minmax_array[dim_idx, 1] = np.ceil(
+                        np.nanmax(pos.data[dim_idx, :])
+                    )
 
         # Verify inputs: make sure pos and st are nelpy objects
         if not isinstance(
@@ -525,13 +547,12 @@ class SpatialMap(NDimensionalBinner):
         else:
             pos_run = self.pos[self.run_epochs]
 
-        if self.x_minmax is None:
-            x_max = np.ceil(np.nanmax(self.pos.data))
-            x_min = np.floor(np.nanmin(self.pos.data))
-        else:
-            x_min, x_max = self.x_minmax
+        # Use dimension-specific min/max values (dimension 0 for 1D)
+        x_min, x_max = self.dim_minmax_array[0]
 
-        self.x_edges = np.arange(x_min, x_max + self.s_binsize, self.s_binsize)
+        # Use dimension-specific bin size for x-axis (dimension 0)
+        x_binsize = self.s_binsize_array[0]
+        self.x_edges = np.arange(x_min, x_max + x_binsize, x_binsize)
 
         # Use new base class method if requested
         if use_base_class:
@@ -692,26 +713,16 @@ class SpatialMap(NDimensionalBinner):
         else:
             pos_run = self.pos[self.run_epochs]
 
-        # get xy max min
-        if self.x_minmax is None:
-            ext_xmin, ext_xmax = (
-                np.floor(np.nanmin(self.pos.data[0, :])),
-                np.ceil(np.nanmax(self.pos.data[0, :])),
-            )
-        else:
-            ext_xmin, ext_xmax = self.x_minmax
-
-        if self.y_minmax is None:
-            ext_ymin, ext_ymax = (
-                np.floor(np.nanmin(self.pos.data[1, :])),
-                np.ceil(np.nanmax(self.pos.data[1, :])),
-            )
-        else:
-            ext_ymin, ext_ymax = self.y_minmax
+        # Use dimension-specific min/max values
+        ext_xmin, ext_xmax = self.dim_minmax_array[0]
+        ext_ymin, ext_ymax = self.dim_minmax_array[1]
 
         # create bin edges
-        self.x_edges = np.arange(ext_xmin, ext_xmax + self.s_binsize, self.s_binsize)
-        self.y_edges = np.arange(ext_ymin, ext_ymax + self.s_binsize, self.s_binsize)
+        # Use dimension-specific bin sizes
+        x_binsize = self.s_binsize_array[0]
+        y_binsize = self.s_binsize_array[1]
+        self.x_edges = np.arange(ext_xmin, ext_xmax + x_binsize, x_binsize)
+        self.y_edges = np.arange(ext_ymin, ext_ymax + y_binsize, y_binsize)
 
         # Use new base class method if requested
         if use_base_class:
@@ -873,16 +884,12 @@ class SpatialMap(NDimensionalBinner):
         # Create bin edges for each dimension
         bin_edges = []
         for dim_idx in range(self.dim):
-            if dim_idx == 0 and self.x_minmax is not None:
-                dim_min, dim_max = self.x_minmax
-            elif dim_idx == 1 and self.y_minmax is not None:
-                dim_min, dim_max = self.y_minmax
-            else:
-                # Auto-determine min/max for other dimensions
-                dim_min = np.floor(np.nanmin(self.pos.data[dim_idx, :]))
-                dim_max = np.ceil(np.nanmax(self.pos.data[dim_idx, :]))
+            # Use dimension-specific min/max from dim_minmax_array
+            dim_min, dim_max = self.dim_minmax_array[dim_idx]
 
-            edges = np.arange(dim_min, dim_max + self.s_binsize, self.s_binsize)
+            # Use dimension-specific bin size
+            dim_binsize = self.s_binsize_array[dim_idx]
+            edges = np.arange(dim_min, dim_max + dim_binsize, dim_binsize)
             bin_edges.append(edges)
 
         # Store bin edges for compatibility with existing code
@@ -1017,17 +1024,22 @@ class SpatialMap(NDimensionalBinner):
         mask = []
 
         if self.place_field_max_size is None and self.dim == 1:
-            self.place_field_max_size = self.tc.n_bins * self.s_binsize
+            # For 1D, use the bin size for dimension 0
+            self.place_field_max_size = self.tc.n_bins * self.s_binsize_array[0]
         elif self.place_field_max_size is None and self.dim == 2:
-            self.place_field_max_size = self.tc.n_bins * self.s_binsize
+            # For 2D, use the average of both dimensions or the maximum
+            avg_binsize = np.mean(self.s_binsize_array[:2])
+            self.place_field_max_size = self.tc.n_bins * avg_binsize
 
         if self.dim == 1:
+            # Use bin size for dimension 0 (x-axis)
+            x_binsize = self.s_binsize_array[0]
             for ratemap_ in self.tc.ratemap:
                 map_fields = fields.map_stats2(
                     ratemap_,
                     threshold=self.place_field_thres,
-                    min_size=self.place_field_min_size / self.s_binsize,
-                    max_size=self.place_field_max_size / self.s_binsize,
+                    min_size=self.place_field_min_size / x_binsize,
+                    max_size=self.place_field_max_size / x_binsize,
                     min_peak=self.place_field_min_peak,
                     sigma=self.place_field_sigma,
                 )
@@ -1037,21 +1049,21 @@ class SpatialMap(NDimensionalBinner):
                     mask.append(map_fields["fields"])
                 else:
                     field_width.append(
-                        np.array(map_fields["sizes"]).max()
-                        * len(ratemap_)
-                        * self.s_binsize
+                        np.array(map_fields["sizes"]).max() * len(ratemap_) * x_binsize
                     )
                     peak_rate.append(np.array(map_fields["peaks"]).max())
                     mask.append(map_fields["fields"])
 
         if self.dim == 2:
+            # Use average of x and y bin sizes for 2D field calculations
+            avg_binsize = np.mean(self.s_binsize_array[:2])
             for ratemap_ in self.tc.ratemap:
                 peaks = fields.compute_2d_place_fields(
                     ratemap_,
                     min_firing_rate=self.place_field_min_peak,
                     thresh=self.place_field_thres,
-                    min_size=(self.place_field_min_size / self.s_binsize),
-                    max_size=(self.place_field_max_size / self.s_binsize),
+                    min_size=(self.place_field_min_size / avg_binsize),
+                    max_size=(self.place_field_max_size / avg_binsize),
                     sigma=self.place_field_sigma,
                 )
                 # field coords of fields using contours
@@ -1067,9 +1079,7 @@ class SpatialMap(NDimensionalBinner):
                     peak_rate.append(np.nan)
                     mask.append(peaks)
                 else:
-                    field_width.append(
-                        np.max(pdist(bc[0], "euclidean")) * self.s_binsize
-                    )
+                    field_width.append(np.max(pdist(bc[0], "euclidean")) * avg_binsize)
                     # field_ids = np.unique(peaks)
                     peak_rate.append(ratemap_[peaks == 1].max())
                     mask.append(peaks)
