@@ -636,3 +636,93 @@ def test_dim_minmax():
 
     assert spatial_map_2d.dim_minmax_array.shape == (2, 2)
     assert np.array_equal(spatial_map_2d.dim_minmax_array, np.array(dim_minmax_2d))
+
+
+def test_tuning_curve_sigma_array():
+    """Test tuning_curve_sigma array functionality for dimension-specific smoothing."""
+    # Create 3D position data
+    n_samples = 1000
+    timestamps = np.linspace(0, 100, n_samples)
+    x_pos = np.random.uniform(-50, 50, n_samples)
+    y_pos = np.random.uniform(-30, 30, n_samples)
+    z_pos = np.random.uniform(-10, 50, n_samples)
+    pos_data = np.vstack([x_pos, y_pos, z_pos])
+    
+    pos = nel.AnalogSignalArray(data=pos_data, timestamps=timestamps)
+    
+    # Create spike data
+    spike_times_list = []
+    for unit in range(3):
+        spike_times = np.sort(np.random.uniform(0, 100, 50))
+        spike_times_list.append(spike_times)
+    
+    st = nel.SpikeTrainArray(spike_times_list)
+    
+    # Test with scalar tuning_curve_sigma (backward compatibility)
+    spatial_map_scalar = SpatialMap(
+        pos=pos,
+        st=st,
+        s_binsize=5.0,
+        tuning_curve_sigma=2.5,
+        speed_thres=0,
+    )
+    
+    # Should create array with same value for all dimensions
+    assert hasattr(spatial_map_scalar, 'tuning_curve_sigma_array')
+    assert spatial_map_scalar.tuning_curve_sigma_array.shape == (3,)
+    assert np.all(spatial_map_scalar.tuning_curve_sigma_array == 2.5)
+    assert spatial_map_scalar.tuning_curve_sigma == 2.5  # Backward compatibility
+    
+    # Test with array tuning_curve_sigma
+    sigma_array = [1.0, 2.0, 3.0]  # Different sigma for each dimension
+    spatial_map_array = SpatialMap(
+        pos=pos,
+        st=st,
+        s_binsize=5.0,
+        tuning_curve_sigma=sigma_array,
+        speed_thres=0,
+    )
+    
+    assert hasattr(spatial_map_array, 'tuning_curve_sigma_array')
+    assert spatial_map_array.tuning_curve_sigma_array.shape == (3,)
+    assert np.array_equal(spatial_map_array.tuning_curve_sigma_array, np.array(sigma_array))
+    assert spatial_map_array.tuning_curve_sigma == 1.0  # Should use first dimension for backward compatibility
+    
+    # Test with numpy array
+    sigma_numpy = np.array([0.5, 1.5, 2.5])
+    spatial_map_numpy = SpatialMap(
+        pos=pos,
+        st=st,
+        s_binsize=5.0,
+        tuning_curve_sigma=sigma_numpy,
+        speed_thres=0,
+    )
+    
+    assert np.array_equal(spatial_map_numpy.tuning_curve_sigma_array, sigma_numpy)
+    
+    # Test error case: wrong array length
+    with pytest.raises(ValueError, match="Length of tuning_curve_sigma array .* must match"):
+        wrong_sigma = [1.0, 2.0]  # Only 2 values for 3D data
+        SpatialMap(
+            pos=pos, st=st, s_binsize=5.0, tuning_curve_sigma=wrong_sigma, speed_thres=0
+        )
+    
+    # Test with 2D data
+    pos_2d = nel.AnalogSignalArray(data=pos_data[:2], timestamps=timestamps)
+    sigma_2d = [1.5, 2.5]
+    spatial_map_2d = SpatialMap(
+        pos=pos_2d, st=st, tuning_curve_sigma=sigma_2d, speed_thres=0
+    )
+    
+    assert spatial_map_2d.tuning_curve_sigma_array.shape == (2,)
+    assert np.array_equal(spatial_map_2d.tuning_curve_sigma_array, np.array(sigma_2d))
+    
+    # Test that N-dimensional mapping works with dimension-specific smoothing
+    tc_3d, st_run_3d = spatial_map_array.map_nd()
+    
+    # Should return a TuningCurveND object
+    assert isinstance(tc_3d, nel.TuningCurveND)
+    assert tc_3d.n_units == st.n_units
+    # Check that it has the expected number of dimensions in the ratemap shape
+    assert len(tc_3d.ratemap.shape) == 4  # (n_units, dim1, dim2, dim3)
+    assert tc_3d.ratemap.shape[0] == st.n_units
