@@ -29,8 +29,8 @@ class NDimensionalBinner:
 
     def create_nd_tuning_curve(
         self,
-        st_data: object,
-        pos_data: object,
+        st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
         bin_edges: List[np.ndarray],
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
@@ -45,9 +45,9 @@ class NDimensionalBinner:
         Parameters
         ----------
         st_data : object
-            Spike train data (nelpy.SpikeTrain or nelpy.AnalogSignal).
+            Spike train data (nelpy.SpikeTrainArray or nelpy.AnalogSignalArray).
         pos_data : object
-            Position data (nelpy.AnalogSignal or nel.PositionArray).
+            Position data (nelpy.AnalogSignalArray or nelpy.PositionArray).
         bin_edges : List[np.ndarray]
             List of bin edges for each dimension.
         min_duration : float, optional
@@ -135,7 +135,9 @@ class NDimensionalBinner:
         return tc, occupancy, ratemap
 
     def _compute_occupancy_nd(
-        self, pos_data: object, bin_edges: List[np.ndarray]
+        self,
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
+        bin_edges: List[np.ndarray],
     ) -> np.ndarray:
         """
         Compute N-dimensional occupancy.
@@ -173,8 +175,8 @@ class NDimensionalBinner:
 
     def _compute_ratemap_nd(
         self,
-        st_data: object,
-        pos_data: object,
+        st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
         occupancy: np.ndarray,
         bin_edges: List[np.ndarray],
     ) -> np.ndarray:
@@ -183,9 +185,9 @@ class NDimensionalBinner:
 
         Parameters
         ----------
-        st_data : object
+        st_data : Union[nel.SpikeTrainArray, nel.AnalogSignalArray]
             Spike train data.
-        pos_data : object
+        pos_data : Union[nel.AnalogSignalArray, nel.PositionArray]
             Position data.
         occupancy : np.ndarray
             Occupancy array.
@@ -544,14 +546,16 @@ class SpatialMap(NDimensionalBinner):
         # self.find_fields()
 
     def map_1d(
-        self, pos: Optional[object] = None, use_base_class: bool = False
+        self,
+        pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
+        use_base_class: bool = False,
     ) -> tuple:
         """Maps 1D data for the spatial tuning curve.
 
         Parameters
         ----------
-        pos : Optional[object]
-            Position data for shuffling.
+        pos : Optional[Union[nel.AnalogSignalArray, nel.PositionArray]]
+            Position data.
         use_base_class : bool, optional
             Whether to use the new NDimensionalBinner base class functionality.
             Default is False to maintain backward compatibility.
@@ -719,14 +723,16 @@ class SpatialMap(NDimensionalBinner):
         return ratemap
 
     def map_2d(
-        self, pos: Optional[object] = None, use_base_class: bool = False
+        self,
+        pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
+        use_base_class: bool = False,
     ) -> tuple:
         """Maps 2D data for the spatial tuning curve.
 
         Parameters
         ----------
-        pos : Optional[object]
-            Position data for shuffling.
+        pos : Union[nel.AnalogSignalArray, nel.PositionArray]
+            Position data.
         use_base_class : bool, optional
             Whether to use the new NDimensionalBinner base class functionality.
             Default is False to maintain backward compatibility.
@@ -891,13 +897,15 @@ class SpatialMap(NDimensionalBinner):
 
         return ratemap
 
-    def map_nd(self, pos: Optional[object] = None) -> tuple:
+    def map_nd(
+        self, pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None
+    ) -> tuple:
         """Maps N-dimensional data for the spatial tuning curve using the base class.
 
         Parameters
         ----------
-        pos : Optional[object]
-            Position data for shuffling.
+        pos : Optional[Union[nel.AnalogSignalArray, nel.PositionArray]]
+            Position data.
 
         Returns
         -------
