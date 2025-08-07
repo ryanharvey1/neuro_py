@@ -731,3 +731,111 @@ def test_tuning_curve_sigma_array():
     # Check that it has the expected number of dimensions in the ratemap shape
     assert len(tc_3d.ratemap.shape) == 4  # (n_units, dim1, dim2, dim3)
     assert tc_3d.ratemap.shape[0] == st.n_units
+
+
+def test_spatial_map_continuous_multidimensional():
+    """Test SpatialMap with continuous signals (AnalogSignalArray) and multi-dimensional positions."""
+    # Set random seed for reproducibility
+    np.random.seed(42)
+
+    # Create 3D position data
+    n_samples = 1000
+    timestamps = np.linspace(0, 100, n_samples)
+    x_pos = np.sin(timestamps * 0.1) * 50 + 50  # x: 0 to 100
+    y_pos = np.cos(timestamps * 0.1) * 30 + 30  # y: 0 to 60
+    z_pos = np.sin(timestamps * 0.05) * 20 + 20  # z: 0 to 40
+    pos_data = np.vstack([x_pos, y_pos, z_pos])
+
+    pos = nel.AnalogSignalArray(data=pos_data, timestamps=timestamps)
+
+    # Create continuous signal data (AnalogSignalArray) with multiple units
+    # Use different patterns for each unit to test mapping
+    n_units = 3
+    signal_data = []
+    for unit in range(n_units):
+        # Create different signal patterns for each unit
+        signal = np.sin(timestamps * (0.1 + unit * 0.05)) * (unit + 1) + (unit + 1)
+        signal_data.append(signal)
+
+    signal_data = np.vstack(signal_data)
+    continuous_signals = nel.AnalogSignalArray(data=signal_data, timestamps=timestamps)
+
+    # Create SpatialMap with 3D position and continuous signals
+    spatial_map_3d_continuous = SpatialMap(
+        pos=pos,
+        st=continuous_signals,  # Using continuous signals instead of spike trains
+        s_binsize=10.0,  # Use larger bins for 3D
+        speed_thres=0,  # No speed threshold
+        tuning_curve_sigma=0,  # No smoothing for cleaner test
+    )
+
+    # Test basic properties
+    assert spatial_map_3d_continuous.dim == 3
+    assert spatial_map_3d_continuous.n_units == n_units
+    assert (
+        len(spatial_map_3d_continuous.ratemap.shape) == 4
+    )  # (n_units, x_bins, y_bins, z_bins)
+    assert spatial_map_3d_continuous.isempty is False
+    assert spatial_map_3d_continuous.occupancy.sum() > 0
+    assert spatial_map_3d_continuous.ratemap.min() >= 0
+    assert spatial_map_3d_continuous.ratemap.max() > 0
+
+    # Test that the tuning curve is properly created
+    assert isinstance(spatial_map_3d_continuous.tc, nel.TuningCurveND)
+    assert spatial_map_3d_continuous.tc.n_units == n_units
+
+    # Test that ratemap has non-zero values (continuous signals should create activity)
+    assert np.count_nonzero(spatial_map_3d_continuous.ratemap) > 0
+
+    # Test that different units have different activity patterns
+    unit_max_rates = [
+        np.max(spatial_map_3d_continuous.ratemap[i]) for i in range(n_units)
+    ]
+    assert len(set(unit_max_rates)) > 1, (
+        "Different units should have different max rates"
+    )
+
+    # Test that occupancy is computed correctly for 3D
+    # For 3D, we need to calculate the expected shape from the position data bounds and bin sizes
+    # Since z_edges isn't stored as an attribute, we calculate it directly
+    z_min, z_max = spatial_map_3d_continuous.dim_minmax_array[2]
+    z_binsize = spatial_map_3d_continuous.s_binsize_array[2]
+    z_bins = len(np.arange(z_min, z_max + z_binsize, z_binsize)) - 1
+
+    expected_occupancy_shape = (
+        len(spatial_map_3d_continuous.x_edges) - 1,
+        len(spatial_map_3d_continuous.y_edges) - 1,
+        z_bins,
+    )
+    assert spatial_map_3d_continuous.occupancy.shape == expected_occupancy_shape
+
+    # Test with dimension-specific bin sizes for continuous signals
+    bin_sizes_3d = [5.0, 8.0, 12.0]  # Different bin size for each dimension
+    spatial_map_3d_varied_bins = SpatialMap(
+        pos=pos,
+        st=continuous_signals,
+        s_binsize=bin_sizes_3d,
+        speed_thres=0,
+        tuning_curve_sigma=0,
+    )
+
+    # Verify that different bin sizes are used
+    assert np.isclose(np.diff(spatial_map_3d_varied_bins.x_edges)[0], 5.0), (
+        "X bin size should be 5.0"
+    )
+    assert np.isclose(np.diff(spatial_map_3d_varied_bins.y_edges)[0], 8.0), (
+        "Y bin size should be 8.0"
+    )
+    # For z dimension, calculate the edges manually since z_edges isn't stored as an attribute
+    z_min_varied, z_max_varied = spatial_map_3d_varied_bins.dim_minmax_array[2]
+    z_binsize_varied = spatial_map_3d_varied_bins.s_binsize_array[2]
+    z_edges_varied = np.arange(
+        z_min_varied, z_max_varied + z_binsize_varied, z_binsize_varied
+    )
+    assert np.isclose(np.diff(z_edges_varied)[0], 12.0), "Z bin size should be 12.0"
+
+    # Test that ratemap shapes are different due to different bin sizes
+    assert (
+        spatial_map_3d_continuous.ratemap.shape
+        != spatial_map_3d_varied_bins.ratemap.shape
+    )
