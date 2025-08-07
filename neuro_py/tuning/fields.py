@@ -4,10 +4,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndimage
-import scipy.ndimage.filters as filters
+from scipy import ndimage
 from scipy.interpolate import interp1d
-from scipy.ndimage import gaussian_filter1d, label
-from scipy.ndimage.filters import gaussian_filter, maximum_filter
 
 
 def detect_firing_fields(
@@ -91,7 +89,7 @@ def find_peaks(image: np.ndarray) -> np.ndarray:
     """
     image = image.copy()
     image[~np.isfinite(image)] = 0
-    image_max = filters.maximum_filter(image, 3)
+    image_max = ndimage.maximum_filter(image, 3)
     is_maxima = image == image_max
     labels, num_objects = ndimage.label(is_maxima)
     indices = np.arange(1, num_objects + 1)
@@ -751,14 +749,14 @@ def compute_2d_place_fields(
     firing_rate_orig = firing_rate.copy()
 
     if sigma is not None:
-        firing_rate = gaussian_filter(firing_rate, sigma)
+        firing_rate = ndimage.gaussian_filter(firing_rate, sigma)
 
-    local_maxima_inds = firing_rate == maximum_filter(firing_rate, 3)
+    local_maxima_inds = firing_rate == ndimage.maximum_filter(firing_rate, 3)
     receptive_fields = np.zeros(firing_rate.shape, dtype=int)
     n_receptive_fields = 0
     firing_rate = firing_rate.copy()
     for local_max in np.flipud(np.sort(firing_rate[local_maxima_inds])):
-        labeled_image, num_labels = label(
+        labeled_image, num_labels = ndimage.label(
             firing_rate > max(local_max * thresh, min_firing_rate)
         )
 
@@ -803,7 +801,7 @@ def find_field(
     """
     mm = np.max(firing_rate)
 
-    labeled_image, num_labels = label(firing_rate > threshold)
+    labeled_image, num_labels = ndimage.label(firing_rate > threshold)
     for i in range(1, num_labels + 1):
         image_label = labeled_image == i
         if mm in firing_rate[image_label]:
@@ -884,7 +882,7 @@ def map_stats2(
         A dictionary containing the sizes, peaks, means, and fields of detected firing rate fields.
     """
     if sigma is not None:
-        firing_rate = gaussian_filter1d(firing_rate, sigma)
+        firing_rate = ndimage.gaussian_filter1d(firing_rate, sigma)
 
     if max_size is None:
         max_size = len(firing_rate)
