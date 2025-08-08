@@ -280,12 +280,9 @@ class NDimensionalBinner:
 
         # Normalize by occupancy
         # Handle division by zero
+        # Use broadcasting for occupancy normalization (avoids memory-intensive tiling)
         occupancy_expanded = np.expand_dims(occupancy, 0)  # Add unit dimension
-        occupancy_tiled = np.tile(
-            occupancy_expanded, (ratemap.shape[0],) + (1,) * n_dims
-        )
-
-        np.divide(ratemap, occupancy_tiled, where=occupancy_tiled != 0, out=ratemap)
+        np.divide(ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap)
 
         # Remove NaNs and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
