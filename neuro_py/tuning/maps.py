@@ -282,7 +282,9 @@ class NDimensionalBinner:
         # Handle division by zero
         # Use broadcasting for occupancy normalization (avoids memory-intensive tiling)
         occupancy_expanded = np.expand_dims(occupancy, 0)  # Add unit dimension
-        np.divide(ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap)
+        np.divide(
+            ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap
+        )
 
         # Remove NaNs and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
@@ -1024,6 +1026,9 @@ class SpatialMap(NDimensionalBinner):
                 return tc.spatial_information()
             elif dim == 2:
                 tc, _ = self.map_2d(pos_shuff)
+                return tc.spatial_information()
+            else:
+                tc, _ = self.map_nd(pos_shuff)
                 return tc.spatial_information()
 
         pos_data_shuff = create_shuffled_coordinates(
