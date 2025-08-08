@@ -839,3 +839,51 @@ def test_spatial_map_continuous_multidimensional():
         spatial_map_3d_continuous.ratemap.shape
         != spatial_map_3d_varied_bins.ratemap.shape
     )
+
+
+# --- Shuffling tests ---
+def test_spatial_map_shuffle_1d():
+    # Generate 1D synthetic data
+    n_samples = 1000
+    timestamps = np.linspace(0, 100, n_samples)
+    x_pos = np.sin(timestamps * 0.1) * 50 + 50
+    pos = nel.AnalogSignalArray(data=np.array([x_pos]), timestamps=timestamps)
+    spike_times = np.sort(np.random.uniform(0, 100, 200))
+    st = nel.SpikeTrainArray(time=spike_times, fs=1000.0)
+    spatial_map = SpatialMap(pos=pos, st=st, s_binsize=5.0, speed_thres=0)
+    pvals = spatial_map.shuffle_spatial_information()
+    assert pvals.shape[0] == spatial_map.n_units
+    assert np.all((pvals >= 0) & (pvals <= 1))
+
+
+def test_spatial_map_shuffle_2d():
+    # Generate 2D synthetic data
+    n_samples = 1000
+    timestamps = np.linspace(0, 100, n_samples)
+    x_pos = np.sin(timestamps * 0.1) * 50 + 50
+    y_pos = np.cos(timestamps * 0.1) * 30 + 30
+    pos = nel.AnalogSignalArray(data=np.array([x_pos, y_pos]), timestamps=timestamps)
+    spike_times = np.sort(np.random.uniform(0, 100, 200))
+    st = nel.SpikeTrainArray(time=spike_times, fs=1000.0)
+    spatial_map = SpatialMap(pos=pos, st=st, s_binsize=[5.0, 5.0], speed_thres=0)
+    pvals = spatial_map.shuffle_spatial_information()
+    assert pvals.shape[0] == spatial_map.n_units
+    assert np.all((pvals >= 0) & (pvals <= 1))
+
+
+def test_spatial_map_shuffle_nd():
+    # Generate 3D synthetic data
+    n_samples = 1000
+    timestamps = np.linspace(0, 100, n_samples)
+    x_pos = np.sin(timestamps * 0.1) * 50 + 50
+    y_pos = np.cos(timestamps * 0.1) * 30 + 30
+    z_pos = np.sin(timestamps * 0.05) * 20 + 20
+    pos = nel.AnalogSignalArray(
+        data=np.array([x_pos, y_pos, z_pos]), timestamps=timestamps
+    )
+    spike_times = np.sort(np.random.uniform(0, 100, 200))
+    st = nel.SpikeTrainArray(time=spike_times, fs=1000.0)
+    spatial_map = SpatialMap(pos=pos, st=st, s_binsize=[5.0, 8.0, 12.0], speed_thres=0)
+    pvals = spatial_map.shuffle_spatial_information()
+    assert pvals.shape[0] == spatial_map.n_units
+    assert np.all((pvals >= 0) & (pvals <= 1))
