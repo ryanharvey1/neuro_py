@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.ndimage as ndimage
 from scipy import ndimage
 from scipy.interpolate import interp1d
 
