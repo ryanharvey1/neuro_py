@@ -15,7 +15,285 @@ from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
 
 
-class SpatialMap(object):
+class NDimensionalBinner:
+    """
+    Base class for N-dimensional binning of data (point process or continuous)
+    over arbitrary dimensions.
+
+    This class provides low-level functionality to create N-dimensional tuning curves
+    by binning spike train or continuous data along multiple spatial or behavioral dimensions.
+    """
+
+    def __init__(self):
+        pass
+
+    def create_nd_tuning_curve(
+        self,
+        st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
+        bin_edges: List[np.ndarray],
+        min_duration: float = 0.1,
+        minbgrate: Union[int, float] = 0,
+        tuning_curve_sigma: Optional[
+            Union[int, float, List[Union[int, float]], np.ndarray]
+        ] = None,
+        smooth_mode: str = "reflect",
+    ) -> tuple:
+        """
+        Create an N-dimensional tuning curve from spike and position data.
+
+        Parameters
+        ----------
+        st_data : object
+            Spike train data (nelpy.SpikeTrainArray or nelpy.AnalogSignalArray).
+        pos_data : object
+            Position data (nelpy.AnalogSignalArray or nelpy.PositionArray).
+        bin_edges : List[np.ndarray]
+            List of bin edges for each dimension.
+        min_duration : float, optional
+            Minimum duration for a valid bin. Default is 0.1.
+        minbgrate : Union[int, float], optional
+            Minimum background firing rate. Default is 0.
+        tuning_curve_sigma : Optional[Union[int, float, List[Union[int, float]], np.ndarray]], optional
+            Sigma for smoothing. Can be a single value (used for all dimensions)
+            or an array/list with sigma values for each dimension. Default is None (no smoothing).
+        smooth_mode : str, optional
+            Smoothing mode. Default is "reflect".
+
+        Returns
+        -------
+        tuple
+            A tuple containing (tuning_curve, occupancy, ratemap)
+        """
+        # Determine number of dimensions
+        n_dims = len(bin_edges)
+
+        if n_dims != pos_data.n_signals:
+            raise ValueError(
+                f"Number of bin_edges ({n_dims}) must match position dimensions ({pos_data.n_signals})"
+            )
+
+        # Compute occupancy
+        occupancy = self._compute_occupancy_nd(pos_data, bin_edges)
+
+        # Compute ratemap
+        ratemap = self._compute_ratemap_nd(st_data, pos_data, occupancy, bin_edges)
+
+        # Apply minimum background firing rate (before minimum duration check)
+        ratemap[ratemap < minbgrate] = minbgrate
+
+        # Apply minimum background occupancy (after minimum background firing rate)
+        for uu in range(st_data.data.shape[0]):
+            ratemap[uu][occupancy < min_duration] = 0
+
+        # Create appropriate tuning curve object based on dimensions
+        if n_dims == 1:
+            tc = nel.TuningCurve1D(
+                ratemap=ratemap,
+                extmin=bin_edges[0][0],
+                extmax=bin_edges[0][-1],
+            )
+        elif n_dims == 2:
+            tc = nel.TuningCurve2D(
+                ratemap=ratemap,
+                ext_xmin=bin_edges[0][0],
+                ext_ymin=bin_edges[1][0],
+                ext_xmax=bin_edges[0][-1],
+                ext_ymax=bin_edges[1][-1],
+                ext_ny=len(bin_edges[1]) - 1,
+                ext_nx=len(bin_edges[0]) - 1,
+            )
+        else:
+            # For N-dimensional (N > 2), use nelpy's TuningCurveND class
+            # Calculate extents for each dimension
+            ext_min = [bin_edges[i][0] for i in range(n_dims)]
+            ext_max = [bin_edges[i][-1] for i in range(n_dims)]
+            tc = nel.TuningCurveND(ratemap=ratemap, ext_min=ext_min, ext_max=ext_max)
+
+        tc._occupancy = occupancy
+
+        # Apply smoothing if requested
+        if tuning_curve_sigma is not None:
+            # Handle array or scalar sigma values
+            if np.isscalar(tuning_curve_sigma):
+                # Single value: use for all dimensions
+                if tuning_curve_sigma > 0 and hasattr(tc, "smooth"):
+                    tc.smooth(sigma=tuning_curve_sigma, inplace=True, mode=smooth_mode)
+            else:
+                # Array/list: convert to numpy array
+                sigma_array = np.asarray(tuning_curve_sigma)
+                if len(sigma_array) != n_dims:
+                    raise ValueError(
+                        f"Length of tuning_curve_sigma array ({len(sigma_array)}) must match "
+                        f"number of dimensions ({n_dims})"
+                    )
+
+                # Check if any sigma values are positive and smooth if so
+                if np.any(sigma_array > 0) and hasattr(tc, "smooth"):
+                    tc.smooth(sigma=sigma_array, inplace=True, mode=smooth_mode)
+
+        return tc, occupancy, ratemap
+
+    def _compute_occupancy_nd(
+        self,
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
+        bin_edges: List[np.ndarray],
+    ) -> np.ndarray:
+        """
+        Compute N-dimensional occupancy.
+
+        Parameters
+        ----------
+        pos_data : object
+            Position data.
+        bin_edges : List[np.ndarray]
+            Bin edges for each dimension.
+
+        Returns
+        -------
+        np.ndarray
+            N-dimensional occupancy array.
+        """
+        n_dims = len(bin_edges)
+
+        if n_dims == 1:
+            occupancy, _ = np.histogram(pos_data.data[0, :], bins=bin_edges[0])
+        elif n_dims == 2:
+            occupancy, _, _ = np.histogram2d(
+                pos_data.data[0, :],
+                pos_data.data[1, :],
+                bins=(bin_edges[0], bin_edges[1]),
+            )
+        else:
+            # For N-dimensional histograms
+            occupancy, _ = np.histogramdd(
+                pos_data.data.T,  # Transpose to get (n_samples, n_dims)
+                bins=bin_edges,
+            )
+
+        return occupancy / pos_data.fs
+
+    def _compute_ratemap_nd(
+        self,
+        st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
+        occupancy: np.ndarray,
+        bin_edges: List[np.ndarray],
+    ) -> np.ndarray:
+        """
+        Compute N-dimensional ratemap.
+
+        Parameters
+        ----------
+        st_data : Union[nel.SpikeTrainArray, nel.AnalogSignalArray]
+            Spike train data.
+        pos_data : Union[nel.AnalogSignalArray, nel.PositionArray]
+            Position data.
+        occupancy : np.ndarray
+            Occupancy array.
+        bin_edges : List[np.ndarray]
+            Bin edges for each dimension.
+
+        Returns
+        -------
+        np.ndarray
+            N-dimensional ratemap.
+        """
+        n_dims = len(bin_edges)
+
+        # Initialize ratemap with proper shape
+        ratemap_shape = [st_data.data.shape[0]] + list(occupancy.shape)
+        ratemap = np.zeros(ratemap_shape)
+
+        if st_data.isempty:
+            return ratemap
+
+        # Remove NaNs from position data for interpolation
+        mask = ~np.isnan(pos_data.data).any(axis=0)
+        pos_clean = pos_data.data[:, mask]
+        ts_clean = pos_data.abscissa_vals[mask]
+
+        # Handle point process data (spike trains)
+        if isinstance(st_data, nel.core._eventarray.SpikeTrainArray):
+            for i in range(st_data.data.shape[0]):
+                # Interpolate spike positions
+                spike_positions = []
+                for dim in range(n_dims):
+                    spike_pos_dim = np.interp(st_data.data[i], ts_clean, pos_clean[dim])
+                    spike_positions.append(spike_pos_dim)
+
+                # Bin spikes
+                if n_dims == 1:
+                    counts, _ = np.histogram(spike_positions[0], bins=bin_edges[0])
+                    ratemap[i] = counts
+                elif n_dims == 2:
+                    counts, _, _ = np.histogram2d(
+                        spike_positions[0],
+                        spike_positions[1],
+                        bins=(bin_edges[0], bin_edges[1]),
+                    )
+                    ratemap[i] = counts
+                else:
+                    counts, _ = np.histogramdd(
+                        np.array(spike_positions).T, bins=bin_edges
+                    )
+                    ratemap[i] = counts
+
+        # Handle continuous data (analog signals)
+        elif isinstance(st_data, nel.core._analogsignalarray.AnalogSignalArray):
+            # Interpolate position at signal timestamps
+            signal_positions = []
+            for dim in range(n_dims):
+                pos_interp = np.interp(st_data.abscissa_vals, ts_clean, pos_clean[dim])
+                signal_positions.append(pos_interp)
+
+            # Get bin indices for each time point
+            bin_indices = []
+            for dim in range(n_dims):
+                bin_idx = np.digitize(signal_positions[dim], bin_edges[dim], right=True)
+                bin_indices.append(bin_idx)
+
+            # Accumulate signal values in appropriate bins
+            for tt in range(len(st_data.abscissa_vals)):
+                # Convert to 0-based indexing and ensure within bounds
+                indices = []
+                valid = True
+                for dim in range(n_dims):
+                    idx = bin_indices[dim][tt] - 1
+                    if idx < 0 or idx >= len(bin_edges[dim]) - 1:
+                        valid = False
+                        break
+                    indices.append(idx)
+
+                if valid:
+                    if n_dims == 1:
+                        ratemap[:, indices[0]] += st_data.data[:, tt]
+                    elif n_dims == 2:
+                        ratemap[:, indices[0], indices[1]] += st_data.data[:, tt]
+                    else:
+                        # For N-dimensional indexing
+                        full_indices = tuple([slice(None)] + indices)
+                        ratemap[full_indices] += st_data.data[:, tt]
+
+            # Convert from counts to rate
+            ratemap = ratemap * st_data.fs
+
+        # Normalize by occupancy
+        # Handle division by zero
+        # Use broadcasting for occupancy normalization (avoids memory-intensive tiling)
+        occupancy_expanded = np.expand_dims(occupancy, 0)  # Add unit dimension
+        np.divide(
+            ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap
+        )
+
+        # Remove NaNs and infs
+        bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
+        ratemap[bad_idx] = 0
+
+        return ratemap
+
+
+class SpatialMap(NDimensionalBinner):
     """
     SpatialMap: make a spatial map tuning curve
         maps timestamps or continuous signals onto positions
@@ -34,14 +312,20 @@ class SpatialMap(object):
         Epochs of the running direction, for linear data (nelpy.Epoch) *deprecated*.
     speed_thres : Union[int, float], optional
         Speed threshold for running. Default is 4.
-    s_binsize : Union[int, float], optional
-        Bin size for the spatial map. Default is 3.
+    s_binsize : Union[int, float, List[Union[int, float]], np.ndarray], optional
+        Bin size for the spatial map. Can be a single value (used for all dimensions)
+        or an array/list with bin sizes for each dimension. Default is 3.
     x_minmax : Optional[List[Union[int, float]]], optional
         Min and max x values for the spatial map.
     y_minmax : Optional[List[Union[int, float]]], optional
         Min and max y values for the spatial map.
-    tuning_curve_sigma : Union[int, float], optional
-        Sigma for the tuning curve. Default is 3.
+    dim_minmax : Optional[List[List[Union[int, float]]]], optional
+        Min and max values for each dimension. Should be a list of [min, max] pairs,
+        one for each dimension. If provided, takes precedence over x_minmax and y_minmax.
+        Example: [[0, 100], [-50, 50], [0, 200]] for 3D data.
+    tuning_curve_sigma : Union[int, float, List[Union[int, float]], np.ndarray], optional
+        Sigma for the tuning curve. Can be a single value (used for all dimensions)
+        or an array/list with sigma values for each dimension. Default is 3.
     smooth_mode : str, optional
         Mode for smoothing curve (str) reflect, constant, nearest, mirror, wrap. Default is "reflect".
     min_duration : float, optional
@@ -91,6 +375,18 @@ class SpatialMap(object):
     ----
     Place field detector currently collects field width and peak rate for peak place field.
     In the future, these should be stored for all sub fields.
+
+    Examples
+    --------
+    >>> import nelpy as nel
+    >>> from neuro_py.tuning.maps import SpatialMap
+    >>> # Create synthetic position and spike data
+    >>> pos = nel.AnalogSignalArray(data=np.random.rand(2, 1000)*20, timestamps=np.linspace(0, 100, 1000))
+    >>> st = nel.SpikeTrainArray(time=np.sort(np.random.rand(10, 1000), axis=1), fs=1000.0)
+    >>> # Create a spatial map with 3 cm bins
+    >>> spatial_map = SpatialMap(pos=pos, st=st, s_binsize=3)
+    >>> print(spatial_map)
+    <TuningCurve2D at 0x21ea37a9110> with shape (10, 7, 7)
     """
 
     def __init__(
@@ -101,10 +397,11 @@ class SpatialMap(object):
         dim: Optional[int] = None,  # deprecated
         dir_epoch: Optional[object] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
-        s_binsize: Union[int, float] = 3,
-        tuning_curve_sigma: Union[int, float] = 3,
+        s_binsize: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
+        tuning_curve_sigma: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
         x_minmax: Optional[List[Union[int, float]]] = None,
         y_minmax: Optional[List[Union[int, float]]] = None,
+        dim_minmax: Optional[List[List[Union[int, float]]]] = None,
         smooth_mode: str = "reflect",
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
@@ -116,9 +413,84 @@ class SpatialMap(object):
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
     ) -> None:
+        # Initialize the parent class
+        super().__init__()
+
         # add all the inputs to self
         self.__dict__.update(locals())
         del self.__dict__["self"]
+
+        # Handle s_binsize input: normalize to array format
+        self.dim = pos.n_signals
+        if np.isscalar(s_binsize):
+            # Single value: use for all dimensions
+            self.s_binsize_array = np.full(self.dim, s_binsize)
+        else:
+            # Array/list: convert to numpy array
+            self.s_binsize_array = np.asarray(s_binsize)
+            if len(self.s_binsize_array) != self.dim:
+                raise ValueError(
+                    f"Length of s_binsize array ({len(self.s_binsize_array)}) must match "
+                    f"number of position dimensions ({self.dim})"
+                )
+
+        # Keep original s_binsize for backward compatibility in some methods
+        if np.isscalar(s_binsize):
+            self.s_binsize = s_binsize
+        else:
+            # For backward compatibility, use the first dimension's bin size
+            self.s_binsize = self.s_binsize_array[0]
+
+        # Handle dim_minmax input: normalize min/max values for each dimension
+        if dim_minmax is not None:
+            # Convert to numpy array for easier handling
+            self.dim_minmax_array = np.asarray(dim_minmax)
+            if self.dim_minmax_array.shape != (self.dim, 2):
+                raise ValueError(
+                    f"dim_minmax must be a list of [min, max] pairs with shape ({self.dim}, 2), "
+                    f"got shape {self.dim_minmax_array.shape}"
+                )
+            # Override x_minmax and y_minmax if provided
+            if self.dim >= 1:
+                self.x_minmax = list(self.dim_minmax_array[0])
+            if self.dim >= 2:
+                self.y_minmax = list(self.dim_minmax_array[1])
+        else:
+            # Create dim_minmax_array from existing x_minmax, y_minmax, or auto-determine
+            self.dim_minmax_array = np.zeros((self.dim, 2))
+            for dim_idx in range(self.dim):
+                if dim_idx == 0 and self.x_minmax is not None:
+                    self.dim_minmax_array[dim_idx] = self.x_minmax
+                elif dim_idx == 1 and self.y_minmax is not None:
+                    self.dim_minmax_array[dim_idx] = self.y_minmax
+                else:
+                    # Auto-determine min/max for this dimension
+                    self.dim_minmax_array[dim_idx, 0] = np.floor(
+                        np.nanmin(pos.data[dim_idx, :])
+                    )
+                    self.dim_minmax_array[dim_idx, 1] = np.ceil(
+                        np.nanmax(pos.data[dim_idx, :])
+                    )
+
+        # Handle tuning_curve_sigma input: normalize to array format
+        if np.isscalar(tuning_curve_sigma):
+            # Single value: use for all dimensions
+            self.tuning_curve_sigma_array = np.full(self.dim, tuning_curve_sigma)
+        else:
+            # Array/list: convert to numpy array
+            self.tuning_curve_sigma_array = np.asarray(tuning_curve_sigma)
+            if len(self.tuning_curve_sigma_array) != self.dim:
+                raise ValueError(
+                    f"Length of tuning_curve_sigma array ({len(self.tuning_curve_sigma_array)}) must match "
+                    f"number of position dimensions ({self.dim})"
+                )
+
+        # Keep original tuning_curve_sigma for backward compatibility in some methods
+        if np.isscalar(tuning_curve_sigma):
+            self.tuning_curve_sigma = tuning_curve_sigma
+        else:
+            # For backward compatibility, use the first dimension's sigma
+            self.tuning_curve_sigma = self.tuning_curve_sigma_array[0]
 
         # Verify inputs: make sure pos and st are nelpy objects
         if not isinstance(
@@ -158,25 +530,34 @@ class SpatialMap(object):
         else:
             self.run_epochs = self.pos.support.copy()
 
-        # calculate maps, 1d or 2d
+        # calculate maps, 1d, 2d, or N-dimensional
         self.dim = pos.n_signals
         if pos.n_signals == 2:
             self.tc, self.st_run = self.map_2d()
         elif pos.n_signals == 1:
             self.tc, self.st_run = self.map_1d()
+        elif pos.n_signals > 2:
+            self.tc, self.st_run = self.map_nd()
         else:
-            raise ValueError("pos dims must be 1 or 2")
+            raise ValueError("pos dims must be >= 1")
 
         # find place fields. Currently only collects metrics from peak field
         # self.find_fields()
 
-    def map_1d(self, pos: Optional[object] = None) -> tuple:
+    def map_1d(
+        self,
+        pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
+        use_base_class: bool = False,
+    ) -> tuple:
         """Maps 1D data for the spatial tuning curve.
 
         Parameters
         ----------
-        pos : Optional[object]
-            Position data for shuffling.
+        pos : Optional[Union[nel.AnalogSignalArray, nel.PositionArray]]
+            Position data.
+        use_base_class : bool, optional
+            Whether to use the new NDimensionalBinner base class functionality.
+            Default is False to maintain backward compatibility.
 
         Returns
         -------
@@ -208,14 +589,28 @@ class SpatialMap(object):
         else:
             pos_run = self.pos[self.run_epochs]
 
-        if self.x_minmax is None:
-            x_max = np.ceil(np.nanmax(self.pos.data))
-            x_min = np.floor(np.nanmin(self.pos.data))
-        else:
-            x_min, x_max = self.x_minmax
+        # Use dimension-specific min/max values (dimension 0 for 1D)
+        x_min, x_max = self.dim_minmax_array[0]
 
-        self.x_edges = np.arange(x_min, x_max + self.s_binsize, self.s_binsize)
+        # Use dimension-specific bin size for x-axis (dimension 0)
+        x_binsize = self.s_binsize_array[0]
+        self.x_edges = np.arange(x_min, x_max + x_binsize, x_binsize)
 
+        # Use new base class method if requested
+        if use_base_class:
+            bin_edges = [self.x_edges]
+            tc, occupancy, ratemap = self.create_nd_tuning_curve(
+                st_data=st_run,
+                pos_data=pos_run,
+                bin_edges=bin_edges,
+                min_duration=self.min_duration,
+                minbgrate=self.minbgrate,
+                tuning_curve_sigma=self.tuning_curve_sigma_array,
+                smooth_mode=self.smooth_mode,
+            )
+            return tc, st_run
+
+        # Original implementation
         # compute occupancy
         occupancy = self.compute_occupancy_1d(pos_run)
 
@@ -326,13 +721,20 @@ class SpatialMap(object):
 
         return ratemap
 
-    def map_2d(self, pos: Optional[object] = None) -> tuple:
+    def map_2d(
+        self,
+        pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
+        use_base_class: bool = False,
+    ) -> tuple:
         """Maps 2D data for the spatial tuning curve.
 
         Parameters
         ----------
-        pos : Optional[object]
-            Position data for shuffling.
+        pos : Union[nel.AnalogSignalArray, nel.PositionArray]
+            Position data.
+        use_base_class : bool, optional
+            Whether to use the new NDimensionalBinner base class functionality.
+            Default is False to maintain backward compatibility.
 
         Returns
         -------
@@ -355,27 +757,32 @@ class SpatialMap(object):
         else:
             pos_run = self.pos[self.run_epochs]
 
-        # get xy max min
-        if self.x_minmax is None:
-            ext_xmin, ext_xmax = (
-                np.floor(np.nanmin(self.pos.data[0, :])),
-                np.ceil(np.nanmax(self.pos.data[0, :])),
-            )
-        else:
-            ext_xmin, ext_xmax = self.x_minmax
-
-        if self.y_minmax is None:
-            ext_ymin, ext_ymax = (
-                np.floor(np.nanmin(self.pos.data[1, :])),
-                np.ceil(np.nanmax(self.pos.data[1, :])),
-            )
-        else:
-            ext_ymin, ext_ymax = self.y_minmax
+        # Use dimension-specific min/max values
+        ext_xmin, ext_xmax = self.dim_minmax_array[0]
+        ext_ymin, ext_ymax = self.dim_minmax_array[1]
 
         # create bin edges
-        self.x_edges = np.arange(ext_xmin, ext_xmax + self.s_binsize, self.s_binsize)
-        self.y_edges = np.arange(ext_ymin, ext_ymax + self.s_binsize, self.s_binsize)
+        # Use dimension-specific bin sizes
+        x_binsize = self.s_binsize_array[0]
+        y_binsize = self.s_binsize_array[1]
+        self.x_edges = np.arange(ext_xmin, ext_xmax + x_binsize, x_binsize)
+        self.y_edges = np.arange(ext_ymin, ext_ymax + y_binsize, y_binsize)
 
+        # Use new base class method if requested
+        if use_base_class:
+            bin_edges = [self.x_edges, self.y_edges]
+            tc, occupancy, ratemap = self.create_nd_tuning_curve(
+                st_data=st_run,
+                pos_data=pos_run,
+                bin_edges=bin_edges,
+                min_duration=self.min_duration,
+                minbgrate=self.minbgrate,
+                tuning_curve_sigma=self.tuning_curve_sigma_array,
+                smooth_mode=self.smooth_mode,
+            )
+            return tc, st_run
+
+        # Original implementation
         # number of bins in each dimension
         ext_nx, ext_ny = len(self.x_edges), len(self.y_edges)
 
@@ -489,6 +896,66 @@ class SpatialMap(object):
 
         return ratemap
 
+    def map_nd(
+        self, pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None
+    ) -> tuple:
+        """Maps N-dimensional data for the spatial tuning curve using the base class.
+
+        Parameters
+        ----------
+        pos : Optional[Union[nel.AnalogSignalArray, nel.PositionArray]]
+            Position data.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the tuning curve and restricted spike train.
+        """
+        # restrict spike trains to those epochs during which the animal was running
+        st_run = self.st[self.run_epochs]
+
+        # log warning if st_run is empty following restriction
+        if st_run.isempty:
+            logging.warning(
+                "No spike trains during running epochs"
+            )  # This will log it but not raise a warning
+            warnings.warn("No spike trains during running epochs", UserWarning)
+
+        # take pos as input for case of shuffling
+        if pos is not None:
+            pos_run = pos[self.run_epochs]
+        else:
+            pos_run = self.pos[self.run_epochs]
+
+        # Create bin edges for each dimension
+        bin_edges = []
+        for dim_idx in range(self.dim):
+            # Use dimension-specific min/max from dim_minmax_array
+            dim_min, dim_max = self.dim_minmax_array[dim_idx]
+
+            # Use dimension-specific bin size
+            dim_binsize = self.s_binsize_array[dim_idx]
+            edges = np.arange(dim_min, dim_max + dim_binsize, dim_binsize)
+            bin_edges.append(edges)
+
+        # Store bin edges for compatibility with existing code
+        self.x_edges = bin_edges[0]
+        if len(bin_edges) > 1:
+            self.y_edges = bin_edges[1]
+
+        # Use the base class method to create the tuning curve
+        tc, occupancy, ratemap = self.create_nd_tuning_curve(
+            st_data=st_run,
+            pos_data=pos_run,
+            bin_edges=bin_edges,
+            min_duration=self.min_duration,
+            minbgrate=self.minbgrate,
+            tuning_curve_sigma=self.tuning_curve_sigma_array,
+            smooth_mode=self.smooth_mode,
+        )
+
+        return tc, st_run
+
     def shuffle_spatial_information(self) -> np.ndarray:
         """Shuffle spatial information and compute p-values for observed vs. null.
 
@@ -560,6 +1027,9 @@ class SpatialMap(object):
             elif dim == 2:
                 tc, _ = self.map_2d(pos_shuff)
                 return tc.spatial_information()
+            else:
+                tc, _ = self.map_nd(pos_shuff)
+                return tc.spatial_information()
 
         pos_data_shuff = create_shuffled_coordinates(
             self.pos.data, n_shuff=self.n_shuff
@@ -603,17 +1073,22 @@ class SpatialMap(object):
         mask = []
 
         if self.place_field_max_size is None and self.dim == 1:
-            self.place_field_max_size = self.tc.n_bins * self.s_binsize
+            # For 1D, use the bin size for dimension 0
+            self.place_field_max_size = self.tc.n_bins * self.s_binsize_array[0]
         elif self.place_field_max_size is None and self.dim == 2:
-            self.place_field_max_size = self.tc.n_bins * self.s_binsize
+            # For 2D, use the average of both dimensions or the maximum
+            avg_binsize = np.mean(self.s_binsize_array[:2])
+            self.place_field_max_size = self.tc.n_bins * avg_binsize
 
         if self.dim == 1:
+            # Use bin size for dimension 0 (x-axis)
+            x_binsize = self.s_binsize_array[0]
             for ratemap_ in self.tc.ratemap:
                 map_fields = fields.map_stats2(
                     ratemap_,
                     threshold=self.place_field_thres,
-                    min_size=self.place_field_min_size / self.s_binsize,
-                    max_size=self.place_field_max_size / self.s_binsize,
+                    min_size=self.place_field_min_size / x_binsize,
+                    max_size=self.place_field_max_size / x_binsize,
                     min_peak=self.place_field_min_peak,
                     sigma=self.place_field_sigma,
                 )
@@ -623,21 +1098,21 @@ class SpatialMap(object):
                     mask.append(map_fields["fields"])
                 else:
                     field_width.append(
-                        np.array(map_fields["sizes"]).max()
-                        * len(ratemap_)
-                        * self.s_binsize
+                        np.array(map_fields["sizes"]).max() * len(ratemap_) * x_binsize
                     )
                     peak_rate.append(np.array(map_fields["peaks"]).max())
                     mask.append(map_fields["fields"])
 
         if self.dim == 2:
+            # Use average of x and y bin sizes for 2D field calculations
+            avg_binsize = np.mean(self.s_binsize_array[:2])
             for ratemap_ in self.tc.ratemap:
                 peaks = fields.compute_2d_place_fields(
                     ratemap_,
                     min_firing_rate=self.place_field_min_peak,
                     thresh=self.place_field_thres,
-                    min_size=(self.place_field_min_size / self.s_binsize),
-                    max_size=(self.place_field_max_size / self.s_binsize),
+                    min_size=(self.place_field_min_size / avg_binsize),
+                    max_size=(self.place_field_max_size / avg_binsize),
                     sigma=self.place_field_sigma,
                 )
                 # field coords of fields using contours
@@ -653,9 +1128,7 @@ class SpatialMap(object):
                     peak_rate.append(np.nan)
                     mask.append(peaks)
                 else:
-                    field_width.append(
-                        np.max(pdist(bc[0], "euclidean")) * self.s_binsize
-                    )
+                    field_width.append(np.max(pdist(bc[0], "euclidean")) * avg_binsize)
                     # field_ids = np.unique(peaks)
                     peak_rate.append(ratemap_[peaks == 1].max())
                     mask.append(peaks)
@@ -913,1027 +1386,3 @@ class SpatialMap(object):
 
     def reorder_units(self):
         return self.tc.reorder_units()
-
-
-# class TuningCurve2DContinuous:
-#     """
-#     Tuning curves (2-dimensional) of multiple continous variables
-#     """
-
-#     __attributes__ = ["_ratemap", "_occupancy"]
-
-#     def __init__(
-#         self,
-#         *,
-#         asa=None,  # nelpy analog signal array of n signals
-#         pos=None,  # nelpy positions. Needs time,x,y
-#         ext_nx=None,  # number of x bins
-#         ext_ny=None,  # number of y bins
-#         ext_xmin=None,  # xmin
-#         ext_ymin=None,  # ymin
-#         ext_xmax=None,  # xmax
-#         ext_ymax=None,  # ymax
-#         min_duration=0.1,  # duration under this will be nan
-#         bin_size=3,  # spatial bin size
-#         sigma=None,
-#         truncate=None,
-#         mask=None
-#     ):
-#         if mask is None:
-#             self._mask = None
-
-#         x = np.interp(
-#             asa.abscissa_vals,
-#             pos.abscissa_vals,
-#             pos.data[0],
-#         )
-#         y = np.interp(
-#             asa.abscissa_vals,
-#             pos.abscissa_vals,
-#             pos.data[1],
-#         )
-#         if ext_xmin is None:
-#             ext_xmin, ext_xmax = np.floor(x.min() / 10) * 10, np.ceil(x.max() / 10) * 10
-#             ext_ymin, ext_ymax = np.floor(y.min() / 10) * 10, np.ceil(y.max() / 10) * 10
-
-#         if ext_nx is None:
-#             ext_nx = len(np.arange(ext_xmin, ext_xmax + bin_size, bin_size))
-#             ext_ny = len(np.arange(ext_ymin, ext_ymax + bin_size, bin_size))
-
-#         self._xbins = np.linspace(ext_xmin, ext_xmax, ext_nx + 1)
-#         self._ybins = np.linspace(ext_ymin, ext_ymax, ext_ny + 1)
-
-#         ext_bin_idx_x = np.squeeze(np.digitize(x, self._xbins, right=True))
-#         ext_bin_idx_y = np.squeeze(np.digitize(y, self._ybins, right=True))
-
-#         # n_xbins = len(self._xbins) - 1
-#         # n_ybins = len(self._ybins) - 1
-
-#         if ext_bin_idx_x.max() > self.n_xbins:
-#             raise ValueError("ext values greater than 'ext_xmax'")
-#         if ext_bin_idx_x.min() == 0:
-#             raise ValueError("ext values less than 'ext_xmin'")
-#         if ext_bin_idx_y.max() > self.n_ybins:
-#             raise ValueError("ext values greater than 'ext_ymax'")
-#         if ext_bin_idx_y.min() == 0:
-#             raise ValueError("ext values less than 'ext_ymin'")
-
-#         self._occupancy, _, _ = np.histogram2d(
-#             x,
-#             y,
-#             bins=[self._xbins, self._ybins],
-#             range=([[ext_xmin, ext_xmax], [ext_ymin, ext_ymax]]),
-#         )
-#         # occupancy = occupancy / asa.fs
-#         self._n_signals = asa.n_signals
-
-#         ratemap = np.zeros((self.n_signals, self.n_xbins, self.n_ybins))
-
-#         for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
-#             ratemap[:, bidxx - 1, bidxy - 1] += asa.data[:, tt]
-
-#         for uu in range(self.n_signals):
-#             ratemap[uu][self._occupancy / asa.fs < min_duration] = 0
-
-#         # ratemap = ratemap * asa.fs
-
-#         denom = np.tile(self._occupancy, (self.n_signals, 1, 1))
-#         denom[denom == 0] = 1
-#         self._ratemap = ratemap / denom
-
-#         if sigma is not None:
-#             if sigma > 0:
-#                 self.smooth(sigma=sigma, truncate=truncate, inplace=True)
-
-#         for uu in range(self.n_signals):
-#             self._ratemap[uu][self._occupancy / asa.fs < min_duration] = np.nan
-
-#     @property
-#     def n_bins(self):
-#         """(int) Number of external correlates (bins)."""
-#         return self.n_xbins * self.n_ybins
-
-#     @property
-#     def n_xbins(self):
-#         """(int) Number of external correlates (bins)."""
-#         return len(self._xbins) - 1
-
-#     @property
-#     def n_ybins(self):
-#         """(int) Number of external correlates (bins)."""
-#         return len(self._ybins) - 1
-
-#     @property
-#     def ratemap(self):
-#         return self._ratemap
-
-#     @property
-#     def mask(self):
-#         return self._mask
-
-#     @property
-#     def occupancy(self):
-#         return self._occupancy
-
-#     @property
-#     def n_signals(self):
-#         return self._n_signals
-
-#     @property
-#     def xbins(self):
-#         """External correlate bins."""
-#         return self._xbins
-
-#     @property
-#     def ybins(self):
-#         """External correlate bins."""
-#         return self._ybins
-
-#     @property
-#     def shape(self):
-#         """(tuple) The shape of the TuningCurve2DContinuous ratemap."""
-#         if self.isempty:
-#             return (self.n_signals, 0, 0)
-#         if len(self.ratemap.shape) == 1:
-#             return (self.ratemap.shape[0], 1, 1)
-#         return self.ratemap.shape
-
-#     def __repr__(self):
-#         address_str = " at " + str(hex(id(self)))
-#         if self.isempty:
-#             return "<empty TuningCurve2DContinuous" + address_str + ">"
-#         shapestr = " with shape (%s, %s, %s)" % (
-#             self.shape[0],
-#             self.shape[1],
-#             self.shape[2],
-#         )
-#         return "<TuningCurve2D%s>%s" % (address_str, shapestr)
-
-#     @property
-#     def isempty(self):
-#         """(bool) True if TuningCurve1D is empty"""
-#         try:
-#             return len(self.ratemap) == 0
-#         except TypeError:  # TypeError should happen if ratemap = []
-#             return True
-
-#     def __len__(self):
-#         return self.n_signals
-
-#     def smooth(self, *, sigma=None, truncate=None, inplace=False, mode=None, cval=None):
-#         """Smooths the tuning curve with a Gaussian kernel.
-#         mode : {‘reflect’, ‘constant’, ‘nearest’, ‘mirror’, ‘wrap’}, optional
-#             The mode parameter determines how the array borders are handled,
-#             where cval is the value when mode is equal to ‘constant’. Default is
-#             ‘reflect’
-#         cval : scalar, optional
-#             Value to fill past edges of input if mode is ‘constant’. Default is 0.0
-#         """
-#         if sigma is None:
-#             sigma = 0.1  # in units of extern
-#         if truncate is None:
-#             truncate = 4
-#         if mode is None:
-#             mode = "reflect"
-#         if cval is None:
-#             cval = 0.0
-
-#         ds_x = (self._xbins[-1] - self._xbins[0]) / self.n_xbins
-#         ds_y = (self._ybins[-1] - self._ybins[0]) / self.n_ybins
-#         sigma_x = sigma / ds_x
-#         sigma_y = sigma / ds_y
-
-#         if not inplace:
-#             out = copy.deepcopy(self)
-#         else:
-#             out = self
-
-#         if self.mask is None:
-#             if self.n_signals > 1:
-#                 out._ratemap = scipy.ndimage.filters.gaussian_filter(
-#                     self.ratemap,
-#                     sigma=(0, sigma_x, sigma_y),
-#                     truncate=truncate,
-#                     mode=mode,
-#                     cval=cval,
-#                 )
-#             else:
-#                 out._ratemap = scipy.ndimage.filters.gaussian_filter(
-#                     self.ratemap,
-#                     sigma=(sigma_x, sigma_y),
-#                     truncate=truncate,
-#                     mode=mode,
-#                     cval=cval,
-#                 )
-#         else:  # we have a mask!
-#             # smooth, dealing properly with NANs
-#             # NB! see https://stackoverflow.com/questions/18697532/gaussian-filtering-a-image-with-nan-in-python
-
-#             masked_ratemap = self.ratemap.copy() * self.mask
-#             V = masked_ratemap.copy()
-#             V[masked_ratemap != masked_ratemap] = 0
-#             W = 0 * masked_ratemap.copy() + 1
-#             W[masked_ratemap != masked_ratemap] = 0
-
-#             if self.n_units > 1:
-#                 VV = scipy.ndimage.filters.gaussian_filter(
-#                     V,
-#                     sigma=(0, sigma_x, sigma_y),
-#                     truncate=truncate,
-#                     mode=mode,
-#                     cval=cval,
-#                 )
-#                 WW = scipy.ndimage.filters.gaussian_filter(
-#                     W,
-#                     sigma=(0, sigma_x, sigma_y),
-#                     truncate=truncate,
-#                     mode=mode,
-#                     cval=cval,
-#                 )
-#                 Z = VV / WW
-#                 out._ratemap = Z * self.mask
-#             else:
-#                 VV = scipy.ndimage.filters.gaussian_filter(
-#                     V, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
-#                 )
-#                 WW = scipy.ndimage.filters.gaussian_filter(
-#                     W, sigma=(sigma_x, sigma_y), truncate=truncate, mode=mode, cval=cval
-#                 )
-#                 Z = VV / WW
-#                 out._ratemap = Z * self.mask
-
-#         return out
-
-
-# ########################################################################
-# # class TuningCurve1D
-# ########################################################################
-# class TuningCurve1DContinous:
-#     """Tuning curves (1-dimensional) of multiple signals.
-#     Get in asa
-#     Get in queriable object for external correlates
-#     Get in bins, binlabels
-#     Get in n_bins, xmin, xmax
-#     Get in a transform function f
-#     Parameters
-#     ----------
-#     Attributes
-#     ----------
-#     """
-
-#     __attributes__ = [
-#         "_ratemap",
-#         "_occupancy",
-#         "_signals_ids",
-#         "_signal_labels",
-#         "_signal_tags",
-#         "_label",
-#     ]
-
-#     def __init__(
-#         self,
-#         *,
-#         asa=None,
-#         extern=None,
-#         ratemap=None,
-#         sigma=None,
-#         truncate=None,
-#         n_extern=None,
-#         transform_func=None,
-#         minbgrate=None,
-#         extmin=None,
-#         extmax=None,
-#         extlabels=None,
-#         signal_ids=None,
-#         signal_labels=None,
-#         signal_tags=None,
-#         label=None,
-#         min_duration=None,
-#         empty=False
-#     ):
-#         """
-#         If sigma is nonzero, then smoothing is applied.
-#         We always require asa and extern, and then some combination of
-#             (1) bin edges, transform_func*
-#             (2) n_extern, transform_func*
-#             (3) n_extern, x_min, x_max, transform_func*
-#             transform_func operates on extern and returns a value that TuninCurve1D can interpret. If no transform is specified, the identity operator is assumed.
-#         """
-#         # TODO: input validation
-#         if not empty:
-#             if ratemap is None:
-#                 assert (
-#                     asa is not None
-#                 ), "asa must be specified or ratemap must be specified!"
-#                 assert (
-#                     extern is not None
-#                 ), "extern must be specified or ratemap must be specified!"
-#             else:
-#                 assert asa is None, "ratemap and asa cannot both be specified!"
-#                 assert extern is None, "ratemap and extern cannot both be specified!"
-
-#         # if an empty object is requested, return it:
-#         if empty:
-#             for attr in self.__attributes__:
-#                 exec("self." + attr + " = None")
-#             return
-
-#         self._asa = asa
-#         self._extern = extern
-
-#         if minbgrate is None:
-#             minbgrate = 0.01  # Hz minimum background firing rate
-
-#         if n_extern is not None:
-#             if extmin is not None and extmax is not None:
-#                 self._bins = np.linspace(extmin, extmax, n_extern + 1)
-#             else:
-#                 raise NotImplementedError
-#         else:
-#             raise NotImplementedError
-
-#         if min_duration is None:
-#             min_duration = 0
-
-#         self._min_duration = min_duration
-
-#         self._signals_ids = np.arange(asa.n_signals)
-#         self._signal_labels = None
-#         self._signal_tags = None  # no input validation yet
-#         self.label = label
-
-#         if transform_func is None:
-#             self.trans_func = self._trans_func
-
-#         # compute occupancy
-#         self._occupancy = self._compute_occupancy()
-#         # compute ratemap (in Hz)
-#         self._ratemap = self._compute_ratemap()
-#         # normalize firing rate by occupancy
-#         self._ratemap = self._normalize_firing_rate_by_occupancy()
-#         # enforce minimum background firing rate
-#         self._ratemap[
-#             self._ratemap < minbgrate
-#         ] = minbgrate  # background firing rate of 0.01 Hz
-
-#         if sigma is not None:
-#             if sigma > 0:
-#                 self.smooth(sigma=sigma, truncate=truncate, inplace=True)
-
-#         # optionally detach _asa and _extern to save space when pickling, for example
-#         self._detach()
-
-#     @property
-#     def is2d(self):
-#         return False
-
-#     def spatial_information(self):
-#         """Compute the spatial information and firing sparsity...
-#         The specificity index examines the amount of information
-#         (in bits) that a single spike conveys about the animal's
-#         location (i.e., how well cell firing predicts the animal's
-#         location).The spatial information content of cell discharge was
-#         calculated using the formula:
-#             information content = \Sum P_i(R_i/R)log_2(R_i/R)
-#         where i is the bin number, P_i, is the probability for occupancy
-#         of bin i, R_i, is the mean firing rate for bin i, and R is the
-#         overall mean firing rate.
-#         In order to account for the effects of low firing rates (with
-#         fewer spikes there is a tendency toward higher information
-#         content) or random bursts of firing, the spike firing
-#         time-series was randomly offset in time from the rat location
-#         time-series, and the information content was calculated. A
-#         distribution of the information content based on 100 such random
-#         shifts was obtained and was used to compute a standardized score
-#         (Zscore) of information content for that cell. While the
-#         distribution is not composed of independent samples, it was
-#         nominally normally distributed, and a Z value of 2.29 was chosen
-#         as a cut-off for significance (the equivalent of a one-tailed
-#         t-test with P = 0.01 under a normal distribution).
-#         Reference(s)
-#         ------------
-#         Markus, E. J., Barnes, C. A., McNaughton, B. L., Gladden, V. L.,
-#             and Skaggs, W. E. (1994). "Spatial information content and
-#             reliability of hippocampal CA1 neurons: effects of visual
-#             input", Hippocampus, 4(4), 410-421.
-#         Parameters
-#         ----------
-#         Returns
-#         -------
-#         si : array of shape (n_signals,)
-#             spatial information (in bits) per unit
-#         sparsity: array of shape (n_signals,)
-#             sparsity (in percent) for each unit
-#         """
-
-#         # Pi = self.occupancy / np.sum(self.occupancy)
-#         # R = self.ratemap.mean(axis=1) # mean firing rate
-#         # Ri = self.ratemap.T
-#         # si = np.sum((Pi*((Ri / R)*np.log2(Ri / R)).T), axis=1)
-
-#         # sparsity = np.sum((Pi*Ri.T), axis=1)/(R**2)
-
-#         return utils.spatial_information(ratemap=self.ratemap)
-
-#     def spatial_sparsity(self):
-#         """Compute the spatial information and firing sparsity...
-#         The specificity index examines the amount of information
-#         (in bits) that a single spike conveys about the animal's
-#         location (i.e., how well cell firing redicts the animals
-#         location).The spatial information content of cell discharge was
-#         calculated using the formula:
-#             information content = \Sum P_i(R_i/R)log_2(R_i/R)
-#         where i is the bin number, P, is the probability for occupancy
-#         of bin i, R, is the mean firing rate for bin i, and R is the
-#         overall mean firing rate.
-#         In order to account for the effects of low firing rates (with
-#         fewer spikes there is a tendency toward higher information
-#         content) or random bursts of firing, the spike firing
-#         time-series was randomly offset in time from the rat location
-#         time-series, and the information content was calculated. A
-#         distribution of the information content based on 100 such random
-#         shifts was obtained and was used to compute a standardized score
-#         (Zscore) of information content for that cell. While the
-#         distribution is not composed of independent samples, it was
-#         nominally normally distributed, and a Z value of 2.29 was chosen
-#         as a cut-off for significance (the equivalent of a one-tailed
-#         t-test with P = 0.01 under a normal distribution).
-#         Reference(s)
-#         ------------
-#         Markus, E. J., Barnes, C. A., McNaughton, B. L., Gladden, V. L.,
-#             and Skaggs, W. E. (1994). "Spatial information content and
-#             reliability of hippocampal CA1 neurons: effects of visual
-#             input", Hippocampus, 4(4), 410-421.
-#         Parameters
-#         ----------
-#         Returns
-#         -------
-#         si : array of shape (n_signals,)
-#             spatial information (in bits) per unit
-#         sparsity: array of shape (n_signals,)
-#             sparsity (in percent) for each unit
-#         """
-#         return utils.spatial_sparsity(ratemap=self.ratemap)
-
-#     def _init_from_ratemap(
-#         self,
-#         ratemap,
-#         occupancy=None,
-#         extmin=None,
-#         extmax=None,
-#         extlabels=None,
-#         signal_ids=None,
-#         signal_labels=None,
-#         signal_tags=None,
-#         label=None,
-#     ):
-#         """Initialize a TuningCurve1D object from a ratemap.
-#         Parameters
-#         ----------
-#         ratemap : array
-#             Array of shape (n_signals, n_extern)
-#         Returns
-#         -------
-#         """
-#         n_signals, n_extern = ratemap.shape
-
-#         if occupancy is None:
-#             # assume uniform occupancy
-#             self._occupancy = np.ones(n_extern)
-
-#         if extmin is None:
-#             extmin = 0
-#         if extmax is None:
-#             extmax = extmin + 1
-
-#         self._bins = np.linspace(extmin, extmax, n_extern + 1)
-#         self._ratemap = ratemap
-
-#         # inherit unit IDs if available, otherwise initialize to default
-#         if signal_ids is None:
-#             signal_ids = list(range(1, n_signals + 1))
-
-#         signal_ids = np.array(signal_ids, ndmin=1)  # standardize signal_ids
-
-#         # if signal_labels is empty, default to signal_ids
-#         if signal_labels is None:
-#             signal_labels = signal_ids
-
-#         signal_labels = np.array(signal_labels, ndmin=1)  # standardize
-
-#         self._signals_ids = signal_ids
-#         self._signal_labels = signal_labels
-#         self._signal_tags = signal_tags  # no input validation yet
-#         if label is not None:
-#             self.label = label
-
-#         return self
-
-#     def mean(self, *, axis=None):
-#         """Returns the mean of firing rate (in Hz).
-#         Parameters
-#         ----------
-#         axis : int, optional
-#             When axis is None, the global mean firing rate is returned.
-#             When axis is 0, the mean firing rates across signal, as a
-#             function of the external correlate (e.g. position) are
-#             returned.
-#             When axis is 1, the mean firing rate for each unit is
-#             returned.
-#         Returns
-#         -------
-#         mean :
-#         """
-#         means = np.mean(self.ratemap, axis=axis).squeeze()
-#         if means.size == 1:
-#             return np.asscalar(means)
-#         return means
-
-#     def max(self, *, axis=None):
-#         """Returns the mean of firing rate (in Hz).
-#         Parameters
-#         ----------
-#         axis : int, optional
-#             When axis is None, the global mean firing rate is returned.
-#             When axis is 0, the mean firing rates across signal, as a
-#             function of the external correlate (e.g. position) are
-#             returned.
-#             When axis is 1, the mean firing rate for each unit is
-#             returned.
-#         Returns
-#         -------
-#         mean :
-#         """
-#         maxes = np.max(self.ratemap, axis=axis).squeeze()
-#         if maxes.size == 1:
-#             return np.asscalar(maxes)
-#         return maxes
-
-#     def min(self, *, axis=None):
-#         """Returns the mean of firing rate (in Hz).
-#         Parameters
-#         ----------
-#         axis : int, optional
-#             When axis is None, the global mean firing rate is returned.
-#             When axis is 0, the mean firing rates across signal, as a
-#             function of the external correlate (e.g. position) are
-#             returned.
-#             When axis is 1, the mean firing rate for each unit is
-#             returned.
-#         Returns
-#         -------
-#         mean :
-#         """
-#         mins = np.min(self.ratemap, axis=axis).squeeze()
-#         if mins.size == 1:
-#             return np.asscalar(mins)
-#         return mins
-
-#     @property
-#     def ratemap(self):
-#         return self._ratemap
-
-#     @property
-#     def n_bins(self):
-#         """(int) Number of external correlates (bins)."""
-#         return len(self.bins) - 1
-
-#     @property
-#     def occupancy(self):
-#         return self._occupancy
-
-#     @property
-#     def bins(self):
-#         """External correlate bins."""
-#         return self._bins
-
-#     @property
-#     def bin_centers(self):
-#         """External correlate bin centers."""
-#         return (self.bins + (self.bins[1] - self.bins[0]) / 2)[:-1]
-
-#     def _trans_func(self, extern, at):
-#         """Default transform function to map extern into numerical bins"""
-
-#         _, ext = extern.asarray(at=at)
-
-#         return np.atleast_1d(ext)
-
-#     def _compute_occupancy(self):
-
-#         # Make sure that self._asa_centers fall within not only the support
-#         # of extern, but also within the extreme sample times; otherwise,
-#         # interpolation will yield NaNs at the extremes. Indeed, when we have
-#         # sample times within a support epoch, we can assume that the signal
-#         # stayed roughly constant for that one sample duration.
-
-#         if self._asa._bin_centers[0] < self._extern.time[0]:
-#             self._extern = copy.copy(self._extern)
-#             self._extern.time[0] = self._asa._bin_centers[0]
-#             self._extern._interp = None
-#             # raise ValueError('interpolated sample requested before first sample of extern!')
-#         if self._asa._bin_centers[-1] > self._extern.time[-1]:
-#             self._extern = copy.copy(self._extern)
-#             self._extern.time[-1] = self._asa._bin_centers[-1]
-#             self._extern._interp = None
-#             # raise ValueError('interpolated sample requested after last sample of extern!')
-
-#         ext = self.trans_func(self._extern, at=self._asa.bin_centers)
-
-#         xmin = self.bins[0]
-#         xmax = self.bins[-1]
-#         occupancy, _ = np.histogram(ext, bins=self.bins, range=(xmin, xmax))
-#         # xbins = (bins + xmax/n_xbins)[:-1] # for plotting
-#         return occupancy
-
-#     def _compute_ratemap(self, min_duration=None):
-
-#         if min_duration is None:
-#             min_duration = self._min_duration
-
-#         ext = self.trans_func(self._extern, at=self._asa.bin_centers)
-
-#         ext_bin_idx = np.squeeze(np.digitize(ext, self.bins, right=True))
-#         # make sure that all the events fit between extmin and extmax:
-#         # TODO: this might rather be a warning, but it's a pretty serious warning...
-#         if ext_bin_idx.max() > self.n_bins:
-#             raise ValueError("ext values greater than 'ext_max'")
-#         if ext_bin_idx.min() == 0:
-#             raise ValueError("ext values less than 'ext_min'")
-
-#         ratemap = np.zeros((self.n_signals, self.n_bins))
-
-#         for tt, bidx in enumerate(ext_bin_idx):
-#             ratemap[:, bidx - 1] += self._asa.data[:, tt]
-
-#         # apply minimum observation duration
-#         for uu in range(self.n_signals):
-#             ratemap[uu][self.occupancy * self._asa.ds < min_duration] = 0
-
-#         return ratemap
-
-#     def normalize(self, inplace=False):
-
-#         if not inplace:
-#             out = copy.deepcopy(self)
-#         else:
-#             out = self
-#         if self.n_signals > 1:
-#             per_unit_max = np.max(out.ratemap, axis=1)[..., np.newaxis]
-#             out._ratemap = self.ratemap / np.tile(per_unit_max, (1, out.n_bins))
-#         else:
-#             per_unit_max = np.max(out.ratemap)
-#             out._ratemap = self.ratemap / np.tile(per_unit_max, out.n_bins)
-#         return out
-
-#     def _normalize_firing_rate_by_occupancy(self):
-#         # normalize spike counts by occupancy:
-#         denom = np.tile(self.occupancy, (self.n_signals, 1))
-#         denom[denom == 0] = 1
-#         ratemap = self.ratemap / denom
-#         return ratemap
-
-#     @property
-#     def signal_ids(self):
-#         """Unit IDs contained in the SpikeTrain."""
-#         return list(self._signals_ids)
-
-#     @signal_ids.setter
-#     def signal_ids(self, val):
-#         if len(val) != self.n_signals:
-#             # print(len(val))
-#             # print(self.n_signals)
-#             raise TypeError("signal_ids must be of length n_signals")
-#         elif len(set(val)) < len(val):
-#             raise TypeError("duplicate signal_ids are not allowed")
-#         else:
-#             try:
-#                 # cast to int:
-#                 signal_ids = [int(id) for id in val]
-#             except TypeError:
-#                 raise TypeError("signal_ids must be int-like")
-#         self._signals_ids = signal_ids
-
-#     @property
-#     def signal_labels(self):
-#         """Labels corresponding to signal contained in the SpikeTrain."""
-#         if self._signal_labels is None:
-#             warnings.warn("unit labels have not yet been specified")
-#         return self._signal_labels
-
-#     @signal_labels.setter
-#     def signal_labels(self, val):
-#         if len(val) != self.n_signals:
-#             raise TypeError("labels must be of length n_signals")
-#         else:
-#             try:
-#                 # cast to str:
-#                 labels = [str(label) for label in val]
-#             except TypeError:
-#                 raise TypeError("labels must be string-like")
-#         self._signal_labels = labels
-
-#     @property
-#     def signal_tags(self):
-#         """Tags corresponding to signal contained in the SpikeTrain"""
-#         if self._signal_tags is None:
-#             warnings.warn("unit tags have not yet been specified")
-#         return self._signal_tags
-
-#     @property
-#     def label(self):
-#         """Label pertaining to the source of the spike train."""
-#         if self._label is None:
-#             warnings.warn("label has not yet been specified")
-#         return self._label
-
-#     @label.setter
-#     def label(self, val):
-#         if val is not None:
-#             try:  # cast to str:
-#                 label = str(val)
-#             except TypeError:
-#                 raise TypeError("cannot convert label to string")
-#         else:
-#             label = val
-#         self._label = label
-
-#     def __add__(self, other):
-#         out = copy.copy(self)
-
-#         if isinstance(other, numbers.Number):
-#             out._ratemap = out.ratemap + other
-#         elif isinstance(other, TuningCurve1DContinous):
-#             # TODO: this should merge two TuningCurve1D objects
-#             raise NotImplementedError
-#         else:
-#             raise TypeError(
-#                 "unsupported operand type(s) for +: 'TuningCurve1DContinous' and '{}'".format(
-#                     str(type(other))
-#                 )
-#             )
-#         return out
-
-#     def __sub__(self, other):
-#         out = copy.copy(self)
-#         out._ratemap = out.ratemap - other
-#         return out
-
-#     def __mul__(self, other):
-#         """overloaded * operator."""
-#         out = copy.copy(self)
-#         out._ratemap = out.ratemap * other
-#         return out
-
-#     def __rmul__(self, other):
-#         return self * other
-
-#     def __truediv__(self, other):
-#         """overloaded / operator."""
-#         out = copy.copy(self)
-#         out._ratemap = out.ratemap / other
-#         return out
-
-#     def __len__(self):
-#         return self.n_signals
-
-#     def smooth(self, *, sigma=None, truncate=None, inplace=False, mode=None, cval=None):
-#         """Smooths the tuning curve with a Gaussian kernel.
-#         mode : {‘reflect’, ‘constant’, ‘nearest’, ‘mirror’, ‘wrap’}, optional
-#             The mode parameter determines how the array borders are handled,
-#             where cval is the value when mode is equal to ‘constant’. Default is
-#             ‘reflect’
-#         cval : scalar, optional
-#             Value to fill past edges of input if mode is ‘constant’. Default is 0.0
-#         """
-#         if sigma is None:
-#             sigma = 0.1  # in signal of extern
-#         if truncate is None:
-#             truncate = 4
-#         if mode is None:
-#             mode = "reflect"
-#         if cval is None:
-#             cval = 0.0
-
-#         ds = (self.bins[-1] - self.bins[0]) / self.n_bins
-#         sigma = sigma / ds
-
-#         if not inplace:
-#             out = copy.deepcopy(self)
-#         else:
-#             out = self
-
-#         if self.n_signals > 1:
-#             out._ratemap = scipy.ndimage.filters.gaussian_filter(
-#                 self.ratemap, sigma=(0, sigma), truncate=truncate, mode=mode, cval=cval
-#             )
-#         else:
-#             out._ratemap = scipy.ndimage.filters.gaussian_filter(
-#                 self.ratemap, sigma=sigma, truncate=truncate, mode=mode, cval=cval
-#             )
-
-#         return out
-
-#     @property
-#     def n_signals(self):
-#         """(int) The number of signal."""
-#         try:
-#             return len(self._signals_ids)
-#         except TypeError:  # when signal_ids is an integer
-#             return 1
-#         except AttributeError:
-#             return 0
-
-#     @property
-#     def shape(self):
-#         """(tuple) The shape of the TuningCurve1DContinous ratemap."""
-#         if self.isempty:
-#             return (self.n_signals, 0)
-#         if len(self.ratemap.shape) == 1:
-#             return (1, self.ratemap.shape[0])
-#         return self.ratemap.shape
-
-#     def __repr__(self):
-#         address_str = " at " + str(hex(id(self)))
-#         if self.isempty:
-#             return "<empty TuningCurve1DContinous" + address_str + ">"
-#         shapestr = " with shape (%s, %s)" % (self.shape[0], self.shape[1])
-#         return "<TuningCurve1DContinous%s>%s" % (address_str, shapestr)
-
-#     @property
-#     def isempty(self):
-#         """(bool) True if TuningCurve1DContinous is empty"""
-#         try:
-#             return len(self.ratemap) == 0
-#         except TypeError:  # TypeError should happen if ratemap = []
-#             return True
-
-#     def __iter__(self):
-#         """TuningCurve1D iterator initialization"""
-#         # initialize the internal index to zero when used as iterator
-#         self._index = 0
-#         return self
-
-#     def __next__(self):
-#         """TuningCurve1D iterator advancer."""
-#         index = self._index
-#         if index > self.n_signals - 1:
-#             raise StopIteration
-#         out = copy.copy(self)
-#         out._ratemap = self.ratemap[index, :]
-#         out._signals_ids = self.signal_ids[index]
-#         out._signal_labels = self.signal_labels[index]
-#         self._index += 1
-#         return out
-
-#     def __getitem__(self, *idx):
-#         """TuningCurve1D index access.
-#         Accepts integers, slices, and lists"""
-
-#         idx = [ii for ii in idx]
-#         if len(idx) == 1 and not isinstance(idx[0], int):
-#             idx = idx[0]
-#         if isinstance(idx, tuple):
-#             idx = [ii for ii in idx]
-
-#         if self.isempty:
-#             return self
-#         try:
-#             out = copy.copy(self)
-#             out._ratemap = self.ratemap[idx, :]
-#             out._signals_ids = (np.asanyarray(out._signals_ids)[idx]).tolist()
-#             out._signal_labels = (np.asanyarray(out._signal_labels)[idx]).tolist()
-#             return out
-#         except Exception:
-#             raise TypeError("unsupported subsctipting type {}".format(type(idx)))
-
-#     def _unit_subset(self, signal_list):
-#         """Return a TuningCurve1D restricted to a subset of signal.
-#         Parameters
-#         ----------
-#         signal_list : array-like
-#             Array or list of signal_ids.
-#         """
-#         unit_subset_ids = []
-#         for unit in signal_list:
-#             try:
-#                 id = self.signal_ids.index(unit)
-#             except ValueError:
-#                 warnings.warn(
-#                     "unit_id " + str(unit) + " not found in TuningCurve1D; ignoring"
-#                 )
-#                 pass
-#             else:
-#                 unit_subset_ids.append(id)
-
-#         new_signals_ids = (np.asarray(self.signal_ids)[unit_subset_ids]).tolist()
-#         new_signal_labels = (np.asarray(self.signal_labels)[unit_subset_ids]).tolist()
-
-#         if len(unit_subset_ids) == 0:
-#             warnings.warn("no signal remaining in requested unit subset")
-#             return TuningCurve1DContinous(empty=True)
-
-#         newtuningcurve = copy.copy(self)
-#         newtuningcurve._signals_ids = new_signals_ids
-#         newtuningcurve._signal_labels = new_signal_labels
-#         # TODO: implement tags
-#         # newtuningcurve._signal_tags =
-#         newtuningcurve._ratemap = self.ratemap[unit_subset_ids, :]
-#         # TODO: shall we restrict _asa as well? This will require a copy to be made...
-#         # newtuningcurve._asa =
-
-#         return newtuningcurve
-
-#     def _get_peak_firing_order_idx(self):
-#         """Docstring goes here
-#         ratemap has shape (n_signals, n_ext)
-#         """
-#         peakorder = np.argmax(self.ratemap, axis=1).argsort()
-
-#         return peakorder.tolist()
-
-#     def get_peak_firing_order_ids(self):
-#         """Docstring goes here
-#         ratemap has shape (n_signals, n_ext)
-#         """
-#         peakorder = np.argmax(self.ratemap, axis=1).argsort()
-
-#         return (np.asanyarray(self.signal_ids)[peakorder]).tolist()
-
-#     def _reorder_signal_by_idx(self, neworder=None, *, inplace=False):
-#         """Reorder signal according to a specified order.
-#         neworder must be list-like, of size (n_signals,) and in 0,..n_signals
-#         and not in terms of signal_ids
-#         Return
-#         ------
-#         out : reordered TuningCurve1D
-#         """
-#         if neworder is None:
-#             neworder = self._get_peak_firing_order_idx()
-#         if inplace:
-#             out = self
-#         else:
-#             out = copy.deepcopy(self)
-
-#         oldorder = list(range(len(neworder)))
-#         for oi, ni in enumerate(neworder):
-#             frm = oldorder.index(ni)
-#             to = oi
-#             utils.swap_rows(out._ratemap, frm, to)
-#             out._signals_ids[frm], out._signals_ids[to] = (
-#                 out._signals_ids[to],
-#                 out._signals_ids[frm],
-#             )
-#             out._signal_labels[frm], out._signal_labels[to] = (
-#                 out._signal_labels[to],
-#                 out._signal_labels[frm],
-#             )
-#             # TODO: re-build unit tags (tag system not yet implemented)
-#             oldorder[frm], oldorder[to] = oldorder[to], oldorder[frm]
-
-#         return out
-
-#     def reorder_signal_by_ids(self, neworder=None, *, inplace=False):
-#         """Reorder signal according to a specified order.
-#         neworder must be list-like, of size (n_signals,) and in terms of
-#         signal_ids
-#         Return
-#         ------
-#         out : reordered TuningCurve1D
-#         """
-#         if neworder is None:
-#             neworder = self.get_peak_firing_order_ids()
-#         if inplace:
-#             out = self
-#         else:
-#             out = copy.deepcopy(self)
-
-#         # signal_ids = list(signal_ids)
-#         neworder = [self.signal_ids.index(x) for x in neworder]
-
-#         oldorder = list(range(len(neworder)))
-#         for oi, ni in enumerate(neworder):
-#             frm = oldorder.index(ni)
-#             to = oi
-#             utils.swap_rows(out._ratemap, frm, to)
-#             out._signals_ids[frm], out._signals_ids[to] = (
-#                 out._signals_ids[to],
-#                 out._signals_ids[frm],
-#             )
-#             out._signal_labels[frm], out._signal_labels[to] = (
-#                 out._signal_labels[to],
-#                 out._signal_labels[frm],
-#             )
-#             # TODO: re-build unit tags (tag system not yet implemented)
-#             oldorder[frm], oldorder[to] = oldorder[to], oldorder[frm]
-
-#         return out
-
-#     def reorder_signal(self, inplace=False):
-#         """Convenience function to reorder signal by peak firing location."""
-#         return self.reorder_signal_by_ids(inplace=inplace)
-
-#     def _detach(self):
-#         """Detach asa and extern from tuning curve."""
-#         self._asa = None
-#         self._extern = None
