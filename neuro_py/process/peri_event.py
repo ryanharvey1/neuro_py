@@ -603,14 +603,18 @@ def event_triggered_average(
 
     if is_regular_sampling:
         # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
-        half_window = window_bins // 2
+        # Match the exact indexing logic from event_triggered_average_fast
         for i, event in enumerate(valid_events):
-            event_idx = int(np.round((event - timestamps[0]) / dt))
-            start_idx = event_idx - half_window
-            stop_idx = event_idx + half_window
-
-            if start_idx >= 0 and stop_idx < len(signal):
-                result_matrix[:, :, i] = signal[start_idx:stop_idx, :]
+            # Convert event time to sample indices (matching event_triggered_average_fast)
+            event_sample = np.round(event * sampling_rate)
+            ts_idx = np.arange(
+                event_sample - len(time_lags) / 2,
+                event_sample + len(time_lags) / 2,
+            ).astype(int)
+            
+            # Check bounds
+            if np.min(ts_idx) >= 0 and np.max(ts_idx) < len(signal):
+                result_matrix[:, :, i] = signal[ts_idx, :]
             else:
                 result_matrix[:, :, i] = np.nan
     else:
