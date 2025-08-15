@@ -130,7 +130,8 @@ def test_event_triggered_average_edge_cases():
         result_matrix, _ = event_triggered_average(
             timestamps, signal, events, window=[-0.5, 0.5], return_average=False
         )
-    assert result_matrix.shape == (10, 3, 0)  # 0 events
+    assert result_matrix.shape == (10, 3, 2)  # Same number of events as input
+    assert np.all(np.isnan(result_matrix))  # All should be NaN since events are invalid
 
     # Test with single event
     events = np.array([5])
