@@ -728,16 +728,21 @@ def event_triggered_average_fast(
     window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
     time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
 
-    events = events[
-        (events * sampling_rate > len(time_lags) / 2 + 1)
-        & (events * sampling_rate < signal.shape[1] - len(time_lags) / 2 + 1)
-    ]
-
-    avg_signal = np.zeros(
-        [signal.shape[0], len(time_lags), len(events)], dtype=signal.dtype
+    # Create valid mask instead of filtering events
+    valid_mask = (events * sampling_rate > len(time_lags) / 2 + 1) & (
+        events * sampling_rate < signal.shape[1] - len(time_lags) / 2 + 1
     )
 
+    # Initialize result matrix with all events, filled with NaN
+    avg_signal = np.full(
+        [signal.shape[0], len(time_lags), len(events)], np.nan, dtype=signal.dtype
+    )
+
+    # Process only valid events
     for i, event in enumerate(events):
+        if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
+            continue
+
         ts_idx = np.arange(
             np.round(event * sampling_rate) - len(time_lags) / 2,
             np.round(event * sampling_rate) + len(time_lags) / 2,
