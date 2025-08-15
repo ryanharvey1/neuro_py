@@ -514,6 +514,7 @@ def event_triggered_average(
     window: List[float] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
+    interpolation_method: str = "auto",
 ) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
     """
     Calculates the spike-triggered averages of signals in a time window
@@ -546,6 +547,15 @@ def event_triggered_average(
     return_pandas : bool, optional
         If True, return the result as a Pandas DataFrame. Default is False.
 
+    interpolation_method : str, optional
+        Method for handling resampling when signal data doesn't match target time bins.
+        Options:
+        - "auto" (default): Use linear interpolation for normal sampling gaps,
+          nearest neighbor for large gaps (>5x median sampling interval)
+        - "linear": Always use linear interpolation
+        - "nearest": Always use nearest neighbor (no interpolation)
+        Default is "auto".
+
     Returns
     -------
     Union[np.ndarray, pd.DataFrame]
@@ -577,6 +587,19 @@ def event_triggered_average(
     Notes
     -----
     The function is adapted from elephant.sta.spike_triggered_average to be used with ndarray.
+
+    **Interpolation Handling:**
+    When signal data doesn't perfectly align with target time bins, the function uses intelligent
+    resampling strategies:
+
+    - **Perfect match**: No interpolation needed when data naturally fits target bins
+    - **Small gaps**: Linear interpolation when sampling gaps are consistent
+    - **Large gaps**: Nearest neighbor approach when gaps >5x median sampling interval
+      to avoid creating artificial data through interpolation
+    - **Missing data**: NaN values when no data exists in the time window
+
+    This prevents artifacts from linear interpolation across large temporal gaps while
+    maintaining smooth interpolation for normal sampling irregularities.
     """
 
     # check inputs
@@ -672,21 +695,91 @@ def event_triggered_average(
         # Extract the signal segment for this event
         event_signal = signal[start_idx:stop_idx, :]
 
-        # Interpolate to ensure we have exactly window_bins samples
-        if event_signal.shape[0] > 0:
-            # Create time points for interpolation
+        # Handle different cases based on available data
+        if event_signal.shape[0] == 0:
+            # No data in window - fill with NaN
+            result_matrix[:, :, i] = np.nan
+        elif event_signal.shape[0] == 1:
+            # Only one sample - use it for all time points
+            result_matrix[:, :, i] = event_signal[0, :]
+        elif event_signal.shape[0] == window_bins:
+            # Perfect match - no interpolation needed
+            result_matrix[:, :, i] = event_signal
+        else:
+            # Need to resample - check if interpolation is appropriate
             event_timestamps = timestamps[start_idx:stop_idx]
             target_times = np.linspace(start_time, stop_time, window_bins)
 
-            # Interpolate each signal channel
-            for j in range(num_signals):
-                if len(event_timestamps) > 1:
+            # Check for large gaps that might make interpolation unreliable
+            time_diffs = np.diff(event_timestamps)
+            median_dt = np.median(time_diffs)
+            max_gap = np.max(time_diffs)
+
+            # Check for large gaps that might make interpolation unreliable
+            time_diffs = np.diff(event_timestamps)
+            median_dt = np.median(time_diffs)
+            max_gap = np.max(time_diffs)
+
+            # Determine interpolation strategy based on method and data characteristics
+            use_nearest = False
+            if interpolation_method == "nearest":
+                use_nearest = True
+            elif interpolation_method == "auto" and max_gap > 5 * median_dt:
+                use_nearest = True
+            elif interpolation_method == "linear":
+                use_nearest = False
+            else:
+                # Default case for "auto" with reasonable gaps
+                use_nearest = False
+
+            if use_nearest:
+                # Use nearest neighbor for large gaps to avoid artificial interpolation
+                for j in range(num_signals):
+                    # Find nearest neighbor indices for each target time
+                    nearest_indices = np.searchsorted(
+                        event_timestamps, target_times, side="left"
+                    )
+                    # Clip to valid range
+                    nearest_indices = np.clip(
+                        nearest_indices, 0, len(event_timestamps) - 1
+                    )
+
+                    # For each target time, check if we're too far from actual data
+                    interp_values = np.full(window_bins, np.nan)
+                    for k, (target_t, nearest_idx) in enumerate(
+                        zip(target_times, nearest_indices)
+                    ):
+                        # Use nearest neighbor if within reasonable distance
+                        if nearest_idx > 0:
+                            # Check both neighbors
+                            left_dist = abs(
+                                target_t - event_timestamps[nearest_idx - 1]
+                            )
+                            right_dist = (
+                                abs(target_t - event_timestamps[nearest_idx])
+                                if nearest_idx < len(event_timestamps)
+                                else np.inf
+                            )
+
+                            if left_dist <= right_dist:
+                                nearest_idx = nearest_idx - 1
+                                nearest_dist = left_dist
+                            else:
+                                nearest_dist = right_dist
+                        else:
+                            nearest_dist = abs(target_t - event_timestamps[nearest_idx])
+
+                        # Only use the value if it's within 2x median sampling interval
+                        if nearest_dist <= 2 * median_dt:
+                            interp_values[k] = event_signal[nearest_idx, j]
+
+                    result_matrix[:, j, i] = interp_values
+            else:
+                # Normal case - use linear interpolation
+                for j in range(num_signals):
                     result_matrix[:, j, i] = np.interp(
                         target_times, event_timestamps, event_signal[:, j]
                     )
-                elif len(event_timestamps) == 1:
-                    # If only one sample, use it for all time points
-                    result_matrix[:, j, i] = event_signal[0, j]
 
     # Return based on user preferences
     if return_average:
