@@ -514,47 +514,30 @@ def event_triggered_average(
     window: List[float] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
-    interpolation_method: str = "auto",
 ) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
     """
-    Calculates the spike-triggered averages of signals in a time window
+    Calculates the event-triggered averages of signals in a time window
     relative to the event times of corresponding events for multiple signals.
 
     Parameters
     ----------
     timestamps : np.ndarray
         A 1D array of timestamps corresponding to the signal samples.
-
     signal : np.ndarray
         A 2D array of shape (n_samples, n_signals) containing the signal values.
-
     events : Union[np.ndarray, List[np.ndarray]]
-        One or more 1D arrays of event times. If a single array is provided,
-        it will be multiplied n-fold to match the number of signals.
-
+        One or more 1D arrays of event times.
     sampling_rate : Union[float, None], optional
         The sampling rate of the signal. If not provided, it will be calculated
         based on the timestamps.
-
     window : List[float], optional
         A list containing two elements: the start and stop times relative to an event
         for the time interval of signal averaging. Default is [-0.5, 0.5].
-
     return_average : bool, optional
         Whether to return the average of the event-triggered average. Defaults to True.
         If False, returns the full event-triggered average matrix (n_samples x n_signals x n_events).
-
     return_pandas : bool, optional
         If True, return the result as a Pandas DataFrame. Default is False.
-
-    interpolation_method : str, optional
-        Method for handling resampling when signal data doesn't match target time bins.
-        Options:
-        - "auto" (default): Use linear interpolation for normal sampling gaps,
-          nearest neighbor for large gaps (>5x median sampling interval)
-        - "linear": Always use linear interpolation
-        - "nearest": Always use nearest neighbor (no interpolation)
-        Default is "auto".
 
     Returns
     -------
@@ -563,237 +546,116 @@ def event_triggered_average(
         (n_samples, n_signals) or a Pandas DataFrame if `return_pandas` is True.
         If `return_average` is False, returns the full event-triggered average matrix
         (n_samples, n_signals, n_events).
-
     np.ndarray
         An array of time lags corresponding to the event-triggered averages.
 
-
     Examples
     --------
-
-    >>> m1 = assembly_reactivation.AssemblyReact(basepath=r"Z:\\Data\\HMC2\\day5")
-
-    >>> m1.load_data()
-    >>> m1.get_weights(epoch=m1.epochs[1])
-    >>> assembly_act = m1.get_assembly_act()
-
     >>> peth_avg, time_lags = event_triggered_average(
-    ...    assembly_act.abscissa_vals, assembly_act.data.T, m1.ripples.starts, window=[-0.5, 0.5]
+    ...    timestamps, signal, events, window=[-0.5, 0.5]
     ... )
-
-    >>> plt.plot(time_lags,peth_avg)
-    >>> plt.show()
-
-    Notes
-    -----
-    The function is adapted from elephant.sta.spike_triggered_average to be used with ndarray.
-
-    **Interpolation Handling:**
-    When signal data doesn't perfectly align with target time bins, the function uses intelligent
-    resampling strategies:
-
-    - **Perfect match**: No interpolation needed when data naturally fits target bins
-    - **Small gaps**: Linear interpolation when sampling gaps are consistent
-    - **Large gaps**: Nearest neighbor approach when gaps >5x median sampling interval
-      to avoid creating artificial data through interpolation
-    - **Missing data**: NaN values when no data exists in the time window
-
-    This prevents artifacts from linear interpolation across large temporal gaps while
-    maintaining smooth interpolation for normal sampling irregularities.
+    >>> # Get individual event responses
+    >>> peth_matrix, time_lags = event_triggered_average(
+    ...    timestamps, signal, events, window=[-0.5, 0.5], return_average=False
+    ... )
     """
-
-    # check inputs
-    if len(window) != 2:
-        raise ValueError(
-            "'window' must be a tuple of 2 elements, not {}".format(len(window))
-        )
-
-    if window[0] > window[1]:
-        raise ValueError(
-            "'window' first value must be less than second value, not {}".format(
-                len(window)
-            )
-        )
-
-    if not isinstance(timestamps, np.ndarray):
-        raise ValueError(
-            "'timestamps' must be a numpy ndarray, not {}".format(type(timestamps))
-        )
-
-    if not isinstance(signal, np.ndarray):
-        raise ValueError(
-            "'signal' must be a numpy ndarray, not {}".format(type(signal))
-        )
-
-    if not isinstance(events, (list, np.ndarray)):
-        raise ValueError(
-            "'events' must be a numpy ndarray or list, not {}".format(type(events))
-        )
-
-    if signal.shape[0] != timestamps.shape[0]:
-        raise ValueError("'signal' and 'timestamps' must have the same number of rows")
-
-    if len(timestamps.shape) > 1:
-        raise ValueError(
-            "'timestamps' must be a 1D array, not {}".format(len(timestamps.shape))
-        )
-
-    window_starttime, window_stoptime = window
+    # Basic input validation
+    if len(window) != 2 or window[0] > window[1]:
+        raise ValueError("'window' must be [start, stop] with start < stop")
 
     if len(signal.shape) == 1:
-        signal = np.expand_dims(signal, -1)
-
-    _, num_signals = signal.shape
+        signal = signal.reshape(-1, 1)
 
     if sampling_rate is None:
         sampling_rate = 1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0]
 
-    # Convert events to numpy array if it's a list
     if isinstance(events, list):
         events = np.array(events)
 
-    # window_bins: number of bins of the chosen averaging interval
+    window_starttime, window_stoptime = window
     window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
-
-    # setting of correct times of the spike-triggered average relative to the event
     time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
 
-    # Filter events to only include those that fit within the valid range of the signal
-    min_timestamp = timestamps[0]
-    max_timestamp = timestamps[-1]
+    # Filter events that fit within the signal range
+    min_timestamp, max_timestamp = timestamps[0], timestamps[-1]
     valid_events = events[
         (events + window_starttime >= min_timestamp)
         & (events + window_stoptime <= max_timestamp)
     ]
 
     if len(valid_events) == 0:
-        warnings.warn("No events found within the valid signal range for averaging")
-        if return_pandas and return_average:
-            return pd.DataFrame(
-                index=time_lags,
-                columns=np.arange(num_signals),
-                data=np.zeros((window_bins, num_signals)),
+        warnings.warn("No events found within the valid signal range")
+        empty_shape = (window_bins, signal.shape[1])
+        if return_average:
+            result = np.zeros(empty_shape)
+            return (
+                pd.DataFrame(result, index=time_lags) if return_pandas else result
             ), time_lags
-        elif return_average:
-            return np.zeros((window_bins, num_signals)), time_lags
         else:
-            return np.zeros((window_bins, num_signals, 0)), time_lags
+            return np.zeros(empty_shape + (0,)), time_lags
 
-    # Initialize result array: (window_bins, num_signals, num_events)
-    result_matrix = np.zeros((window_bins, num_signals, len(valid_events)))
+    # Initialize result matrix: (window_bins, n_signals, n_events)
+    result_matrix = np.zeros((window_bins, signal.shape[1], len(valid_events)))
 
-    # Process each event efficiently using vectorized operations
-    for i, event in enumerate(valid_events):
-        # Find indices for the time window around this event
-        start_time = event + window_starttime
-        stop_time = event + window_stoptime
+    # For regular sampling, use fast indexing approach similar to event_triggered_average_fast
+    dt = np.median(np.diff(timestamps))
+    is_regular_sampling = np.allclose(np.diff(timestamps), dt, rtol=1e-3)
 
-        # Use searchsorted for efficient indexing
-        start_idx = np.searchsorted(timestamps, start_time, side="left")
-        stop_idx = np.searchsorted(timestamps, stop_time, side="right")
+    if is_regular_sampling:
+        # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
+        half_window = window_bins // 2
+        for i, event in enumerate(valid_events):
+            event_idx = int(np.round((event - timestamps[0]) / dt))
+            start_idx = event_idx - half_window
+            stop_idx = event_idx + half_window
 
-        # Extract the signal segment for this event
-        event_signal = signal[start_idx:stop_idx, :]
-
-        # Handle different cases based on available data
-        if event_signal.shape[0] == 0:
-            # No data in window - fill with NaN
-            result_matrix[:, :, i] = np.nan
-        elif event_signal.shape[0] == 1:
-            # Only one sample - use it for all time points
-            result_matrix[:, :, i] = event_signal[0, :]
-        elif event_signal.shape[0] == window_bins:
-            # Perfect match - no interpolation needed
-            result_matrix[:, :, i] = event_signal
-        else:
-            # Need to resample - check if interpolation is appropriate
-            event_timestamps = timestamps[start_idx:stop_idx]
-            target_times = np.linspace(start_time, stop_time, window_bins)
-
-            # Check for large gaps that might make interpolation unreliable
-            time_diffs = np.diff(event_timestamps)
-            median_dt = np.median(time_diffs)
-            max_gap = np.max(time_diffs)
-
-            # Check for large gaps that might make interpolation unreliable
-            time_diffs = np.diff(event_timestamps)
-            median_dt = np.median(time_diffs)
-            max_gap = np.max(time_diffs)
-
-            # Determine interpolation strategy based on method and data characteristics
-            use_nearest = False
-            if interpolation_method == "nearest":
-                use_nearest = True
-            elif interpolation_method == "auto" and max_gap > 5 * median_dt:
-                use_nearest = True
-            elif interpolation_method == "linear":
-                use_nearest = False
+            if start_idx >= 0 and stop_idx < len(signal):
+                result_matrix[:, :, i] = signal[start_idx:stop_idx, :]
             else:
-                # Default case for "auto" with reasonable gaps
-                use_nearest = False
+                result_matrix[:, :, i] = np.nan
+    else:
+        # Slow path: irregular sampling - use interpolation but vectorized
+        target_times_template = np.linspace(
+            window_starttime, window_stoptime, window_bins
+        )
 
-            if use_nearest:
-                # Use nearest neighbor for large gaps to avoid artificial interpolation
-                for j in range(num_signals):
-                    # Find nearest neighbor indices for each target time
-                    nearest_indices = np.searchsorted(
-                        event_timestamps, target_times, side="left"
-                    )
-                    # Clip to valid range
-                    nearest_indices = np.clip(
-                        nearest_indices, 0, len(event_timestamps) - 1
-                    )
+        for i, event in enumerate(valid_events):
+            target_times = target_times_template + event
 
-                    # For each target time, check if we're too far from actual data
-                    interp_values = np.full(window_bins, np.nan)
-                    for k, (target_t, nearest_idx) in enumerate(
-                        zip(target_times, nearest_indices)
-                    ):
-                        # Use nearest neighbor if within reasonable distance
-                        if nearest_idx > 0:
-                            # Check both neighbors
-                            left_dist = abs(
-                                target_t - event_timestamps[nearest_idx - 1]
-                            )
-                            right_dist = (
-                                abs(target_t - event_timestamps[nearest_idx])
-                                if nearest_idx < len(event_timestamps)
-                                else np.inf
-                            )
+            # Find the range of timestamps that covers our target times
+            start_search = np.searchsorted(
+                timestamps, target_times[0] - dt, side="left"
+            )
+            stop_search = np.searchsorted(
+                timestamps, target_times[-1] + dt, side="right"
+            )
 
-                            if left_dist <= right_dist:
-                                nearest_idx = nearest_idx - 1
-                                nearest_dist = left_dist
-                            else:
-                                nearest_dist = right_dist
-                        else:
-                            nearest_dist = abs(target_t - event_timestamps[nearest_idx])
+            if start_search >= stop_search:
+                result_matrix[:, :, i] = np.nan
+                continue
 
-                        # Only use the value if it's within 2x median sampling interval
-                        if nearest_dist <= 2 * median_dt:
-                            interp_values[k] = event_signal[nearest_idx, j]
+            # Extract relevant data for this event
+            event_timestamps = timestamps[start_search:stop_search]
+            event_signal = signal[start_search:stop_search, :]
 
-                    result_matrix[:, j, i] = interp_values
-            else:
-                # Normal case - use linear interpolation
-                for j in range(num_signals):
+            # Vectorized interpolation for all channels at once
+            if len(event_timestamps) > 1:
+                for j in range(signal.shape[1]):
                     result_matrix[:, j, i] = np.interp(
                         target_times, event_timestamps, event_signal[:, j]
                     )
+            else:
+                result_matrix[:, :, i] = np.nan
 
-    # Return based on user preferences
+    # Return results
     if return_average:
-        # Calculate the average across events
         result_avg = bn.nanmean(result_matrix, axis=2)
-
         if return_pandas:
             return pd.DataFrame(
-                index=time_lags, columns=np.arange(num_signals), data=result_avg
+                result_avg, index=time_lags, columns=np.arange(signal.shape[1])
             )
-        else:
-            return result_avg, time_lags
+        return result_avg, time_lags
     else:
-        # Return the full matrix of individual event responses
         return result_matrix, time_lags
 
 
