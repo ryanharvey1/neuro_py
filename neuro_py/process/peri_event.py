@@ -712,7 +712,7 @@ def event_triggered_average_fast(
     Union[np.ndarray, pd.DataFrame]
         If `return_average` is True, returns the event-triggered average of the signal
         (channels x timepoints) or a Pandas DataFrame if `return_pandas` is True.
-        If `return_average` is False, returns the full event-triggered average matrix.
+        If `return_average` is False, returns the full event-triggered average matrix (channels x timebins x events).
 
     np.ndarray
         An array of time lags corresponding to the event-triggered averages.
