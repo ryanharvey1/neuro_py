@@ -585,12 +585,11 @@ def event_triggered_average(
 
     # Filter events that fit within the signal range
     min_timestamp, max_timestamp = timestamps[0], timestamps[-1]
-    valid_events = events[
-        (events + window_starttime >= min_timestamp)
-        & (events + window_stoptime <= max_timestamp)
-    ]
+    valid_mask = (events + window_starttime >= min_timestamp) & (
+        events + window_stoptime <= max_timestamp
+    )
 
-    if len(valid_events) == 0:
+    if not np.any(valid_mask):
         warnings.warn("No events found within the valid signal range")
         empty_shape = (window_bins, signal.shape[1])
         if return_average:
@@ -599,10 +598,10 @@ def event_triggered_average(
                 pd.DataFrame(result, index=time_lags) if return_pandas else result
             ), time_lags
         else:
-            return np.zeros(empty_shape + (0,)), time_lags
+            return np.zeros(empty_shape + (len(events),)), time_lags
 
-    # Initialize result matrix: (window_bins, n_signals, n_events)
-    result_matrix = np.zeros((window_bins, signal.shape[1], len(valid_events)))
+    # Initialize result matrix: (window_bins, n_signals, n_events) - keep all events
+    result_matrix = np.full((window_bins, signal.shape[1], len(events)), np.nan)
 
     # For regular sampling, use fast indexing approach similar to event_triggered_average_fast
     dt = np.median(np.diff(timestamps))
@@ -612,7 +611,10 @@ def event_triggered_average(
         # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
         # Match the exact indexing logic from event_triggered_average_fast
         start_time = timestamps[0]  # Cache start time for efficiency
-        for i, event in enumerate(valid_events):
+        for i, event in enumerate(events):
+            if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
+                continue
+
             # Convert event time to sample indices, accounting for timestamp start time
             event_sample = np.round((event - start_time) * sampling_rate)
             ts_idx = np.arange(
@@ -623,15 +625,17 @@ def event_triggered_average(
             # Check bounds
             if np.min(ts_idx) >= 0 and np.max(ts_idx) < len(signal):
                 result_matrix[:, :, i] = signal[ts_idx, :]
-            else:
-                result_matrix[:, :, i] = np.nan
+            # If bounds check fails, keep as NaN (already initialized)
     else:
         # Slow path: irregular sampling - use interpolation but vectorized
         target_times_template = np.linspace(
             window_starttime, window_stoptime, window_bins
         )
 
-        for i, event in enumerate(valid_events):
+        for i, event in enumerate(events):
+            if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
+                continue
+
             target_times = target_times_template + event
 
             # Find the range of timestamps that covers our target times
@@ -643,7 +647,7 @@ def event_triggered_average(
             )
 
             if start_search >= stop_search:
-                result_matrix[:, :, i] = np.nan
+                # Keep as NaN (already initialized)
                 continue
 
             # Extract relevant data for this event
@@ -656,8 +660,7 @@ def event_triggered_average(
                     result_matrix[:, j, i] = np.interp(
                         target_times, event_timestamps, event_signal[:, j]
                     )
-            else:
-                result_matrix[:, :, i] = np.nan
+            # If interpolation fails, keep as NaN (already initialized)
 
     # Return results
     if return_average:
