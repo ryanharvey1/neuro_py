@@ -549,6 +549,13 @@ def event_triggered_average(
     np.ndarray
         An array of time lags corresponding to the event-triggered averages.
 
+    Notes
+    -----
+    - The function filters out events that do not fit within the valid range of the signal
+    considering the specified window size.
+    - If the `sampling_rate` is not provided, it is calculated based on the timestamps.
+    - The function handles both regular and irregular sampling of the signal.
+
     Examples
     --------
     >>> peth_avg, time_lags = event_triggered_average(
@@ -611,7 +618,7 @@ def event_triggered_average(
                 event_sample - len(time_lags) / 2,
                 event_sample + len(time_lags) / 2,
             ).astype(int)
-            
+
             # Check bounds
             if np.min(ts_idx) >= 0 and np.max(ts_idx) < len(signal):
                 result_matrix[:, :, i] = signal[ts_idx, :]
@@ -709,7 +716,8 @@ def event_triggered_average_fast(
     Notes
     -----
     - The function filters out events that do not fit within the valid range of the signal
-      considering the specified window size.
+    considering the specified window size.
+    - Assumes the signal starts at time 0.
     """
 
     window_starttime, window_stoptime = window
