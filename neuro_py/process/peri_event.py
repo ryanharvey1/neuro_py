@@ -598,7 +598,7 @@ def event_triggered_average(
                 pd.DataFrame(result, index=time_lags) if return_pandas else result
             ), time_lags
         else:
-            return np.zeros(empty_shape + (len(events),)), time_lags
+            return np.full(empty_shape + (len(events),), np.nan), time_lags
 
     # Initialize result matrix: (window_bins, n_signals, n_events) - keep all events
     result_matrix = np.full((window_bins, signal.shape[1], len(events)), np.nan)
