@@ -185,6 +185,8 @@ def test_event_triggered_average_consistency():
     correlation = np.corrcoef(result_regular.flatten(), result_irregular.flatten())[
         0, 1
     ]
+    # Check for valid correlation value before assertion
+    assert np.isfinite(correlation), f"Correlation is not finite: {correlation}"
     assert (
         correlation > 0.7
     )  # Should be reasonably correlated (lowered for interpolation differences)
