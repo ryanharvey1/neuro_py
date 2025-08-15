@@ -512,8 +512,9 @@ def event_triggered_average(
     events: Union[np.ndarray, List[np.ndarray]],
     sampling_rate: Union[float, None] = None,
     window: List[float] = [-0.5, 0.5],
+    return_average: bool = True,
     return_pandas: bool = False,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
     """
     Calculates the spike-triggered averages of signals in a time window
     relative to the event times of corresponding events for multiple signals.
@@ -538,14 +539,23 @@ def event_triggered_average(
         A list containing two elements: the start and stop times relative to an event
         for the time interval of signal averaging. Default is [-0.5, 0.5].
 
+    return_average : bool, optional
+        Whether to return the average of the event-triggered average. Defaults to True.
+        If False, returns the full event-triggered average matrix (n_samples x n_signals x n_events).
+
     return_pandas : bool, optional
         If True, return the result as a Pandas DataFrame. Default is False.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
-        A tuple containing the event-triggered averages of the signals and the
-        corresponding time lags.
+    Union[np.ndarray, pd.DataFrame]
+        If `return_average` is True, returns the event-triggered averages of the signals
+        (n_samples, n_signals) or a Pandas DataFrame if `return_pandas` is True.
+        If `return_average` is False, returns the full event-triggered average matrix
+        (n_samples, n_signals, n_events).
+
+    np.ndarray
+        An array of time lags corresponding to the event-triggered averages.
 
 
     Examples
@@ -615,47 +625,83 @@ def event_triggered_average(
     if sampling_rate is None:
         sampling_rate = 1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0]
 
+    # Convert events to numpy array if it's a list
+    if isinstance(events, list):
+        events = np.array(events)
+
     # window_bins: number of bins of the chosen averaging interval
     window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
-    # result_sta: array containing finally the spike-triggered averaged signal
-    result_sta = np.zeros((window_bins, num_signals))
-    # setting of correct times of the spike-triggered average
-    # relative to the spike
+
+    # setting of correct times of the spike-triggered average relative to the event
     time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
 
-    used_events = np.zeros(num_signals, dtype=int)
-    total_used_events = 0
+    # Filter events to only include those that fit within the valid range of the signal
+    min_timestamp = timestamps[0]
+    max_timestamp = timestamps[-1]
+    valid_events = events[
+        (events + window_starttime >= min_timestamp)
+        & (events + window_stoptime <= max_timestamp)
+    ]
 
-    for i in range(num_signals):
-        # summing over all respective signal intervals around spiketimes
-        for event in events:
-            # locate signal in time range
-            idx = (timestamps >= event + window_starttime) & (
-                timestamps <= event + window_stoptime
+    if len(valid_events) == 0:
+        warnings.warn("No events found within the valid signal range for averaging")
+        if return_pandas and return_average:
+            return pd.DataFrame(
+                index=time_lags,
+                columns=np.arange(num_signals),
+                data=np.zeros((window_bins, num_signals)),
+            ), time_lags
+        elif return_average:
+            return np.zeros((window_bins, num_signals)), time_lags
+        else:
+            return np.zeros((window_bins, num_signals, 0)), time_lags
+
+    # Initialize result array: (window_bins, num_signals, num_events)
+    result_matrix = np.zeros((window_bins, num_signals, len(valid_events)))
+
+    # Process each event efficiently using vectorized operations
+    for i, event in enumerate(valid_events):
+        # Find indices for the time window around this event
+        start_time = event + window_starttime
+        stop_time = event + window_stoptime
+
+        # Use searchsorted for efficient indexing
+        start_idx = np.searchsorted(timestamps, start_time, side="left")
+        stop_idx = np.searchsorted(timestamps, stop_time, side="right")
+
+        # Extract the signal segment for this event
+        event_signal = signal[start_idx:stop_idx, :]
+
+        # Interpolate to ensure we have exactly window_bins samples
+        if event_signal.shape[0] > 0:
+            # Create time points for interpolation
+            event_timestamps = timestamps[start_idx:stop_idx]
+            target_times = np.linspace(start_time, stop_time, window_bins)
+
+            # Interpolate each signal channel
+            for j in range(num_signals):
+                if len(event_timestamps) > 1:
+                    result_matrix[:, j, i] = np.interp(
+                        target_times, event_timestamps, event_signal[:, j]
+                    )
+                elif len(event_timestamps) == 1:
+                    # If only one sample, use it for all time points
+                    result_matrix[:, j, i] = event_signal[0, j]
+
+    # Return based on user preferences
+    if return_average:
+        # Calculate the average across events
+        result_avg = bn.nanmean(result_matrix, axis=2)
+
+        if return_pandas:
+            return pd.DataFrame(
+                index=time_lags, columns=np.arange(num_signals), data=result_avg
             )
-
-            # for speed, instead of checking if we have enough time each iteration, just skip if we don't
-            try:
-                result_sta[:, i] += signal[idx, i]
-            except Exception:
-                continue
-            # counting of the used event
-            used_events[i] += 1
-
-        # normalization
-        result_sta[:, i] = result_sta[:, i] / used_events[i]
-
-        total_used_events += used_events[i]
-
-    if total_used_events == 0:
-        warnings.warn("No events at all was either found or used for averaging")
-
-    if return_pandas:
-        return pd.DataFrame(
-            index=time_lags, columns=np.arange(result_sta.shape[1]), data=result_sta
-        )
-
-    return result_sta, time_lags
+        else:
+            return result_avg, time_lags
+    else:
+        # Return the full matrix of individual event responses
+        return result_matrix, time_lags
 
 
 def event_triggered_average_fast(
