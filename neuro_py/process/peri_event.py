@@ -611,12 +611,13 @@ def event_triggered_average(
     if is_regular_sampling:
         # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
         # Match the exact indexing logic from event_triggered_average_fast
+        start_time = timestamps[0]  # Cache start time for efficiency
         for i, event in enumerate(valid_events):
-            # Convert event time to sample indices (matching event_triggered_average_fast)
-            event_sample = np.round(event * sampling_rate)
+            # Convert event time to sample indices, accounting for timestamp start time
+            event_sample = np.round((event - start_time) * sampling_rate)
             ts_idx = np.arange(
-                event_sample - len(time_lags) / 2,
-                event_sample + len(time_lags) / 2,
+                event_sample - window_bins / 2,
+                event_sample + window_bins / 2,
             ).astype(int)
 
             # Check bounds
