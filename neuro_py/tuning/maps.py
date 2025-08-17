@@ -10,6 +10,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy.io import savemat
 from scipy.spatial.distance import pdist
+from scipy.stats import circmean
 
 from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
@@ -346,6 +347,16 @@ class SpatialMap(NDimensionalBinner):
         Minimum peak rate of place field. Default is 3.
     place_field_sigma : Union[int, float], optional
         Extra smoothing sigma to apply before field detection. Default is 2.
+    is_circular : bool, optional
+        Whether the continuous signal data (st) represents circular variables (e.g., phase in radians).
+        When True, uses circular statistics (scipy.stats.circmean) for averaging signal values within
+        spatial bins instead of linear averaging. This is only applied to AnalogSignalArray data types.
+        Position data (pos) is always treated as linear spatial coordinates. Default is False.
+    is_sparse : bool, optional
+        Whether the AnalogSignalArray represents sparse/irregular data (e.g., spike-triggered phases).
+        When True, the signal timestamps are directly mapped to spatial locations without interpolation.
+        When False (default), position data is interpolated to match signal timestamps. Only applies
+        to AnalogSignalArray data types. Default is False.
 
     Attributes
     ----------
@@ -370,6 +381,14 @@ class SpatialMap(NDimensionalBinner):
         place_field_min_peak=3
         place_field_sigma=None
         place_field_thres=.33
+
+    For circular continuous signals (e.g., LFP phase), set is_circular=True to use
+    circular statistics. This applies circular mean averaging within spatial bins
+    instead of linear averaging, which is appropriate for angular data.
+
+    For sparse/irregular data (e.g., spike-triggered phases), set is_sparse=True to
+    directly map signal timestamps to spatial locations without interpolation. This
+    prevents artificial data points from being created through position interpolation.
 
     TODO
     ----
@@ -412,6 +431,8 @@ class SpatialMap(NDimensionalBinner):
         place_field_max_size: Optional[Union[int, float]] = None,
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
+        is_circular: bool = False,
+        is_sparse: bool = False,
     ) -> None:
         # Initialize the parent class
         super().__init__()
@@ -619,11 +640,24 @@ class SpatialMap(NDimensionalBinner):
 
         # enforce minimum background firing rate
         # background firing rate of xx Hz
-        ratemap[ratemap < self.minbgrate] = self.minbgrate
+        if not (
+            self.is_sparse
+            and isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray)
+        ):
+            # Don't apply minimum rate to sparse data since NaN indicates no data
+            ratemap[ratemap < self.minbgrate] = self.minbgrate
 
         # enforce minimum background occupancy
         for uu in range(st_run.data.shape[0]):
-            ratemap[uu][occupancy < self.min_duration] = 0
+            if self.is_sparse and isinstance(
+                st_run, nel.core._analogsignalarray.AnalogSignalArray
+            ):
+                # For sparse data, only zero out positions with insufficient occupancy if they have actual data
+                insufficient_occupancy = occupancy < self.min_duration
+                ratemap[uu][insufficient_occupancy & ~np.isnan(ratemap[uu])] = 0
+            else:
+                # Standard behavior: zero out all positions with insufficient occupancy
+                ratemap[uu][occupancy < self.min_duration] = 0
 
         # add to nelpy tuning curve class
         tc = nel.TuningCurve1D(
@@ -702,22 +736,115 @@ class SpatialMap(NDimensionalBinner):
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            # get x location for every bin center
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
-            # get indices location within bin edges
-            ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
-            # iterate over each time step and add data values to ratemap
-            for tt, bidx in enumerate(ext_bin_idx):
-                ratemap[:, bidx - 1] += st_run.data[:, tt]
-            # divide by sampling rate
-            ratemap = ratemap * st_run.fs
+            if self.is_sparse:
+                # For sparse/irregular data, directly interpolate signal timestamps to spatial locations
+                # without interpolating position to signal timestamps
+                signal_positions = np.interp(st_run.abscissa_vals, ts, x_pos)
 
-        # divide by occupancy
-        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+                # get indices location within bin edges for each signal timestamp
+                ext_bin_idx = np.squeeze(
+                    np.digitize(signal_positions, self.x_edges, right=True)
+                )
 
-        # remove nans and infs
-        bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
-        ratemap[bad_idx] = 0
+                if self.is_circular:
+                    # For circular sparse signals, use circular mean for each spatial bin
+                    # Initialize with NaN for positions without data
+                    ratemap[:] = np.nan
+                    for bidx in range(1, len(self.x_edges)):
+                        # Find all signal timestamps that fall in this spatial bin
+                        bin_mask = ext_bin_idx == bidx
+                        if np.any(bin_mask):
+                            # For each signal/unit
+                            for unit_idx in range(st_run.data.shape[0]):
+                                # Get circular data for this bin
+                                circular_data = st_run.data[unit_idx, bin_mask]
+                                # Remove NaN values
+                                valid_data = circular_data[~np.isnan(circular_data)]
+                                if len(valid_data) > 0:
+                                    # Use circular mean for circular sparse data
+                                    ratemap[unit_idx, bidx - 1] = circmean(valid_data)
+                                # If no valid data, leave as NaN (already initialized)
+                else:
+                    # For linear sparse data, accumulate values directly
+                    # Initialize with NaN for positions without data
+                    ratemap[:] = np.nan
+                    for tt, bidx in enumerate(ext_bin_idx):
+                        if bidx > 0 and bidx <= len(self.x_edges) - 1:
+                            # If this is the first value for this bin, set it instead of adding
+                            if np.isnan(ratemap[:, bidx - 1]).all():
+                                ratemap[:, bidx - 1] = st_run.data[:, tt]
+                            else:
+                                ratemap[:, bidx - 1] += st_run.data[:, tt]
+
+                    # Don't multiply by sampling rate for sparse data since we're not dealing with time intervals
+                    # but rather discrete events. The occupancy normalization will handle the rate calculation.
+            else:
+                # Standard continuous data processing: interpolate position to signal timestamps
+                # get x location for every bin center
+                x = np.interp(st_run.abscissa_vals, ts, x_pos)
+                # get indices location within bin edges
+                ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
+
+                if self.is_circular:
+                    # For circular continuous signals, use circular mean for each spatial bin
+                    for bidx in range(1, len(self.x_edges)):
+                        # Find all time points that fall in this spatial bin
+                        bin_mask = ext_bin_idx == bidx
+                        if np.any(bin_mask):
+                            # For each signal/unit
+                            for unit_idx in range(st_run.data.shape[0]):
+                                # Get circular data for this bin
+                                circular_data = st_run.data[unit_idx, bin_mask]
+                                # Remove NaN values
+                                valid_data = circular_data[~np.isnan(circular_data)]
+                                if len(valid_data) > 0:
+                                    # Use circular mean for circular data
+                                    ratemap[unit_idx, bidx - 1] = circmean(valid_data)
+                                else:
+                                    ratemap[unit_idx, bidx - 1] = np.nan
+                else:
+                    # Standard linear averaging for non-circular data
+                    # iterate over each time step and add data values to ratemap
+                    for tt, bidx in enumerate(ext_bin_idx):
+                        ratemap[:, bidx - 1] += st_run.data[:, tt]
+                    # divide by sampling rate
+                    ratemap = ratemap * st_run.fs
+
+        # divide by occupancy (skip for circular data since we used circular mean,
+        # and handle sparse data differently)
+        if not (
+            self.is_circular
+            and isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray)
+        ):
+            if self.is_sparse and isinstance(
+                st_run, nel.core._analogsignalarray.AnalogSignalArray
+            ):
+                # For sparse data, only normalize bins that have actual signal data (not NaN)
+                # Don't divide by occupancy for bins without signals - leave them as NaN
+                for uu in range(st_run.data.shape[0]):
+                    has_signal = ~np.isnan(ratemap[uu, :])
+                    if np.any(has_signal):
+                        # Only normalize spatial bins that have signal data
+                        ratemap[uu, has_signal] = np.divide(
+                            ratemap[uu, has_signal],
+                            occupancy[has_signal],
+                            where=occupancy[has_signal] != 0,
+                        )
+            else:
+                # Standard occupancy normalization for non-circular data
+                np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+
+        # remove nans and infs, but preserve NaN for sparse data where no signal exists
+        if self.is_sparse and isinstance(
+            st_run, nel.core._analogsignalarray.AnalogSignalArray
+        ):
+            # For sparse data, only remove infinite values, preserve NaN for positions without data
+            bad_idx = np.isinf(ratemap)
+            ratemap[bad_idx] = np.nan
+        else:
+            # Standard cleanup: remove both NaN and infinite values
+            bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
+            ratemap[bad_idx] = 0
 
         return ratemap
 
@@ -794,11 +921,24 @@ class SpatialMap(NDimensionalBinner):
 
         # enforce minimum background occupancy
         for uu in range(st_run.data.shape[0]):
-            ratemap[uu][occupancy < self.min_duration] = 0
+            if self.is_sparse and isinstance(
+                st_run, nel.core._analogsignalarray.AnalogSignalArray
+            ):
+                # For sparse data, only zero out positions with insufficient occupancy if they have actual data
+                insufficient_occupancy = occupancy < self.min_duration
+                ratemap[uu][insufficient_occupancy & ~np.isnan(ratemap[uu])] = 0
+            else:
+                # Standard behavior: zero out all positions with insufficient occupancy
+                ratemap[uu][occupancy < self.min_duration] = 0
 
         # enforce minimum background firing rate
         # background firing rate of xx Hz
-        ratemap[ratemap < self.minbgrate] = self.minbgrate
+        if not (
+            self.is_sparse
+            and isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray)
+        ):
+            # Don't apply minimum rate to sparse data since NaN indicates no data
+            ratemap[ratemap < self.minbgrate] = self.minbgrate
 
         tc = nel.TuningCurve2D(
             ratemap=ratemap,
@@ -881,18 +1021,133 @@ class SpatialMap(NDimensionalBinner):
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
-            y = np.interp(st_run.abscissa_vals, ts, y_pos)
-            ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
-            ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
-            for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
-                ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
-            ratemap = ratemap * st_run.fs
+            if self.is_sparse:
+                # For sparse/irregular data, directly interpolate signal timestamps to spatial locations
+                signal_x_positions = np.interp(st_run.abscissa_vals, ts, x_pos)
+                signal_y_positions = np.interp(st_run.abscissa_vals, ts, y_pos)
 
-        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+                ext_bin_idx_x = np.squeeze(
+                    np.digitize(signal_x_positions, self.x_edges, right=True)
+                )
+                ext_bin_idx_y = np.squeeze(
+                    np.digitize(signal_y_positions, self.y_edges, right=True)
+                )
 
-        bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
-        ratemap[bad_idx] = 0
+                if self.is_circular:
+                    # For circular sparse signals in 2D, use circular mean for each spatial bin
+                    # Initialize with NaN for positions without data
+                    ratemap[:] = np.nan
+                    for bidxx in range(1, len(self.x_edges)):
+                        for bidxy in range(1, len(self.y_edges)):
+                            # Find all signal timestamps that fall in this spatial bin
+                            bin_mask = (ext_bin_idx_x == bidxx) & (
+                                ext_bin_idx_y == bidxy
+                            )
+                            if np.any(bin_mask):
+                                # For each signal/unit
+                                for unit_idx in range(st_run.data.shape[0]):
+                                    # Get circular data for this bin
+                                    circular_data = st_run.data[unit_idx, bin_mask]
+                                    # Remove NaN values
+                                    valid_data = circular_data[~np.isnan(circular_data)]
+                                    if len(valid_data) > 0:
+                                        # Use circular mean for circular sparse data
+                                        ratemap[unit_idx, bidxx - 1, bidxy - 1] = (
+                                            circmean(valid_data)
+                                        )
+                                    # If no valid data, leave as NaN (already initialized)
+                else:
+                    # For linear sparse data, accumulate values directly
+                    # Initialize with NaN for positions without data
+                    ratemap[:] = np.nan
+                    for tt, (bidxx, bidxy) in enumerate(
+                        zip(ext_bin_idx_x, ext_bin_idx_y)
+                    ):
+                        if (
+                            bidxx > 0
+                            and bidxx <= len(self.x_edges) - 1
+                            and bidxy > 0
+                            and bidxy <= len(self.y_edges) - 1
+                        ):
+                            # If this is the first value for this bin, set it instead of adding
+                            if np.isnan(ratemap[:, bidxx - 1, bidxy - 1]).all():
+                                ratemap[:, bidxx - 1, bidxy - 1] = st_run.data[:, tt]
+                            else:
+                                ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
+
+                    # Don't multiply by sampling rate for sparse data
+            else:
+                # Standard continuous data processing
+                x = np.interp(st_run.abscissa_vals, ts, x_pos)
+                y = np.interp(st_run.abscissa_vals, ts, y_pos)
+                ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
+                ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
+
+                if self.is_circular:
+                    # For circular continuous signals in 2D, use circular mean for each spatial bin
+                    for bidxx in range(1, len(self.x_edges)):
+                        for bidxy in range(1, len(self.y_edges)):
+                            # Find all time points that fall in this spatial bin
+                            bin_mask = (ext_bin_idx_x == bidxx) & (
+                                ext_bin_idx_y == bidxy
+                            )
+                            if np.any(bin_mask):
+                                # For each signal/unit
+                                for unit_idx in range(st_run.data.shape[0]):
+                                    # Get circular data for this bin
+                                    circular_data = st_run.data[unit_idx, bin_mask]
+                                    # Remove NaN values
+                                    valid_data = circular_data[~np.isnan(circular_data)]
+                                    if len(valid_data) > 0:
+                                        # Use circular mean for circular data
+                                        ratemap[unit_idx, bidxx - 1, bidxy - 1] = (
+                                            circmean(valid_data)
+                                        )
+                                    else:
+                                        ratemap[unit_idx, bidxx - 1, bidxy - 1] = np.nan
+                else:
+                    # Standard linear processing
+                    for tt, (bidxx, bidxy) in enumerate(
+                        zip(ext_bin_idx_x, ext_bin_idx_y)
+                    ):
+                        ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
+                    ratemap = ratemap * st_run.fs
+
+        # Handle occupancy normalization for different data types
+        if self.is_circular and isinstance(
+            st_run, nel.core._analogsignalarray.AnalogSignalArray
+        ):
+            # Skip normalization for circular data since we used circular mean
+            pass
+        elif self.is_sparse and isinstance(
+            st_run, nel.core._analogsignalarray.AnalogSignalArray
+        ):
+            # For sparse data, only normalize bins that have actual signal data (not NaN)
+            # Don't divide by occupancy for bins without signals - leave them as NaN
+            for uu in range(st_run.data.shape[0]):
+                has_signal = ~np.isnan(ratemap[uu, :, :])
+                if np.any(has_signal):
+                    # Only normalize spatial bins that have signal data
+                    ratemap[uu, has_signal] = np.divide(
+                        ratemap[uu, has_signal],
+                        occupancy[has_signal],
+                        where=occupancy[has_signal] != 0,
+                    )
+        else:
+            # Standard occupancy normalization
+            np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+
+        # remove nans and infs, but preserve NaN for sparse data where no signal exists
+        if self.is_sparse and isinstance(
+            st_run, nel.core._analogsignalarray.AnalogSignalArray
+        ):
+            # For sparse data, only remove infinite values, preserve NaN for positions without data
+            bad_idx = np.isinf(ratemap)
+            ratemap[bad_idx] = np.nan
+        else:
+            # Standard cleanup: remove both NaN and infinite values
+            bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
+            ratemap[bad_idx] = 0
 
         return ratemap
 
