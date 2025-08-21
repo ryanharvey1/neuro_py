@@ -2,8 +2,7 @@ import unittest
 
 import numpy as np
 
-from neuro_py.ensemble.replay import PairwiseBias
-from neuro_py.ensemble.replay import find_replay_score
+from neuro_py.ensemble.replay import PairwiseBias, find_replay_score
 
 
 class TestPairwiseBiasAnalysis(unittest.TestCase):
@@ -198,10 +197,6 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
         self.assertTrue(np.mean(p_value_sig) < np.mean(p_value_nonsig))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestFindReplayScore(unittest.TestCase):
     def test_find_replay_score_1d_simple(self):
         # simple 1D case: nSpace=5, nTime=4; create a clear diagonal trajectory
@@ -233,3 +228,7 @@ class TestFindReplayScore(unittest.TestCase):
         # start should be (0,0) and end should be (2,2)
         self.assertEqual(st, (0, 0))
         self.assertEqual(sp, (2, 2))
+
+
+if __name__ == "__main__":
+    unittest.main()
