@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from neuro_py.ensemble.replay import PairwiseBias
+from neuro_py.ensemble.replay import find_replay_score
 
 
 class TestPairwiseBiasAnalysis(unittest.TestCase):
@@ -199,3 +200,36 @@ class TestPairwiseBiasAnalysis(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFindReplayScore(unittest.TestCase):
+    def test_find_replay_score_1d_simple(self):
+        # simple 1D case: nSpace=5, nTime=4; create a clear diagonal trajectory
+        mat = np.zeros((5, 4), dtype=float)
+        # set a line from space 0 -> 4 across time
+        mat[0, 0] = 1.0
+        mat[1, 1] = 1.0
+        mat[2, 2] = 1.0
+        mat[3, 3] = 1.0
+
+        r, st, sp = find_replay_score(mat, threshold=0, circular=False)
+        # best score should be 1.0 (all mass on the trajectory)
+        self.assertAlmostEqual(r, 1.0)
+        # start should be index 0 and end index 3 or 4 depending on nTime; expect 0->3 here
+        self.assertEqual(st, 0)
+        # end should be within spatial range
+        self.assertIn(sp, range(5))
+
+    def test_find_replay_score_2d_simple(self):
+        # simple 2D case: nX=3, nY=3, nTime=3; create a straight line across grid
+        mat = np.zeros((3, 3, 3), dtype=float)
+        # positions: (0,0)->(1,1)->(2,2)
+        mat[0, 0, 0] = 1.0
+        mat[1, 1, 1] = 1.0
+        mat[2, 2, 2] = 1.0
+
+        r, st, sp = find_replay_score(mat, threshold=0, circular=False)
+        self.assertAlmostEqual(r, 1.0)
+        # start should be (0,0) and end should be (2,2)
+        self.assertEqual(st, (0, 0))
+        self.assertEqual(sp, (2, 2))
