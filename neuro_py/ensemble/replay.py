@@ -193,6 +193,47 @@ def weighted_corr_2d(
     return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
 
 
+@njit(parallel=True, cache=True)
+def _score_2d_candidates_numba(
+    matrix_flat: np.ndarray,
+    grid_pts: np.ndarray,
+    coords: np.ndarray,
+    nTime: int,
+    threshold2: float,
+):
+    """Numba-compiled scoring for 2D candidate start/end pairs using parallel prange.
+
+    Returns a 1D scores array of length M*M where M = coords.shape[0].
+    """
+    M = coords.shape[0]
+    P = grid_pts.shape[0]
+    scores = np.empty(M * M, dtype=np.float64)
+    # parallelize over start index
+    for si in prange(M):
+        x0 = coords[si, 0]
+        y0 = coords[si, 1]
+        for ei in range(M):
+            x1 = coords[ei, 0]
+            y1 = coords[ei, 1]
+            s_sum = 0.0
+            for ti in range(nTime):
+                if nTime == 1:
+                    tfrac = 0.0
+                else:
+                    tfrac = ti / (nTime - 1)
+                xt = x0 + (x1 - x0) * tfrac
+                yt = y0 + (y1 - y0) * tfrac
+                sum_t = 0.0
+                for p in range(P):
+                    dx = grid_pts[p, 0] - xt
+                    dy = grid_pts[p, 1] - yt
+                    if dx * dx + dy * dy <= threshold2:
+                        sum_t += matrix_flat[p, ti]
+                s_sum += sum_t
+            out_idx = si * M + ei
+            scores[out_idx] = s_sum / nTime
+    return scores
+
 
 def find_replay_score(
     matrix: np.ndarray, threshold: int = 5, circular: bool = False
@@ -237,47 +278,7 @@ def find_replay_score(
     if matrix.size == 0:
         return np.nan, np.nan, np.nan
 
-    @njit(cache=True)
-    def _score_2d_candidates_numba(
-        matrix_flat: np.ndarray,
-        grid_pts: np.ndarray,
-        coords: np.ndarray,
-        nTime: int,
-        threshold2: float,
-    ):
-        """Numba-compiled scoring for 2D candidate start/end pairs.
-
-        Parameters are all numpy arrays with float64 where appropriate.
-        Returns a 1D scores array of length M*M where M = coords.shape[0].
-        """
-        M = coords.shape[0]
-        P = grid_pts.shape[0]
-        scores = np.empty(M * M, dtype=np.float64)
-        idx = 0
-        for si in range(M):
-            x0 = coords[si, 0]
-            y0 = coords[si, 1]
-            for ei in range(M):
-                x1 = coords[ei, 0]
-                y1 = coords[ei, 1]
-                s_sum = 0.0
-                for ti in range(nTime):
-                    if nTime == 1:
-                        tfrac = 0.0
-                    else:
-                        tfrac = ti / (nTime - 1)
-                    xt = x0 + (x1 - x0) * tfrac
-                    yt = y0 + (y1 - y0) * tfrac
-                    sum_t = 0.0
-                    for p in range(P):
-                        dx = grid_pts[p, 0] - xt
-                        dy = grid_pts[p, 1] - yt
-                        if dx * dx + dy * dy <= threshold2:
-                            sum_t += matrix_flat[p, ti]
-                    s_sum += sum_t
-                scores[idx] = s_sum / nTime
-                idx += 1
-        return scores
+    # (helper implemented at module level for parallel Numba compilation)
 
     if matrix.ndim == 2:
         # 1D spatial case: shape is (nSpace, nTime) -- reproduce MATLAB sums logic exactly
@@ -353,13 +354,15 @@ def find_replay_score(
         # Precompute spatial grid coordinates (0-based centers)
         xs = np.arange(0, nX)
         ys = np.arange(0, nY)
-        Xg, Yg = np.meshgrid(xs, ys, indexing='ij')  # shape (nX, nY)
+        Xg, Yg = np.meshgrid(xs, ys, indexing="ij")  # shape (nX, nY)
 
         # For each candidate pair (start,end) compute the line across time
         t = np.linspace(0, 1, nTime)
 
         # Precompute flattened spatial grid for quick distance computations
-        grid_pts = np.stack([Xg.ravel().astype(np.float64), Yg.ravel().astype(np.float64)], axis=1)  # shape (nX*nY, 2)
+        grid_pts = np.stack(
+            [Xg.ravel().astype(np.float64), Yg.ravel().astype(np.float64)], axis=1
+        )  # shape (nX*nY, 2)
 
         # Prepare arrays for numba helper
         coords_arr = np.asarray(coords, dtype=np.float64)
@@ -367,7 +370,9 @@ def find_replay_score(
         threshold2 = float(threshold * threshold)
 
         # Call numba-compiled scoring routine
-        scores = _score_2d_candidates_numba(matrix_flat, grid_pts, coords_arr, nTime, threshold2)
+        scores = _score_2d_candidates_numba(
+            matrix_flat, grid_pts, coords_arr, nTime, threshold2
+        )
 
         ind = int(np.nanargmax(scores))
         r = float(scores[ind])
@@ -378,7 +383,9 @@ def find_replay_score(
         return r, st, sp
 
     else:
-        raise ValueError('Unsupported matrix dimensions; expected 2D (space x time) or 3D (X x Y x time)')
+        raise ValueError(
+            "Unsupported matrix dimensions; expected 2D (space x time) or 3D (X x Y x time)"
+        )
 
 
 def _position_estimator_1d(
