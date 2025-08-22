@@ -15,108 +15,6 @@ from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
 
 
-def _interp_with_max_gap(
-    ts_target: np.ndarray,
-    ts_src: np.ndarray,
-    values: np.ndarray,
-    max_gap_local: float,
-    gap_info: Optional[dict] = None,
-) -> np.ndarray:
-    """
-    Interpolate but return NaN when interpolation would bridge a gap > max_gap_local.
-
-    Parameters
-    - ts_target: array-like of target timestamps
-    - ts_src: array-like of source timestamps (must be increasing)
-    - values: source values aligned with ts_src
-    - max_gap_local: float in seconds or None. If None, no gap masking is applied.
-
-    Returns
-    -------
-    np.ndarray
-        Interpolated values with NaNs where gaps exceed max_gap_local.
-    """
-    ts_target = np.asarray(ts_target)
-    if len(ts_src) == 0:
-        return np.full(ts_target.shape, np.nan, dtype=float)
-
-    # Use np.interp but force left/right to NaN to avoid extrapolation
-    # Fast-path: if caller precomputed gap_info and there are no long gaps,
-    # just use np.interp and avoid extra work.
-    if gap_info is not None and gap_info.get("no_long_gaps", False):
-        return np.interp(ts_target, ts_src, values, left=np.nan, right=np.nan)
-
-    interp_vals = np.interp(ts_target, ts_src, values, left=np.nan, right=np.nan)
-
-    # If no masking requested, return immediately
-    if max_gap_local is None:
-        return interp_vals
-
-    # If caller supplied gap_info with explicit gap intervals, use it to mask
-    # targets that fall inside a long-gap interval. This avoids recomputing
-    # the same diffs/searchsorted work many times when ts_src is reused.
-    if gap_info is not None and not gap_info.get("no_long_gaps", False):
-        gap_starts = gap_info.get("gap_starts")
-        gap_ends = gap_info.get("gap_ends")
-        if gap_starts is None or len(gap_starts) == 0:
-            return interp_vals
-
-        # Keep exact matches valid (do not mask)
-        idx = np.searchsorted(ts_src, ts_target, side="left")
-        exact_left = (idx > 0) & np.isclose(ts_target, ts_src[idx - 1], atol=1e-10)
-        exact_right = (idx < len(ts_src)) & np.isclose(
-            ts_target, ts_src[idx], atol=1e-10
-        )
-        exact_mask = exact_left | exact_right
-
-        # For each target, find candidate gap interval via searchsorted on gap_ends.
-        j = np.searchsorted(gap_ends, ts_target, side="right")
-        in_gap = np.zeros(ts_target.shape, dtype=bool)
-        mask_j = j > 0
-        if np.any(mask_j):
-            idxs = j[mask_j] - 1
-            in_gap_vals = (ts_target[mask_j] > gap_starts[idxs]) & (
-                ts_target[mask_j] < gap_ends[idxs]
-            )
-            in_gap[mask_j] = in_gap_vals
-
-        # Ensure exact matches are not considered in-gap
-        in_gap[exact_mask] = False
-
-        interp_vals[in_gap] = np.nan
-        return interp_vals
-
-    # Fallback: compute gaps on the fly (original behavior)
-    # find bracketing indices in ts_src for each target time
-    idx = np.searchsorted(ts_src, ts_target, side="left")
-
-    # compute gap between bracketing samples where applicable
-    gaps = np.full(ts_target.shape, np.inf, dtype=float)
-    valid = (idx > 0) & (idx < len(ts_src))
-    if np.any(valid):
-        left_idx = idx[valid] - 1
-        right_idx = idx[valid]
-        # For targets that exactly match a source timestamp, don't treat them as
-        # bridging a gap (i.e., keep them valid). Use a small absolute tolerance
-        # to detect exact matches and set their gap to 0 so they won't be masked.
-        exact_left = np.isclose(ts_target[valid], ts_src[left_idx], atol=1e-10)
-        exact_right = np.isclose(ts_target[valid], ts_src[right_idx], atol=1e-10)
-        exact_mask = exact_left | exact_right
-        # Default gap is the distance between bracketing source samples
-        gaps_vals = ts_src[right_idx] - ts_src[left_idx]
-        # Where the target exactly matches a source sample, set gap to 0
-        if np.any(exact_mask):
-            gaps_vals = gaps_vals.copy()
-            gaps_vals[exact_mask] = 0.0
-        gaps[valid] = gaps_vals
-
-    # Allow a small relative tolerance to account for floating-point spacing
-    # Treat gaps up to (1 + tol) * max_gap_local as acceptable
-    tol = 1e-3
-    thresh = max_gap_local * (1.0 + tol)
-    interp_vals[gaps > thresh] = np.nan
-    return interp_vals
-
 
 class NDimensionalBinner:
     """
@@ -324,27 +222,6 @@ class NDimensionalBinner:
         pos_clean = pos_data.data[:, mask]
         ts_clean = pos_data.abscissa_vals[mask]
 
-        # Precompute gap info once for this pos trace to avoid repeated work
-        gap_info = None
-        if max_gap is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            # compute diffs and identify long gaps
-            diffs = np.diff(ts_clean)
-            long_mask = diffs > max_gap * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                # gap intervals are (ts_clean[i], ts_clean[i+1]) where long_mask[i] is True
-                starts = ts_clean[:-1][long_mask]
-                ends = ts_clean[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
-
-        # use module-level _interp_with_max_gap
 
         # Handle point process data (spike trains)
         if isinstance(st_data, nel.core._eventarray.SpikeTrainArray):
@@ -352,8 +229,8 @@ class NDimensionalBinner:
                 # Interpolate spike positions
                 spike_positions = []
                 for dim in range(n_dims):
-                    spike_pos_dim = _interp_with_max_gap(
-                        st_data.data[i], ts_clean, pos_clean[dim], max_gap, gap_info
+                    spike_pos_dim = np.interp(
+                        st_data.data[i], ts_clean, pos_clean[dim], left=np.nan, right=np.nan
                     )
                     spike_positions.append(spike_pos_dim)
 
@@ -379,8 +256,8 @@ class NDimensionalBinner:
             # Interpolate position at signal timestamps
             signal_positions = []
             for dim in range(n_dims):
-                pos_interp = _interp_with_max_gap(
-                    st_data.abscissa_vals, ts_clean, pos_clean[dim], max_gap, gap_info
+                pos_interp = np.interp(
+                    st_data.abscissa_vals, ts_clean, pos_clean[dim], left=np.nan, right=np.nan
                 )
                 signal_positions.append(pos_interp)
 
@@ -669,6 +546,36 @@ class SpatialMap(NDimensionalBinner):
             ).merge()
         else:
             self.run_epochs = self.pos.support.copy()
+            # Narrow run_epochs to only the continuous (non-gap) segments of the
+            # position trace so that later interpolation can safely use
+            # np.interp without masking across large dropouts. We build epochs
+            # from contiguous position timestamps (gaps <= max_gap) and then
+            # intersect those with the existing run_epochs.
+            # mask out NaN samples across any dimension
+            mask = ~np.isnan(self.pos.data).any(axis=0)
+            ts = self.pos.abscissa_vals[mask]
+            if ts.size > 0:
+                max_gap_local = getattr(self, "max_gap", None)
+                if max_gap_local is None:
+                    thresh = np.inf
+                else:
+                    tol = 1e-3
+                    thresh = max_gap_local * (1.0 + tol)
+
+                # find large gaps in the (clean) timestamp vector
+                diffs = np.diff(ts)
+                gap_idx = np.where(diffs > thresh)[0]
+
+                # segment start/end indices in ts
+                seg_starts_idx = np.concatenate(([0], gap_idx + 1))
+                seg_ends_idx = np.concatenate((gap_idx, [len(ts) - 1]))
+
+                starts = ts[seg_starts_idx]
+                ends = ts[seg_ends_idx]
+
+                self.run_epochs = self.run_epochs & nel.EpochArray(
+                    np.vstack((starts, ends)).T
+                )
 
         # calculate maps, 1d, 2d, or N-dimensional
         self.dim = pos.n_signals
@@ -831,77 +738,7 @@ class SpatialMap(NDimensionalBinner):
         # use the instance's max_gap (set via constructor)
         max_gap_local = self.max_gap
 
-        # Precompute gap_info for pos_run timestamps
-        gap_info = None
-        if max_gap_local is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            diffs = np.diff(ts)
-            long_mask = diffs > max_gap_local * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                starts = ts[:-1][long_mask]
-                ends = ts[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
-
-        # Precompute gap_info for pos_run timestamps
-        gap_info = None
-        if max_gap_local is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            diffs = np.diff(ts)
-            long_mask = diffs > max_gap_local * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                starts = ts[:-1][long_mask]
-                ends = ts[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
-
-        # Precompute gap_info for pos_run timestamps
-        gap_info = None
-        if max_gap_local is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            diffs = np.diff(ts)
-            long_mask = diffs > max_gap_local * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                starts = ts[:-1][long_mask]
-                ends = ts[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
-
-        # Precompute gap_info for pos_run timestamps
-        gap_info = None
-        if max_gap_local is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            diffs = np.diff(ts)
-            long_mask = diffs > max_gap_local * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                starts = ts[:-1][long_mask]
-                ends = ts[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
+    # no gap_info precomputation required here either
         # if data to map is spike train (point process)
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
@@ -910,18 +747,14 @@ class SpatialMap(NDimensionalBinner):
                     ratemap[i, : len(self.x_edges)],
                     _,
                 ) = np.histogram(
-                    _interp_with_max_gap(
-                        st_run.data[i], ts, x_pos, max_gap_local, gap_info
-                    ),
+                        np.interp(st_run.data[i], ts, x_pos, left=np.nan, right=np.nan),
                     bins=self.x_edges,
                 )
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             # get x location for every bin center
-            x = _interp_with_max_gap(
-                st_run.abscissa_vals, ts, x_pos, max_gap_local, gap_info
-            )
+            x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
             # get indices location within bin edges
             ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
             # iterate over each time step and add data values to ratemap
@@ -1088,48 +921,20 @@ class SpatialMap(NDimensionalBinner):
             pos_run.abscissa_vals[mask],
         )
 
-        # use the instance's max_gap (set via constructor)
-        max_gap_local = self.max_gap
-
-        # Precompute gap_info for pos_run timestamps
-        gap_info = None
-        if max_gap_local is None:
-            gap_info = {"no_long_gaps": True}
-        else:
-            diffs = np.diff(ts)
-            long_mask = diffs > max_gap_local * (1.0 + 1e-3)
-            if not np.any(long_mask):
-                gap_info = {"no_long_gaps": True}
-            else:
-                starts = ts[:-1][long_mask]
-                ends = ts[1:][long_mask]
-                gap_info = {
-                    "no_long_gaps": False,
-                    "gap_starts": starts,
-                    "gap_ends": ends,
-                }
 
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
                 ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = (
                     np.histogram2d(
-                        _interp_with_max_gap(
-                            st_run.data[i], ts, x_pos, max_gap_local, gap_info
-                        ),
-                        _interp_with_max_gap(
-                            st_run.data[i], ts, y_pos, max_gap_local, gap_info
-                        ),
+                            np.interp(st_run.data[i], ts, x_pos, left=np.nan, right=np.nan),
+                            np.interp(st_run.data[i], ts, y_pos, left=np.nan, right=np.nan),
                         bins=(self.x_edges, self.y_edges),
                     )
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            x = _interp_with_max_gap(
-                st_run.abscissa_vals, ts, x_pos, max_gap_local, gap_info
-            )
-            y = _interp_with_max_gap(
-                st_run.abscissa_vals, ts, y_pos, max_gap_local, gap_info
-            )
+            x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
+            y = np.interp(st_run.abscissa_vals, ts, y_pos, left=np.nan, right=np.nan)
             ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
             ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
