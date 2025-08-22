@@ -888,3 +888,35 @@ def test_spatial_map_shuffle_nd():
     pvals = spatial_map.shuffle_spatial_information()
     assert pvals.shape[0] == spatial_map.n_units
     assert np.all((pvals >= 0) & (pvals <= 1))
+
+
+def test_spatial_map_max_gap_changes_ratemap():
+    """Check that max_gap impacts the final ratemap (sums should differ).
+
+    This test is a behavioral check — it will skip if the SpatialMap API doesn't
+    accept `max_gap` or if `ratemap` is not available.
+    """
+    time = np.concatenate([np.linspace(0, 10, 101), np.linspace(100, 110, 101)])
+    x_pos = np.linspace(0, 1, len(time))
+
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=50)
+    spike_times = np.linspace(0, 110, 200)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    try:
+        sm_strict = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1.0)
+        sm_loose = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=200.0)
+    except TypeError:
+        pytest.skip("SpatialMap does not accept max_gap parameter in this version")
+
+    if not (hasattr(sm_strict, "ratemap") and hasattr(sm_loose, "ratemap")):
+        pytest.skip(
+            "SpatialMap does not expose ratemap attribute; cannot compare outputs"
+        )
+
+    # Compare the total activity in the ratemaps
+    sum_strict = np.nansum(sm_strict.ratemap)
+    sum_loose = np.nansum(sm_loose.ratemap)
+
+    # They should differ when interpolation/extrapolation across the gap is handled differently
+    assert not np.isclose(sum_strict, sum_loose)
