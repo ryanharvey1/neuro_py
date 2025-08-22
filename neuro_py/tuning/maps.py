@@ -15,6 +15,64 @@ from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
 
 
+def _interp_with_max_gap(
+    ts_target: np.ndarray, ts_src: np.ndarray, values: np.ndarray, max_gap_local: float
+) -> np.ndarray:
+    """
+    Interpolate but return NaN when interpolation would bridge a gap > max_gap_local.
+
+    Parameters
+    - ts_target: array-like of target timestamps
+    - ts_src: array-like of source timestamps (must be increasing)
+    - values: source values aligned with ts_src
+    - max_gap_local: float in seconds or None. If None, no gap masking is applied.
+
+    Returns
+    -------
+    np.ndarray
+        Interpolated values with NaNs where gaps exceed max_gap_local.
+    """
+    ts_target = np.asarray(ts_target)
+    if len(ts_src) == 0:
+        return np.full(ts_target.shape, np.nan, dtype=float)
+
+    # Use np.interp but force left/right to NaN to avoid extrapolation
+    interp_vals = np.interp(ts_target, ts_src, values, left=np.nan, right=np.nan)
+
+    if max_gap_local is None:
+        return interp_vals
+
+    # find bracketing indices in ts_src for each target time
+    idx = np.searchsorted(ts_src, ts_target, side="left")
+
+    # compute gap between bracketing samples where applicable
+    gaps = np.full(ts_target.shape, np.inf, dtype=float)
+    valid = (idx > 0) & (idx < len(ts_src))
+    if np.any(valid):
+        left_idx = idx[valid] - 1
+        right_idx = idx[valid]
+        # For targets that exactly match a source timestamp, don't treat them as
+        # bridging a gap (i.e., keep them valid). Use a small absolute tolerance
+        # to detect exact matches and set their gap to 0 so they won't be masked.
+        exact_left = np.isclose(ts_target[valid], ts_src[left_idx], atol=1e-10)
+        exact_right = np.isclose(ts_target[valid], ts_src[right_idx], atol=1e-10)
+        exact_mask = exact_left | exact_right
+        # Default gap is the distance between bracketing source samples
+        gaps_vals = ts_src[right_idx] - ts_src[left_idx]
+        # Where the target exactly matches a source sample, set gap to 0
+        if np.any(exact_mask):
+            gaps_vals = gaps_vals.copy()
+            gaps_vals[exact_mask] = 0.0
+        gaps[valid] = gaps_vals
+
+    # Allow a small relative tolerance to account for floating-point spacing
+    # Treat gaps up to (1 + tol) * max_gap_local as acceptable
+    tol = 1e-3
+    thresh = max_gap_local * (1.0 + tol)
+    interp_vals[gaps > thresh] = np.nan
+    return interp_vals
+
+
 class NDimensionalBinner:
     """
     Base class for N-dimensional binning of data (point process or continuous)
@@ -38,6 +96,7 @@ class NDimensionalBinner:
             Union[int, float, List[Union[int, float]], np.ndarray]
         ] = None,
         smooth_mode: str = "reflect",
+        max_gap: Optional[float] = 0.1,
     ) -> tuple:
         """
         Create an N-dimensional tuning curve from spike and position data.
@@ -59,6 +118,8 @@ class NDimensionalBinner:
             or an array/list with sigma values for each dimension. Default is None (no smoothing).
         smooth_mode : str, optional
             Smoothing mode. Default is "reflect".
+        max_gap : Optional[float], optional
+            Maximum gap size (in seconds) to interpolate over. Default is 0.1.
 
         Returns
         -------
@@ -77,7 +138,9 @@ class NDimensionalBinner:
         occupancy = self._compute_occupancy_nd(pos_data, bin_edges)
 
         # Compute ratemap
-        ratemap = self._compute_ratemap_nd(st_data, pos_data, occupancy, bin_edges)
+        ratemap = self._compute_ratemap_nd(
+            st_data, pos_data, occupancy, bin_edges, max_gap=max_gap
+        )
 
         # Apply minimum background firing rate (before minimum duration check)
         ratemap[ratemap < minbgrate] = minbgrate
@@ -179,6 +242,7 @@ class NDimensionalBinner:
         pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
         occupancy: np.ndarray,
         bin_edges: List[np.ndarray],
+        max_gap: Optional[float] = None,
     ) -> np.ndarray:
         """
         Compute N-dimensional ratemap.
@@ -193,6 +257,8 @@ class NDimensionalBinner:
             Occupancy array.
         bin_edges : List[np.ndarray]
             Bin edges for each dimension.
+        max_gap : Optional[float], optional
+            Maximum gap size (in seconds) to interpolate over. Default is 0.1.
 
         Returns
         -------
@@ -213,13 +279,17 @@ class NDimensionalBinner:
         pos_clean = pos_data.data[:, mask]
         ts_clean = pos_data.abscissa_vals[mask]
 
+        # use module-level _interp_with_max_gap
+
         # Handle point process data (spike trains)
         if isinstance(st_data, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_data.data.shape[0]):
                 # Interpolate spike positions
                 spike_positions = []
                 for dim in range(n_dims):
-                    spike_pos_dim = np.interp(st_data.data[i], ts_clean, pos_clean[dim])
+                    spike_pos_dim = _interp_with_max_gap(
+                        st_data.data[i], ts_clean, pos_clean[dim], max_gap
+                    )
                     spike_positions.append(spike_pos_dim)
 
                 # Bin spikes
@@ -244,7 +314,9 @@ class NDimensionalBinner:
             # Interpolate position at signal timestamps
             signal_positions = []
             for dim in range(n_dims):
-                pos_interp = np.interp(st_data.abscissa_vals, ts_clean, pos_clean[dim])
+                pos_interp = _interp_with_max_gap(
+                    st_data.abscissa_vals, ts_clean, pos_clean[dim], max_gap
+                )
                 signal_positions.append(pos_interp)
 
             # Get bin indices for each time point
@@ -346,6 +418,8 @@ class SpatialMap(NDimensionalBinner):
         Minimum peak rate of place field. Default is 3.
     place_field_sigma : Union[int, float], optional
         Extra smoothing sigma to apply before field detection. Default is 2.
+    max_gap : Optional[float], optional
+        Maximum gap size (in seconds) to interpolate over. Default is 0.1.
 
     Attributes
     ----------
@@ -412,6 +486,7 @@ class SpatialMap(NDimensionalBinner):
         place_field_max_size: Optional[Union[int, float]] = None,
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
+        max_gap: float = 0.1,
     ) -> None:
         # Initialize the parent class
         super().__init__()
@@ -688,6 +763,8 @@ class SpatialMap(NDimensionalBinner):
             pos_run.data[0, mask],
             pos_run.abscissa_vals[mask],
         )
+        # use the instance's max_gap (set via constructor)
+        max_gap_local = self.max_gap
         # if data to map is spike train (point process)
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
@@ -696,14 +773,14 @@ class SpatialMap(NDimensionalBinner):
                     ratemap[i, : len(self.x_edges)],
                     _,
                 ) = np.histogram(
-                    np.interp(st_run.data[i], ts, x_pos),
+                    _interp_with_max_gap(st_run.data[i], ts, x_pos, max_gap_local),
                     bins=self.x_edges,
                 )
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             # get x location for every bin center
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
+            x = _interp_with_max_gap(st_run.abscissa_vals, ts, x_pos, max_gap_local)
             # get indices location within bin edges
             ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
             # iterate over each time step and add data values to ratemap
@@ -870,19 +947,22 @@ class SpatialMap(NDimensionalBinner):
             pos_run.abscissa_vals[mask],
         )
 
+        # use the instance's max_gap (set via constructor)
+        max_gap_local = self.max_gap
+
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
             for i in range(st_run.data.shape[0]):
                 ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = (
                     np.histogram2d(
-                        np.interp(st_run.data[i], ts, x_pos),
-                        np.interp(st_run.data[i], ts, y_pos),
+                        _interp_with_max_gap(st_run.data[i], ts, x_pos, max_gap_local),
+                        _interp_with_max_gap(st_run.data[i], ts, y_pos, max_gap_local),
                         bins=(self.x_edges, self.y_edges),
                     )
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
-            y = np.interp(st_run.abscissa_vals, ts, y_pos)
+            x = _interp_with_max_gap(st_run.abscissa_vals, ts, x_pos, max_gap_local)
+            y = _interp_with_max_gap(st_run.abscissa_vals, ts, y_pos, max_gap_local)
             ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
             ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
