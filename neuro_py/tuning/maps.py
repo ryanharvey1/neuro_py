@@ -557,36 +557,37 @@ class SpatialMap(NDimensionalBinner):
             ).merge()
         else:
             self.run_epochs = self.pos.support.copy()
-            # Narrow run_epochs to only the continuous (non-gap) segments of the
-            # position trace so that later interpolation can safely use
-            # np.interp without masking across large dropouts. We build epochs
-            # from contiguous position timestamps (gaps <= max_gap) and then
-            # intersect those with the existing run_epochs.
-            # mask out NaN samples across any dimension
-            mask = ~np.isnan(self.pos.data).any(axis=0)
-            ts = self.pos.abscissa_vals[mask]
-            if ts.size > 0:
-                max_gap_local = getattr(self, "max_gap", None)
-                if max_gap_local is None:
-                    thresh = np.inf
-                else:
-                    tol = 1e-3
-                    thresh = max_gap_local * (1.0 + tol)
 
-                # find large gaps in the (clean) timestamp vector
-                diffs = np.diff(ts)
-                gap_idx = np.where(diffs > thresh)[0]
+        # Narrow run_epochs to only the continuous (non-gap) segments of the
+        # position trace so that later interpolation can safely use
+        # np.interp without masking across large dropouts. We build epochs
+        # from contiguous position timestamps (gaps <= max_gap) and then
+        # intersect those with the existing run_epochs.
+        # mask out NaN samples across any dimension
+        mask = ~np.isnan(self.pos.data).any(axis=0)
+        ts = self.pos.abscissa_vals[mask]
+        if ts.size > 0:
+            max_gap_local = getattr(self, "max_gap", None)
+            if max_gap_local is None:
+                thresh = np.inf
+            else:
+                tol = 1e-3
+                thresh = max_gap_local * (1.0 + tol)
 
-                # segment start/end indices in ts
-                seg_starts_idx = np.concatenate(([0], gap_idx + 1))
-                seg_ends_idx = np.concatenate((gap_idx, [len(ts) - 1]))
+            # find large gaps in the (clean) timestamp vector
+            diffs = np.diff(ts)
+            gap_idx = np.where(diffs > thresh)[0]
 
-                starts = ts[seg_starts_idx]
-                ends = ts[seg_ends_idx]
+            # segment start/end indices in ts
+            seg_starts_idx = np.concatenate(([0], gap_idx + 1))
+            seg_ends_idx = np.concatenate((gap_idx, [len(ts) - 1]))
 
-                self.run_epochs = self.run_epochs & nel.EpochArray(
-                    np.vstack((starts, ends)).T
-                )
+            starts = ts[seg_starts_idx]
+            ends = ts[seg_ends_idx]
+
+            self.run_epochs = self.run_epochs & nel.EpochArray(
+                np.vstack((starts, ends)).T
+            )
 
         # calculate maps, 1d, 2d, or N-dimensional
         self.dim = pos.n_signals
