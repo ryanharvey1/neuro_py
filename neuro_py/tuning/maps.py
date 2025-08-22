@@ -386,6 +386,11 @@ class SpatialMap(NDimensionalBinner):
         Speed data.
     run_epochs : nelpy.EpochArray
         Running epochs.
+    _min_allowed_gap : float
+        Computed minimum allowed value for `max_gap` (seconds). This is
+        calculated as (1/pos.fs) * (1 + tol) and is used when a user
+        supplies a `max_gap` smaller than the sampling interval; in that
+        case `self.max_gap` will be clamped to this value.
 
     Notes
     -----
@@ -554,6 +559,8 @@ class SpatialMap(NDimensionalBinner):
         tol_for_min_gap = 1e-3
         min_gap = 1.0 / pos.fs
         min_allowed = min_gap * (1.0 + tol_for_min_gap)
+        # expose the computed minimum allowed gap on the instance
+        self._min_allowed_gap = float(min_allowed)
         if self.max_gap < min_allowed:
             logging.warning(
                 "Provided max_gap (%s) is smaller than the position sampling interval (%s); "
@@ -1107,22 +1114,24 @@ class SpatialMap(NDimensionalBinner):
                 tc, _ = self.map_nd(pos_shuff)
                 return tc.spatial_information()
 
-        pos_data_shuff = create_shuffled_coordinates(
-            self.pos.data, n_shuff=self.n_shuff
-        )
+        # Restrict position data to running epochs before creating shuffles so
+        # the null distribution reflects the actual samples used for mapping
+        # (avoid pulling non-running or gap samples into shuffles).
+        pos_run = self.pos[self.run_epochs]
+        pos_data_shuff = create_shuffled_coordinates(pos_run.data, n_shuff=self.n_shuff)
 
         # construct tuning curves for each position shuffle
         if self.parallel_shuff:
             num_cores = multiprocessing.cpu_count()
             shuffle_spatial_info = Parallel(n_jobs=num_cores)(
                 delayed(get_spatial_infos)(
-                    pos_data_shuff[i], self.pos.abscissa_vals, self.dim
+                    pos_data_shuff[i], pos_run.abscissa_vals, self.dim
                 )
                 for i in range(self.n_shuff)
             )
         else:
             shuffle_spatial_info = [
-                get_spatial_infos(pos_data_shuff[i], self.pos.abscissa_vals, self.dim)
+                get_spatial_infos(pos_data_shuff[i], pos_run.abscissa_vals, self.dim)
                 for i in range(self.n_shuff)
             ]
 
