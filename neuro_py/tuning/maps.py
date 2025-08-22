@@ -371,7 +371,7 @@ class SpatialMap(NDimensionalBinner):
         Minimum peak rate of place field. Default is 3.
     place_field_sigma : Union[int, float], optional
         Extra smoothing sigma to apply before field detection. Default is 2.
-    max_gap : Optional[float], optional
+    max_gap : float, optional
         Maximum gap size (in seconds) to interpolate over. Default is 0.1.
 
     Attributes
@@ -544,6 +544,14 @@ class SpatialMap(NDimensionalBinner):
         if np.all(np.isnan(pos.data)):
             raise ValueError("Position data cannot contain all NaN values")
 
+        # Ensure max_gap is not smaller than the position sampling interval
+        # (max_gap is in seconds; pos.fs is samples per second)
+        min_gap = 1.0 / pos.fs
+        if self.max_gap < min_gap:
+            raise ValueError(
+                f"max_gap ({self.max_gap}) must be >= the sampling interval of pos ({min_gap})"
+            )
+
         # get speed and running epochs (highly recommended you calculate
         #   speed before hand on non epoched data)
         if speed_thres > 0:
@@ -567,12 +575,8 @@ class SpatialMap(NDimensionalBinner):
         mask = ~np.isnan(self.pos.data).any(axis=0)
         ts = self.pos.abscissa_vals[mask]
         if ts.size > 0:
-            max_gap_local = getattr(self, "max_gap", None)
-            if max_gap_local is None:
-                thresh = np.inf
-            else:
-                tol = 1e-3
-                thresh = max_gap_local * (1.0 + tol)
+            tol = 1e-3
+            thresh = self.max_gap * (1.0 + tol)
 
             # find large gaps in the (clean) timestamp vector
             diffs = np.diff(ts)
