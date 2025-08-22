@@ -569,7 +569,7 @@ class SpatialMap(NDimensionalBinner):
                 min_gap,
                 min_allowed,
             )
-            # Mutate the value used internally so subsequent logic is safe
+            # Mutate the value used internally so subsequent non-gap interval logic is safe
             self.max_gap = float(min_allowed)
 
         # get speed and running epochs (highly recommended you calculate
