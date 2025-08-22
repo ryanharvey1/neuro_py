@@ -2,6 +2,8 @@
 
 Analysis of neuroelectrophysiology data in Python.
 
+[![DOI](https://zenodo.org/badge/629590369.svg)](https://doi.org/10.5281/zenodo.16929395)
+
 |         |                                                                    |
 |---------|--------------------------------------------------------------------|
 | CI/CD   | [![CI - Test](https://github.com/ryanharvey1/neuro_py/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanharvey1/neuro_py/actions/workflows/ci.yml) [![Docs](https://github.com/ryanharvey1/neuro_py/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/ryanharvey1/neuro_py/actions/workflows/deploy-docs.yml)    |
