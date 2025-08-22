@@ -962,15 +962,15 @@ def test_shuffle_detects_spatial_and_nonspatial_cells():
     """
     np.random.seed(0)
 
-    # position: 1D linear track 0..100 over 100s with high sampling
+    # position: 1D linear track 0..200 over 100s with high sampling
     duration = 100.0
     fs_pos = 50.0
     n_samples = int(duration * fs_pos)
     timestamps = np.linspace(0, duration, n_samples)
-    x_pos = np.linspace(0, 100, n_samples)
+    x_pos = np.linspace(0, 200, n_samples)
 
-    # spatial unit: place field at 50 with gaussian tuning
-    center = 50.0
+    # spatial unit: place field at 100 with gaussian tuning
+    center = 100.0
     sigma = 5.0
     peak_rate = 40.0  # Hz (increase to make place field stronger)
     base_rate = 0.01
@@ -998,7 +998,7 @@ def test_shuffle_detects_spatial_and_nonspatial_cells():
     # place field around `center`. Use a Bernoulli draw per sample in-field so the
     # spatial signal is robust and reproducible under the RNG seed.
     # widen field and increase per-sample spike probability to make unit strongly spatial
-    in_field = np.abs(x_pos - center) <= (sigma * 3.0)
+    in_field = np.abs(x_pos - center) <= (sigma * 4.0)
     p_spike_in_field = 0.8  # per-sample probability of a spike when in the field
     spikes_spatial = []
     for t, inf in zip(timestamps, in_field):
