@@ -1073,16 +1073,10 @@ class SpatialMap(NDimensionalBinner):
 
             # if fewer coordinates then shuffles, reduce number of shuffles to n coords
             n_shuff = np.min([range_, n_shuff])
-
-            # avoid the zero shift (identity) which would reproduce the
-            # original ordering and contaminate the null distribution
-            # exclude shifts that are equivalent to identity (0 or +/- range_)
-            possible_shifts = np.concatenate(
-                (np.arange(-range_ + 1, 0), np.arange(1, range_))
+            
+            surrogate = np.random.choice(
+                np.arange(-range_, range_), size=n_shuff, replace=False
             )
-            # if fewer possible shifts than requested shuffles, reduce n_shuff
-            n_shuff = min(n_shuff, possible_shifts.size)
-            surrogate = np.random.choice(possible_shifts, size=n_shuff, replace=False)
             x_temp = []
             for n in surrogate:
                 x_temp.append(np.roll(X, n, axis=1))
