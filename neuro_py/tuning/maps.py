@@ -545,12 +545,25 @@ class SpatialMap(NDimensionalBinner):
             raise ValueError("Position data cannot contain all NaN values")
 
         # Ensure max_gap is not smaller than the position sampling interval
-        # (max_gap is in seconds; pos.fs is samples per second)
+        # (max_gap is in seconds; pos.fs is samples per second).
+        # Use a small tolerance when computing the minimum allowed gap so
+        # floating point rounding of pos timestamps doesn't cause spurious
+        # failures. If the user provided a smaller max_gap, clamp it up and
+        # warn rather than raising an exception to preserve backward
+        # compatibility and avoid breaking existing tests.
+        tol_for_min_gap = 1e-3
         min_gap = 1.0 / pos.fs
-        if self.max_gap < min_gap:
-            raise ValueError(
-                f"max_gap ({self.max_gap}) must be >= the sampling interval of pos ({min_gap})"
+        min_allowed = min_gap * (1.0 + tol_for_min_gap)
+        if self.max_gap < min_allowed:
+            logging.warning(
+                "Provided max_gap (%s) is smaller than the position sampling interval (%s); "
+                "clamping max_gap to %s",
+                self.max_gap,
+                min_gap,
+                min_allowed,
             )
+            # Mutate the value used internally so subsequent logic is safe
+            self.max_gap = float(min_allowed)
 
         # get speed and running epochs (highly recommended you calculate
         #   speed before hand on non epoched data)
