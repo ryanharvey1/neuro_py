@@ -4,7 +4,7 @@ import nelpy as nel
 import numpy as np
 import pytest
 
-from neuro_py.tuning.maps import SpatialMap
+from neuro_py.tuning.maps import SpatialMap, _interp_with_max_gap
 
 # Ensure that the logging module captures warnings
 logging.captureWarnings(True)
@@ -887,3 +887,42 @@ def test_spatial_map_shuffle_nd():
     pvals = spatial_map.shuffle_spatial_information()
     assert pvals.shape[0] == spatial_map.n_units
     assert np.all((pvals >= 0) & (pvals <= 1))
+
+
+def test_exact_match_preserved():
+    # source timestamps with a large jump at the end
+    ts_src = np.array([0.0, 0.1, 0.2, 10.0])
+    values = np.array([1.0, 2.0, 3.0, 4.0])
+
+    # target includes an exact match (10.0) and a mid-sample (0.15)
+    ts_target = np.array([0.15, 10.0])
+
+    # set max_gap smaller than the big jump to force masking across it
+    max_gap = 0.5
+
+    out = _interp_with_max_gap(ts_target, ts_src, values, max_gap)
+
+    # the mid-sample should be interpolated (not NaN)
+    assert not np.isnan(out[0])
+    # the exact match must be preserved (not masked as NaN)
+    assert out[1] == 4.0
+
+
+def test_large_gap_masking():
+    # create source timestamps with a large gap between 0.2 and 5.0
+    ts_src = np.array([0.0, 0.1, 0.2, 5.0, 5.1])
+    values = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+
+    # targets span the whole range, including the interior of the large gap
+    ts_target = np.linspace(0.0, 5.1, 12)
+
+    max_gap = 0.5
+
+    out = _interp_with_max_gap(ts_target, ts_src, values, max_gap)
+
+    # any target strictly between 0.2 and 5.0 should be NaN (masked)
+    in_gap_mask = (ts_target > 0.2) & (ts_target < 5.0)
+    assert np.all(np.isnan(out[in_gap_mask]))
+
+    # targets outside the gap should not be all NaN
+    assert not np.all(np.isnan(out[~in_gap_mask]))
