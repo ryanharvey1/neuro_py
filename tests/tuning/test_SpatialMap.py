@@ -920,3 +920,34 @@ def test_spatial_map_max_gap_changes_ratemap():
 
     # They should differ when interpolation/extrapolation across the gap is handled differently
     assert not np.isclose(sum_strict, sum_loose)
+
+
+def test_max_gap_clamped_and_attribute_exposed():
+    """Test that a too-small max_gap is clamped and `_min_allowed_gap` is exposed."""
+    # create timestamps with nominal fs=50 (dt ~ 0.020)
+    time = np.linspace(0, 10, 501)  # fs ~= 50.0 (exact 500 intervals)
+    x_pos = np.linspace(0, 1, len(time))
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=50)
+
+    spike_times = np.linspace(0, 10, 20)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    # ask for a max_gap far smaller than sampling interval
+    sm = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1e-6)
+
+    # attribute should exist and be >= 1/pos.fs
+    assert hasattr(sm, "_min_allowed_gap")
+    assert sm.max_gap >= sm._min_allowed_gap
+
+
+def test_clamping_changes_behavior_not_raising():
+    """Constructing with tiny max_gap should not raise and should clamp."""
+    time = np.linspace(0, 1, 101)
+    x_pos = np.linspace(0, 1, len(time))
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=100)
+    spike_times = np.linspace(0, 1, 10)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    # should not raise despite small max_gap; will be clamped internally
+    sm = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1e-6)
+    assert sm.max_gap >= (1.0 / pos.fs)
