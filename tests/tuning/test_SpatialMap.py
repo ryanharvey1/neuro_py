@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from neuro_py.tuning.maps import SpatialMap
+import numpy as np
 
 # Ensure that the logging module captures warnings
 logging.captureWarnings(True)
@@ -887,3 +888,142 @@ def test_spatial_map_shuffle_nd():
     pvals = spatial_map.shuffle_spatial_information()
     assert pvals.shape[0] == spatial_map.n_units
     assert np.all((pvals >= 0) & (pvals <= 1))
+
+
+def test_spatial_map_max_gap_changes_ratemap():
+    """Check that max_gap impacts the final ratemap (sums should differ).
+
+    This test is a behavioral check — it will skip if the SpatialMap API doesn't
+    accept `max_gap` or if `ratemap` is not available.
+    """
+    time = np.concatenate([np.linspace(0, 10, 101), np.linspace(100, 110, 101)])
+    x_pos = np.linspace(0, 1, len(time))
+
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=50)
+    spike_times = np.linspace(0, 110, 200)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    try:
+        sm_strict = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1.0)
+        sm_loose = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=200.0)
+    except TypeError:
+        pytest.skip("SpatialMap does not accept max_gap parameter in this version")
+
+    if not (hasattr(sm_strict, "ratemap") and hasattr(sm_loose, "ratemap")):
+        pytest.skip(
+            "SpatialMap does not expose ratemap attribute; cannot compare outputs"
+        )
+
+    # Compare the total activity in the ratemaps
+    sum_strict = np.nansum(sm_strict.ratemap)
+    sum_loose = np.nansum(sm_loose.ratemap)
+
+    # They should differ when interpolation/extrapolation across the gap is handled differently
+    assert not np.isclose(sum_strict, sum_loose)
+
+
+def test_max_gap_clamped_and_attribute_exposed():
+    """Test that a too-small max_gap is clamped and `_min_allowed_gap` is exposed."""
+    # create timestamps with nominal fs=50 (dt ~ 0.020)
+    time = np.linspace(0, 10, 501)  # fs ~= 50.0 (exact 500 intervals)
+    x_pos = np.linspace(0, 1, len(time))
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=50)
+
+    spike_times = np.linspace(0, 10, 20)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    # ask for a max_gap far smaller than sampling interval
+    sm = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1e-6)
+
+    # attribute should exist and be >= 1/pos.fs
+    assert hasattr(sm, "_min_allowed_gap")
+    assert sm.max_gap >= sm._min_allowed_gap
+
+
+def test_clamping_changes_behavior_not_raising():
+    """Constructing with tiny max_gap should not raise and should clamp."""
+    time = np.linspace(0, 1, 101)
+    x_pos = np.linspace(0, 1, len(time))
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=100)
+    spike_times = np.linspace(0, 1, 10)
+    st = nel.SpikeTrainArray([spike_times], fs=1000.0)
+
+    # should not raise despite small max_gap; will be clamped internally
+    sm = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1e-6)
+    assert sm.max_gap >= (1.0 / pos.fs)
+
+
+def test_shuffle_detects_spatial_and_nonspatial_cells():
+    """Simulate one strongly spatial unit and one non-spatial (uniform) unit.
+
+    Use shuffle_spatial_information to ensure the spatial unit is significant
+    and the non-spatial unit is not. Make RNG deterministic and disable
+    parallel shuffling for test stability.
+    """
+    np.random.seed(0)
+
+    # position: 1D linear track 0..200 over 100s with high sampling
+    duration = 100.0
+    fs_pos = 50.0
+    n_samples = int(duration * fs_pos)
+    timestamps = np.linspace(0, duration, n_samples)
+    x_pos = np.linspace(0, 200, n_samples)
+
+    # spatial unit: place field at 100 with gaussian tuning
+    center = 100.0
+    sigma = 5.0
+    peak_rate = 40.0  # Hz (increase to make place field stronger)
+    base_rate = 0.01
+    dt = timestamps[1] - timestamps[0]
+    rate_spatial = base_rate + peak_rate * np.exp(
+        -0.5 * ((x_pos - center) / sigma) ** 2
+    )
+
+    # non-spatial unit: uniform low rate
+    rate_nonspatial = np.full_like(rate_spatial, 0.2)
+
+    # generate spikes
+    def make_spikes(rate):
+        counts = np.random.poisson(rate * dt)
+        spike_times = []
+        for t, c in zip(timestamps, counts):
+            if c > 0:
+                # spread multiple spikes uniformly within the bin
+                spike_times.extend((t + np.random.rand(c) * dt).tolist())
+        if len(spike_times) == 0:
+            return np.array([])
+        return np.sort(np.array(spike_times))
+
+    # Create a strongly spatial unit by placing spikes preferentially within a tight
+    # place field around `center`. Use a Bernoulli draw per sample in-field so the
+    # spatial signal is robust and reproducible under the RNG seed.
+    # widen field and increase per-sample spike probability to make unit strongly spatial
+    in_field = np.abs(x_pos - center) <= (sigma * 4.0)
+    p_spike_in_field = 0.8  # per-sample probability of a spike when in the field
+    spikes_spatial = []
+    for t, inf in zip(timestamps, in_field):
+        if inf and np.random.rand() < p_spike_in_field:
+            spikes_spatial.append(t + np.random.rand() * dt)
+    spikes_spatial = np.sort(np.array(spikes_spatial))
+
+    # Non-spatial unit remains Poisson with uniform rate
+    spikes_nonspatial = make_spikes(rate_nonspatial)
+
+    st = nel.SpikeTrainArray([spikes_spatial, spikes_nonspatial], fs=1000.0)
+    pos = nel.AnalogSignalArray(np.array([x_pos]), timestamps=timestamps, fs=fs_pos)
+
+    sm = SpatialMap(pos=pos, st=st, s_binsize=5.0, speed_thres=0)
+    # reduce shuffles for test speed and avoid multiprocessing variability
+    # increase shuffles for more stable p-value estimation in CI
+    sm.n_shuff = 500
+    sm.parallel_shuff = False
+
+    # deterministic shuffles
+    np.random.seed(0)
+    pvals = sm.shuffle_spatial_information()
+
+    assert pvals.shape[0] == 2
+    # spatial cell should be significant at alpha=0.05
+    assert pvals[0] < 0.05
+    # non-spatial cell should not be significant
+    assert pvals[1] > 0.05

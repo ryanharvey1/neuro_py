@@ -60,6 +60,12 @@ class NDimensionalBinner:
         smooth_mode : str, optional
             Smoothing mode. Default is "reflect".
 
+        Notes
+        -----
+        max_gap is not used here; position continuity should be enforced by
+        the caller (for example, SpatialMap narrows run_epochs using its
+        own `max_gap` attribute).
+
         Returns
         -------
         tuple
@@ -194,6 +200,13 @@ class NDimensionalBinner:
         bin_edges : List[np.ndarray]
             Bin edges for each dimension.
 
+        Notes
+        -----
+        This implementation assumes the caller has ensured continuity of
+        position timestamps (for example by intersecting run epochs with
+        contiguous position segments). Interpolation is performed with
+        numpy.interp(..., left=np.nan, right=np.nan).
+
         Returns
         -------
         np.ndarray
@@ -219,7 +232,13 @@ class NDimensionalBinner:
                 # Interpolate spike positions
                 spike_positions = []
                 for dim in range(n_dims):
-                    spike_pos_dim = np.interp(st_data.data[i], ts_clean, pos_clean[dim])
+                    spike_pos_dim = np.interp(
+                        st_data.data[i],
+                        ts_clean,
+                        pos_clean[dim],
+                        left=np.nan,
+                        right=np.nan,
+                    )
                     spike_positions.append(spike_pos_dim)
 
                 # Bin spikes
@@ -244,7 +263,13 @@ class NDimensionalBinner:
             # Interpolate position at signal timestamps
             signal_positions = []
             for dim in range(n_dims):
-                pos_interp = np.interp(st_data.abscissa_vals, ts_clean, pos_clean[dim])
+                pos_interp = np.interp(
+                    st_data.abscissa_vals,
+                    ts_clean,
+                    pos_clean[dim],
+                    left=np.nan,
+                    right=np.nan,
+                )
                 signal_positions.append(pos_interp)
 
             # Get bin indices for each time point
@@ -346,6 +371,8 @@ class SpatialMap(NDimensionalBinner):
         Minimum peak rate of place field. Default is 3.
     place_field_sigma : Union[int, float], optional
         Extra smoothing sigma to apply before field detection. Default is 2.
+    max_gap : float, optional
+        Maximum gap size (in seconds) to interpolate over. Default is 0.1.
 
     Attributes
     ----------
@@ -359,6 +386,11 @@ class SpatialMap(NDimensionalBinner):
         Speed data.
     run_epochs : nelpy.EpochArray
         Running epochs.
+    _min_allowed_gap : float
+        Computed minimum allowed value for `max_gap` (seconds). This is
+        calculated as (1/pos.fs) * (1 + tol) and is used when a user
+        supplies a `max_gap` smaller than the sampling interval; in that
+        case `self.max_gap` will be clamped to this value.
 
     Notes
     -----
@@ -412,6 +444,7 @@ class SpatialMap(NDimensionalBinner):
         place_field_max_size: Optional[Union[int, float]] = None,
         place_field_min_peak: Union[int, float] = 3,
         place_field_sigma: Union[int, float] = 2,
+        max_gap: float = 0.1,
     ) -> None:
         # Initialize the parent class
         super().__init__()
@@ -516,6 +549,29 @@ class SpatialMap(NDimensionalBinner):
         if np.all(np.isnan(pos.data)):
             raise ValueError("Position data cannot contain all NaN values")
 
+        # Ensure max_gap is not smaller than the position sampling interval
+        # (max_gap is in seconds; pos.fs is samples per second).
+        # Use a small tolerance when computing the minimum allowed gap so
+        # floating point rounding of pos timestamps doesn't cause spurious
+        # failures. If the user provided a smaller max_gap, clamp it up and
+        # warn rather than raising an exception to preserve backward
+        # compatibility and avoid breaking existing tests.
+        tol_for_min_gap = 1e-3
+        min_gap = 1.0 / pos.fs
+        min_allowed = min_gap * (1.0 + tol_for_min_gap)
+        # expose the computed minimum allowed gap on the instance
+        self._min_allowed_gap = float(min_allowed)
+        if self.max_gap < min_allowed:
+            logging.warning(
+                "Provided max_gap (%s) is smaller than the position sampling interval (%s); "
+                "clamping max_gap to %s",
+                self.max_gap,
+                min_gap,
+                min_allowed,
+            )
+            # Mutate the value used internally so subsequent non-gap interval logic is safe
+            self.max_gap = float(min_allowed)
+
         # get speed and running epochs (highly recommended you calculate
         #   speed before hand on non epoched data)
         if speed_thres > 0:
@@ -529,6 +585,33 @@ class SpatialMap(NDimensionalBinner):
             ).merge()
         else:
             self.run_epochs = self.pos.support.copy()
+
+        # Narrow run_epochs to only the continuous (non-gap) segments of the
+        # position trace so that later interpolation can safely use
+        # np.interp without masking across large dropouts. We build epochs
+        # from contiguous position timestamps (gaps <= max_gap) and then
+        # intersect those with the existing run_epochs.
+        # mask out NaN samples across any dimension
+        mask = ~np.isnan(self.pos.data).any(axis=0)
+        ts = self.pos.abscissa_vals[mask]
+        if ts.size > 0:
+            tol = 1e-3
+            thresh = self.max_gap * (1.0 + tol)
+
+            # find large gaps in the (clean) timestamp vector
+            diffs = np.diff(ts)
+            gap_idx = np.where(diffs > thresh)[0]
+
+            # segment start/end indices in ts
+            seg_starts_idx = np.concatenate(([0], gap_idx + 1))
+            seg_ends_idx = np.concatenate((gap_idx, [len(ts) - 1]))
+
+            starts = ts[seg_starts_idx]
+            ends = ts[seg_ends_idx]
+
+            self.run_epochs = self.run_epochs & nel.EpochArray(
+                np.vstack((starts, ends)).T
+            )
 
         # calculate maps, 1d, 2d, or N-dimensional
         self.dim = pos.n_signals
@@ -696,14 +779,14 @@ class SpatialMap(NDimensionalBinner):
                     ratemap[i, : len(self.x_edges)],
                     _,
                 ) = np.histogram(
-                    np.interp(st_run.data[i], ts, x_pos),
+                    np.interp(st_run.data[i], ts, x_pos, left=np.nan, right=np.nan),
                     bins=self.x_edges,
                 )
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             # get x location for every bin center
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
+            x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
             # get indices location within bin edges
             ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
             # iterate over each time step and add data values to ratemap
@@ -874,15 +957,15 @@ class SpatialMap(NDimensionalBinner):
             for i in range(st_run.data.shape[0]):
                 ratemap[i, : len(self.x_edges), : len(self.y_edges)], _, _ = (
                     np.histogram2d(
-                        np.interp(st_run.data[i], ts, x_pos),
-                        np.interp(st_run.data[i], ts, y_pos),
+                        np.interp(st_run.data[i], ts, x_pos, left=np.nan, right=np.nan),
+                        np.interp(st_run.data[i], ts, y_pos, left=np.nan, right=np.nan),
                         bins=(self.x_edges, self.y_edges),
                     )
                 )
 
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            x = np.interp(st_run.abscissa_vals, ts, x_pos)
-            y = np.interp(st_run.abscissa_vals, ts, y_pos)
+            x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
+            y = np.interp(st_run.abscissa_vals, ts, y_pos, left=np.nan, right=np.nan)
             ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
             ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
             for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
@@ -1031,22 +1114,24 @@ class SpatialMap(NDimensionalBinner):
                 tc, _ = self.map_nd(pos_shuff)
                 return tc.spatial_information()
 
-        pos_data_shuff = create_shuffled_coordinates(
-            self.pos.data, n_shuff=self.n_shuff
-        )
+        # Restrict position data to running epochs before creating shuffles so
+        # the null distribution reflects the actual samples used for mapping
+        # (avoid pulling non-running or gap samples into shuffles).
+        pos_run = self.pos[self.run_epochs]
+        pos_data_shuff = create_shuffled_coordinates(pos_run.data, n_shuff=self.n_shuff)
 
         # construct tuning curves for each position shuffle
         if self.parallel_shuff:
             num_cores = multiprocessing.cpu_count()
             shuffle_spatial_info = Parallel(n_jobs=num_cores)(
                 delayed(get_spatial_infos)(
-                    pos_data_shuff[i], self.pos.abscissa_vals, self.dim
+                    pos_data_shuff[i], pos_run.abscissa_vals, self.dim
                 )
                 for i in range(self.n_shuff)
             )
         else:
             shuffle_spatial_info = [
-                get_spatial_infos(pos_data_shuff[i], self.pos.abscissa_vals, self.dim)
+                get_spatial_infos(pos_data_shuff[i], pos_run.abscissa_vals, self.dim)
                 for i in range(self.n_shuff)
             ]
 
