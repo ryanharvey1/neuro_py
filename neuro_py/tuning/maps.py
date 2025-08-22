@@ -1073,7 +1073,7 @@ class SpatialMap(NDimensionalBinner):
 
             # if fewer coordinates then shuffles, reduce number of shuffles to n coords
             n_shuff = np.min([range_, n_shuff])
-            
+
             surrogate = np.random.choice(
                 np.arange(-range_, range_), size=n_shuff, replace=False
             )
