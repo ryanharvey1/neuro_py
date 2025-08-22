@@ -951,3 +951,79 @@ def test_clamping_changes_behavior_not_raising():
     # should not raise despite small max_gap; will be clamped internally
     sm = SpatialMap(pos=pos, st=st, speed_thres=0, max_gap=1e-6)
     assert sm.max_gap >= (1.0 / pos.fs)
+
+
+def test_shuffle_detects_spatial_and_nonspatial_cells():
+    """Simulate one strongly spatial unit and one non-spatial (uniform) unit.
+
+    Use shuffle_spatial_information to ensure the spatial unit is significant
+    and the non-spatial unit is not. Make RNG deterministic and disable
+    parallel shuffling for test stability.
+    """
+    np.random.seed(0)
+
+    # position: 1D linear track 0..100 over 100s with high sampling
+    duration = 100.0
+    fs_pos = 50.0
+    n_samples = int(duration * fs_pos)
+    timestamps = np.linspace(0, duration, n_samples)
+    x_pos = np.linspace(0, 100, n_samples)
+
+    # spatial unit: place field at 50 with gaussian tuning
+    center = 50.0
+    sigma = 5.0
+    peak_rate = 40.0  # Hz (increase to make place field stronger)
+    base_rate = 0.01
+    dt = timestamps[1] - timestamps[0]
+    rate_spatial = base_rate + peak_rate * np.exp(
+        -0.5 * ((x_pos - center) / sigma) ** 2
+    )
+
+    # non-spatial unit: uniform low rate
+    rate_nonspatial = np.full_like(rate_spatial, 0.2)
+
+    # generate spikes
+    def make_spikes(rate):
+        counts = np.random.poisson(rate * dt)
+        spike_times = []
+        for t, c in zip(timestamps, counts):
+            if c > 0:
+                # spread multiple spikes uniformly within the bin
+                spike_times.extend((t + np.random.rand(c) * dt).tolist())
+        if len(spike_times) == 0:
+            return np.array([])
+        return np.sort(np.array(spike_times))
+
+    # Create a strongly spatial unit by placing spikes preferentially within a tight
+    # place field around `center`. Use a Bernoulli draw per sample in-field so the
+    # spatial signal is robust and reproducible under the RNG seed.
+    # widen field and increase per-sample spike probability to make unit strongly spatial
+    in_field = np.abs(x_pos - center) <= (sigma * 3.0)
+    p_spike_in_field = 0.8  # per-sample probability of a spike when in the field
+    spikes_spatial = []
+    for t, inf in zip(timestamps, in_field):
+        if inf and np.random.rand() < p_spike_in_field:
+            spikes_spatial.append(t + np.random.rand() * dt)
+    spikes_spatial = np.sort(np.array(spikes_spatial))
+
+    # Non-spatial unit remains Poisson with uniform rate
+    spikes_nonspatial = make_spikes(rate_nonspatial)
+
+    st = nel.SpikeTrainArray([spikes_spatial, spikes_nonspatial], fs=1000.0)
+    pos = nel.AnalogSignalArray(np.array([x_pos]), timestamps=timestamps, fs=fs_pos)
+
+    sm = SpatialMap(pos=pos, st=st, s_binsize=5.0, speed_thres=0)
+    # reduce shuffles for test speed and avoid multiprocessing variability
+    # increase shuffles for more stable p-value estimation in CI
+    sm.n_shuff = 500
+    sm.parallel_shuff = False
+
+    # deterministic shuffles
+    np.random.seed(0)
+    pvals = sm.shuffle_spatial_information()
+
+    assert pvals.shape[0] == 2
+    # spatial cell should be significant at alpha=0.05
+    assert pvals[0] < 0.05
+    # non-spatial cell should not be significant
+    assert pvals[1] > 0.05
