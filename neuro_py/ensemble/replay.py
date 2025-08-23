@@ -17,6 +17,81 @@ from neuro_py.ensemble.pairwise_bias_correlation import (
 from neuro_py.process.peri_event import crossCorr
 
 
+def _disk_kernel(radius: int) -> np.ndarray:
+    """Create a binary disk kernel with given integer radius."""
+    if radius <= 0:
+        return np.array([[1.0]], dtype=float)
+    size = 2 * radius + 1
+    cx = radius
+    cy = radius
+    x = np.arange(size) - cx
+    y = np.arange(size) - cy
+    xx, yy = np.meshgrid(x, y, indexing="ij")
+    mask = (xx * xx + yy * yy) <= (radius * radius)
+    return mask.astype(float)
+
+
+def _compute_disk_sums(matrix: np.ndarray, threshold: int) -> np.ndarray:
+    """Compute per-time disk-sum maps D(x,y,t) = sum_{within radius} posterior.
+
+    Uses FFT-based convolution (numpy) which avoids external SciPy dependency.
+    Returns array shaped (nX, nY, nTime).
+    """
+    nX, nY, nTime = matrix.shape
+    kernel = _disk_kernel(threshold)
+    # FFT of kernel padded to image shape
+    fft_kernel = np.fft.rfftn(kernel, s=(nX, nY))
+    D = np.empty((nX, nY, nTime), dtype=float)
+    for t in range(nTime):
+        im = matrix[:, :, t]
+        # FFT-based convolution: use real FFT for speed
+        fft_im = np.fft.rfftn(im)
+        conv = np.fft.irfftn(fft_im * fft_kernel, s=(nX, nY))
+        # numerical small negatives can appear — clip
+        D[:, :, t] = np.real(conv)
+    return D
+
+
+@njit(parallel=True, cache=True)
+def _score_from_dt_numba(dt_flat: np.ndarray, coords: np.ndarray, nTime: int, nX: int, nY: int) -> np.ndarray:
+    """Score candidate pairs by sampling precomputed disk-sums (dt_flat shape P x nTime).
+
+    coords is K x 2 array of integer coordinates (x,y).
+    Returns scores array length K*K.
+    """
+    K = coords.shape[0]
+    scores = np.empty(K * K, dtype=np.float64)
+    for si in prange(K):
+        x0 = coords[si, 0]
+        y0 = coords[si, 1]
+        for ei in range(K):
+            x1 = coords[ei, 0]
+            y1 = coords[ei, 1]
+            s_sum = 0.0
+            for ti in range(nTime):
+                if nTime == 1:
+                    tfrac = 0.0
+                else:
+                    tfrac = ti / (nTime - 1)
+                xt = x0 + (x1 - x0) * tfrac
+                yt = y0 + (y1 - y0) * tfrac
+                xi = int(round(xt))
+                yi = int(round(yt))
+                if xi < 0:
+                    xi = 0
+                elif xi >= nX:
+                    xi = nX - 1
+                if yi < 0:
+                    yi = 0
+                elif yi >= nY:
+                    yi = nY - 1
+                lin = xi * nY + yi
+                s_sum += dt_flat[lin, ti]
+            out_idx = si * K + ei
+            scores[out_idx] = s_sum / nTime
+    return scores
+
+
 @njit(parallel=True, fastmath=False, cache=True)
 def __weighted_corr_2d_jit(
     weights: np.ndarray,
@@ -191,6 +266,225 @@ def weighted_corr_2d(
     )
 
     return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
+
+
+@njit(parallel=True, cache=True)
+def _score_2d_candidates_numba(
+    matrix_flat: np.ndarray,
+    grid_pts: np.ndarray,
+    coords: np.ndarray,
+    nTime: int,
+    threshold2: float,
+):
+    """Numba-compiled scoring for 2D candidate start/end pairs using parallel prange.
+
+    Returns a 1D scores array of length M*M where M = coords.shape[0].
+    """
+    M = coords.shape[0]
+    P = grid_pts.shape[0]
+    scores = np.empty(M * M, dtype=np.float64)
+    # parallelize over start index
+    for si in prange(M):
+        x0 = coords[si, 0]
+        y0 = coords[si, 1]
+        for ei in range(M):
+            x1 = coords[ei, 0]
+            y1 = coords[ei, 1]
+            s_sum = 0.0
+            for ti in range(nTime):
+                if nTime == 1:
+                    tfrac = 0.0
+                else:
+                    tfrac = ti / (nTime - 1)
+                xt = x0 + (x1 - x0) * tfrac
+                yt = y0 + (y1 - y0) * tfrac
+                sum_t = 0.0
+                for p in range(P):
+                    dx = grid_pts[p, 0] - xt
+                    dy = grid_pts[p, 1] - yt
+                    if dx * dx + dy * dy <= threshold2:
+                        sum_t += matrix_flat[p, ti]
+                s_sum += sum_t
+            out_idx = si * M + ei
+            scores[out_idx] = s_sum / nTime
+    return scores
+
+
+def find_replay_score(
+    matrix: np.ndarray,
+    threshold: int = 5,
+    circular: bool = False,
+    candidate_k: Optional[int] = None,
+) -> Tuple[float, Union[int, Tuple[int, int]], Union[int, Tuple[int, int]]]:
+    """
+    Compute a replay score from a posterior probability matrix by searching for the
+    best straight-line trajectory through space-time.
+
+    This function accepts either a 2D matrix for 1D spatial decoding
+    (shape = (n_space, n_time)) or a 3D matrix for 2D spatial decoding
+    (shape = (n_x, n_y, n_time)).
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Posterior probability matrix. For 1D spatial decoding this should be
+        shape (n_space, n_time). For 2D spatial decoding this should be
+        shape (n_x, n_y, n_time).
+    threshold : int, optional
+        Radius (in spatial bins) around the candidate line to include when
+        summing probabilities, by default 5.
+    circular : bool, optional
+        If True and `matrix` is 2D (1D spatial case), candidate lines wrap
+        circularly in space. Default False.
+    candidate_k : Optional[int], optional
+        Number of candidate lines to sample for scoring. If None, defaults to
+        a heuristic based on matrix size.
+
+    Returns
+    -------
+    r : float
+        Best replay score (mean summed probability along the best-fitting line).
+    st : int or tuple of int
+        Start spatial bin index. For 1D returns an int; for 2D returns
+        a tuple (x, y) of ints.
+    sp : int or tuple of int
+        End spatial bin index. For 1D returns an int; for 2D returns
+        a tuple (x, y) of ints.
+
+    References
+    ----------
+    https://github.com/ayalab1/neurocode/blob/master/reactivation/FindReplayScore.m
+    """
+    matrix = np.asarray(matrix)
+    if matrix.size == 0:
+        return np.nan, np.nan, np.nan
+
+    # (helper implemented at module level for parallel Numba compilation)
+
+    if matrix.ndim == 2:
+        # 1D spatial case: shape is (nSpace, nTime) -- reproduce MATLAB sums logic exactly
+        nSpace, nTime = matrix.shape
+
+        # Build offsets and indices meshgrid
+        offs = np.arange(-threshold, threshold + 1)
+        # use 0-based spatial indices for Python
+        y_inds = np.arange(0, nSpace)
+        x_grid, y_grid = np.meshgrid(offs, y_inds)  # shapes: (nSpace, 2T+1)
+
+        # Append median of each column as an extra (nSpace)-th row (0-based index nSpace)
+        med = np.median(matrix, axis=0)
+        matrix0 = np.vstack([matrix, med[np.newaxis, :]])
+
+        # compute candidate indices (0-based). Out-of-range positions map to the
+        # appended median row which is at index `nSpace`.
+        indices = x_grid + y_grid
+        indices[indices < 0] = nSpace
+        indices[indices > (nSpace - 1)] = nSpace
+
+        # Build 3D index arrays to pick from matrix0: shape (nSpace, 2T+1, nTime)
+        indX = np.repeat(indices[:, :, np.newaxis], nTime, axis=2).astype(int)
+        matrixID = np.arange(0, nTime)
+        matrixID_rep = np.tile(matrixID, (nSpace, indices.shape[1], 1)).astype(int)
+
+        rows = indX
+        cols = matrixID_rep
+
+        vals = matrix0[rows, cols]
+
+        # mean across the offsets dimension (axis=1) and scale by number of offsets
+        sums = np.mean(vals, axis=1) * x_grid.shape[1]
+        sums[sums > 1] = 1
+
+        # Now compute candidate lines
+        # candidate start/end positions (0-based)
+        a = np.repeat(np.arange(0, nSpace), nSpace)
+        b = np.tile(np.arange(0, nSpace), nSpace)
+
+        t = np.linspace(0, 1, nTime)
+        x_lines = (t[np.newaxis, :] * (b - a)[:, np.newaxis]) + a[:, np.newaxis]
+        # round and clip/wrap to 0-based indices
+        if circular:
+            x_lines = np.mod(np.round(x_lines).astype(int), nSpace)
+        else:
+            x_lines = np.round(x_lines).astype(int)
+            x_lines[x_lines < 0] = 0
+            x_lines[x_lines > (nSpace - 1)] = nSpace - 1
+
+        # pick sums at the x_lines positions for each time column and compute mean score
+        cols_idx = np.arange(nTime)
+        # For each candidate line, gather values from sums
+        vals_lines = sums[x_lines.astype(int), cols_idx]
+        scores = np.mean(vals_lines, axis=1)
+
+        ind = int(np.nanargmax(scores))
+        r = float(scores[ind])
+        st = int(a[ind])
+        sp = int(b[ind])
+        return r, st, sp
+
+    elif matrix.ndim == 3:
+        # 2D spatial case: shape is (nX, nY, nTime)
+        nX, nY, nTime = matrix.shape
+
+        # Precompute per-time disk sums D(x,y,t)
+        D = _compute_disk_sums(matrix, threshold)  # shape (nX, nY, nTime)
+
+        # Linearize bins: linear index = x * nY + y
+        M = nX * nY
+
+        # Choose K (number of candidate endpoints). Default: 5% of bins, min 50, max 500
+        if candidate_k is None:
+            # Default K scales with sqrt(M) so that for a 100x100 grid (M=10k)
+            # we pick K ~= 2*sqrt(M) = 200. Also enforce a sensible floor of 100
+            # and never exceed the total number of bins M.
+            K = int(max(100, int(2 * np.sqrt(M))))
+            if K > M:
+                K = M
+        else:
+            K = int(candidate_k)
+
+        # Score bins by an aggregator across time (use max by default)
+        bin_scores = np.max(D.reshape(M, nTime), axis=1)
+
+        # If K >= M, fall back to full search using the numba sampler over all bins
+        if K >= M:
+            coords_all = np.array([[x, y] for x in range(nX) for y in range(nY)], dtype=np.int64)
+            dt_flat = D.reshape(M, nTime).astype(np.float64)
+            scores = _score_from_dt_numba(dt_flat, coords_all.astype(np.float64), nTime, nX, nY)
+            ind = int(np.nanargmax(scores))
+            r = float(scores[ind])
+            start_idx = ind // M
+            end_idx = ind % M
+            st = (int(coords_all[start_idx, 0]), int(coords_all[start_idx, 1]))
+            sp = (int(coords_all[end_idx, 0]), int(coords_all[end_idx, 1]))
+            return r, st, sp
+
+        # Select top-K bins
+        top_idx = np.argpartition(-bin_scores, K - 1)[:K]
+        # convert top_idx to coordinates (x,y)
+        coordsK = np.empty((K, 2), dtype=np.int64)
+        for i in range(K):
+            flat = int(top_idx[i])
+            x = flat // nY
+            y = flat % nY
+            coordsK[i, 0] = x
+            coordsK[i, 1] = y
+
+        # Score K^2 candidate pairs by sampling the dt maps
+        dt_flat = D.reshape(M, nTime).astype(np.float64)
+        scoresK = _score_from_dt_numba(dt_flat, coordsK.astype(np.float64), nTime, nX, nY)
+        ind = int(np.nanargmax(scoresK))
+        r = float(scoresK[ind])
+        start_idx = ind // K
+        end_idx = ind % K
+        st = (int(coordsK[start_idx, 0]), int(coordsK[start_idx, 1]))
+        sp = (int(coordsK[end_idx, 0]), int(coordsK[end_idx, 1]))
+        return r, st, sp
+
+    else:
+        raise ValueError(
+            "Unsupported matrix dimensions; expected 2D (space x time) or 3D (X x Y x time)"
+        )
 
 
 def _position_estimator_1d(
