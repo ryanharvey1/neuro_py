@@ -1107,3 +1107,245 @@ class PairwiseBias(object):
         return self.transform(
             post_spikes, post_neurons, post_intervals, allow_reverse_replay, parallel
         )
+
+
+def bottom_up_replay_detection(
+    posterior: np.ndarray,
+    time_centers: np.ndarray,
+    bin_centers: np.ndarray,
+    speed_times: np.ndarray,
+    speed_values: np.ndarray,
+    window_dt: Optional[float] = None,
+    speed_thresh: float = 5.0,
+    spread_thresh: float = 10.0,
+    com_jump_thresh: float = 20.0,
+    merge_spatial_gap: float = 20.0,
+    merge_time_gap: float = 0.05,
+    min_duration: float = 0.1,
+    dispersion_thresh: float = 12.0,
+    method: str = "com",
+) -> Tuple[np.ndarray, dict]:
+    """
+    Bottom-up replay detector following Widloski & Foster (2022) "Replay detection and analysis".
+
+    This function implements the steps described in the methods:
+    - decode posterior is provided for sliding windows (rows=time bins)
+    - compute center-of-mass (COM) per time bin and posterior spread (weighted std)
+    - compute COM jumps between consecutive bins
+    - keep bins where: speed < speed_thresh, spread < spread_thresh, com_jump < com_jump_thresh
+    - group contiguous kept bins into subsequences
+    - merge neighboring subsequences when spatial gap <= merge_spatial_gap and temporal gap <= merge_time_gap
+    - keep candidate sequences with duration > min_duration
+    - compute dispersion D2 (mean absolute deviation of COM across sequence) and label replay if D2 > dispersion_thresh
+
+    Parameters
+    ----------
+    posterior : np.ndarray
+        Shape (n_time, n_space_bins) posterior probability for each time window.
+    time_centers : np.ndarray
+        Center time of each posterior time bin (length n_time) in seconds.
+    bin_centers : np.ndarray
+        Spatial bin centers (length n_space_bins) in same units as thresholds (cm).
+    speed_times, speed_values : np.ndarray
+        Time stamps and speed values (cm/s) for the animal; used to interpolate
+        speed at time_centers.
+    window_dt : Optional[float]
+        Duration of each posterior time bin. If None, computed from time_centers diff.
+    Other params: thresholds described above.
+
+    Returns
+    -------
+    replays : np.ndarray
+        Array of replay events that passed dispersion threshold; shape (k,2) start/end times.
+    meta : dict
+        Metadata dict with keys:
+         - 'candidates': candidate subsequences before dispersion filter
+         - 'com': center-of-mass per kept bin
+         - 'spread': posterior spread per kept bin
+         - 'mask': boolean mask of kept bins
+
+    Notes
+    -----
+    This implementation assumes 1D spatial decoding. For 2D posteriors modify
+    COM/spread calculations accordingly (position_estimator supports 2D).
+    """
+    posterior = np.asarray(posterior)
+    time_centers = np.asarray(time_centers)
+    # bin_centers may be a 1D array for 1D posteriors or a tuple (y_centers, x_centers)
+    # for 2D posteriors. Don't force-cast a tuple into an ndarray.
+    if posterior.ndim == 3:
+        if not (isinstance(bin_centers, (tuple, list)) and len(bin_centers) == 2):
+            raise ValueError(
+                "For 2D posterior, bin_centers must be (y_centers, x_centers)"
+            )
+        y_centers, x_centers = bin_centers
+    else:
+        bin_centers = np.asarray(bin_centers)
+
+    if posterior.shape[0] != time_centers.shape[0]:
+        raise ValueError(
+            "posterior and time_centers must have matching first dimension"
+        )
+
+    n_time = posterior.shape[0]
+
+    # bin duration
+    if window_dt is None:
+        if n_time > 1:
+            window_dt = np.median(np.diff(time_centers))
+        else:
+            window_dt = 0.0
+
+    # compute COMs and spread; support 1D and 2D posteriors
+    if posterior.ndim == 2:
+        # 1D posterior: shape (n_time, n_space)
+        com = position_estimator(posterior, bin_centers, method=method)
+
+        # compute posterior spread (weighted std)
+        spread = np.full(n_time, np.nan)
+        for ti in range(n_time):
+            P = posterior[ti]
+            s = np.sum(P)
+            if s > 0:
+                Pn = P / s
+                mu = np.sum(bin_centers * Pn)
+                spread[ti] = np.sqrt(np.sum(((bin_centers - mu) ** 2) * Pn))
+
+        # compute COM jump sizes (between consecutive bins)
+        com_jump = np.full(n_time, np.nan)
+        com_diff = np.abs(np.diff(com, prepend=np.nan))
+        com_jump[1:] = com_diff[1:]
+
+    elif posterior.ndim == 3:
+        # 2D posterior: shape (n_time, ny, nx)
+        y_centers, x_centers = bin_centers
+        xx, yy = np.meshgrid(x_centers, y_centers, indexing="xy")
+
+        com = np.full((n_time, 2), np.nan)
+        spread = np.full(n_time, np.nan)
+        for ti in range(n_time):
+            P = posterior[ti]
+            s = np.sum(P)
+            if s > 0:
+                Pn = P / s
+                mu_x = np.sum(xx * Pn)
+                mu_y = np.sum(yy * Pn)
+                com[ti, 0] = mu_x
+                com[ti, 1] = mu_y
+                # RMS distance from mean
+                spread[ti] = np.sqrt(np.sum(((xx - mu_x) ** 2 + (yy - mu_y) ** 2) * Pn))
+
+        # compute COM jump sizes (Euclidean distance between consecutive COMs)
+        com_jump = np.full(n_time, np.nan)
+        for ti in range(1, n_time):
+            if not np.any(np.isnan(com[ti - 1])) and not np.any(np.isnan(com[ti])):
+                com_jump[ti] = np.linalg.norm(com[ti] - com[ti - 1])
+    else:
+        raise ValueError("posterior must be 2D (time,x) or 3D (time,y,x)")
+
+    # interpolate speed at time_centers
+    speed = np.interp(time_centers, speed_times, speed_values)
+
+    # mask time bins that satisfy all three criteria
+    mask = (
+        (speed < speed_thresh)
+        & (spread < spread_thresh)
+        & (np.nan_to_num(com_jump) < com_jump_thresh)
+    )
+
+    # find contiguous subsequences of True in mask
+    subseqs = []
+    if np.any(mask):
+        edges = np.diff(mask.astype(int))
+        starts = np.where(edges == 1)[0] + 1
+        ends = np.where(edges == -1)[0] + 1
+        if mask[0]:
+            starts = np.concatenate(([0], starts))
+        if mask[-1]:
+            ends = np.concatenate((ends, [n_time]))
+
+        for s, e in zip(starts, ends):
+            subseqs.append(
+                {
+                    "start_idx": s,
+                    "end_idx": e,
+                    "start_time": time_centers[s],
+                    "end_time": time_centers[e - 1],
+                }
+            )
+
+    # merge neighboring subsequences based on spatial and temporal gaps
+    merged = []
+    for seq in subseqs:
+        if not merged:
+            merged.append(seq)
+            continue
+        prev = merged[-1]
+        temporal_gap = seq["start_time"] - prev["end_time"]
+        # compute spatial gap differently for 1D vs 2D COM
+        if posterior.ndim == 2:
+            spatial_gap = np.abs(com[seq["start_idx"]] - com[prev["end_idx"] - 1])
+        else:
+            # com entries are 2D vectors (mu_x, mu_y)
+            a = com[seq["start_idx"]]
+            b = com[prev["end_idx"] - 1]
+            if np.any(np.isnan(a)) or np.any(np.isnan(b)):
+                spatial_gap = np.inf
+            else:
+                spatial_gap = float(np.linalg.norm(a - b))
+
+        if temporal_gap <= merge_time_gap and spatial_gap <= merge_spatial_gap:
+            # merge
+            prev["end_idx"] = seq["end_idx"]
+            prev["end_time"] = seq["end_time"]
+        else:
+            merged.append(seq)
+
+    # candidate sequences: duration > min_duration
+    candidates = []
+    for seq in merged:
+        duration = (
+            seq["end_time"] - seq["start_time"] + (window_dt if window_dt > 0 else 0.0)
+        )
+        if duration >= min_duration:
+            # record COM trace for sequence
+            idxs = np.arange(seq["start_idx"], seq["end_idx"])
+            com_trace = com[idxs]
+            # dispersion D2 = mean absolute deviation from centroid
+            if posterior.ndim == 2:
+                centroid = np.nanmean(com_trace)
+                D2 = np.nanmean(np.abs(com_trace - centroid))
+            else:
+                # com_trace is (n_bins, 2); centroid is 2D vector
+                centroid = np.nanmean(com_trace, axis=0)
+                diffs = np.linalg.norm(com_trace - centroid, axis=1)
+                D2 = np.nanmean(diffs)
+            candidates.append(
+                {
+                    "start_time": seq["start_time"],
+                    "end_time": seq["end_time"],
+                    "start_idx": seq["start_idx"],
+                    "end_idx": seq["end_idx"],
+                    "duration": duration,
+                    "D2": D2,
+                    "com_trace": com_trace,
+                }
+            )
+
+    # select replays by dispersion threshold
+    replays = []
+    for c in candidates:
+        if c["D2"] > dispersion_thresh:
+            replays.append([c["start_time"], c["end_time"]])
+
+    replays = np.array(replays)
+
+    meta = {
+        "candidates": candidates,
+        "com": com,
+        "spread": spread,
+        "mask": mask,
+        "window_dt": window_dt,
+    }
+
+    return replays, meta
