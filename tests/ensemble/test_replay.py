@@ -248,12 +248,12 @@ class TestFindReplayScore(unittest.TestCase):
         self.assertEqual(sp, (nX - 1, nY - 1))
 
     def test_find_replay_score_2d_with_noise(self):
-        # 2D case with noise: nX=5, nY=5, nTime=5; add noise to the trajectory
-        nX, nY, nTime = 5, 5, 5
+        # 2D case with noise: nX=50, nY=95, nTime=20; add noise to the trajectory
+        nX, nY, nTime = 50, 95, 20
         mat = np.zeros((nX, nY, nTime), dtype=float)
         for t in range(nTime):
-            x = t % nX
-            y = t % nY
+            x = int(round(t * (nX - 1) / (nTime - 1)))
+            y = int(round(t * (nY - 1) / (nTime - 1)))
             mat[x, y, t] = 1.0
         # add noise
         mat += np.random.normal(0, 0.1, mat.shape)
