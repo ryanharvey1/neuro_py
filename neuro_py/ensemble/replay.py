@@ -1271,9 +1271,7 @@ def bottom_up_replay_detection(
 
     # mask time bins that satisfy all three criteria
     mask = (
-        (speed < speed_thresh)
-        & (spread < spread_thresh)
-        & (com_jump < com_jump_thresh)
+        (speed < speed_thresh) & (spread < spread_thresh) & (com_jump < com_jump_thresh)
     )
 
     # find contiguous subsequences of True in mask
@@ -1356,7 +1354,7 @@ def bottom_up_replay_detection(
                 else:
                     centroid = np.nanmean(com_trace_valid, axis=0)
                     diffs = np.linalg.norm(com_trace_valid - centroid, axis=1)
-                    D2 = np.sqrt(np.nanmean(diffs ** 2))
+                    D2 = np.sqrt(np.nanmean(diffs**2))
 
             # compute path length (sum of Euclidean distances between consecutive valid COM points)
             if com_trace_valid.size == 0:
@@ -1368,6 +1366,45 @@ def bottom_up_replay_detection(
                     steps = np.linalg.norm(np.diff(com_trace_valid, axis=0), axis=1)
                 path_length = float(np.nansum(steps))
 
+            # compute maxJump on raw (may contain NaNs) and on NaN-removed trace
+            # For raw trace: compute diffs and allow NaNs to propagate (max may be NaN)
+            try:
+                if com_trace.size == 0:
+                    maxJump_NaN = np.nan
+                else:
+                    if com_trace.ndim == 1:
+                        raw_steps = np.abs(np.diff(com_trace))
+                    else:
+                        raw_steps = np.linalg.norm(np.diff(com_trace, axis=0), axis=1)
+                    maxJump_NaN = (
+                        float(np.nanmax(raw_steps)) if raw_steps.size > 0 else np.nan
+                    )
+            except Exception:
+                maxJump_NaN = np.nan
+
+            # For NaN-removed trace
+            if com_trace_valid.size == 0:
+                maxJump_NaNremoved = np.nan
+                maxJump_NaNremoved_time = np.nan
+            else:
+                if com_trace_valid.ndim == 1:
+                    valid_steps = np.abs(np.diff(com_trace_valid))
+                else:
+                    valid_steps = np.linalg.norm(
+                        np.diff(com_trace_valid, axis=0), axis=1
+                    )
+                maxJump_NaNremoved = (
+                    float(np.nanmax(valid_steps)) if valid_steps.size > 0 else np.nan
+                )
+
+                # compute times of valid samples to get max time gap
+                times_seq = time_centers[idxs]
+                times_valid = times_seq[valid_mask]
+                if times_valid.size > 1:
+                    maxJump_NaNremoved_time = float(np.max(np.diff(times_valid)))
+                else:
+                    maxJump_NaNremoved_time = np.nan
+
             candidates.append(
                 {
                     "start_time": seq["start_time"],
@@ -1378,6 +1415,9 @@ def bottom_up_replay_detection(
                     "D2": D2,
                     "com_trace": com_trace_valid,
                     "path_length": path_length,
+                    "maxJump_NaN": maxJump_NaN,
+                    "maxJump_NaNremoved": maxJump_NaNremoved,
+                    "maxJump_NaNremoved_time": maxJump_NaNremoved_time,
                 }
             )
 
