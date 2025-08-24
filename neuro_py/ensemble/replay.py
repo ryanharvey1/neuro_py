@@ -1331,18 +1331,43 @@ def bottom_up_replay_detection(
             seq["end_time"] - seq["start_time"] + (window_dt if window_dt > 0 else 0.0)
         )
         if duration >= min_duration:
-            # record COM trace for sequence
+            # record COM trace for sequence and compute metrics on NaN-removed trace
             idxs = np.arange(seq["start_idx"], seq["end_idx"])
             com_trace = com[idxs]
-            # dispersion D2 = mean absolute deviation from centroid
+
+            # remove NaN entries (bins with no posterior mass)
             if posterior.ndim == 2:
-                centroid = np.nanmean(com_trace)
-                D2 = np.nanmean(np.abs(com_trace - centroid))
+                # 1D case: com_trace is 1D array
+                valid_mask = ~np.isnan(com_trace)
+                com_trace_valid = com_trace[valid_mask]
             else:
-                # com_trace is (n_bins, 2); centroid is 2D vector
-                centroid = np.nanmean(com_trace, axis=0)
-                diffs = np.linalg.norm(com_trace - centroid, axis=1)
-                D2 = np.nanmean(diffs)
+                # 2D case: com_trace is (n_bins, 2)
+                valid_mask = ~np.isnan(com_trace).any(axis=1)
+                com_trace_valid = com_trace[valid_mask]
+
+            # dispersion D2 = RMS radial deviation from centroid (match MATLAB)
+            if com_trace_valid.size == 0:
+                D2 = np.nan
+                centroid = np.nan
+            else:
+                if posterior.ndim == 2:
+                    centroid = np.nanmean(com_trace_valid)
+                    D2 = np.sqrt(np.nanmean((com_trace_valid - centroid) ** 2))
+                else:
+                    centroid = np.nanmean(com_trace_valid, axis=0)
+                    diffs = np.linalg.norm(com_trace_valid - centroid, axis=1)
+                    D2 = np.sqrt(np.nanmean(diffs ** 2))
+
+            # compute path length (sum of Euclidean distances between consecutive valid COM points)
+            if com_trace_valid.size == 0:
+                path_length = 0.0
+            else:
+                if com_trace_valid.ndim == 1:
+                    steps = np.abs(np.diff(com_trace_valid))
+                else:
+                    steps = np.linalg.norm(np.diff(com_trace_valid, axis=0), axis=1)
+                path_length = float(np.nansum(steps))
+
             candidates.append(
                 {
                     "start_time": seq["start_time"],
@@ -1351,7 +1376,8 @@ def bottom_up_replay_detection(
                     "end_idx": seq["end_idx"],
                     "duration": duration,
                     "D2": D2,
-                    "com_trace": com_trace,
+                    "com_trace": com_trace_valid,
+                    "path_length": path_length,
                 }
             )
 
