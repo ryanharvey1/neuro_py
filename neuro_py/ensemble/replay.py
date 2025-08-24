@@ -1405,6 +1405,16 @@ def bottom_up_replay_detection(
                 else:
                     maxJump_NaNremoved_time = np.nan
 
+            # posteriorSpreadMax and posteriorSpreadMean for the sequence (NaN-removed)
+            seq_spreads = spread[idxs]
+            seq_spreads_valid = seq_spreads[~np.isnan(seq_spreads)]
+            if seq_spreads_valid.size > 0:
+                posteriorSpreadMax = float(np.max(seq_spreads_valid))
+                posteriorSpreadMean = float(np.mean(seq_spreads_valid))
+            else:
+                posteriorSpreadMax = np.nan
+                posteriorSpreadMean = np.nan
+
             candidates.append(
                 {
                     "start_time": seq["start_time"],
@@ -1418,6 +1428,8 @@ def bottom_up_replay_detection(
                     "maxJump_NaN": maxJump_NaN,
                     "maxJump_NaNremoved": maxJump_NaNremoved,
                     "maxJump_NaNremoved_time": maxJump_NaNremoved_time,
+                    "posteriorSpreadMax": posteriorSpreadMax,
+                    "posteriorSpreadMean": posteriorSpreadMean,
                 }
             )
 
