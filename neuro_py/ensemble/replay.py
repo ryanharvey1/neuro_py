@@ -1128,16 +1128,6 @@ def bottom_up_replay_detection(
     """
     Bottom-up replay detector following Widloski & Foster (2022) "Replay detection and analysis".
 
-    This function implements the steps described in the methods:
-    - decode posterior is provided for sliding windows (rows=time bins)
-    - compute center-of-mass (COM) per time bin and posterior spread (weighted std)
-    - compute COM jumps between consecutive bins
-    - keep bins where: speed < speed_thresh, spread < spread_thresh, com_jump < com_jump_thresh
-    - group contiguous kept bins into subsequences
-    - merge neighboring subsequences when spatial gap <= merge_spatial_gap and temporal gap <= merge_time_gap
-    - keep candidate sequences with duration > min_duration
-    - compute dispersion D2 (mean absolute deviation of COM across sequence) and label replay if D2 > dispersion_thresh
-
     Parameters
     ----------
     posterior : np.ndarray
@@ -1151,7 +1141,20 @@ def bottom_up_replay_detection(
         speed at time_centers.
     window_dt : Optional[float]
         Duration of each posterior time bin. If None, computed from time_centers diff.
-    Other params: thresholds described above.
+    speed_thresh : float
+        Speed threshold for filtering candidate replays (cm/s).
+    spread_thresh : float
+        Spread threshold for filtering candidate replays (cm).
+    com_jump_thresh : float
+        Center-of-mass jump threshold for filtering candidate replays (cm).
+    merge_spatial_gap : float
+        Spatial gap threshold for merging candidate replays (cm).
+    merge_time_gap : float
+        Temporal gap threshold for merging candidate replays (s).
+    min_duration : float
+        Minimum duration for keeping candidate replays (s).
+    dispersion_thresh : float
+        Dispersion threshold (mean absolute deviation of COM across sequence) for labeling replays (cm).
 
     Returns
     -------
@@ -1160,17 +1163,31 @@ def bottom_up_replay_detection(
     meta : dict
         Metadata dict with keys:
          - 'candidates': candidate subsequences before dispersion filter
+            - 'start_time': start time of each candidate
+            - 'end_time': end time of each candidate
+            - 'start_idx': start index of each candidate
+            - 'end_idx': end index of each candidate
+            - 'duration': duration of each candidate
+            - 'D2': dispersion per candidate
+            - 'COM': center-of-mass per candidate
          - 'com': center-of-mass per kept bin
          - 'spread': posterior spread per kept bin
          - 'mask': boolean mask of kept bins
 
     Notes
     -----
-    This implementation assumes 1D spatial decoding. For 2D posteriors modify
-    COM/spread calculations accordingly (position_estimator supports 2D).
+    This implementation assumes 1D and 2D spatial decoding.
     """
     posterior = np.asarray(posterior)
     time_centers = np.asarray(time_centers)
+
+    # Support posteriors where time is the last axis (space..., time)
+    # Move time axis to front so internal code works with shape (n_time, ...)
+    if posterior.ndim >= 2 and posterior.shape[0] != time_centers.shape[0]:
+        if posterior.shape[-1] == time_centers.shape[0]:
+            posterior = np.moveaxis(posterior, -1, 0)
+        else:
+            raise ValueError("posterior time dimension does not match time_centers")
     # bin_centers may be a 1D array for 1D posteriors or a tuple (y_centers, x_centers)
     # for 2D posteriors. Don't force-cast a tuple into an ndarray.
     if posterior.ndim == 3:
