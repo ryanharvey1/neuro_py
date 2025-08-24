@@ -1263,11 +1263,17 @@ def bottom_up_replay_detection(
     # interpolate speed at time_centers
     speed = np.interp(time_centers, speed_times, speed_values)
 
+    # treat NaN COM-jumps (e.g. first bin) as failing the com_jump criterion
+    # to avoid letting NaNs silently pass (np.nan_to_num -> 0). Set NaNs to +inf
+    # so they are excluded when compared to com_jump_thresh.
+    com_jump = np.array(com_jump, copy=True)
+    com_jump[np.isnan(com_jump)] = np.inf
+
     # mask time bins that satisfy all three criteria
     mask = (
         (speed < speed_thresh)
         & (spread < spread_thresh)
-        & (np.nan_to_num(com_jump) < com_jump_thresh)
+        & (com_jump < com_jump_thresh)
     )
 
     # find contiguous subsequences of True in mask

@@ -285,9 +285,9 @@ class TestBottomUpReplayDetection(unittest.TestCase):
         add_2d_bump(0.4, 0.9, 10, 10, 60, 80)
         add_2d_bump(2.0, 2.6, 80, 120, 30, 40)
 
-        # normalize
+        # normalize per time bin (sum over spatial axes)
         posterior = np.clip(posterior, 0, None)
-        posterior = posterior / (posterior.sum(axis=(0, 1), keepdims=True) + 1e-12)
+        posterior = posterior / (posterior.sum(axis=(1, 2), keepdims=True) + 1e-12)
 
         # convert to time-last shape (ny, nx, time)
         posterior = np.moveaxis(posterior, 0, 2)
@@ -312,6 +312,41 @@ class TestBottomUpReplayDetection(unittest.TestCase):
 
         # Expect at least two detected replay events
         self.assertTrue(replays.shape[0] >= 2)
+
+    def test_nan_com_jump_excluded(self):
+        """Ensure bins with no posterior mass (leading to NaN COM/jump) are excluded."""
+        from neuro_py.ensemble.replay import bottom_up_replay_detection
+
+        # create a tiny posterior with first time bin all zeros -> NaN COM
+        t = np.linspace(0, 0.2, 5)
+        bins = np.linspace(0, 10, 5)
+
+        posterior = np.zeros((5, 5))
+        # put mass in later bins only
+        posterior[2] = np.exp(-0.5 * ((bins - 5.0) ** 2) / (1.0 ** 2))
+        posterior[3] = np.exp(-0.5 * ((bins - 6.0) ** 2) / (1.0 ** 2))
+
+        # normalize
+        posterior = posterior / (posterior.sum(axis=1, keepdims=True) + 1e-12)
+
+        replays, meta = bottom_up_replay_detection(
+            posterior,
+            time_centers=t,
+            bin_centers=bins,
+            speed_times=t,
+            speed_values=np.zeros_like(t),
+            speed_thresh=5.0,
+            spread_thresh=100.0,
+            com_jump_thresh=100.0,
+            merge_spatial_gap=10.0,
+            merge_time_gap=0.05,
+            min_duration=0.0,
+            dispersion_thresh=-1.0,  # accept everything for this test
+        )
+
+        # mask should be False for first bin (NaN com_jump originally)
+        mask = meta['mask']
+        self.assertFalse(mask[0])
 
 
 if __name__ == "__main__":
