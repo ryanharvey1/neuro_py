@@ -226,6 +226,9 @@ class TestBottomUpReplayDetection(unittest.TestCase):
         posterior = np.clip(posterior, 0, None)
         posterior = posterior / (posterior.sum(axis=1, keepdims=True) + 1e-12)
 
+        # convert to time-last shape (space, time)
+        posterior = posterior.T
+
         # speed: low everywhere so speed criterion passes for replay windows
         speed_times = t
         speed_values = np.ones_like(t) * 1.0
@@ -284,7 +287,10 @@ class TestBottomUpReplayDetection(unittest.TestCase):
 
         # normalize
         posterior = np.clip(posterior, 0, None)
-        posterior = posterior / (posterior.sum(axis=(1, 2), keepdims=True) + 1e-12)
+        posterior = posterior / (posterior.sum(axis=(0, 1), keepdims=True) + 1e-12)
+
+        # convert to time-last shape (ny, nx, time)
+        posterior = np.moveaxis(posterior, 0, 2)
 
         speed_times = t
         speed_values = np.ones_like(t) * 1.0
