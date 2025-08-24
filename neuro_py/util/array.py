@@ -173,11 +173,73 @@ def circular_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray
     c = np.interp(x, xp, np.cos(fp))
     # return the angle formed by sine and cosine
     result = np.arctan2(s, c)
-    
+
     # Detect if input data uses [0, 2π] convention instead of [-π, π]
     # Simple heuristic: if all input values are non-negative, assume [0, 2π]
     if np.all(fp >= 0):
         # Convert from [-π, π] to [0, 2π]
         result = (result + 2 * np.pi) % (2 * np.pi)
-    
+
     return result
+
+
+def interp_max_gap(
+    x: np.ndarray, xp: np.ndarray, fp: np.ndarray, max_gap: float, fallback=np.nan
+) -> np.ndarray:
+    """
+    Interpolate with gap-aware masking.
+
+    Perform a 1-D linear interpolation similar to :func:`numpy.interp`, but
+    any points that fall into gaps between consecutive `xp` values that
+    exceed `max_gap` are set to `fallback` instead of being interpolated.
+
+    Parameters
+    ----------
+    x : array_like
+        The x-coordinates at which to evaluate the interpolated values.
+    xp : 1-D sequence of floats
+        The x-coordinates of the data points, must be increasing.
+    fp : 1-D sequence of floats
+        The y-coordinates of the data points, same length as `xp`.
+    max_gap : float
+        Maximum allowed gap between consecutive points in `xp`. If the gap
+        xp[i+1] - xp[i] is greater than `max_gap`, then any `x` that falls in
+        the open interval (xp[i], xp[i+1]) will be assigned `fallback`.
+    fallback : scalar, optional
+        Value to use for points falling inside a large gap or outside the
+        extremes of `xp` (passed to ``numpy.interp`` as left/right). Default
+        is ``np.nan``.
+
+    Returns
+    -------
+    y_interpolated : ndarray
+        Interpolated values. Same shape as `x`.
+
+    Notes
+    -----
+    This function delegates to :func:`numpy.interp` for the initial
+    interpolation and then post-processes the output to mask values that lie
+    within large gaps of the original `xp` grid.
+
+    Examples
+    --------
+    >>> xp = np.array([0, 1, 3])
+    >>> fp = np.array([0, 10, 30])
+    >>> x = np.array([0.5, 1.5, 2.5])
+    >>> interp_max_gap(x, xp, fp, max_gap=1.5)
+    array([ 5., nan, nan])
+    """
+
+    y_interpolated = np.interp(x, xp, fp, left=fallback, right=fallback)
+
+    # Identify gaps in original data that exceed max_gap
+    diff_x = np.diff(xp)
+
+    # Find indices in x_new that fall within large gaps
+    for i in range(len(diff_x)):
+        if diff_x[i] > max_gap:
+            # Get the range of x_new that falls in this large gap
+            mask = (x > xp[i]) & (x < xp[i + 1])
+            y_interpolated[mask] = fallback  # Set to fallback value if gap is too large
+
+    return y_interpolated
