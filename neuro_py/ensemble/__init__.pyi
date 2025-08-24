@@ -30,6 +30,7 @@ __all__ = [
     "weighted_corr_2d",
     "weighted_corr_2d_jit",
     "position_estimator",
+    "bottom_up_replay_detection"
 ]
 
 from . import decoding
@@ -68,6 +69,7 @@ from .replay import (
     weighted_corr_2d,
     weighted_corr_2d_jit,
     weighted_correlation,
+    bottom_up_replay_detection
 )
 from .similarity_index import similarity_index
 from .similaritymat import similaritymat
