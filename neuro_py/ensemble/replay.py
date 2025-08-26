@@ -1162,17 +1162,23 @@ def bottom_up_replay_detection(
         Array of replay events that passed dispersion threshold; shape (k,2) start/end times.
     meta : dict
         Metadata dict with keys:
-         - 'candidates': candidate subsequences before dispersion filter
+         - 'candidates': candidate subsequences before dispersion filter; list of dicts with keys:
             - 'start_time': start time of each candidate
             - 'end_time': end time of each candidate
             - 'start_idx': start index of each candidate
             - 'end_idx': end index of each candidate
-            - 'duration': duration of each candidate
-            - 'D2': dispersion per candidate
-            - 'COM': center-of-mass per candidate
-         - 'com': center-of-mass per kept bin
-         - 'spread': posterior spread per kept bin
-         - 'mask': boolean mask of kept bins
+            - 'duration': duration of each candidate (s)
+            - 'D2': dispersion (RMS radial deviation) per candidate (cm)
+            - 'com_trace': NaN-removed sequence of center-of-mass positions used for metrics
+            - 'path_length': path length (sum of consecutive COM step distances) across valid bins (cm)
+            - 'maxJump_NaN': maximum consecutive-step jump computed on the raw COM slice (may be NaN)
+            - 'maxJump_NaNremoved': maximum consecutive-step jump computed on the NaN-removed COM trace (cm)
+            - 'maxJump_NaNremoved_time': maximum temporal gap between valid (NaN-removed) samples (s)
+            - 'posteriorSpreadMax': maximum per-bin posterior spread across the candidate (cm)
+            - 'posteriorSpreadMean': mean per-bin posterior spread across the candidate (cm)
+         - 'com': center-of-mass per kept bin (array of shape (n_time, ) or (n_time,2))
+         - 'spread': posterior spread per kept bin (array of length n_time)
+         - 'mask': boolean mask of kept bins (array of length n_time)
 
     Notes
     -----
