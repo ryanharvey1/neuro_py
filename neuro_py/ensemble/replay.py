@@ -1107,3 +1107,352 @@ class PairwiseBias(object):
         return self.transform(
             post_spikes, post_neurons, post_intervals, allow_reverse_replay, parallel
         )
+
+
+def bottom_up_replay_detection(
+    posterior: np.ndarray,
+    time_centers: np.ndarray,
+    bin_centers: np.ndarray,
+    speed_times: np.ndarray,
+    speed_values: np.ndarray,
+    window_dt: Optional[float] = None,
+    speed_thresh: float = 5.0,
+    spread_thresh: float = 10.0,
+    com_jump_thresh: float = 20.0,
+    merge_spatial_gap: float = 20.0,
+    merge_time_gap: float = 0.05,
+    min_duration: float = 0.1,
+    dispersion_thresh: float = 12.0,
+    method: str = "com",
+) -> Tuple[np.ndarray, dict]:
+    """
+    Bottom-up replay detector following Widloski & Foster (2022) "Replay detection and analysis".
+
+    Parameters
+    ----------
+    posterior : np.ndarray
+        Shape (n_time, n_space_bins) posterior probability for each time window.
+    time_centers : np.ndarray
+        Center time of each posterior time bin (length n_time) in seconds.
+    bin_centers : np.ndarray
+        Spatial bin centers (length n_space_bins) in same units as thresholds (cm).
+    speed_times, speed_values : np.ndarray
+        Time stamps and speed values (cm/s) for the animal; used to interpolate
+        speed at time_centers.
+    window_dt : Optional[float]
+        Duration of each posterior time bin. If None, computed from time_centers diff.
+    speed_thresh : float
+        Speed threshold for filtering candidate replays (cm/s).
+    spread_thresh : float
+        Spread threshold for filtering candidate replays (cm).
+    com_jump_thresh : float
+        Center-of-mass jump threshold for filtering candidate replays (cm).
+    merge_spatial_gap : float
+        Spatial gap threshold for merging candidate replays (cm).
+    merge_time_gap : float
+        Temporal gap threshold for merging candidate replays (s).
+    min_duration : float
+        Minimum duration for keeping candidate replays (s).
+    dispersion_thresh : float
+        Dispersion threshold (mean absolute deviation of COM across sequence) for labeling replays (cm).
+
+    Returns
+    -------
+    replays : np.ndarray
+        Array of replay events that passed dispersion threshold; shape (k,2) start/end times.
+    meta : dict
+        Metadata dict with keys:
+         - 'candidates': candidate subsequences before dispersion filter; list of dicts with keys:
+            - 'start_time': start time of each candidate
+            - 'end_time': end time of each candidate
+            - 'start_idx': start index of each candidate
+            - 'end_idx': end index of each candidate
+            - 'duration': duration of each candidate (s)
+            - 'D2': dispersion (RMS radial deviation) per candidate (cm)
+            - 'com_trace': NaN-removed sequence of center-of-mass positions used for metrics
+            - 'path_length': path length (sum of consecutive COM step distances) across valid bins (cm)
+            - 'maxJump_NaN': maximum consecutive-step jump computed on the raw COM slice (may be NaN)
+            - 'maxJump_NaNremoved': maximum consecutive-step jump computed on the NaN-removed COM trace (cm)
+            - 'maxJump_NaNremoved_time': maximum temporal gap between valid (NaN-removed) samples (s)
+            - 'posteriorSpreadMax': maximum per-bin posterior spread across the candidate (cm)
+            - 'posteriorSpreadMean': mean per-bin posterior spread across the candidate (cm)
+         - 'com': center-of-mass per kept bin (array of shape (n_time, ) or (n_time,2))
+         - 'spread': posterior spread per kept bin (array of length n_time)
+         - 'mask': boolean mask of kept bins (array of length n_time)
+
+    Notes
+    -----
+    This implementation assumes 1D and 2D spatial decoding.
+    """
+    posterior = np.asarray(posterior)
+    time_centers = np.asarray(time_centers)
+
+    # Support posteriors where time is the last axis (space..., time)
+    # Move time axis to front so internal code works with shape (n_time, ...)
+    if posterior.ndim >= 2 and posterior.shape[0] != time_centers.shape[0]:
+        if posterior.shape[-1] == time_centers.shape[0]:
+            posterior = np.moveaxis(posterior, -1, 0)
+        else:
+            raise ValueError("posterior time dimension does not match time_centers")
+    # bin_centers may be a 1D array for 1D posteriors or a tuple (y_centers, x_centers)
+    # for 2D posteriors. Don't force-cast a tuple into an ndarray.
+    if posterior.ndim == 3:
+        if not (isinstance(bin_centers, (tuple, list)) and len(bin_centers) == 2):
+            raise ValueError(
+                "For 2D posterior, bin_centers must be (y_centers, x_centers)"
+            )
+        y_centers, x_centers = bin_centers
+    else:
+        bin_centers = np.asarray(bin_centers)
+
+    if posterior.shape[0] != time_centers.shape[0]:
+        raise ValueError(
+            "posterior and time_centers must have matching first dimension"
+        )
+
+    n_time = posterior.shape[0]
+
+    # bin duration
+    if window_dt is None:
+        if n_time > 1:
+            window_dt = np.median(np.diff(time_centers))
+        else:
+            window_dt = 0.0
+
+    # compute COMs and spread; support 1D and 2D posteriors
+    if posterior.ndim == 2:
+        # 1D posterior: shape (n_time, n_space)
+        com = position_estimator(posterior, bin_centers, method=method)
+
+        # compute posterior spread (weighted std)
+        spread = np.full(n_time, np.nan)
+        for ti in range(n_time):
+            P = posterior[ti]
+            s = np.sum(P)
+            if s > 0:
+                Pn = P / s
+                mu = np.sum(bin_centers * Pn)
+                spread[ti] = np.sqrt(np.sum(((bin_centers - mu) ** 2) * Pn))
+
+        # compute COM jump sizes (between consecutive bins)
+        com_jump = np.full(n_time, np.nan)
+        com_diff = np.abs(np.diff(com, prepend=np.nan))
+        com_jump[1:] = com_diff[1:]
+
+    elif posterior.ndim == 3:
+        # 2D posterior: shape (n_time, ny, nx)
+        y_centers, x_centers = bin_centers
+        xx, yy = np.meshgrid(x_centers, y_centers, indexing="xy")
+
+        com = np.full((n_time, 2), np.nan)
+        spread = np.full(n_time, np.nan)
+        for ti in range(n_time):
+            P = posterior[ti]
+            s = np.sum(P)
+            if s > 0:
+                Pn = P / s
+                mu_x = np.sum(xx * Pn)
+                mu_y = np.sum(yy * Pn)
+                com[ti, 0] = mu_x
+                com[ti, 1] = mu_y
+                # RMS distance from mean
+                spread[ti] = np.sqrt(np.sum(((xx - mu_x) ** 2 + (yy - mu_y) ** 2) * Pn))
+
+        # compute COM jump sizes (Euclidean distance between consecutive COMs)
+        com_jump = np.full(n_time, np.nan)
+        for ti in range(1, n_time):
+            if not np.any(np.isnan(com[ti - 1])) and not np.any(np.isnan(com[ti])):
+                com_jump[ti] = np.linalg.norm(com[ti] - com[ti - 1])
+    else:
+        raise ValueError("posterior must be 2D (time,x) or 3D (time,y,x)")
+
+    # interpolate speed at time_centers
+    speed = np.interp(time_centers, speed_times, speed_values)
+
+    # treat NaN COM-jumps (e.g. first bin) as failing the com_jump criterion
+    # to avoid letting NaNs silently pass (np.nan_to_num -> 0). Set NaNs to +inf
+    # so they are excluded when compared to com_jump_thresh.
+    com_jump = np.array(com_jump, copy=True)
+    com_jump[np.isnan(com_jump)] = np.inf
+
+    # mask time bins that satisfy all three criteria
+    mask = (
+        (speed < speed_thresh) & (spread < spread_thresh) & (com_jump < com_jump_thresh)
+    )
+
+    # find contiguous subsequences of True in mask
+    subseqs = []
+    if np.any(mask):
+        edges = np.diff(mask.astype(int))
+        starts = np.where(edges == 1)[0] + 1
+        ends = np.where(edges == -1)[0] + 1
+        if mask[0]:
+            starts = np.concatenate(([0], starts))
+        if mask[-1]:
+            ends = np.concatenate((ends, [n_time]))
+
+        for s, e in zip(starts, ends):
+            subseqs.append(
+                {
+                    "start_idx": s,
+                    "end_idx": e,
+                    "start_time": time_centers[s],
+                    "end_time": time_centers[e - 1],
+                }
+            )
+
+    # merge neighboring subsequences based on spatial and temporal gaps
+    merged = []
+    for seq in subseqs:
+        if not merged:
+            merged.append(seq)
+            continue
+        prev = merged[-1]
+        temporal_gap = seq["start_time"] - prev["end_time"]
+        # compute spatial gap differently for 1D vs 2D COM
+        if posterior.ndim == 2:
+            spatial_gap = np.abs(com[seq["start_idx"]] - com[prev["end_idx"] - 1])
+        else:
+            # com entries are 2D vectors (mu_x, mu_y)
+            a = com[seq["start_idx"]]
+            b = com[prev["end_idx"] - 1]
+            if np.any(np.isnan(a)) or np.any(np.isnan(b)):
+                spatial_gap = np.inf
+            else:
+                spatial_gap = float(np.linalg.norm(a - b))
+
+        if temporal_gap <= merge_time_gap and spatial_gap <= merge_spatial_gap:
+            # merge
+            prev["end_idx"] = seq["end_idx"]
+            prev["end_time"] = seq["end_time"]
+        else:
+            merged.append(seq)
+
+    # candidate sequences: duration > min_duration
+    candidates = []
+    for seq in merged:
+        duration = (
+            seq["end_time"] - seq["start_time"] + (window_dt if window_dt > 0 else 0.0)
+        )
+        if duration >= min_duration:
+            # record COM trace for sequence and compute metrics on NaN-removed trace
+            idxs = np.arange(seq["start_idx"], seq["end_idx"])
+            com_trace = com[idxs]
+
+            # remove NaN entries (bins with no posterior mass)
+            if posterior.ndim == 2:
+                # 1D case: com_trace is 1D array
+                valid_mask = ~np.isnan(com_trace)
+                com_trace_valid = com_trace[valid_mask]
+            else:
+                # 2D case: com_trace is (n_bins, 2)
+                valid_mask = ~np.isnan(com_trace).any(axis=1)
+                com_trace_valid = com_trace[valid_mask]
+
+            # dispersion D2 = RMS radial deviation from centroid (match MATLAB)
+            if com_trace_valid.size == 0:
+                D2 = np.nan
+                centroid = np.nan
+            else:
+                if posterior.ndim == 2:
+                    centroid = np.nanmean(com_trace_valid)
+                    D2 = np.sqrt(np.nanmean((com_trace_valid - centroid) ** 2))
+                else:
+                    centroid = np.nanmean(com_trace_valid, axis=0)
+                    diffs = np.linalg.norm(com_trace_valid - centroid, axis=1)
+                    D2 = np.sqrt(np.nanmean(diffs**2))
+
+            # compute path length (sum of Euclidean distances between consecutive valid COM points)
+            if com_trace_valid.size == 0:
+                path_length = 0.0
+            else:
+                if com_trace_valid.ndim == 1:
+                    steps = np.abs(np.diff(com_trace_valid))
+                else:
+                    steps = np.linalg.norm(np.diff(com_trace_valid, axis=0), axis=1)
+                path_length = float(np.nansum(steps))
+
+            # compute maxJump on raw (may contain NaNs) and on NaN-removed trace
+            # For raw trace: compute diffs and allow NaNs to propagate (max may be NaN)
+            try:
+                if com_trace.size == 0:
+                    maxJump_NaN = np.nan
+                else:
+                    if com_trace.ndim == 1:
+                        raw_steps = np.abs(np.diff(com_trace))
+                    else:
+                        raw_steps = np.linalg.norm(np.diff(com_trace, axis=0), axis=1)
+                    maxJump_NaN = (
+                        float(np.nanmax(raw_steps)) if raw_steps.size > 0 else np.nan
+                    )
+            except Exception:
+                maxJump_NaN = np.nan
+
+            # For NaN-removed trace
+            if com_trace_valid.size == 0:
+                maxJump_NaNremoved = np.nan
+                maxJump_NaNremoved_time = np.nan
+            else:
+                if com_trace_valid.ndim == 1:
+                    valid_steps = np.abs(np.diff(com_trace_valid))
+                else:
+                    valid_steps = np.linalg.norm(
+                        np.diff(com_trace_valid, axis=0), axis=1
+                    )
+                maxJump_NaNremoved = (
+                    float(np.nanmax(valid_steps)) if valid_steps.size > 0 else np.nan
+                )
+
+                # compute times of valid samples to get max time gap
+                times_seq = time_centers[idxs]
+                times_valid = times_seq[valid_mask]
+                if times_valid.size > 1:
+                    maxJump_NaNremoved_time = float(np.max(np.diff(times_valid)))
+                else:
+                    maxJump_NaNremoved_time = np.nan
+
+            # posteriorSpreadMax and posteriorSpreadMean for the sequence (NaN-removed)
+            seq_spreads = spread[idxs]
+            seq_spreads_valid = seq_spreads[~np.isnan(seq_spreads)]
+            if seq_spreads_valid.size > 0:
+                posteriorSpreadMax = float(np.max(seq_spreads_valid))
+                posteriorSpreadMean = float(np.mean(seq_spreads_valid))
+            else:
+                posteriorSpreadMax = np.nan
+                posteriorSpreadMean = np.nan
+
+            candidates.append(
+                {
+                    "start_time": seq["start_time"],
+                    "end_time": seq["end_time"],
+                    "start_idx": seq["start_idx"],
+                    "end_idx": seq["end_idx"],
+                    "duration": duration,
+                    "D2": D2,
+                    "com_trace": com_trace_valid,
+                    "path_length": path_length,
+                    "maxJump_NaN": maxJump_NaN,
+                    "maxJump_NaNremoved": maxJump_NaNremoved,
+                    "maxJump_NaNremoved_time": maxJump_NaNremoved_time,
+                    "posteriorSpreadMax": posteriorSpreadMax,
+                    "posteriorSpreadMean": posteriorSpreadMean,
+                }
+            )
+
+    # select replays by dispersion threshold
+    replays = []
+    for c in candidates:
+        if c["D2"] > dispersion_thresh:
+            replays.append([c["start_time"], c["end_time"]])
+
+    replays = np.array(replays)
+
+    meta = {
+        "candidates": candidates,
+        "com": com,
+        "spread": spread,
+        "mask": mask,
+        "window_dt": window_dt,
+    }
+
+    return replays, meta

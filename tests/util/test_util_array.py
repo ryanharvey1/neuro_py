@@ -252,3 +252,49 @@ class TestCircularInterp(unittest.TestCase):
             [np.pi / 4, 3 * np.pi / 4, 5 * np.pi / 4, 7 * np.pi / 4]
         )
         np.testing.assert_allclose(result, expected_approx, rtol=0.1)
+
+class TestInterpMaxGap(unittest.TestCase):
+    def test_interp_max_gap_basic(self):
+        """Basic behavior: values inside small gaps are interpolated, large gaps return fallback."""
+        from neuro_py.util.array import interp_max_gap
+
+        xp = np.array([0.0, 1.0, 3.0, 4.0])
+        fp = np.array([0.0, 10.0, 30.0, 40.0])
+        x = np.array([0.5, 1.5, 2.5, 3.5])
+
+        # with max_gap = 1.5, gap between 1.0 and 3.0 is too large -> x in (1,3) masked
+        out = interp_max_gap(x, xp, fp, max_gap=1.5, fallback=np.nan)
+        # 0.5 -> interpolated between 0 and 1 -> 5.0
+        self.assertAlmostEqual(out[0], 5.0)
+        # 1.5 and 2.5 fall inside the large gap -> fallback
+        self.assertTrue(np.isnan(out[1]))
+        self.assertTrue(np.isnan(out[2]))
+        # 3.5 -> interpolated between 3 and 4 -> 35.0
+        self.assertAlmostEqual(out[3], 35.0)
+
+    def test_interp_max_gap_no_gaps(self):
+        """If all gaps are within max_gap, behaves like numpy.interp."""
+        from neuro_py.util.array import interp_max_gap
+
+        xp = np.array([0.0, 1.0, 2.0])
+        fp = np.array([0.0, 10.0, 20.0])
+        x = np.array([0.25, 0.75, 1.5])
+
+        out = interp_max_gap(x, xp, fp, max_gap=2.0, fallback=-999)
+        expected = np.interp(x, xp, fp, left=-999, right=-999)
+        np.testing.assert_allclose(out, expected)
+
+    def test_interp_max_gap_boundaries(self):
+        """Points outside xp should receive the fallback value (left/right)."""
+        from neuro_py.util.array import interp_max_gap
+
+        xp = np.array([0.0, 1.0])
+        fp = np.array([0.0, 10.0])
+        x = np.array([-0.5, 0.5, 1.5])
+
+        out = interp_max_gap(x, xp, fp, max_gap=1.0, fallback=-999)
+        # left and right should be fallback
+        self.assertEqual(out[0], -999)
+        self.assertEqual(out[2], -999)
+        # middle is interpolated
+        self.assertAlmostEqual(out[1], 5.0)
