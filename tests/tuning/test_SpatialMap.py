@@ -1009,6 +1009,27 @@ def test_shuffle_detects_spatial_and_nonspatial_cells():
     # Non-spatial unit remains Poisson with uniform rate
     spikes_nonspatial = make_spikes(rate_nonspatial)
 
+    # Create SpatialMap instances for both units
+    pos = nel.AnalogSignalArray(data=np.array([x_pos]), timestamps=timestamps)
+    st_spatial = nel.SpikeTrainArray([spikes_spatial], fs=fs_pos)
+    st_nonspatial = nel.SpikeTrainArray([spikes_nonspatial], fs=fs_pos)
+
+    spatial_map_spatial = SpatialMap(pos=pos, st=st_spatial, s_binsize=5.0, speed_thres=0)
+    spatial_map_nonspatial = SpatialMap(pos=pos, st=st_nonspatial, s_binsize=5.0, speed_thres=0)
+
+    # Test shuffle spatial information
+    pvals_spatial = spatial_map_spatial.shuffle_spatial_information()
+    pvals_nonspatial = spatial_map_nonspatial.shuffle_spatial_information()
+
+    assert pvals_spatial.shape[0] == spatial_map_spatial.n_units
+    assert np.all((pvals_spatial >= 0) & (pvals_spatial <= 1))
+    assert pvals_nonspatial.shape[0] == spatial_map_nonspatial.n_units
+    assert np.all((pvals_nonspatial >= 0) & (pvals_nonspatial <= 1))
+
+    # Assert that the spatial unit has significant spatial information
+    assert pvals_spatial[0] > 0.05, "Spatial unit should have significant spatial information"
+    # Assert that the non-spatial unit does not have significant spatial information
+    assert pvals_nonspatial[0] <= 0.05, "Non-spatial unit should not have significant spatial information"
     st = nel.SpikeTrainArray([spikes_spatial, spikes_nonspatial], fs=1000.0)
     pos = nel.AnalogSignalArray(np.array([x_pos]), timestamps=timestamps, fs=fs_pos)
 
@@ -1027,3 +1048,45 @@ def test_shuffle_detects_spatial_and_nonspatial_cells():
     assert pvals[0] < 0.05
     # non-spatial cell should not be significant
     assert pvals[1] > 0.05
+
+
+def test_continuous_signal_binned_mean_high_bin():
+    """
+    Simulate position and continuous signal where high values occur
+    within a small spatial region, then confirm the binned mean
+    ratemap has its maximum at the expected spatial bin.
+    """
+    fs_pos = 50.0
+    duration_s = 20.0
+    timestamps = np.linspace(0, duration_s, int(duration_s * fs_pos))
+
+    # x moves linearly 0..100, y fixed
+    x = np.linspace(0, 100, timestamps.size)
+    y = np.full_like(x, 50.0)
+
+    # continuous signal: 5 channels, channel 0 has high values when x in [60,70]
+    n_ch = 5
+    rng = np.random.default_rng(0)
+    con = rng.normal(scale=0.1, size=(n_ch, timestamps.size))
+    high_mask = (x >= 60) & (x <= 70)
+    con[0, high_mask] += 10.0
+
+    pos = nel.AnalogSignalArray(np.vstack([x, y]), time=timestamps, fs=fs_pos)
+    con_signal = nel.AnalogSignalArray(con, time=timestamps, fs=fs_pos)
+
+    # Use 10 cm bins so 60-70 region maps to bin index 6 (0-based)
+    sm = SpatialMap(pos=pos, st=con_signal, x_minmax=(0, 100), y_minmax=(0, 100), s_binsize=10, speed_thres=0)
+
+    # ratemap shape: (n_units/n_channels, x_bins, y_bins)
+    rm = sm.ratemap[0]
+    occ = sm.occupancy
+
+    # ignore empty bins when finding max
+    rm_masked = np.where(occ > 0, rm, -np.inf)
+    max_idx = np.unravel_index(np.nanargmax(rm_masked), rm_masked.shape)
+
+    # Compute expected x bin based on SpatialMap's x_edges (robust to edge inclusion)
+    center_high = x[high_mask].mean()
+    expected_x_bin = np.searchsorted(sm.x_edges, center_high, side="right") - 1
+    # `rm` shape is (x_bins, y_bins) so first index is x bin
+    assert max_idx[0] == expected_x_bin, f"Expected peak x-bin {expected_x_bin}, got {max_idx[0]}"
