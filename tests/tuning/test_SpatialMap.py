@@ -1009,27 +1009,6 @@ def test_shuffle_detects_spatial_and_nonspatial_cells():
     # Non-spatial unit remains Poisson with uniform rate
     spikes_nonspatial = make_spikes(rate_nonspatial)
 
-    # Create SpatialMap instances for both units
-    pos = nel.AnalogSignalArray(data=np.array([x_pos]), timestamps=timestamps)
-    st_spatial = nel.SpikeTrainArray([spikes_spatial], fs=fs_pos)
-    st_nonspatial = nel.SpikeTrainArray([spikes_nonspatial], fs=fs_pos)
-
-    spatial_map_spatial = SpatialMap(pos=pos, st=st_spatial, s_binsize=5.0, speed_thres=0)
-    spatial_map_nonspatial = SpatialMap(pos=pos, st=st_nonspatial, s_binsize=5.0, speed_thres=0)
-
-    # Test shuffle spatial information
-    pvals_spatial = spatial_map_spatial.shuffle_spatial_information()
-    pvals_nonspatial = spatial_map_nonspatial.shuffle_spatial_information()
-
-    assert pvals_spatial.shape[0] == spatial_map_spatial.n_units
-    assert np.all((pvals_spatial >= 0) & (pvals_spatial <= 1))
-    assert pvals_nonspatial.shape[0] == spatial_map_nonspatial.n_units
-    assert np.all((pvals_nonspatial >= 0) & (pvals_nonspatial <= 1))
-
-    # Assert that the spatial unit has significant spatial information
-    assert pvals_spatial[0] > 0.05, "Spatial unit should have significant spatial information"
-    # Assert that the non-spatial unit does not have significant spatial information
-    assert pvals_nonspatial[0] <= 0.05, "Non-spatial unit should not have significant spatial information"
     st = nel.SpikeTrainArray([spikes_spatial, spikes_nonspatial], fs=1000.0)
     pos = nel.AnalogSignalArray(np.array([x_pos]), timestamps=timestamps, fs=fs_pos)
 
