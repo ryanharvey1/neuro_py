@@ -285,10 +285,9 @@ class NDimensionalBinner:
                 for uu in range(st_data.data.shape[0]):
                     vals = st_data.data[uu, valid_mask]
                     # Use mean for analog signals: average value per spatial bin
-                    stat, _, _ = binned_statistic_dd(
+                    ratemap[uu], _, _ = binned_statistic_dd(
                         pos_valid, vals, statistic="mean", bins=bin_edges
                     )
-                    ratemap[uu] = stat
 
         # Normalize by occupancy only for spike-train (counts -> rates).
         # Analog signals were binned as means already and should not be divided.
@@ -783,13 +782,12 @@ class SpatialMap(NDimensionalBinner):
                 pos_valid = positions[valid_mask][:, 0]
                 for uu in range(st_run.data.shape[0]):
                     vals = st_run.data[uu, valid_mask]
-                    stat, _, _ = binned_statistic_dd(
-                        pos_valid.reshape(-1, 1),
+                    ratemap[uu], _, _ = binned_statistic_dd(
+                        pos_valid,
                         vals,
                         statistic="mean",
                         bins=[self.x_edges],
                     )
-                    ratemap[uu] = stat.flatten()
 
         # divide by occupancy only for spike-train (counts -> rates).
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
@@ -970,13 +968,12 @@ class SpatialMap(NDimensionalBinner):
                 pos_valid = positions[valid_mask]
                 for uu in range(st_run.data.shape[0]):
                     vals = st_run.data[uu, valid_mask]
-                    stat, _, _ = binned_statistic_dd(
+                    ratemap[uu], _, _ = binned_statistic_dd(
                         pos_valid,
                         vals,
                         statistic="mean",
                         bins=(self.x_edges, self.y_edges),
                     )
-                    ratemap[uu] = stat
 
         # divide by occupancy only for spike-train (counts -> rates).
         if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
