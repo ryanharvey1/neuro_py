@@ -10,6 +10,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy.io import savemat
 from scipy.spatial.distance import pdist
+from scipy.stats import binned_statistic_dd
 
 from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields
@@ -272,44 +273,31 @@ class NDimensionalBinner:
                 )
                 signal_positions.append(pos_interp)
 
-            # Get bin indices for each time point
-            bin_indices = []
-            for dim in range(n_dims):
-                bin_idx = np.digitize(signal_positions[dim], bin_edges[dim], right=True)
-                bin_indices.append(bin_idx)
+            # Use scipy's binned_statistic_dd for efficient N-D binning.
+            # Build positions array with shape (n_timepoints, n_dims)
+            positions = np.vstack(signal_positions).T
 
-            # Accumulate signal values in appropriate bins
-            for tt in range(len(st_data.abscissa_vals)):
-                # Convert to 0-based indexing and ensure within bounds
-                indices = []
-                valid = True
-                for dim in range(n_dims):
-                    idx = bin_indices[dim][tt] - 1
-                    if idx < 0 or idx >= len(bin_edges[dim]) - 1:
-                        valid = False
-                        break
-                    indices.append(idx)
+            # Mask out invalid (NaN) positions
+            valid_mask = ~np.isnan(positions).any(axis=1)
 
-                if valid:
-                    if n_dims == 1:
-                        ratemap[:, indices[0]] += st_data.data[:, tt]
-                    elif n_dims == 2:
-                        ratemap[:, indices[0], indices[1]] += st_data.data[:, tt]
-                    else:
-                        # For N-dimensional indexing
-                        full_indices = tuple([slice(None)] + indices)
-                        ratemap[full_indices] += st_data.data[:, tt]
+            if np.any(valid_mask):
+                pos_valid = positions[valid_mask]
+                for uu in range(st_data.data.shape[0]):
+                    vals = st_data.data[uu, valid_mask]
+                    # Use mean for analog signals: average value per spatial bin
+                    stat, edges, binnumber = binned_statistic_dd(
+                        pos_valid, vals, statistic="mean", bins=bin_edges
+                    )
+                    ratemap[uu] = stat
 
-            # Convert from counts to rate
-            ratemap = ratemap * st_data.fs
-
-        # Normalize by occupancy
-        # Handle division by zero
-        # Use broadcasting for occupancy normalization (avoids memory-intensive tiling)
-        occupancy_expanded = np.expand_dims(occupancy, 0)  # Add unit dimension
-        np.divide(
-            ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap
-        )
+        # Normalize by occupancy only for spike-train (counts -> rates).
+        # Analog signals were binned as means already and should not be divided.
+        if isinstance(st_data, nel.core._eventarray.SpikeTrainArray):
+            # Handle division by zero using broadcasting (avoids memory-intensive tiling)
+            occupancy_expanded = np.expand_dims(occupancy, 0)  # Add unit dimension
+            np.divide(
+                ratemap, occupancy_expanded, where=occupancy_expanded != 0, out=ratemap
+            )
 
         # Remove NaNs and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
@@ -785,14 +773,22 @@ class SpatialMap(NDimensionalBinner):
 
         # if data to map is analog signal (continuous)
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
-            # get x location for every bin center
+            # get x location for every sample and mask invalid positions
             x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
-            # get indices location within bin edges
-            ext_bin_idx = np.squeeze(np.digitize(x, self.x_edges, right=True))
-            # iterate over each time step and add data values to ratemap
-            for tt, bidx in enumerate(ext_bin_idx):
-                ratemap[:, bidx - 1] += st_run.data[:, tt]
-            # divide by sampling rate
+            positions = x.reshape(-1, 1)
+            valid_mask = ~np.isnan(positions).any(axis=1)
+
+            if np.any(valid_mask):
+                # Use 1D binned statistic to compute summed values per bin
+                pos_valid = positions[valid_mask][:, 0]
+                for uu in range(st_run.data.shape[0]):
+                    vals = st_run.data[uu, valid_mask]
+                    stat, edges, binnumber = binned_statistic_dd(
+                        pos_valid.reshape(-1, 1), vals, statistic="sum", bins=[self.x_edges]
+                    )
+                    ratemap[uu] = stat.flatten()
+
+            # Convert summed per-sample values to rate
             ratemap = ratemap * st_run.fs
 
         # divide by occupancy
@@ -966,10 +962,18 @@ class SpatialMap(NDimensionalBinner):
         elif isinstance(st_run, nel.core._analogsignalarray.AnalogSignalArray):
             x = np.interp(st_run.abscissa_vals, ts, x_pos, left=np.nan, right=np.nan)
             y = np.interp(st_run.abscissa_vals, ts, y_pos, left=np.nan, right=np.nan)
-            ext_bin_idx_x = np.squeeze(np.digitize(x, self.x_edges, right=True))
-            ext_bin_idx_y = np.squeeze(np.digitize(y, self.y_edges, right=True))
-            for tt, (bidxx, bidxy) in enumerate(zip(ext_bin_idx_x, ext_bin_idx_y)):
-                ratemap[:, bidxx - 1, bidxy - 1] += st_run.data[:, tt]
+            positions = np.vstack((x, y)).T
+            valid_mask = ~np.isnan(positions).any(axis=1)
+
+            if np.any(valid_mask):
+                pos_valid = positions[valid_mask]
+                for uu in range(st_run.data.shape[0]):
+                    vals = st_run.data[uu, valid_mask]
+                    stat, edges, binnumber = binned_statistic_dd(
+                        pos_valid, vals, statistic="sum", bins=(self.x_edges, self.y_edges)
+                    )
+                    ratemap[uu] = stat
+
             ratemap = ratemap * st_run.fs
 
         np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
