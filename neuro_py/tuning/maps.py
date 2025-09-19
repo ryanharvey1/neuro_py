@@ -779,20 +779,18 @@ class SpatialMap(NDimensionalBinner):
             valid_mask = ~np.isnan(positions).any(axis=1)
 
             if np.any(valid_mask):
-                # Use 1D binned statistic to compute summed values per bin
+                # Use 1D binned statistic to compute mean values per bin
                 pos_valid = positions[valid_mask][:, 0]
                 for uu in range(st_run.data.shape[0]):
                     vals = st_run.data[uu, valid_mask]
                     stat, edges, binnumber = binned_statistic_dd(
-                        pos_valid.reshape(-1, 1), vals, statistic="sum", bins=[self.x_edges]
+                        pos_valid.reshape(-1, 1), vals, statistic="mean", bins=[self.x_edges]
                     )
                     ratemap[uu] = stat.flatten()
 
-            # Convert summed per-sample values to rate
-            ratemap = ratemap * st_run.fs
-
-        # divide by occupancy
-        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+        # divide by occupancy only for spike-train (counts -> rates).
+        if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
+            np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
 
         # remove nans and infs
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
@@ -970,13 +968,13 @@ class SpatialMap(NDimensionalBinner):
                 for uu in range(st_run.data.shape[0]):
                     vals = st_run.data[uu, valid_mask]
                     stat, edges, binnumber = binned_statistic_dd(
-                        pos_valid, vals, statistic="sum", bins=(self.x_edges, self.y_edges)
+                        pos_valid, vals, statistic="mean", bins=(self.x_edges, self.y_edges)
                     )
                     ratemap[uu] = stat
 
-            ratemap = ratemap * st_run.fs
-
-        np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
+        # divide by occupancy only for spike-train (counts -> rates).
+        if isinstance(st_run, nel.core._eventarray.SpikeTrainArray):
+            np.divide(ratemap, occupancy, where=occupancy != 0, out=ratemap)
 
         bad_idx = np.isnan(ratemap) | np.isinf(ratemap)
         ratemap[bad_idx] = 0
