@@ -264,62 +264,34 @@ def extractPatterns(
         patterns = significance.components_[idxs, :]
     elif method == "ica":
         if cross_structural is not None:
-            # For cross-structural ICA, we need to modify the input data
-            # to reflect the cross-structural correlation structure
+            # For cross-structural ICA, modify the input data to reflect the cross-structural correlation structure
             correlations = _compute_cross_structural_correlation(
                 actmat, cross_structural
             )
 
-            # Perform eigenvalue decomposition to get the cross-structural subspace
+            # Eigenvalue decomposition to get the cross-structural subspace
             eigenvalues, eigenvectors = np.linalg.eigh(correlations)
             idx = np.argsort(eigenvalues)[::-1]
             eigenvalues = eigenvalues[idx]
             eigenvectors = eigenvectors[:, idx]
 
-            # Select significant components based on the same criteria used for significance testing
-            # We need at least nassemblies components, but also ensure they're meaningful
-            n_components_pca = max(
-                nassemblies, np.sum(eigenvalues > 0.1)
-            )  # Use components with eigenvalue > 0.1
-            if n_components_pca > len(eigenvalues):
-                n_components_pca = len(eigenvalues)
-            if n_components_pca == 0:
-                # If no significant cross-structural components, fall back to standard ICA
-                ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
-                ica.fit(actmat.T)
-                patterns = ica.components_
-            else:
-                eigenvectors_sig = eigenvectors[:, :n_components_pca]
-                eigenvalues_sig = eigenvalues[:n_components_pca]
+            # Use the top nassemblies components (already determined)
+            eigenvectors_sig = eigenvectors[:, :nassemblies]
+            eigenvalues_sig = eigenvalues[:nassemblies]
 
-                # Project the data onto the cross-structural subspace
-                # Use the square root of eigenvalues for proper scaling
-                projected_data = (
-                    eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))
-                ).T @ actmat
+            # Project the data onto the cross-structural subspace
+            projected_data = (
+                eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))
+            ).T @ actmat
 
-                # Ensure we don't request more components than available
-                n_ica_components = min(nassemblies, projected_data.shape[0])
-
-                if n_ica_components > 0:
-                    # Run ICA on the projected data
-                    ica = FastICA(
-                        n_components=n_ica_components, random_state=0, whiten=whiten
-                    )
-                    ica.fit(projected_data.T)
-
-                    # Transform ICA components back to original space
-                    patterns = (
-                        ica.components_
-                        @ (eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))).T
-                    )
-                else:
-                    # Fallback if no components available
-                    ica = FastICA(
-                        n_components=nassemblies, random_state=0, whiten=whiten
-                    )
-                    ica.fit(actmat.T)
-                    patterns = ica.components_
+            # Run ICA on the projected data
+            ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
+            ica.fit(projected_data.T)
+            # Transform ICA components back to original space
+            patterns = (
+                ica.components_
+                @ (eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))).T
+            )
         else:
             # Standard ICA
             ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
