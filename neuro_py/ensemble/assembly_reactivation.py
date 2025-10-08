@@ -45,6 +45,11 @@ class AssemblyReact:
         Percentile for mp null hypothesis.
     tracywidom : bool
         If true, uses Tracy-Widom distribution for mp null hypothesis.
+    cross_structural : np.ndarray, optional
+        A categorical vector indicating group membership for each neuron.
+        If provided, the function will strictly detect cross-structural assemblies
+        (correlations within the same group will be ignored). Should have the same
+        length as the number of neurons in the spike train.
 
     Attributes
     ----------
@@ -105,6 +110,16 @@ class AssemblyReact:
     >>> # locate members of assemblies
     >>> assembly_members = assembly_react.find_members()
 
+    >>> # Example: Cross-structural assemblies between CA1 and CA3
+    >>> # Assuming you have neurons from both regions
+    >>> cross_groups = np.array(['CA1'] * 50 + ['CA3'] * 30)  # 50 CA1, 30 CA3 neurons
+    >>> assembly_react_cross = assembly_reactivation.AssemblyReact(
+    ...    basepath=basepath,
+    ...    cross_structural=cross_groups
+    ...    )
+    >>> assembly_react_cross.load_data()
+    >>> assembly_react_cross.get_weights()  # Will only detect cross-regional assemblies
+
     """
 
     def __init__(
@@ -120,6 +135,7 @@ class AssemblyReact:
         percentile: int = 99,
         tracywidom: bool = False,
         whiten: str = "unit-variance",
+        cross_structural: Optional[np.ndarray] = None,
     ):
         self.basepath = basepath
         self.brainRegion = brainRegion
@@ -132,6 +148,7 @@ class AssemblyReact:
         self.percentile = percentile
         self.tracywidom = tracywidom
         self.whiten = whiten
+        self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
     def add_st(self, st: nel.SpikeTrainArray) -> None:
@@ -273,6 +290,7 @@ class AssemblyReact:
                 percentile=self.percentile,
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
+                cross_structural=self.cross_structural,
             )
 
             if patterns is None:
