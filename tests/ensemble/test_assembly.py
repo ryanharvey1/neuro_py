@@ -4,6 +4,10 @@ from scipy import linalg
 
 from neuro_py.ensemble import assembly
 
+NEURON_ACTIVITY_THRESHOLD = (
+    0.1  # Threshold for determining active neurons in assemblies
+)
+
 
 def test_assembly():
     # make a random matrix with rank 5
@@ -181,8 +185,8 @@ def test_cross_structural_assemblies_synthetic():
         for pattern in patterns_cross:
             group1_weights = np.abs(pattern[:n_neurons_group1])
             group2_weights = np.abs(pattern[n_neurons_group1:])
-            group1_active = np.sum(group1_weights > 0.1)
-            group2_active = np.sum(group2_weights > 0.1)
+            group1_active = np.sum(group1_weights > NEURON_ACTIVITY_THRESHOLD)
+            group2_active = np.sum(group2_weights > NEURON_ACTIVITY_THRESHOLD)
             # Should have active neurons in both groups
             assert group1_active > 0 and group2_active > 0
 
@@ -298,7 +302,7 @@ def test_cross_structural_no_cross_components():
         for pattern in patterns:
             group1_weights = np.abs(pattern[:5])
             group2_weights = np.abs(pattern[5:])
-            group1_active = np.sum(group1_weights > 0.1)
-            group2_active = np.sum(group2_weights > 0.1)
+            group1_active = np.sum(group1_weights > NEURON_ACTIVITY_THRESHOLD)
+            group2_active = np.sum(group2_weights > NEURON_ACTIVITY_THRESHOLD)
             # Assert that at least one group is inactive (not cross-structural)
             assert group1_active == 0 or group2_active == 0
