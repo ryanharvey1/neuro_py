@@ -228,7 +228,11 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
 
 
 def extractPatterns(
-    actmat: np.ndarray, significance: object, method: str, whiten: str = "unit-variance"
+    actmat: np.ndarray,
+    significance: object,
+    method: str,
+    whiten: str = "unit-variance",
+    cross_structural: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """
     Extract co-activation patterns (assemblies).
@@ -243,6 +247,10 @@ def extractPatterns(
         Method to extract assembly patterns (ica, pca).
     whiten : str, optional
         Whitening method, by default "unit-variance".
+    cross_structural : Optional[np.ndarray], optional
+        Categorical vector indicating group membership for each neuron.
+        If provided and method is 'ica', will run ICA on data with modified
+        cross-structural correlation structure, by default None.
 
     Returns
     -------
@@ -255,9 +263,40 @@ def extractPatterns(
         idxs = np.argsort(-significance.explained_variance_)[0:nassemblies]
         patterns = significance.components_[idxs, :]
     elif method == "ica":
-        ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
-        ica.fit(actmat.T)
-        patterns = ica.components_
+        if cross_structural is not None:
+            # For cross-structural ICA, modify the input data to reflect the cross-structural correlation structure
+            correlations = _compute_cross_structural_correlation(
+                actmat, cross_structural
+            )
+
+            # Eigenvalue decomposition to get the cross-structural subspace
+            eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+            idx = np.argsort(eigenvalues)[::-1]
+            eigenvalues = eigenvalues[idx]
+            eigenvectors = eigenvectors[:, idx]
+
+            # Use the top nassemblies components (already determined)
+            eigenvectors_sig = eigenvectors[:, :nassemblies]
+            eigenvalues_sig = eigenvalues[:nassemblies]
+
+            # Project the data onto the cross-structural subspace
+            projected_data = (
+                eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))
+            ).T @ actmat
+
+            # Run ICA on the projected data
+            ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
+            ica.fit(projected_data.T)
+            # Transform ICA components back to original space
+            patterns = (
+                ica.components_
+                @ (eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))).T
+            )
+        else:
+            # Standard ICA
+            ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
+            ica.fit(actmat.T)
+            patterns = ica.components_
     else:
         raise ValueError(
             "assembly extraction method " + str(method) + " not understood"
@@ -273,6 +312,42 @@ def extractPatterns(
     return patterns
 
 
+def _compute_cross_structural_correlation(
+    zactmat: np.ndarray, cross_structural: np.ndarray
+) -> np.ndarray:
+    """
+    Compute correlation matrix with within-group correlations set to zero.
+
+    This implements the cross-structural assembly detection approach where
+    correlations within the same group are ignored to force detection of
+    assemblies that span across different groups.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Categorical vector indicating group membership for each neuron.
+
+    Returns
+    -------
+    np.ndarray
+        Modified correlation matrix with within-group correlations set to zero.
+    """
+    # Compute standard correlation matrix
+    correlations = np.corrcoef(zactmat)
+
+    # Create mask for same-group pairs
+    groups = np.array(cross_structural)
+    same_group_mask = groups[:, np.newaxis] == groups[np.newaxis, :]
+
+    # Set within-group correlations to zero, but keep diagonal as 1
+    correlations[same_group_mask] = 0
+    np.fill_diagonal(correlations, 1)
+
+    return correlations
+
+
 def runPatterns(
     actmat: np.ndarray,
     method: str = "ica",
@@ -282,6 +357,7 @@ def runPatterns(
     tracywidom: bool = False,
     whiten: str = "unit-variance",
     nassemblies: int = None,
+    cross_structural: Optional[np.ndarray] = None,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -304,6 +380,10 @@ def runPatterns(
         Whitening method, by default "unit-variance".
     nassemblies : Optional[int], optional
         Number of assemblies, by default None.
+    cross_structural : Optional[np.ndarray], optional
+        A categorical vector indicating group membership for each neuron.
+        If provided, the function will strictly detect cross-structural assemblies
+        (correlations within the same group will be ignored), by default None.
 
     Returns
     -------
@@ -316,10 +396,25 @@ def runPatterns(
         'bin' - bin shuffling, will shuffle time bins of each neuron independently
         'circ' - circular shuffling, will shift time bins of each neuron independently
         'mp' - Marcenko-Pastur distribution - analytical threshold
+
+    cross_structural
+        When provided, this vector should have the same length as the number of neurons
+        in actmat. Each element indicates the group membership (e.g., brain region,
+        cell type) for the corresponding neuron. The algorithm will then only detect
+        assemblies that span across different groups by setting within-group
+        correlations to zero.
     """
 
     nneurons = np.size(actmat, 0)
     nbins = np.size(actmat, 1)
+
+    # Validate cross_structural parameter if provided
+    if cross_structural is not None:
+        if len(cross_structural) != nneurons:
+            raise ValueError(
+                f"cross_structural length ({len(cross_structural)}) must match "
+                f"number of neurons ({nneurons})"
+            )
 
     silentneurons = np.var(actmat, axis=1) == 0
     actmat_ = actmat[~silentneurons, :]
@@ -327,12 +422,35 @@ def runPatterns(
         warnings.warn("no active neurons")
         return None, None, None
 
+    # Update cross_structural to match active neurons only
+    cross_structural_ = None
+    if cross_structural is not None:
+        cross_structural_ = cross_structural[~silentneurons]
+
     # z-scoring activity matrix
     zactmat_ = stats.zscore(actmat_, axis=1)
 
     # running significance (estimating number of assemblies)
     significance = PCA()
-    significance.fit(zactmat_.T)
+
+    if cross_structural_ is not None:
+        # Compute custom correlation matrix for cross-structural assemblies
+        correlations = _compute_cross_structural_correlation(
+            zactmat_, cross_structural_
+        )
+        # Perform eigenvalue decomposition on the custom correlation matrix
+        eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+        # Sort in descending order
+        idx = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]
+        # Store results in significance object to mimic PCA interface
+        significance.explained_variance_ = eigenvalues
+        significance.components_ = eigenvectors.T
+    else:
+        # Use standard PCA
+        significance.fit(zactmat_.T)
+
     significance.nneurons = nneurons
     significance.nbins = nbins
     significance.nshu = nshu
@@ -354,7 +472,13 @@ def runPatterns(
         zactmat = None
     else:
         # extracting co-activation patterns
-        patterns_ = extractPatterns(zactmat_, significance, method, whiten=whiten)
+        patterns_ = extractPatterns(
+            zactmat_,
+            significance,
+            method,
+            whiten=whiten,
+            cross_structural=cross_structural_,
+        )
         if patterns_ is np.nan:
             return None
 
