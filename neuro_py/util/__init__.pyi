@@ -4,6 +4,7 @@ __all__ = (
     "_check_dependency",
     "is_nested",
     "circular_interp",
+    "shrink",
 )
 
 from ._dependencies import _check_dependency
@@ -12,4 +13,5 @@ from .array import (
     is_nested,
     replace_border_zeros_with_nan,
     circular_interp,
+    shrink,
 )
