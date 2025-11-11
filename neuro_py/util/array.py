@@ -266,6 +266,15 @@ def shrink(matrix: np.ndarray, row_bin_size: int, column_bin_size: int) -> np.nd
     -------
     shrunk : np.ndarray
         The downsampled (shrunk) matrix.
+
+    Examples
+    --------
+    >>> matrix = np.array([[1, 2, 3, 4],
+    ...                    [4, 5, 6, 7],
+    ...                    [7, 8, 9, 10]])
+    >>> shrink(matrix, 2, 2)
+    array([[3., 5.],
+           [7.5, 9.5]])
     """
     matrix = np.asarray(matrix, dtype=float)
     n_rows, n_cols = matrix.shape
