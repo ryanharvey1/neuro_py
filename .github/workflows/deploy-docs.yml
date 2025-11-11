@@ -12,7 +12,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.13'
       - name: Install Python libs
         run: pip install .[all]
       - name: Install Crystal libs
