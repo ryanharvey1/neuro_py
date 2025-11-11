@@ -277,6 +277,15 @@ def shrink(matrix: np.ndarray, row_bin_size: int, column_bin_size: int) -> np.nd
            [7.5, 9.5]])
     """
     matrix = np.asarray(matrix, dtype=float)
+
+    # Input validation
+    if not (isinstance(row_bin_size, int) and row_bin_size >= 1):
+        raise ValueError("row_bin_size must be a positive integer (>= 1)")
+    if not (isinstance(column_bin_size, int) and column_bin_size >= 1):
+        raise ValueError("column_bin_size must be a positive integer (>= 1)")
+    if matrix.ndim != 2:
+        raise ValueError("matrix must be a 2D array")
+
     n_rows, n_cols = matrix.shape
 
     # Determine padded size
