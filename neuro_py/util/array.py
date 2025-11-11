@@ -243,3 +243,78 @@ def interp_max_gap(
             y_interpolated[mask] = fallback  # Set to fallback value if gap is too large
 
     return y_interpolated
+
+
+def shrink(matrix: np.ndarray, row_bin_size: int, column_bin_size: int) -> np.ndarray:
+    """
+    Shrink a 2D matrix by averaging non-overlapping blocks.
+
+    This reduces the resolution of the matrix by taking the mean of
+    (row_bin_size x column_bin_size)-sized blocks. If the matrix size
+    is not divisible by the bin sizes, NaNs are appended as evenly as possible.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        2D input array.
+    row_bin_size : int
+        Number of rows to average together.
+    column_bin_size : int
+        Number of columns to average together.
+
+    Returns
+    -------
+    shrunk : np.ndarray
+        The downsampled (shrunk) matrix.
+
+    Examples
+    --------
+    >>> matrix = np.array([[1, 2, 3, 4],
+    ...                    [4, 5, 6, 7],
+    ...                    [7, 8, 9, 10]])
+    >>> shrink(matrix, 2, 2)
+    array([[3., 5.],
+           [7.5, 9.5]])
+    """
+    matrix = np.asarray(matrix, dtype=float)
+
+    # Input validation
+    if not (isinstance(row_bin_size, int) and row_bin_size >= 1):
+        raise ValueError("row_bin_size must be a positive integer (>= 1)")
+    if not (isinstance(column_bin_size, int) and column_bin_size >= 1):
+        raise ValueError("column_bin_size must be a positive integer (>= 1)")
+    if matrix.ndim != 2:
+        raise ValueError("matrix must be a 2D array")
+
+    n_rows, n_cols = matrix.shape
+
+    # Determine padded size
+    new_rows = int(np.ceil(n_rows / row_bin_size) * row_bin_size)
+    new_cols = int(np.ceil(n_cols / column_bin_size) * column_bin_size)
+
+    # Pad with NaNs as evenly as possible
+    if new_rows > n_rows:
+        pad_rows = new_rows - n_rows
+        top = pad_rows // 2
+        bottom = pad_rows - top
+        matrix = np.pad(matrix, ((top, bottom), (0, 0)), constant_values=np.nan)
+
+    if new_cols > n_cols:
+        pad_cols = new_cols - n_cols
+        left = pad_cols // 2
+        right = pad_cols - left
+        matrix = np.pad(matrix, ((0, 0), (left, right)), constant_values=np.nan)
+
+    # Reshape into block structure
+    r_blocks = new_rows // row_bin_size
+    c_blocks = new_cols // column_bin_size
+
+    # Efficiently compute block means ignoring NaNs
+    shrunk = np.nanmean(
+        matrix.reshape(r_blocks, row_bin_size, c_blocks, column_bin_size)
+        .swapaxes(1, 2)
+        .reshape(r_blocks, c_blocks, -1),
+        axis=2,
+    )
+
+    return shrunk

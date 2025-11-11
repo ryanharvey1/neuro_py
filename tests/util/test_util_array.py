@@ -3,9 +3,10 @@ import unittest
 import numpy as np
 
 from neuro_py.util.array import (
+    circular_interp,
     find_terminal_masked_indices,
     replace_border_zeros_with_nan,
-    circular_interp,
+    shrink,
 )
 
 
@@ -253,6 +254,7 @@ class TestCircularInterp(unittest.TestCase):
         )
         np.testing.assert_allclose(result, expected_approx, rtol=0.1)
 
+
 class TestInterpMaxGap(unittest.TestCase):
     def test_interp_max_gap_basic(self):
         """Basic behavior: values inside small gaps are interpolated, large gaps return fallback."""
@@ -298,3 +300,41 @@ class TestInterpMaxGap(unittest.TestCase):
         self.assertEqual(out[2], -999)
         # middle is interpolated
         self.assertAlmostEqual(out[1], 5.0)
+
+
+def test_shrink_basic_block_mean():
+    """Shrink should correctly average non-overlapping blocks."""
+    mat = np.arange(16).reshape(4, 4)
+    shrunk = shrink(mat, 2, 2)
+    expected = np.array([[2.5, 4.5], [10.5, 12.5]])
+    np.testing.assert_allclose(shrunk, expected)
+
+
+def test_shrink_with_nans():
+    """Shrink should ignore NaNs when averaging."""
+    mat = np.array([[1, 2, np.nan, 4], [5, 6, 7, 8]])
+    shrunk = shrink(mat, 1, 2)
+    # Each block: [1,2], [nan,4], [5,6], [7,8]
+    expected = np.array([[1.5, 4.0], [5.5, 7.5]])
+    np.testing.assert_allclose(shrunk, expected, equal_nan=True)
+
+
+def test_shrink_nondivisible_padding():
+    """Shrink should pad with NaNs when shape not divisible by bin size, then average blocks."""
+    mat = np.arange(10).reshape(2, 5)
+    shrunk = shrink(mat, 1, 3)
+    # Expected shape after padding: ceil(2/1)=2, ceil(5/3)=2 -> (2, 2)
+    assert shrunk.shape == (2, 2)
+    # The function uses nanmean, so NaNs are ignored in averaging
+    # Verify the values are reasonable (not all zeros or all NaNs)
+    assert not np.isnan(shrunk).all()
+    assert np.all(
+        shrunk >= 0
+    )  # All values should be non-negative since input is arange(10)
+
+
+def test_shrink_single_element_blocks():
+    """Shrink(.,1,1) should return the matrix unchanged."""
+    mat = np.random.rand(5, 7)
+    shrunk = shrink(mat, 1, 1)
+    np.testing.assert_allclose(mat, shrunk)
