@@ -476,6 +476,26 @@ def run_circular_linearization(
         Specific epoch to process
     interval : tuple, optional
         Time interval (start, end) to process
+
+    Examples
+    --------
+    >>> run_circular_linearization("/path/to/data")
+
+    On particular epoch:
+    >>> run_circular_linearization("/path/to/data", epoch=0)
+
+    On particular time interval:
+    >>> run_circular_linearization("/path/to/data", interval=(0, 100))
+
+    Run the script from the command line:
+
+    >>> python circle_maze.py /path/to/data
+
+    On particular epoch:
+    >>> python circle_maze.py /path/to/data 0
+
+    On particular time interval:
+    >>> python circle_maze.py /path/to/data 0 100
     """
     print(f"Loading data from {basepath}")
 
