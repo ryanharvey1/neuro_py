@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 plt.ioff()  # Turn off interactive mode
 
-from neuro_py.behavior.circle_maze import (
+from neuro_py.behavior import (
     CircularTrackLinearizer,
     load_animal_behavior,
     load_epoch,
@@ -362,7 +362,7 @@ class TestUtilityFunctions:
             assert "y" in behave_df.columns
             assert "z" in behave_df.columns
 
-    @patch("neuro_py.behavior.circle_maze.CircularTrackLinearizer")
+    @patch("neuro_py.behavior.CircularTrackLinearizer")
     def test_run_circular_linearization(self, mock_linearizer_class):
         """Test run_circular_linearization function."""
         with tempfile.TemporaryDirectory() as temp_dir:

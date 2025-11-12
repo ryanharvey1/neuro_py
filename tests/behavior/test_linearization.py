@@ -12,7 +12,7 @@ from scipy.sparse import csr_matrix
 
 matplotlib.use("Agg")
 
-from neuro_py.behavior.linearization import (
+from neuro_py.behavior import (
     NodePicker,
     TrackGraph,
     get_linearized_position,
@@ -233,7 +233,7 @@ class TestGetLinearizedPosition:
 
     def test_hmm_linearizer_initialization(self):
         """Test HMMLinearizer initialization."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         node_positions = np.array([[0, 0], [10, 0], [10, 10]])
         edges = [[0, 1], [1, 2]]
@@ -249,7 +249,7 @@ class TestGetLinearizedPosition:
 
     def test_hmm_linearizer_with_noisy_data(self):
         """Test HMM linearization with noisy position data."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Create a simple track
         node_positions = np.array([[0, 0], [10, 0], [20, 0]])
@@ -275,7 +275,7 @@ class TestGetLinearizedPosition:
 
     def test_hmm_linearizer_with_nan_positions(self):
         """Test HMM linearization with NaN positions."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         node_positions = np.array([[0, 0], [10, 0]])
         edges = [[0, 1]]
@@ -590,7 +590,7 @@ class TestNodePicker:
 
 def test_plot_linearization_confirmation_pytest():
     """Test the linearization confirmation plot function (pytest style)."""
-    from neuro_py.behavior.linearization import (
+    from neuro_py.behavior import (
         get_linearized_position,
         make_track_graph,
         plot_linearization_confirmation,
@@ -607,7 +607,7 @@ def test_plot_linearization_confirmation_pytest():
 
 def test_get_linearized_position_with_confirmation_plot_pytest():
     """Test linearization with confirmation plot enabled (pytest style)."""
-    from neuro_py.behavior.linearization import (
+    from neuro_py.behavior import (
         get_linearized_position,
         make_track_graph,
     )
@@ -669,7 +669,7 @@ class TestAdaptiveBinning:
 
     def test_adaptive_binning_trigger_small_track(self):
         """Test that adaptive binning is NOT triggered for small track graphs."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Small track graph (5 segments) - should not trigger adaptive binning
         track_graph = self.create_track_graph_with_many_segments(5)
@@ -683,7 +683,7 @@ class TestAdaptiveBinning:
 
     def test_adaptive_binning_trigger_large_track(self):
         """Test that adaptive binning IS triggered for large track graphs."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Large track graph (15 segments) - should trigger adaptive binning
         track_graph = self.create_track_graph_with_many_segments(15)
@@ -703,7 +703,7 @@ class TestAdaptiveBinning:
 
     def test_adaptive_binning_parameters(self):
         """Test that adaptive binning correctly adjusts parameters."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Large track graph
         track_graph = self.create_track_graph_with_many_segments(12)
@@ -811,7 +811,7 @@ class TestAdaptiveBinning:
 
     def test_adaptive_binning_edge_cases(self):
         """Test adaptive binning with edge cases."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Test with very large track graph
         track_graph = self.create_track_graph_with_many_segments(50)
@@ -845,7 +845,7 @@ class TestAdaptiveBinning:
 
     def test_adaptive_binning_disabled(self):
         """Test that adaptive binning can be disabled."""
-        from neuro_py.behavior.linearization import HMMLinearizer
+        from neuro_py.behavior import HMMLinearizer
 
         # Large track graph
         track_graph = self.create_track_graph_with_many_segments(20)

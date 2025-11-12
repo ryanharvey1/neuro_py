@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # Import the function to be tested
-from neuro_py.behavior.preprocessing import filter_tracker_jumps
+from neuro_py.behavior import filter_tracker_jumps
 
 
 def test_filter_tracker_jumps():
