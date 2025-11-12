@@ -63,7 +63,7 @@ def detect_up_down_states(
         Whether to save the detected UP and DOWN states to .mat files.
     epoch_by_epoch : bool, default=False
         Whether to perform detection epoch by epoch. If True, detection will be performed separately for each sleep epoch.
-    beh_epochs: Optional[nel.EpochArray] = None,
+    beh_epochs : Optional[nel.EpochArray], default=None
         Optional behavioral epochs to use for epoch-by-epoch detection. If None, sleep epochs will be loaded and used.
     show_figure : bool, default=False
         Whether to display a figure showing firing rates during detected UP and DOWN states.
@@ -88,7 +88,7 @@ def detect_up_down_states(
     Detection method based on https://doi.org/10.1038/s41467-020-15842-4
     """
 
-    # check for existance of event files
+    # check for existence of event files
     if save_mat and not overwrite:
         filename_downstate = os.path.join(
             basepath, os.path.basename(basepath) + "." + "down_state" + ".events.mat"
@@ -150,7 +150,10 @@ def detect_up_down_states(
                 ~((durations < min_dur) | (durations > max_dur)), :
             ]
 
-            # convert to epoch array with same domain as nrem epochs (this is so compliment will also be in nrem epochs)
+            if down_state_epochs_.shape[0] == 0:
+                continue
+
+            # convert to epoch array with same domain as nrem epochs (this is so complement will also be in nrem epochs)
             down_state_epochs_ = nel.EpochArray(
                 data=down_state_epochs_, domain=nrem_epochs & ep
             )
@@ -158,11 +161,15 @@ def detect_up_down_states(
             # store down states
             down_state_epochs.append(down_state_epochs_.data)
 
-            # compliment to get up states
+            # complement to get up states
             up_state_epochs_ = ~down_state_epochs_
 
             # store up states
             up_state_epochs.append(up_state_epochs_.data)
+
+        if len(down_state_epochs) == 0 or len(up_state_epochs) == 0:
+            print(f"No down states found for {basepath}")
+            return None, None
 
         down_state_epochs = nel.EpochArray(
             data=np.concatenate(down_state_epochs), domain=nrem_epochs
@@ -184,10 +191,14 @@ def detect_up_down_states(
         down_state_epochs = down_state_epochs[
             ~((durations < min_dur) | (durations > max_dur)), :
         ]
-        # convert to epoch array with same domain as nrem epochs (this is so compliment will also be in nrem epochs)
+        if down_state_epochs.shape[0] == 0:
+            print(f"No down states found for {basepath}")
+            return None, None
+
+        # convert to epoch array with same domain as nrem epochs (this is so complement will also be in nrem epochs)
         down_state_epochs = nel.EpochArray(data=down_state_epochs, domain=nrem_epochs)
 
-        # compliment to get up states
+        # complement to get up states
         up_state_epochs = ~down_state_epochs
 
     # save to cell explorer mat file
