@@ -322,16 +322,12 @@ class CircularTrackLinearizer:
             # Determine which epochs/intervals to update (same logic as original)
             if self.epoch is not None:
                 epochs = load_epoch(self.basepath)
-                cur_epoch = (
-                    ~np.isnan(behave_df.x)
-                    & (behave_df.time >= epochs.iloc[self.epoch].startTime)
-                    & (behave_df.time <= epochs.iloc[self.epoch].stopTime)
+                cur_epoch = (behave_df.time >= epochs.iloc[self.epoch].startTime) & (
+                    behave_df.time <= epochs.iloc[self.epoch].stopTime
                 )
             elif hasattr(self, "interval") and self.interval is not None:
-                cur_epoch = (
-                    ~np.isnan(behave_df.x)
-                    & (behave_df.time >= self.interval[0])
-                    & (behave_df.time <= self.interval[1])
+                cur_epoch = (behave_df.time >= self.interval[0]) & (
+                    behave_df.time <= self.interval[1]
                 )
             else:
                 cur_epoch = behave_df.index
