@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from neuro_py.ensemble import position_estimator
+from neuro_py.ensemble.replay import position_estimator
 
 
 class TestPositionEstimator:

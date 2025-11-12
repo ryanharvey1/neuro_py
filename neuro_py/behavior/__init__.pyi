@@ -27,19 +27,9 @@ __all__ = [
     "project_position_to_track",
     "plot_linearization_confirmation",
     "TrackGraph",
-    "CircularTrackLinearizer",
-    "load_epoch",
-    "load_animal_behavior",
-    "run_circular_linearization",
 ]
 
 from .cheeseboard import plot_grid_with_circle_and_random_dots
-from .circle_maze import (
-    CircularTrackLinearizer,
-    load_animal_behavior,
-    load_epoch,
-    run_circular_linearization,
-)
 from .get_trials import (
     get_cheeseboard_trials,
     get_linear_maze_trials,
