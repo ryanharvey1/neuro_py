@@ -135,6 +135,8 @@ def detect_up_down_states(
         down_state_epochs = []
         up_state_epochs = []
         for ep in beh_epochs:
+            if (ep & nrem_epochs).isempty:
+                continue
             # find down states, based on percentile
             down_state_epochs_ = bst[ep].bin_centers[
                 find_interval(
