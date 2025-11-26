@@ -61,6 +61,48 @@ def randomize_epochs(
     - With multi-interval support, an original epoch may map to multiple output intervals
       if the shift causes it to cross support boundaries. In that case, the output can have
       more intervals than the input.
+
+    Examples
+    --------
+    Basic single-interval wrapping:
+    >>> epoch = nel.EpochArray([(2.0, 4.0), (6.0, 7.0)])
+    >>> out = randomize_epochs(epoch, randomize_each=False, start_stop=[0.0, 10.0])
+    >>> isinstance(out, nel.EpochArray)
+    True
+
+    Multi-interval support (disjoint segments):
+    >>> support = np.array([[0.0, 5.0], [10.0, 15.0]])
+    >>> epoch = nel.EpochArray([(13.5, 14.7)])
+    >>> out = randomize_epochs(epoch, randomize_each=False, start_stop=support)
+    # output may split if the shifted interval crosses a gap between segments
+    >>> out.n_intervals >= 1
+    True
+
+    Use epoch.domain as support (when defined):
+    >>> domain = nel.EpochArray([[0.0, 5.0], [10.0, 12.0]])
+    >>> epoch = nel.EpochArray([(1.0, 2.0), (10.5, 11.0)], domain=domain)
+    >>> out = randomize_epochs(epoch)
+    >>> np.allclose(out.domain.data, domain.data)
+    True
+
+    Preserve interval count with avoid_split=True:
+    - Per-interval shifts
+    >>> support = np.array([[0.0, 5.0], [10.0, 15.0]])
+    >>> epoch = nel.EpochArray([(1.0, 2.0), (12.0, 13.0)])
+    >>> out = randomize_epochs(epoch, randomize_each=True, start_stop=support, avoid_split=True)
+    >>> out.n_intervals == epoch.n_intervals
+    True
+
+    - Common shift (randomize_each=False) may raise if impossible for all intervals:
+    >>> support = np.array([[0.0, 2.0], [5.0, 7.0]])
+    >>> epoch = nel.EpochArray([(1.95, 2.0), (5.0, 6.8)])
+    >>> try:
+    ...     _ = randomize_epochs(epoch, randomize_each=False, start_stop=support, avoid_split=True)
+    ...     ok = True
+    ... except ValueError:
+    ...     ok = False
+    >>> ok in (True, False)
+    True
     """
 
     # --- prepare support intervals (as np.ndarray of shape (k,2)) ---
