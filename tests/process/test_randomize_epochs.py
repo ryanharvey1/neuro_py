@@ -160,6 +160,8 @@ def test_avoid_split_per_interval(monkeypatch):
     assert np.allclose(out.data, expected)
     # Interval count preserved
     assert out.n_intervals == epoch.n_intervals
+    # Total duration preserved
+    assert np.isclose(out.lengths.sum(), epoch.lengths.sum())
     # All within their respective segments
     for s, e in out.data:
         assert (0.0 <= s <= 5.0 and 0.0 <= e <= 5.0) or (
@@ -182,6 +184,8 @@ def test_avoid_split_common_shift_feasible(monkeypatch):
     expected = np.array([[0.7, 1.2], [5.7, 6.2], [11.2, 11.7]])
     assert np.allclose(out.data, expected)
     assert out.n_intervals == epoch.n_intervals
+    # Total duration preserved
+    assert np.isclose(out.lengths.sum(), epoch.lengths.sum())
 
 
 def test_avoid_split_common_shift_infeasible(monkeypatch):
@@ -200,3 +204,72 @@ def test_avoid_split_common_shift_infeasible(monkeypatch):
         _ = randomize_epochs(
             epoch, randomize_each=False, start_stop=support, avoid_split=True
         )
+
+
+def test_total_duration_large_randomized_domain(monkeypatch):
+    """Stress test over a large, gappy domain to verify total duration preservation.
+
+    - Build many disjoint support segments of varying lengths with random gaps.
+    - Create many short intervals placed within random segments.
+    - Randomize in three modes and assert total duration is preserved:
+      1) default wrap mode (may split across gaps)
+      2) avoid_split=True (per-interval, stays inside segment)
+      3) preserve=True (strictly preserve count and duration)
+    """
+
+    # Build support with many segments
+    rng = np.random.default_rng(123)
+    n_segments = 50
+    segments = []
+    t = 0.0
+    for _ in range(n_segments):
+        seg_len = float(rng.uniform(1.0, 3.5))
+        gap = float(rng.uniform(0.2, 1.0))
+        segments.append((t, t + seg_len))
+        t = t + seg_len + gap
+    support = np.array(segments)
+
+    # Create many intervals that fit completely within segments
+    intervals = []
+    n_intervals = 2000
+    for _ in range(n_intervals):
+        j = int(rng.integers(0, n_segments))
+        s0, s1 = support[j]
+        seg_len = s1 - s0
+        L = float(rng.uniform(0.01, min(0.6, 0.8 * seg_len)))
+        a = float(rng.uniform(s0, s1 - L))
+        b = a + L
+        intervals.append((a, b))
+
+    domain = nel.EpochArray(support)
+    epoch = nel.EpochArray(np.asarray(intervals), domain=domain)
+
+    # Deterministic shift function: pick midpoint of requested [low, high]
+    def _mid_uniform(low, high, size=None):
+        mid = (float(low) + float(high)) / 2.0
+        if size is None:
+            return mid
+        return np.full(size, mid, dtype=float)
+
+    monkeypatch.setattr(np.random, "uniform", _mid_uniform)
+
+    # Baseline total duration
+    total0 = float(epoch.lengths.sum())
+
+    # 1) Default wrap mode (can split, but should preserve total duration)
+    out_wrap = randomize_epochs(epoch, randomize_each=False, start_stop=support)
+    assert np.isclose(float(out_wrap.lengths.sum()), total0)
+
+    # 2) avoid_split=True, per-interval within segment; should preserve duration and count
+    out_no_split = randomize_epochs(
+        epoch, randomize_each=True, start_stop=support, avoid_split=True
+    )
+    assert out_no_split.n_intervals == epoch.n_intervals
+    assert np.isclose(float(out_no_split.lengths.sum()), total0)
+
+    # 3) preserve=True, strictly preserve count and duration (per-segment common shift off)
+    out_preserve = randomize_epochs(
+        epoch, randomize_each=True, start_stop=support, preserve=True
+    )
+    assert out_preserve.n_intervals == epoch.n_intervals
+    assert np.isclose(float(out_preserve.lengths.sum()), total0)
