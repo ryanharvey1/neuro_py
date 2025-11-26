@@ -1,5 +1,5 @@
-import numpy as np
 import nelpy as nel
+import numpy as np
 import pytest
 
 from neuro_py.process.intervals import randomize_epochs
@@ -12,6 +12,7 @@ def _mock_uniform_factory(values):
     - If size is provided: return np.full(size, values[0]) when values is scalar-like,
       or np.array(values) if len(values) == size
     """
+
     def _mock_uniform(low, high, size=None):
         if size is None:
             # single shift value
@@ -76,7 +77,9 @@ def test_multi_interval_split_across_gap(monkeypatch):
     assert np.allclose(out.lengths.sum(), epoch.lengths.sum())
     # Ensure output lies within the multi-interval support
     for s, e in out.data:
-        assert ((0.0 <= s <= 5.0 and 0.0 <= e <= 5.0) or (10.0 <= s <= 15.0 and 10.0 <= e <= 15.0))
+        assert (0.0 <= s <= 5.0 and 0.0 <= e <= 5.0) or (
+            10.0 <= s <= 15.0 and 10.0 <= e <= 15.0
+        )
 
 
 def test_randomize_each_independent_shifts(monkeypatch):
@@ -137,3 +140,63 @@ def test_uses_epoch_domain_when_no_start_stop(monkeypatch):
     assert np.allclose(out.lengths, epoch.lengths)
     # domain should equal the domain support used
     assert np.allclose(out.domain.data, domain_support)
+
+
+def test_avoid_split_per_interval(monkeypatch):
+    # Two segments; choose per-interval shifts that keep each interval within its segment
+    support = np.array([[0.0, 5.0], [10.0, 15.0]])
+    epoch = nel.EpochArray([(1.0, 2.0), (12.0, 13.0)])
+
+    # For avoid_split=True with randomize_each=True, we sample per-interval within valid ranges.
+    # Mock uniform to return 1.0 for both intervals (valid for each segment)
+    monkeypatch.setattr(np.random, "uniform", _mock_uniform_factory([1.0, 1.0]))
+
+    out = randomize_epochs(
+        epoch, randomize_each=True, start_stop=support, avoid_split=True
+    )
+
+    # First interval shift +1 => [2,3] in segment 1; second => [13,14] in segment 2
+    expected = np.array([[2.0, 3.0], [13.0, 14.0]])
+    assert np.allclose(out.data, expected)
+    # Interval count preserved
+    assert out.n_intervals == epoch.n_intervals
+    # All within their respective segments
+    for s, e in out.data:
+        assert (0.0 <= s <= 5.0 and 0.0 <= e <= 5.0) or (
+            10.0 <= s <= 15.0 and 10.0 <= e <= 15.0
+        )
+
+
+def test_avoid_split_common_shift_feasible(monkeypatch):
+    # Three segments; choose a common shift that keeps all intervals within their segments
+    support = np.array([[0.0, 2.0], [5.0, 7.0], [10.0, 13.0]])
+    epoch = nel.EpochArray([(0.5, 1.0), (5.5, 6.0), (11.0, 11.5)])
+
+    # Analyze valid ranges roughly: for each small interval, a shift of +0.2 works for all.
+    monkeypatch.setattr(np.random, "uniform", _mock_uniform_factory(0.2))
+
+    out = randomize_epochs(
+        epoch, randomize_each=False, start_stop=support, avoid_split=True
+    )
+
+    expected = np.array([[0.7, 1.2], [5.7, 6.2], [11.2, 11.7]])
+    assert np.allclose(out.data, expected)
+    assert out.n_intervals == epoch.n_intervals
+
+
+def test_avoid_split_common_shift_infeasible(monkeypatch):
+    # Construct intervals whose permissible shift ranges do not intersect
+    support = np.array([[0.0, 2.0], [5.0, 7.0]])
+    # Craft intervals so permissible ranges don't intersect:
+    # First segment interval near the end -> allowed shift range ends at 0.0
+    # Second segment interval long enough from left -> allowed shift range starts > 0.0
+    # Ranges: first high = 0.0, second low = 0.2 => empty intersection
+    epoch = nel.EpochArray([(1.95, 2.0), (5.0, 6.8)])
+
+    # Any common shift likely fails; expect ValueError
+    monkeypatch.setattr(np.random, "uniform", _mock_uniform_factory(0.0))
+
+    with pytest.raises(ValueError):
+        _ = randomize_epochs(
+            epoch, randomize_each=False, start_stop=support, avoid_split=True
+        )
