@@ -12,68 +12,159 @@ from numba import jit
 def randomize_epochs(
     epoch: EpochArray,
     randomize_each: bool = True,
-    start_stop: Optional[np.ndarray] = None,
+    start_stop: Optional[Union[np.ndarray, nel.EpochArray, core.IntervalArray, List[List[float]], Tuple[float, float]]] = None,
 ) -> EpochArray:
     """
-    Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
+    Randomly shift epochs and wrap them within a time support that can be a single interval or
+    multiple disjoint intervals (multi-interval support).
 
-    This method takes a EpochArray object as input, and can either randomly shift each epoch by a different amount
-    (if `randomize_each` is True) or shift all the epochs by the same amount (if `randomize_each` is False).
-    In either case, the method wraps the shifted epochs around the original time boundaries to make sure they remain
-    within the original time range. It then returns the modified EpochArray object.
+    This takes an EpochArray and circularly shifts the intervals along the given support while
+    preserving gaps. If the support has multiple intervals, shifted epochs that cross support
+    boundaries will be split to respect the gaps.
 
     Parameters
     ----------
     epoch : EpochArray
-        The EpochArray object whose epochs should be shifted and wrapped.
+        The EpochArray whose intervals will be shifted.
     randomize_each : bool, optional
-        If True, each epoch will be shifted by a different random amount.
-        If False, all the epochs will be shifted by the same random amount. Defaults to True.
-    start_stop : array, optional
-        If not None, time support will be taken from start_stop
+        If True, each epoch will be shifted by an independent random amount.
+        If False, all epochs will be shifted by the same random amount. Defaults to True.
+    start_stop : array-like | EpochArray | IntervalArray, optional
+        If provided, defines the time support used for circular wrapping. Accepted forms:
+        - [start, stop] (single interval)
+        - shape (n, 2) array/list of intervals
+        - nelpy.EpochArray or nelpy.core.IntervalArray
+        If not provided, the support is taken from epoch.domain when finite; otherwise
+        [epoch.start, epoch.stop].
 
     Returns
     -------
-    new_epochs : EpochArray
-        The modified EpochArray object with the shifted and wrapped epochs.
+    EpochArray
+        A new EpochArray with shifted intervals, wrapped to the specified support.
+
+    Notes
+    -----
+    - With multi-interval support, an original epoch may map to multiple output intervals
+      if the shift causes it to cross support boundaries. In that case, the output can have
+      more intervals than the input.
     """
 
-    def wrap_intervals(intervals, start, stop):
-        idx = np.any(intervals > stop, axis=1)
-        intervals[idx] = intervals[idx] - stop + start
+    # --- prepare support intervals (as np.ndarray of shape (k,2)) ---
+    def _to_support_intervals(
+        ss: Optional[Union[np.ndarray, nel.EpochArray, core.IntervalArray, List[List[float]], Tuple[float, float]]],
+        src_epoch: EpochArray,
+    ) -> Tuple[np.ndarray, nel.EpochArray]:
+        if ss is None:
+            # Prefer finite domain if available; otherwise use [start, stop] of the data
+            if hasattr(src_epoch, "domain") and (
+                np.isfinite(src_epoch.domain.start) or np.isfinite(src_epoch.domain.stop)
+            ) and src_epoch.domain.n_intervals > 0:
+                support_ep = nel.EpochArray(src_epoch.domain.data.copy())
+            else:
+                support_ep = nel.EpochArray(np.array([[src_epoch.start, src_epoch.stop]]))
+        else:
+            if isinstance(ss, (nel.EpochArray, core.IntervalArray)):
+                support_ep = nel.EpochArray(np.asarray(ss.data).copy())
+            else:
+                arr = np.asarray(ss, dtype=float)
+                if arr.ndim == 1 and arr.shape[0] == 2:
+                    arr = arr.reshape(1, 2)
+                if arr.ndim != 2 or arr.shape[1] != 2:
+                    raise ValueError("start_stop must be of shape (2,) or (n,2) or an EpochArray/IntervalArray")
+                support_ep = nel.EpochArray(arr.copy())
 
-        idx = np.any(intervals < start, axis=1)
-        intervals[idx] = intervals[idx] - start + stop
-        return intervals
+        # normalize/sort
+        support_ep._sort()
+        return support_ep.data.copy(), support_ep
 
-    new_epochs = epoch.copy()
+    support_intervals, support_epoch = _to_support_intervals(start_stop, epoch)
 
-    if start_stop is None:
-        start = new_epochs.start
-        stop = new_epochs.stop
-    else:
-        start, stop = start_stop
+    if support_intervals.size == 0:
+        return epoch.copy()
 
-    ts_range = stop - start
+    # total support duration
+    seg_lengths = support_intervals[:, 1] - support_intervals[:, 0]
+    if np.any(seg_lengths < 0):
+        raise ValueError("Support intervals must have start <= stop")
+    total_T = np.sum(seg_lengths)
+    if total_T <= 0:
+        return epoch.copy()
 
+    # linearized coordinates for support segments
+    lin_ends = np.cumsum(seg_lengths)
+    lin_starts = lin_ends - seg_lengths
+
+    # helper: absolute -> linear (assumes t is within exactly one support segment)
+    def abs_to_lin(t: float) -> float:
+        # find segment containing t
+        # using boolean mask; segments are non-overlapping and sorted
+        idx = np.searchsorted(support_intervals[:, 0], t, side="right") - 1
+        if idx < 0 or t > support_intervals[idx, 1]:
+            # t outside support; raise to catch unexpected inputs
+            raise ValueError("Timestamp outside support intervals")
+        return float(lin_starts[idx] + (t - support_intervals[idx, 0]))
+
+    # helper: map a linear interval [a,b] (a<b in [0, total_T]) back to absolute intervals
+    def lin_to_abs_interval(a: float, b: float) -> List[Tuple[float, float]]:
+        out: List[Tuple[float, float]] = []
+        # iterate support segments and intersect
+        for j in range(support_intervals.shape[0]):
+            ls, le = lin_starts[j], lin_ends[j]
+            # overlap in linearized space
+            s = max(a, ls)
+            e = min(b, le)
+            if e > s:
+                # map back to absolute
+                abs_s = support_intervals[j, 0] + (s - ls)
+                abs_e = support_intervals[j, 0] + (e - ls)
+                out.append((float(abs_s), float(abs_e)))
+        return out
+
+    # choose shift(s)
     if randomize_each:
-        # Randomly shift each epoch by a different amount
-        random_order = random.sample(
-            range(-int(ts_range), int(ts_range)), new_epochs.n_intervals
-        )
-
-        new_intervals = new_epochs.data + np.expand_dims(random_order, axis=1)
-        new_epochs._data = wrap_intervals(new_intervals, start, stop)
+        shifts = np.random.uniform(0.0, total_T, size=epoch.n_intervals)
     else:
-        # Shift all the epochs by the same amount
-        random_shift = random.randint(-int(ts_range), int(ts_range))
-        new_epochs._data = wrap_intervals((new_epochs.data + random_shift), start, stop)
+        s = float(np.random.uniform(0.0, total_T))
+        shifts = np.full(epoch.n_intervals, s, dtype=float)
 
-    if not new_epochs.isempty:
-        if np.any(new_epochs.data[:, 1] - new_epochs.data[:, 0] < 0):
-            raise ValueError("start must be less than or equal to stop")
+    out_intervals: List[Tuple[float, float]] = []
 
+    # process each epoch interval
+    for i, (a_abs, b_abs) in enumerate(epoch.data):
+        # clip/restrict expectation: intervals should be within support
+        # If any endpoint falls outside support, raise with informative message
+        try:
+            a_lin = abs_to_lin(float(a_abs))
+            b_lin = abs_to_lin(float(b_abs))
+        except ValueError:
+            raise ValueError(
+                "All epoch intervals must lie within the specified support intervals."
+            )
+
+        # maintain original duration in linearized space
+        # apply shift with wrap-around
+        da = (a_lin + shifts[i]) % total_T
+        db = (b_lin + shifts[i]) % total_T
+
+        if da <= db:
+            lin_ranges = [(da, db)]
+        else:
+            # wrapped around end -> split into two linear ranges
+            lin_ranges = [(da, total_T), (0.0, db)]
+
+        # map linear ranges back to absolute space (respect multi-interval support)
+        for lr_start, lr_stop in lin_ranges:
+            out_intervals.extend(lin_to_abs_interval(lr_start, lr_stop))
+
+    # build output EpochArray and set domain to support
+    if len(out_intervals) == 0:
+        return nel.EpochArray([])
+
+    new_epochs = nel.EpochArray(np.asarray(out_intervals))
+    # normalize and attach domain/support used for wrapping
     new_epochs._sort()
+    new_epochs._domain = support_epoch.domain  # inherit same type; support_epoch has exact data
+    new_epochs._domain._data = support_intervals.copy()
 
     return new_epochs
 
