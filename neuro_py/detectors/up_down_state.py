@@ -179,7 +179,7 @@ def detect_up_down_states(
             if domain.isempty:
                 continue
 
-            down_state_epochs_, up_state_epochs_ = _detect_states(bst[ep], domain)
+            down_state_epochs_, up_state_epochs_ = _detect_states(bst[domain], domain)
             if down_state_epochs_ is None or up_state_epochs_ is None:
                 continue
 
