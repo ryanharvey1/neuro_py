@@ -514,6 +514,7 @@ def event_triggered_average(
     window: List[float] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
+    irregular_sampling: bool = False,
 ) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
     """
     Calculates the event-triggered averages of signals in a time window
@@ -607,7 +608,7 @@ def event_triggered_average(
     dt = np.median(np.diff(timestamps))
     is_regular_sampling = np.allclose(np.diff(timestamps), dt, rtol=1e-3)
 
-    if is_regular_sampling:
+    if is_regular_sampling or not irregular_sampling:
         # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
         # Match the exact indexing logic from event_triggered_average_fast
         start_time = timestamps[0]  # Cache start time for efficiency
