@@ -244,7 +244,8 @@ def detect_up_down_states_bimodal_thresh(
     show_figure: bool = False,
     overwrite: bool = False,
     schmidt: bool = False,
-    nboot: int = 500,
+    nboot: int = 100,
+    force_bimodal: bool = False,
 ) -> Tuple[Optional[nel.EpochArray], Optional[nel.EpochArray]]:
     """
     Detect UP and DOWN states using bimodal_thresh on firing rate distribution.
@@ -282,8 +283,12 @@ def detect_up_down_states_bimodal_thresh(
         Whether to overwrite existing .mat files when saving detected states.
     schmidt : bool, default=False
         Use Schmidt trigger (hysteresis) for state transitions in bimodal_thresh.
-    nboot : int, default=500
-        Number of bootstrap iterations for Hartigan's dip test.
+    nboot : int, default=100
+        Number of bootstrap iterations for Hartigan's dip test. Reduce further (e.g., 50)
+        for very long recordings to improve performance.
+    force_bimodal : bool, default=False
+        If True, skip the bimodality test and force threshold detection even if
+        the distribution appears unimodal. Use with caution.
 
     Returns
     -------
@@ -303,12 +308,8 @@ def detect_up_down_states_bimodal_thresh(
             os.path.basename(basepath) + "." + "up_state" + ".events.mat",
         )
         if os.path.exists(filename_downstate) & os.path.exists(filename_upstate):
-            down_state = loading.load_events(
-                basepath=basepath, epoch_name="down_state"
-            )
-            up_state = loading.load_events(
-                basepath=basepath, epoch_name="up_state"
-            )
+            down_state = loading.load_events(basepath=basepath, epoch_name="down_state")
+            up_state = loading.load_events(basepath=basepath, epoch_name="up_state")
             return down_state, up_state
 
     # load brain states
@@ -347,7 +348,7 @@ def detect_up_down_states_bimodal_thresh(
 
         # Apply bimodal_thresh to the firing rates
         thresh, cross, bihist, diptest_result = bimodal_thresh(
-            firing_rates, schmidt=schmidt, nboot=nboot
+            firing_rates, schmidt=schmidt, nboot=nboot, force_bimodal=force_bimodal
         )
 
         # If not bimodal or no threshold found
@@ -358,21 +359,33 @@ def detect_up_down_states_bimodal_thresh(
         bin_centers = bst_segment.bin_centers
 
         # Extract downints and upints from cross
-        downints = cross["downints"]  # indices into firing_rates array
+        downints = cross["downints"]  # indices into firing_rates array [n_intervals, 2]
         upints = cross["upints"]
 
         # Convert indices to time intervals using bin_centers
         if downints.size == 0:
             return None, None
 
-        down_state_times = bin_centers[downints.astype(int)]
+        # Convert index intervals to time intervals
+        # downints has shape [n, 2] where each row is [start_idx, end_idx]
+        down_state_times = np.column_stack(
+            [
+                bin_centers[downints[:, 0].astype(int)],
+                bin_centers[downints[:, 1].astype(int)],
+            ]
+        )
         down_state_epochs = nel.EpochArray(data=down_state_times, domain=domain)
 
         if upints.size == 0:
             # Generate up states as complement
             up_state_epochs = ~down_state_epochs
         else:
-            up_state_times = bin_centers[upints.astype(int)]
+            up_state_times = np.column_stack(
+                [
+                    bin_centers[upints[:, 0].astype(int)],
+                    bin_centers[upints[:, 1].astype(int)],
+                ]
+            )
             up_state_epochs = nel.EpochArray(data=up_state_times, domain=domain)
 
         return down_state_epochs, up_state_epochs
@@ -392,7 +405,7 @@ def detect_up_down_states_bimodal_thresh(
                 continue
 
             down_state_epochs_, up_state_epochs_ = _detect_states_bimodal(
-                bst[ep], domain
+                bst[domain], domain
             )
             if down_state_epochs_ is None or up_state_epochs_ is None:
                 continue
@@ -411,7 +424,9 @@ def detect_up_down_states_bimodal_thresh(
             data=np.concatenate(up_state_epochs), domain=nrem_epochs
         )
     else:
-        down_state_epochs, up_state_epochs = _detect_states_bimodal(bst, nrem_epochs)
+        down_state_epochs, up_state_epochs = _detect_states_bimodal(
+            bst[nrem_epochs], nrem_epochs
+        )
         if down_state_epochs is None or up_state_epochs is None:
             print(f"No down states found for {basepath}")
             return None, None
@@ -461,7 +476,7 @@ if __name__ == "__main__":
 
 
 def hartigan_diptest(
-    data: np.ndarray, n_boot: int = 500, seed: Optional[int] = None
+    data: np.ndarray, n_boot: int = 100, seed: Optional[int] = None
 ) -> Tuple[float, float]:
     """
     Dependency-free approximation of Hartigan's dip test with bootstrap p-value.
@@ -470,6 +485,9 @@ def hartigan_diptest(
     the dip statistic and estimates the p-value via bootstrap draws from a
     unimodal Gaussian null. It avoids the external ``diptest`` package while
     preserving the API footprint needed by ``bimodal_thresh``.
+
+    Note: For large datasets (n > 10000), consider reducing n_boot further or
+    downsampling the data to improve performance.
     """
 
     rng = np.random.default_rng(seed)
@@ -502,19 +520,36 @@ def hartigan_diptest(
         return float(np.max(np.abs(ecdf - u)))
 
     # Scan candidate modes (skip endpoints so both sides have support)
-    dip_stat = float(min(_candidate_dip(m) for m in range(1, n - 1)))
+    # For performance, sample candidate modes instead of checking all for large n
+    if n > 1000:
+        candidate_modes = np.linspace(1, n - 2, min(100, n - 2), dtype=int)
+    else:
+        candidate_modes = range(1, n - 1)
+
+    dip_stat = float(min(_candidate_dip(m) for m in candidate_modes))
 
     # Bootstrap p-value under a unimodal Gaussian null
+    # Downsample for very large datasets to maintain reasonable runtime
+    boot_n = min(n, 2000)  # Cap bootstrap sample size
     boot_dips = np.empty(max(int(n_boot), 1), dtype=float)
+
     for i in range(boot_dips.size):
-        boot_sample = rng.standard_normal(n)
+        boot_sample = rng.standard_normal(boot_n)
         boot_sample.sort()
-        boot_ecdf = (np.arange(1, n + 1)) / n
+        boot_ecdf = (np.arange(1, boot_n + 1)) / boot_n
+
+        # Sample candidate modes for large bootstrap samples
+        if boot_n > 1000:
+            boot_candidates = np.linspace(
+                1, boot_n - 2, min(100, boot_n - 2), dtype=int
+            )
+        else:
+            boot_candidates = range(1, boot_n - 1)
 
         def _boot_candidate(mode_idx: int) -> float:
             left_span = max(boot_sample[mode_idx] - boot_sample[0], 1e-12)
             right_span = max(boot_sample[-1] - boot_sample[mode_idx], 1e-12)
-            left_mass = mode_idx / n
+            left_mass = mode_idx / boot_n
             right_mass = 1.0 - left_mass
             left_mask = boot_sample <= boot_sample[mode_idx]
             u = np.empty_like(boot_sample, dtype=float)
@@ -529,7 +564,7 @@ def hartigan_diptest(
             u = np.clip(u, 0.0, 1.0)
             return float(np.max(np.abs(boot_ecdf - u)))
 
-        boot_dips[i] = min(_boot_candidate(m) for m in range(1, n - 1))
+        boot_dips[i] = min(_boot_candidate(m) for m in boot_candidates)
 
     p_value = float(np.mean(boot_dips >= dip_stat))
 
@@ -543,7 +578,8 @@ def bimodal_thresh(
     max_hist_bins=25,
     start_bins=10,
     set_thresh=None,
-    nboot=500,
+    nboot=100,
+    force_bimodal=False,
 ):
     """
     BimodalThresh: Find threshold between bimodal data modes (e.g., UP vs DOWN states)
@@ -564,7 +600,9 @@ def bimodal_thresh(
     set_thresh : float, optional
         Manually set your own threshold (default: None)
     nboot : int, optional
-        Number of bootstrap iterations for dip test (default: 500)
+        Number of bootstrap iterations for dip test (default: 100)
+    force_bimodal : bool, optional
+        If True, skip bimodality test and proceed with threshold detection (default: False)
 
     Returns
     -------
@@ -599,12 +637,12 @@ def bimodal_thresh(
     bimodal_data = np.array(bimodal_data).flatten()
     bimodal_data = bimodal_data[~np.isnan(bimodal_data)]
 
-    # Run Hartigan's dip test for bimodality using diptest package
+    # Run Hartigan's dip test for bimodality
     dip_stat, p_value = hartigan_diptest(bimodal_data, n_boot=nboot)
     diptest_result = {"dip": dip_stat, "p": p_value}
 
-    # If not bimodal, return empty
-    if p_value > 0.05:
+    # If not bimodal, return empty (unless forced)
+    if p_value > 0.05 and not force_bimodal:
         cross = {"upints": np.array([]), "downints": np.array([])}
         hist_counts, bin_edges = np.histogram(bimodal_data, bins=start_bins)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
