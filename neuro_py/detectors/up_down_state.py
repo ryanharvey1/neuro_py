@@ -486,8 +486,28 @@ def hartigan_diptest(
     unimodal Gaussian null. It avoids the external ``diptest`` package while
     preserving the API footprint needed by ``bimodal_thresh``.
 
-    Note: For large datasets (n > 10000), consider reducing n_boot further or
-    downsampling the data to improve performance.
+    Parameters
+    ----------
+    data : np.ndarray
+        Input data array (1-D). NaN values are automatically removed.
+    n_boot : int, optional
+        Number of bootstrap samples drawn from a unimodal Gaussian null to estimate
+        the p-value (default: 100).
+    seed : int, optional
+        Random seed for reproducibility (default: None).
+
+    Returns
+    -------
+    dip : float
+        Hartigan's dip statistic. Lower values indicate more unimodal distributions.
+    p_value : float
+        Bootstrap p-value. Values < 0.05 suggest a significantly bimodal distribution.
+
+    Notes
+    -----
+    For large datasets (n > 10000), consider reducing n_boot further or
+    downsampling the data to improve performance. The function automatically
+    caps bootstrap sample size at 2000 to maintain computational efficiency.
     """
 
     rng = np.random.default_rng(seed)
