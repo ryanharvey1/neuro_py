@@ -479,7 +479,7 @@ def hartigan_diptest(
     data: np.ndarray, n_boot: int = 100, seed: Optional[int] = None
 ) -> Tuple[float, float]:
     """
-    Dependency-free approximation of Hartigan's dip test with bootstrap p-value.
+    approximation of Hartigan's dip test with bootstrap p-value.
 
     This implementation uses a simple piecewise-linear unimodal fit to approximate
     the dip statistic and estimates the p-value via bootstrap draws from a
