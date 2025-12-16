@@ -88,6 +88,44 @@ def detect_up_down_states(
     Detection method based on https://doi.org/10.1038/s41467-020-15842-4
     """
 
+    def _detect_states(bst_segment: nel.AnalogSignalArray, domain: nel.EpochArray):
+        """Detect down/up states within a given domain using shared logic."""
+
+        down_state_epochs = bst_segment.bin_centers[
+            find_interval(
+                bst_segment.data.flatten()
+                < np.percentile(bst_segment.data.T, percentile)
+            )
+        ]
+        if down_state_epochs.shape[0] == 0:
+            return None, None
+
+        durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
+        down_state_epochs = down_state_epochs[durations > bin_size]
+
+        down_state_epochs = (
+            nel.EpochArray(data=down_state_epochs).merge(gap=bin_size * 2).data
+        )
+        durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
+        down_state_epochs = down_state_epochs[
+            ~((durations < min_dur) | (durations > max_dur)), :
+        ]
+        if down_state_epochs.shape[0] == 0:
+            return None, None
+
+        down_state_epochs = nel.EpochArray(data=down_state_epochs, domain=domain)
+
+        up_state_epochs = ~down_state_epochs
+        up_state_epochs = up_state_epochs.data
+        durations = up_state_epochs[:, 1] - up_state_epochs[:, 0]
+        up_state_epochs = up_state_epochs[durations > bin_size]
+
+        up_state_epochs = nel.EpochArray(data=up_state_epochs, domain=domain).merge(
+            gap=bin_size * 2
+        )
+
+        return down_state_epochs, up_state_epochs
+
     # check for existence of event files
     if save_mat and not overwrite:
         filename_downstate = os.path.join(
@@ -135,56 +173,15 @@ def detect_up_down_states(
         down_state_epochs = []
         up_state_epochs = []
         for ep in beh_epochs:
-            if (ep & nrem_epochs).isempty:
-                continue
-            # find down states, based on percentile
-            down_state_epochs_ = bst[ep].bin_centers[
-                find_interval(
-                    bst[ep].data.flatten() < np.percentile(bst[ep].data.T, percentile)
-                )
-            ]
-            if down_state_epochs_.shape[0] == 0:
+            domain = nrem_epochs & ep
+            if domain.isempty:
                 continue
 
-            # remove short and long epochs
-            durations = down_state_epochs_[:, 1] - down_state_epochs_[:, 0]
-
-            # drop single bin
-            down_state_epochs_ = down_state_epochs_[durations > bin_size]
-
-            # merge nearby epochs
-            down_state_epochs_ = (
-                nel.EpochArray(data=down_state_epochs_).merge(gap=bin_size * 2).data
-            )
-            durations = down_state_epochs_[:, 1] - down_state_epochs_[:, 0]
-
-            down_state_epochs_ = down_state_epochs_[
-                ~((durations < min_dur) | (durations > max_dur)), :
-            ]
-
-            if down_state_epochs_.shape[0] == 0:
+            down_state_epochs_, up_state_epochs_ = _detect_states(bst[ep], domain)
+            if down_state_epochs_ is None or up_state_epochs_ is None:
                 continue
 
-            # convert to epoch array with same domain as nrem epochs (this is so complement will also be in nrem epochs)
-            down_state_epochs_ = nel.EpochArray(
-                data=down_state_epochs_, domain=nrem_epochs & ep
-            )
-
-            # store down states
             down_state_epochs.append(down_state_epochs_.data)
-
-            # complement to get up states
-            up_state_epochs_ = ~down_state_epochs_
-
-            up_state_epochs_ = up_state_epochs_.data
-            durations = up_state_epochs_[:, 1] - up_state_epochs_[:, 0]
-            up_state_epochs_ = up_state_epochs_[durations > bin_size]
-            # merge nearby epochs
-            up_state_epochs_ = nel.EpochArray(
-                data=up_state_epochs_, domain=nrem_epochs & ep
-            ).merge(gap=bin_size * 2)
-
-            # store up states
             up_state_epochs.append(up_state_epochs_.data)
 
         if len(down_state_epochs) == 0 or len(up_state_epochs) == 0:
@@ -198,49 +195,10 @@ def detect_up_down_states(
             data=np.concatenate(up_state_epochs), domain=nrem_epochs
         )
     else:
-        # find down states, based on percentile
-        down_state_epochs = bst.bin_centers[
-            find_interval(bst.data.flatten() < np.percentile(bst.data.T, percentile))
-        ]
-        if down_state_epochs.shape[0] == 0:
+        down_state_epochs, up_state_epochs = _detect_states(bst, nrem_epochs)
+        if down_state_epochs is None or up_state_epochs is None:
             print(f"No down states found for {basepath}")
             return None, None
-
-        # remove short and long epochs
-        durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
-
-        down_state_epochs = down_state_epochs[durations > bin_size]
-
-        # merge nearby epochs
-        down_state_epochs = (
-            nel.EpochArray(
-                data=down_state_epochs,
-            )
-            .merge(gap=bin_size * 2)
-            .data
-        )
-        durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
-
-        down_state_epochs = down_state_epochs[
-            ~((durations < min_dur) | (durations > max_dur)), :
-        ]
-        if down_state_epochs.shape[0] == 0:
-            print(f"No down states found for {basepath}")
-            return None, None
-
-        # convert to epoch array with same domain as nrem epochs (this is so complement will also be in nrem epochs)
-        down_state_epochs = nel.EpochArray(data=down_state_epochs, domain=nrem_epochs)
-
-        # complement to get up states
-        up_state_epochs = ~down_state_epochs
-
-        up_state_epochs = up_state_epochs.data
-        durations = up_state_epochs[:, 1] - up_state_epochs[:, 0]
-        up_state_epochs = up_state_epochs[durations > bin_size]
-        # merge nearby epochs
-        up_state_epochs = nel.EpochArray(
-            data=up_state_epochs, domain=nrem_epochs
-        ).merge(gap=bin_size * 2)
 
     # save to cell explorer mat file
     if save_mat:
