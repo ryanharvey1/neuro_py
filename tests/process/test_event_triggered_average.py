@@ -193,6 +193,42 @@ def test_event_triggered_average_consistency():
     )  # Should be reasonably correlated (lowered for interpolation differences)
 
 
+def test_event_triggered_average_force_irregular_sampling():
+    """Force interpolation path even when timestamps are regular."""
+
+    timestamps = np.linspace(0, 1, num=50)
+    sampling_rate = 50
+    signal = np.vstack([timestamps, timestamps**2]).T  # two simple channels
+    events = np.array([0.5])
+
+    # Force irregular_sampling=True (should take interpolation path)
+    result_interp, tl_interp = event_triggered_average(
+        timestamps,
+        signal,
+        events,
+        window=[-0.1, 0.1],
+        sampling_rate=sampling_rate,
+        irregular_sampling=True,
+        return_average=False,
+    )
+
+    # Baseline fast path for the same data
+    result_fast, tl_fast = event_triggered_average(
+        timestamps,
+        signal,
+        events,
+        window=[-0.1, 0.1],
+        sampling_rate=sampling_rate,
+        irregular_sampling=False,
+        return_average=False,
+    )
+
+    assert result_interp.shape == result_fast.shape
+    np.testing.assert_array_almost_equal(tl_interp, tl_fast)
+    # Interpolation and direct indexing should be very close; allow small numerical wiggle
+    np.testing.assert_allclose(result_interp, result_fast, rtol=5e-2, atol=1e-3)
+
+
 def test_event_triggered_average_1d_signal():
     """Test with 1D signal input."""
     timestamps = np.linspace(0, 10, num=100)
