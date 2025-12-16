@@ -236,6 +236,82 @@ if __name__ == "__main__":
     detect_up_down_states(basepath)
 
 
+def hartigan_diptest(
+    data: np.ndarray, n_boot: int = 500, seed: Optional[int] = None
+) -> Tuple[float, float]:
+    """
+    Dependency-free approximation of Hartigan's dip test with bootstrap p-value.
+
+    This implementation uses a simple piecewise-linear unimodal fit to approximate
+    the dip statistic and estimates the p-value via bootstrap draws from a
+    unimodal Gaussian null. It avoids the external ``diptest`` package while
+    preserving the API footprint needed by ``bimodal_thresh``.
+    """
+
+    rng = np.random.default_rng(seed)
+    x = np.asarray(data, dtype=float).ravel()
+    x = x[~np.isnan(x)]
+    n = x.size
+    if n < 3:
+        return 0.0, 1.0
+
+    x = np.sort(x)
+    ecdf = (np.arange(1, n + 1)) / n
+
+    def _candidate_dip(mode_idx: int) -> float:
+        # Build a unimodal CDF that rises linearly to the candidate mode
+        # and then linearly to 1.0; dip is the sup norm against the ECDF.
+        left_span = max(x[mode_idx] - x[0], 1e-12)
+        right_span = max(x[-1] - x[mode_idx], 1e-12)
+
+        left_mass = mode_idx / n
+        right_mass = 1.0 - left_mass
+
+        left_mask = x <= x[mode_idx]
+        u = np.empty_like(x, dtype=float)
+        u[left_mask] = ((x[left_mask] - x[0]) / left_span) * left_mass
+        u[~left_mask] = (
+            left_mass + ((x[~left_mask] - x[mode_idx]) / right_span) * right_mass
+        )
+        u = np.clip(u, 0.0, 1.0)
+
+        return float(np.max(np.abs(ecdf - u)))
+
+    # Scan candidate modes (skip endpoints so both sides have support)
+    dip_stat = float(min(_candidate_dip(m) for m in range(1, n - 1)))
+
+    # Bootstrap p-value under a unimodal Gaussian null
+    boot_dips = np.empty(max(int(n_boot), 1), dtype=float)
+    for i in range(boot_dips.size):
+        boot_sample = rng.standard_normal(n)
+        boot_sample.sort()
+        boot_ecdf = (np.arange(1, n + 1)) / n
+
+        def _boot_candidate(mode_idx: int) -> float:
+            left_span = max(boot_sample[mode_idx] - boot_sample[0], 1e-12)
+            right_span = max(boot_sample[-1] - boot_sample[mode_idx], 1e-12)
+            left_mass = mode_idx / n
+            right_mass = 1.0 - left_mass
+            left_mask = boot_sample <= boot_sample[mode_idx]
+            u = np.empty_like(boot_sample, dtype=float)
+            u[left_mask] = (
+                (boot_sample[left_mask] - boot_sample[0]) / left_span
+            ) * left_mass
+            u[~left_mask] = (
+                left_mass
+                + ((boot_sample[~left_mask] - boot_sample[mode_idx]) / right_span)
+                * right_mass
+            )
+            u = np.clip(u, 0.0, 1.0)
+            return float(np.max(np.abs(boot_ecdf - u)))
+
+        boot_dips[i] = min(_boot_candidate(m) for m in range(1, n - 1))
+
+    p_value = float(np.mean(boot_dips >= dip_stat))
+
+    return dip_stat, p_value
+
+
 def bimodal_thresh(
     bimodal_data,
     max_thresh=np.inf,
