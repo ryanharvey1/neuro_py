@@ -514,8 +514,8 @@ def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, pl.LightningModule]:
 
     if "LSTM" in hyperparams["model"]:
         model.init_hidden(hyperparams["batch_size"])
-        model.hidden_state = model.hidden_state.to(hyperparams["device"])
-        model.cell_state = model.cell_state.to(hyperparams["device"])
+        model.hidden_state = model.hidden_state.to(hyperparams["accelerator"])
+        model.cell_state = model.cell_state.to(hyperparams["accelerator"])
 
     return decoder, model
 
@@ -916,7 +916,7 @@ def train_model(
         loading. Increasing the number of workers can speed up data loading
         but may lead to memory issues. Too many workers can also slow down
         the training process due to contention for resources.
-    - `device`: str, the device to use for training. Should be 'cuda' or
+    - `accelerator`: str, the device to use for training. Should be 'cuda' or
         'cpu'.
     - `seed`: int, the random seed for reproducibility.
     """
@@ -971,8 +971,8 @@ def train_model(
         )
         pl.seed_everything(hyperparams["seed"], workers=True)
         trainer = pl.Trainer(
-            accelerator=hyperparams["device"],
-            devices=1,
+            accelerator=hyperparams["accelerator"],
+            devices="auto",
             max_epochs=hyperparams["model_args"]["args"]["epochs"],
             gradient_clip_val=hyperparams["model_args"]["args"]["max_grad_norm"],
             accumulate_grad_batches=hyperparams["model_args"]["args"][
@@ -986,6 +986,7 @@ def train_model(
         )
         trainer.fit(model, train_loader, val_loader, ckpt_path=best_ckpt_path)
         if resultspath is not None:
+            os.makedirs(model_cache_path, exist_ok=True)
             with open(best_ckpt_name_file, "w") as f:
                 f.write(checkpoint_callback.best_model_path)
         model.eval()

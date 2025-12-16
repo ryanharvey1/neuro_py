@@ -88,7 +88,7 @@ class TestDecodePipeline(unittest.TestCase):
             "bins_before": 0,
             "bins_current": 1,
             "bins_after": 0,
-            "device": self.DEVICE,
+            "accelerator": self.DEVICE,
             "seed": self.SEED,
         }
 
