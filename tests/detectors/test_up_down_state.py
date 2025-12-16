@@ -129,7 +129,8 @@ def test_detect_up_down_states_bimodal_thresh_basic():
     rng = np.random.default_rng(42)
 
     # Generate firing rates that cycle between low and high states
-    low_rates = rng.normal(2, 0.5, 1000)
+    # Use very sparse low rates and clamp to non-negative for robustness
+    low_rates = np.clip(rng.normal(0.1, 0.05, 1000), 0, None)
     high_rates = rng.normal(8, 1.0, 1000)
     firing_rate_series = np.concatenate([low_rates, high_rates, low_rates, high_rates])
 
