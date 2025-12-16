@@ -148,6 +148,16 @@ def detect_up_down_states(
 
             # remove short and long epochs
             durations = down_state_epochs_[:, 1] - down_state_epochs_[:, 0]
+
+            # drop single bin
+            down_state_epochs_ = down_state_epochs_[durations > bin_size]
+
+            # merge nearby epochs
+            down_state_epochs_ = (
+                nel.EpochArray(data=down_state_epochs_).merge(gap=bin_size * 2).data
+            )
+            durations = down_state_epochs_[:, 1] - down_state_epochs_[:, 0]
+
             down_state_epochs_ = down_state_epochs_[
                 ~((durations < min_dur) | (durations > max_dur)), :
             ]
@@ -165,6 +175,14 @@ def detect_up_down_states(
 
             # complement to get up states
             up_state_epochs_ = ~down_state_epochs_
+
+            up_state_epochs_ = up_state_epochs_.data
+            durations = up_state_epochs_[:, 1] - up_state_epochs_[:, 0]
+            up_state_epochs_ = up_state_epochs_[durations > bin_size]
+            # merge nearby epochs
+            up_state_epochs_ = nel.EpochArray(
+                data=up_state_epochs_, domain=nrem_epochs & ep
+            ).merge(gap=bin_size * 2)
 
             # store up states
             up_state_epochs.append(up_state_epochs_.data)
@@ -190,6 +208,19 @@ def detect_up_down_states(
 
         # remove short and long epochs
         durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
+
+        down_state_epochs = down_state_epochs[durations > bin_size]
+
+        # merge nearby epochs
+        down_state_epochs = (
+            nel.EpochArray(
+                data=down_state_epochs,
+            )
+            .merge(gap=bin_size * 2)
+            .data
+        )
+        durations = down_state_epochs[:, 1] - down_state_epochs[:, 0]
+
         down_state_epochs = down_state_epochs[
             ~((durations < min_dur) | (durations > max_dur)), :
         ]
@@ -202,6 +233,14 @@ def detect_up_down_states(
 
         # complement to get up states
         up_state_epochs = ~down_state_epochs
+
+        up_state_epochs = up_state_epochs.data
+        durations = up_state_epochs[:, 1] - up_state_epochs[:, 0]
+        up_state_epochs = up_state_epochs[durations > bin_size]
+        # merge nearby epochs
+        up_state_epochs = nel.EpochArray(
+            data=up_state_epochs, domain=nrem_epochs
+        ).merge(gap=bin_size * 2)
 
     # save to cell explorer mat file
     if save_mat:
