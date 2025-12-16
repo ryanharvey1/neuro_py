@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 
 import nelpy as nel
 import numpy as np
+from scipy.signal import find_peaks
 
 import neuro_py as npy
 from neuro_py.io import loading
@@ -117,9 +118,10 @@ def detect_up_down_states(
 
         up_state_epochs = ~down_state_epochs
         up_state_epochs = up_state_epochs.data
+        # make sure up states are longer than bin size
         durations = up_state_epochs[:, 1] - up_state_epochs[:, 0]
         up_state_epochs = up_state_epochs[durations > bin_size]
-
+        # merge nearby up states that are closer than 2*bin_size
         up_state_epochs = nel.EpochArray(data=up_state_epochs, domain=domain).merge(
             gap=bin_size * 2
         )
@@ -232,3 +234,191 @@ if __name__ == "__main__":
     basepath = sys.argv[1]
 
     detect_up_down_states(basepath)
+
+
+def bimodal_thresh(
+    bimodal_data,
+    max_thresh=np.inf,
+    schmidt=False,
+    max_hist_bins=25,
+    start_bins=10,
+    set_thresh=None,
+    nboot=500,
+):
+    """
+    BimodalThresh: Find threshold between bimodal data modes (e.g., UP vs DOWN states)
+    and return crossing times (UP/DOWN onset/offset times).
+
+    Parameters
+    ----------
+    bimodal_data : array-like
+        Vector of bimodal data
+    max_thresh : float, optional
+        Maximum threshold value (default: inf)
+    schmidt : bool, optional
+        Use Schmidt trigger with halfway points between trough and peaks (default: False)
+    max_hist_bins : int, optional
+        Maximum number of histogram bins to try before giving up (default: 25)
+    start_bins : int, optional
+        Minimum number of histogram bins for initial histogram (default: 10)
+    set_thresh : float, optional
+        Manually set your own threshold (default: None)
+    nboot : int, optional
+        Number of bootstrap iterations for dip test (default: 500)
+
+    Returns
+    -------
+    thresh : float
+        Threshold value between modes
+    cross : dict
+        Dictionary with keys:
+        - 'upints': array of UP state intervals [onsets, offsets]
+        - 'downints': array of DOWN state intervals [onsets, offsets]
+    bihist : dict
+        Dictionary with keys:
+        - 'bins': bin centers
+        - 'hist': counts
+    diptest_result : dict
+        Dictionary with keys:
+        - 'dip': Hartigan's dip test statistic
+        - 'p': p-value for bimodal distribution
+
+    Example
+    -------
+    >>> data = np.concatenate([np.random.normal(0, 1, 1000),
+    ...                        np.random.normal(5, 1, 1000)])
+    >>> thresh, cross, bihist, diptest_result = bimodal_thresh(data)
+
+    Notes
+    -----
+    Python translation of BimodalThresh.m from MehrotraLevenstein_2023
+
+    """
+
+    # Initialize
+    bimodal_data = np.array(bimodal_data).flatten()
+    bimodal_data = bimodal_data[~np.isnan(bimodal_data)]
+
+    # Run Hartigan's dip test for bimodality using diptest package
+    dip_stat, p_value = hartigan_diptest(bimodal_data, n_boot=nboot)
+    diptest_result = {"dip": dip_stat, "p": p_value}
+
+    # If not bimodal, return empty
+    if p_value > 0.05:
+        cross = {"upints": np.array([]), "downints": np.array([])}
+        hist_counts, bin_edges = np.histogram(bimodal_data, bins=start_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        bihist = {"hist": hist_counts, "bins": bin_centers}
+        return np.nan, cross, bihist, diptest_result
+
+    # Remove data over max threshold
+    bimodal_data = bimodal_data[bimodal_data < max_thresh]
+
+    # Find histogram with exactly 2 peaks
+    num_peaks = 1
+    num_bins = start_bins
+
+    while num_peaks != 2:
+        hist_counts, bin_edges = np.histogram(bimodal_data, bins=num_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        # Find peaks (add zeros at edges for edge detection)
+        padded_hist = np.concatenate([[0], hist_counts, [0]])
+        peaks, _ = find_peaks(padded_hist, distance=1)
+        peaks = np.sort(peaks) - 1  # Adjust for padding
+
+        # Keep only top 2 peaks
+        if len(peaks) > 2:
+            peak_heights = hist_counts[peaks]
+            top_2_idx = np.argsort(peak_heights)[-2:]
+            peaks = np.sort(peaks[top_2_idx])
+
+        num_peaks = len(peaks)
+        num_bins += 1
+
+        if num_bins >= max_hist_bins and set_thresh is None:
+            print("Unable to find trough")
+            cross = {"upints": np.array([]), "downints": np.array([])}
+            bihist = {"hist": hist_counts, "bins": bin_centers}
+            return np.nan, cross, bihist, diptest_result
+
+    bihist = {"hist": hist_counts, "bins": bin_centers}
+
+    # Find trough between peaks
+    between_peaks = bin_centers[peaks[0] : peaks[1] + 1]
+    between_hist = hist_counts[peaks[0] : peaks[1] + 1]
+
+    # Find minimum (trough)
+    trough_idx = np.argmin(between_hist)
+
+    if set_thresh is not None:
+        thresh = set_thresh
+    else:
+        thresh = between_peaks[trough_idx]
+
+    # Schmidt trigger: use halfway points between trough and peaks
+    if schmidt:
+        thresh_up = thresh + 0.5 * (between_peaks[-1] - thresh)
+        thresh_down = thresh + 0.5 * (between_peaks[0] - thresh)
+
+        over_up = bimodal_data > thresh_up
+        over_down = bimodal_data > thresh_down
+
+        cross_up = np.where(np.diff(over_up.astype(int)) == 1)[0]
+        cross_down = np.where(np.diff(over_down.astype(int)) == -1)[0]
+
+        # Delete incomplete (repeat) crossings
+        all_crossings = np.vstack(
+            [
+                np.column_stack([cross_up, np.ones(len(cross_up))]),
+                np.column_stack([cross_down, np.zeros(len(cross_down))]),
+            ]
+        )
+
+        sort_order = np.argsort(all_crossings[:, 0])
+        all_crossings = all_crossings[sort_order]
+
+        up_down_switch = np.diff(all_crossings[:, 1])
+        same_state = np.where(up_down_switch == 0)[0] + 1
+        all_crossings = np.delete(all_crossings, same_state, axis=0)
+
+        cross_up = all_crossings[all_crossings[:, 1] == 1, 0].astype(int)
+        cross_down = all_crossings[all_crossings[:, 1] == 0, 0].astype(int)
+    else:
+        over_ind = bimodal_data > thresh
+        cross_up = np.where(np.diff(over_ind.astype(int)) == 1)[0]
+        cross_down = np.where(np.diff(over_ind.astype(int)) == -1)[0]
+
+    # If only one crossing, return empty
+    if len(cross_up) == 0 or len(cross_down) == 0:
+        cross = {"upints": np.array([]), "downints": np.array([])}
+        return thresh, cross, bihist, diptest_result
+
+    # Create interval arrays
+    up_for_up = cross_up.copy()
+    up_for_down = cross_up.copy()
+    down_for_up = cross_down.copy()
+    down_for_down = cross_down.copy()
+
+    # Adjust for proper pairing
+    if cross_up[0] < cross_down[0]:
+        up_for_down = up_for_down[1:]
+    if cross_down[-1] > cross_up[-1]:
+        down_for_down = down_for_down[:-1]
+    if cross_down[0] < cross_up[0]:
+        down_for_up = down_for_up[1:]
+    if cross_up[-1] > cross_down[-1]:
+        up_for_up = up_for_up[:-1]
+
+    # Ensure equal length for pairing
+    min_len_up = min(len(up_for_up), len(down_for_up))
+    min_len_down = min(len(down_for_down), len(up_for_down))
+
+    upints = np.column_stack([up_for_up[:min_len_up], down_for_up[:min_len_up]])
+    downints = np.column_stack(
+        [down_for_down[:min_len_down], up_for_down[:min_len_down]]
+    )
+
+    cross = {"upints": upints, "downints": downints}
+
+    return thresh, cross, bihist, diptest_result
