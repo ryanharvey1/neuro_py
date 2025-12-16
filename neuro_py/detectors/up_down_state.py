@@ -366,12 +366,21 @@ def detect_up_down_states_bimodal_thresh(
         if downints.size == 0:
             return None, None
 
+        # Clip indices to valid range to prevent out-of-bounds access
+        n_bins = len(bin_centers)
+        downints_clipped = np.clip(downints.astype(int), 0, n_bins - 1)
+        upints_clipped = (
+            np.clip(upints.astype(int), 0, n_bins - 1)
+            if upints.size > 0
+            else np.array([], dtype=int).reshape(0, 2)
+        )
+
         # Convert index intervals to time intervals
         # downints has shape [n, 2] where each row is [start_idx, end_idx]
         down_state_times = np.column_stack(
             [
-                bin_centers[downints[:, 0].astype(int)],
-                bin_centers[downints[:, 1].astype(int)],
+                bin_centers[downints_clipped[:, 0]],
+                bin_centers[downints_clipped[:, 1]],
             ]
         )
         down_state_epochs = nel.EpochArray(data=down_state_times, domain=domain)
@@ -382,8 +391,8 @@ def detect_up_down_states_bimodal_thresh(
         else:
             up_state_times = np.column_stack(
                 [
-                    bin_centers[upints[:, 0].astype(int)],
-                    bin_centers[upints[:, 1].astype(int)],
+                    bin_centers[upints_clipped[:, 0]],
+                    bin_centers[upints_clipped[:, 1]],
                 ]
             )
             up_state_epochs = nel.EpochArray(data=up_state_times, domain=domain)
@@ -725,6 +734,14 @@ def bimodal_thresh(
         cross_up = np.where(np.diff(over_up.astype(int)) == 1)[0]
         cross_down = np.where(np.diff(over_down.astype(int)) == -1)[0]
 
+        # Check for empty crossings before vstack
+        if len(cross_up) == 0 or len(cross_down) == 0:
+            cross = {
+                "upints": np.array([]).reshape(0, 2),
+                "downints": np.array([]).reshape(0, 2),
+            }
+            return thresh, cross, bihist, diptest_result
+
         # Delete incomplete (repeat) crossings
         all_crossings = np.vstack(
             [
@@ -749,7 +766,10 @@ def bimodal_thresh(
 
     # If only one crossing, return empty
     if len(cross_up) == 0 or len(cross_down) == 0:
-        cross = {"upints": np.array([]), "downints": np.array([])}
+        cross = {
+            "upints": np.array([]).reshape(0, 2),
+            "downints": np.array([]).reshape(0, 2),
+        }
         return thresh, cross, bihist, diptest_result
 
     # Create interval arrays
@@ -771,6 +791,14 @@ def bimodal_thresh(
     # Ensure equal length for pairing
     min_len_up = min(len(up_for_up), len(down_for_up))
     min_len_down = min(len(down_for_down), len(up_for_down))
+
+    # Check if pairing resulted in any valid intervals
+    if min_len_up == 0 or min_len_down == 0:
+        cross = {
+            "upints": np.array([]).reshape(0, 2),
+            "downints": np.array([]).reshape(0, 2),
+        }
+        return thresh, cross, bihist, diptest_result
 
     upints = np.column_stack([up_for_up[:min_len_up], down_for_up[:min_len_up]])
     downints = np.column_stack(
