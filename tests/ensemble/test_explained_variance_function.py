@@ -11,27 +11,28 @@ def _equicorr_cov(n: int, rho: float) -> np.ndarray:
     return cov
 
 
-def test_explained_variance_mvn_similarity():
+def test_explained_variance_factor_model():
     """
-    Task and post share the same correlation structure; pre differs.
-    Expect EV > rEV and EV reasonably positive.
+    Construct a one-factor model: task and post share a latent factor
+    with similar loadings; pre has weak loadings and higher noise.
+    This should yield EV > rEV robustly.
     """
     rng = np.random.default_rng(42)
-    n_features = 6
-    n_time = 200
+    n_features = 8
+    n_time = 2000
 
-    cov_task = _equicorr_cov(n_features, rho=0.6)
-    cov_post = _equicorr_cov(n_features, rho=0.6)
-    cov_pre = _equicorr_cov(n_features, rho=0.1)
+    # Shared latent for task/post with moderate noise
+    latent = rng.standard_normal(n_time)
+    loadings = rng.uniform(0.5, 1.0, size=n_features)
+    task = loadings[:, None] * latent + 0.3 * rng.standard_normal((n_features, n_time))
+    post = loadings[:, None] * latent + 0.3 * rng.standard_normal((n_features, n_time))
 
-    # Generate T x N then transpose to (N, T)
-    task = rng.multivariate_normal(
-        mean=np.zeros(n_features), cov=cov_task, size=n_time
-    ).T
-    post = rng.multivariate_normal(
-        mean=np.zeros(n_features), cov=cov_post, size=n_time
-    ).T
-    pre = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov_pre, size=n_time).T
+    # Pre has weak latent structure and higher noise
+    latent_pre = rng.standard_normal(n_time)
+    weak_loadings = rng.uniform(0.0, 0.2, size=n_features)
+    pre = weak_loadings[:, None] * latent_pre + 1.0 * rng.standard_normal(
+        (n_features, n_time)
+    )
 
     EV, rEV = ev_func(task, post, pre)
 
