@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
@@ -204,12 +205,12 @@ class ExplainedVariance(object):
 
     def __validate_window_sizes(self, control_window_size, matching_window_size):
         """Validate window sizes."""
-        assert control_window_size <= self.control.duration, (
-            "window is bigger than matching"
-        )
-        assert matching_window_size <= self.matching.duration, (
-            "window is bigger than matching"
-        )
+        assert (
+            control_window_size <= self.control.duration
+        ), "window is bigger than matching"
+        assert (
+            matching_window_size <= self.matching.duration
+        ), "window is bigger than matching"
 
     def __get_template_corr(self):
         """Get pairwise correlations for template period."""
@@ -412,3 +413,105 @@ class ExplainedVariance(object):
         ax.set_ylabel("Explained Variance")
         ax.set_title("Explained Variance")
         plt.show()
+
+
+def explained_variance(task, post_task, pre_task):
+    """
+    Calculate explained variance and reverse explained variance
+
+    Parameters
+    ----------
+    task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+    post_task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+    pre_task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+
+    Returns
+    -------
+    EV : float
+        explained variance
+    rEV : float
+        reverse explained variance
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.ensemble import explained_variance
+    >>> # generate random spike counts data
+    >>> np.random.seed(0)
+    >>> x = np.random.poisson(0.5, (10, 100))
+    >>> y = np.random.poisson(0.5, (10, 100))
+    >>> x_partial = np.random.poisson(0.5, (10, 100))
+    >>> EV, rEV = explained_variance.explained_variance(x, y, x_partial)
+    >>> print(f"Explained Variance: {EV}, Reverse Explained Variance: {rEV}")
+    Explained Variance: 0.04662723037947985, Reverse Explained Variance: 0.000111747766387637
+
+
+    >>> import neuro_py as npy
+    >>> import nelpy as nel
+    >>> basepath = r"S:\data\HMC\HMC1\day8"
+    >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
+    >>> epoch_df = npy.io.load_epoch(basepath)
+    >>> beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
+    >>> state_dict = npy.io.load_SleepState_states(basepath)
+    >>> nrem_epochs = nel.EpochArray(
+        state_dict["NREMstate"],
+    )
+    >>> theta_cycles = npy.io.load_theta_cycles(basepath, return_epoch_array=True)
+    >>> theta_cycles = theta_cycles[beh_epochs[1]]  # only during behavior
+    >>> # bin spike trains into each theta cycle
+    >>> bst_task = npy.process.count_in_interval(
+        st.data, theta_cycles.starts, theta_cycles.stops
+    )
+    >>> # bin spike trains into 50ms bins during pre and post sleep
+    >>> bst_pre = st[beh_epochs[0] & nrem_epochs].bin(ds=0.05).data
+    >>> # bin spike trains into 50ms bins during pre and post sleep
+    >>> bst_post = st[beh_epochs[2] & nrem_epochs].bin(ds=0.05).data
+
+    >>> ev, rev = explained_variance.explained_variance(bst_task, bst_post, bst_pre)
+    >>> print(f"Explained Variance: {ev}, Reverse Explained Variance: {rev}")
+    Explained Variance: 0.21654828336188703, Reverse Explained Variance: 0.00413191971965775
+    """
+
+    # Validate feature dimensions match
+    if task.shape[0] != post_task.shape[0] or task.shape[0] != pre_task.shape[0]:
+        raise ValueError("All inputs must have the same number of features (rows)")
+
+    # Pairwise correlation matrices for each epoch
+    corr_beh = np.corrcoef(task)
+    corr_pre = np.corrcoef(pre_task)
+    corr_post = np.corrcoef(post_task)
+
+    # Use strictly lower triangle (no diagonal) to form pair vectors
+    n = corr_beh.shape[0]
+    li = np.tril_indices(n, k=-1)
+    r_beh = corr_beh[li]
+    r_pre = corr_pre[li]
+    r_post = corr_post[li]
+
+    # Helper: correlation between 1D vectors (guard against degenerate variance)
+    def _corr(a, b):
+        if a.size == 0 or b.size == 0:
+            return np.nan
+        if np.nanstd(a) == 0 or np.nanstd(b) == 0:
+            return 0.0
+        return float(np.corrcoef(a, b)[0, 1])
+
+    # Between-epoch correlations of pairwise templates
+    beh_pos = _corr(r_beh, r_post)
+    beh_pre = _corr(r_beh, r_pre)
+    pre_pos = _corr(r_pre, r_post)
+
+    # Explained variance and reverse explained variance (squared partial correlations)
+    eps = 1e-10
+    denom_ev = np.sqrt((1 - beh_pre**2) * (1 - pre_pos**2)) + eps
+    denom_rev = np.sqrt((1 - beh_pos**2) * (1 - pre_pos**2)) + eps
+    EV = ((beh_pos - beh_pre * pre_pos) / denom_ev) ** 2
+    rEV = ((beh_pre - beh_pos * pre_pos) / denom_rev) ** 2
+
+    return EV, rEV
+
+
+
