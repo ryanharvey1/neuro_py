@@ -30,7 +30,8 @@ __all__ = [
     "weighted_corr_2d",
     "weighted_corr_2d_jit",
     "position_estimator",
-    "bottom_up_replay_detection"
+    "bottom_up_replay_detection",
+    "explained_variance",
 ]
 
 from . import decoding
@@ -51,7 +52,7 @@ from .dynamics import (
     potential_landscape,
     potential_landscape_nd,
 )
-from .explained_variance import ExplainedVariance
+from .explained_variance import ExplainedVariance, explained_variance
 from .geometry import proximity
 from .pairwise_bias_correlation import (
     cosine_similarity_matrices,
@@ -63,13 +64,13 @@ from .replay import (
     PairwiseBias,
     WeightedCorr,
     WeightedCorrCirc,
+    bottom_up_replay_detection,
     position_estimator,
     shuffle_and_score,
     trajectory_score_bst,
     weighted_corr_2d,
     weighted_corr_2d_jit,
     weighted_correlation,
-    bottom_up_replay_detection
 )
 from .similarity_index import similarity_index
 from .similaritymat import similaritymat
