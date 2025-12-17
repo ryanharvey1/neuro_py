@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
@@ -415,7 +414,9 @@ class ExplainedVariance(object):
         plt.show()
 
 
-def explained_variance(task, post_task, pre_task):
+def explained_variance(
+    task: np.ndarray, post_task: np.ndarray, pre_task: np.ndarray
+) -> tuple:
     """
     Calculate explained variance and reverse explained variance
 
@@ -439,14 +440,18 @@ def explained_variance(task, post_task, pre_task):
     --------
     >>> import numpy as np
     >>> from neuro_py.ensemble import explained_variance
-    >>> # generate random spike counts data
-    >>> np.random.seed(0)
-    >>> x = np.random.poisson(0.5, (10, 100))
-    >>> y = np.random.poisson(0.5, (10, 100))
-    >>> x_partial = np.random.poisson(0.5, (10, 100))
-    >>> EV, rEV = explained_variance.explained_variance(x, y, x_partial)
-    >>> print(f"Explained Variance: {EV}, Reverse Explained Variance: {rEV}")
-    Explained Variance: 0.04662723037947985, Reverse Explained Variance: 0.000111747766387637
+    >>> # build correlated task/post epochs and a weaker pre epoch
+    >>> rng = np.random.default_rng(0)
+    >>> n_features, n_time = 10, 300
+    >>> rho_task, rho_pre = 0.5, 0.1
+    >>> cov_task = np.full((n_features, n_features), rho_task); np.fill_diagonal(cov_task, 1.0)
+    >>> cov_pre = np.full((n_features, n_features), rho_pre); np.fill_diagonal(cov_pre, 1.0)
+    >>> task = rng.multivariate_normal(np.zeros(n_features), cov_task, size=n_time).T
+    >>> post = rng.multivariate_normal(np.zeros(n_features), cov_task, size=n_time).T
+    >>> pre = rng.multivariate_normal(np.zeros(n_features), cov_pre, size=n_time).T
+    >>> EV, rEV = explained_variance.explained_variance(task, post, pre)
+    >>> EV > rEV
+    True
 
 
     >>> import neuro_py as npy
@@ -512,6 +517,3 @@ def explained_variance(task, post_task, pre_task):
     rEV = ((beh_pre - beh_pos * pre_pos) / denom_rev) ** 2
 
     return EV, rEV
-
-
-
