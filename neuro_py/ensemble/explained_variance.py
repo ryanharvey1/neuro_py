@@ -204,12 +204,12 @@ class ExplainedVariance(object):
 
     def __validate_window_sizes(self, control_window_size, matching_window_size):
         """Validate window sizes."""
-        assert control_window_size <= self.control.duration, (
-            "window is bigger than matching"
-        )
-        assert matching_window_size <= self.matching.duration, (
-            "window is bigger than matching"
-        )
+        assert (
+            control_window_size <= self.control.duration
+        ), "window is bigger than control"
+        assert (
+            matching_window_size <= self.matching.duration
+        ), "window is bigger than matching"
 
     def __get_template_corr(self):
         """Get pairwise correlations for template period."""
@@ -412,3 +412,129 @@ class ExplainedVariance(object):
         ax.set_ylabel("Explained Variance")
         ax.set_title("Explained Variance")
         plt.show()
+
+
+def explained_variance(
+    task: np.ndarray, post_task: np.ndarray, pre_task: np.ndarray
+) -> tuple:
+    """
+    Simplified version of explained variance and reverse explained variance
+
+    Parameters
+    ----------
+    task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+    post_task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+    pre_task : np.ndarray
+        2D array, spike counts matrix with shape(n_features, n_timepoints)
+
+    Returns
+    -------
+    EV : float
+        explained variance
+    rEV : float
+        reverse explained variance
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.ensemble import explained_variance
+    >>> # build correlated task/post epochs and a weaker pre epoch
+    >>> rng = np.random.default_rng(0)
+    >>> n_features, n_time = 10, 300
+    >>> rho_task, rho_pre = 0.5, 0.1
+    >>> cov_task = np.full((n_features, n_features), rho_task); np.fill_diagonal(cov_task, 1.0)
+    >>> cov_pre = np.full((n_features, n_features), rho_pre); np.fill_diagonal(cov_pre, 1.0)
+    >>> task = rng.multivariate_normal(np.zeros(n_features), cov_task, size=n_time).T
+    >>> post = rng.multivariate_normal(np.zeros(n_features), cov_task, size=n_time).T
+    >>> pre = rng.multivariate_normal(np.zeros(n_features), cov_pre, size=n_time).T
+    >>> EV, rEV = explained_variance.explained_variance(task, post, pre)
+    >>> EV > rEV
+    True
+
+
+    >>> import neuro_py as npy
+    >>> import nelpy as nel
+    >>> from neuro_py.ensemble import explained_variance
+    >>> basepath = r"S:\data\HMC\HMC1\day8"
+    >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
+    >>> epoch_df = npy.io.load_epoch(basepath)
+    >>> beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
+    >>> state_dict = npy.io.load_SleepState_states(basepath)
+    >>> nrem_epochs = nel.EpochArray(
+    ...    state_dict["NREMstate"],
+    ... )
+    >>> theta_cycles = npy.io.load_theta_cycles(basepath, return_epoch_array=True)
+    >>> theta_cycles = theta_cycles[beh_epochs[1]]  # only during behavior
+    >>> # bin spike trains into each theta cycle
+    >>> bst_task = npy.process.count_in_interval(
+    ...     st.data, theta_cycles.starts, theta_cycles.stops
+    ... )
+    >>> # bin spike trains into 50ms bins during pre sleep
+    >>> bst_pre = st[beh_epochs[0] & nrem_epochs].bin(ds=0.05).data
+    >>> # bin spike trains into 50ms bins during post sleep
+    >>> bst_post = st[beh_epochs[2] & nrem_epochs].bin(ds=0.05).data
+
+    >>> ev, rev = explained_variance.explained_variance(bst_task, bst_post, bst_pre)
+    >>> print(f"Explained Variance: {ev}, Reverse Explained Variance: {rev}")
+    Explained Variance: 0.21654828336188703, Reverse Explained Variance: 0.00413191971965775
+
+    Notes
+    -----
+    n_timepoints can differ between task, post_task, pre_task
+    """
+
+    # Coerce inputs to NumPy arrays and validate dimensionality
+    task = np.asarray(task)
+    pre_task = np.asarray(pre_task)
+    post_task = np.asarray(post_task)
+
+    for name, arr in (("task", task), ("post_task", post_task), ("pre_task", pre_task)):
+        if arr.ndim != 2:
+            raise ValueError(
+                f"{name} must be a 2D array of shape (n_units, n_bins); "
+                f"got array with shape {arr.shape} and ndim={arr.ndim}"
+            )
+
+    # Validate feature dimensions match
+    if task.shape[0] != post_task.shape[0] or task.shape[0] != pre_task.shape[0]:
+        raise ValueError("All inputs must have the same number of features (rows)")
+
+    # Pairwise correlation matrices for each epoch
+    corr_beh = np.corrcoef(task)
+    corr_pre = np.corrcoef(pre_task)
+    corr_post = np.corrcoef(post_task)
+
+    # Use strictly lower triangle (no diagonal) to form pair vectors
+    n = corr_beh.shape[0]
+    li = np.tril_indices(n, k=-1)
+    r_beh = corr_beh[li]
+    r_pre = corr_pre[li]
+    r_post = corr_post[li]
+
+    # Helper: correlation between 1D vectors (guard against degenerate variance and NaNs)
+    def _corr(a, b):
+        # Remove entries where either vector has NaN
+        mask = ~np.isnan(a) & ~np.isnan(b)
+        a_clean = a[mask]
+        b_clean = b[mask]
+        if a_clean.size == 0 or b_clean.size == 0:
+            return np.nan
+        if np.nanstd(a_clean) == 0 or np.nanstd(b_clean) == 0:
+            return 0.0
+        return float(np.corrcoef(a_clean, b_clean)[0, 1])
+
+    # Between-epoch correlations of pairwise templates
+    beh_pos = _corr(r_beh, r_post)
+    beh_pre = _corr(r_beh, r_pre)
+    pre_pos = _corr(r_pre, r_post)
+
+    # Explained variance and reverse explained variance (squared partial correlations)
+    eps = 1e-10
+    denom_ev = np.sqrt((1 - beh_pre**2) * (1 - pre_pos**2)) + eps
+    denom_rev = np.sqrt((1 - beh_pos**2) * (1 - pre_pos**2)) + eps
+    EV = ((beh_pos - beh_pre * pre_pos) / denom_ev) ** 2
+    rEV = ((beh_pre - beh_pos * pre_pos) / denom_rev) ** 2
+
+    return EV, rEV
