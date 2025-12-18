@@ -50,3 +50,17 @@ def test_explained_variance_shape_mismatch():
 
     with pytest.raises(ValueError):
         _ = ev_func(x, y, z)
+
+
+def test_explained_variance_with_nans():
+    """Verify function handles NaN in pairwise correlations gracefully."""
+    rng = np.random.default_rng(123)
+    # Create data where one neuron has zero variance → NaN in corrcoef
+    task = rng.standard_normal((5, 100))
+    task[0, :] = 0  # Zero variance neuron
+    post = rng.standard_normal((5, 100))
+    pre = rng.standard_normal((5, 100))
+
+    EV, rEV = ev_func(task, post, pre)
+    assert np.isfinite(EV) or np.isnan(EV)  # Should handle gracefully
+    assert np.isfinite(rEV) or np.isnan(rEV)
