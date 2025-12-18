@@ -206,7 +206,7 @@ class ExplainedVariance(object):
         """Validate window sizes."""
         assert (
             control_window_size <= self.control.duration
-        ), "window is bigger than matching"
+        ), "window is bigger than control"
         assert (
             matching_window_size <= self.matching.duration
         ), "window is bigger than matching"
@@ -418,7 +418,7 @@ def explained_variance(
     task: np.ndarray, post_task: np.ndarray, pre_task: np.ndarray
 ) -> tuple:
     """
-    Calculate explained variance and reverse explained variance
+    Simplified version of explained variance and reverse explained variance
 
     Parameters
     ----------
@@ -456,29 +456,46 @@ def explained_variance(
 
     >>> import neuro_py as npy
     >>> import nelpy as nel
+    >>> from neuro_py.ensemble import explained_variance
     >>> basepath = r"S:\data\HMC\HMC1\day8"
     >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
     >>> epoch_df = npy.io.load_epoch(basepath)
     >>> beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)
     >>> state_dict = npy.io.load_SleepState_states(basepath)
     >>> nrem_epochs = nel.EpochArray(
-        state_dict["NREMstate"],
-    )
+    ...    state_dict["NREMstate"],
+    ... )
     >>> theta_cycles = npy.io.load_theta_cycles(basepath, return_epoch_array=True)
     >>> theta_cycles = theta_cycles[beh_epochs[1]]  # only during behavior
     >>> # bin spike trains into each theta cycle
     >>> bst_task = npy.process.count_in_interval(
-        st.data, theta_cycles.starts, theta_cycles.stops
-    )
-    >>> # bin spike trains into 50ms bins during pre and post sleep
+    ...     st.data, theta_cycles.starts, theta_cycles.stops
+    ... )
+    >>> # bin spike trains into 50ms bins during pre sleep
     >>> bst_pre = st[beh_epochs[0] & nrem_epochs].bin(ds=0.05).data
-    >>> # bin spike trains into 50ms bins during pre and post sleep
+    >>> # bin spike trains into 50ms bins during post sleep
     >>> bst_post = st[beh_epochs[2] & nrem_epochs].bin(ds=0.05).data
 
     >>> ev, rev = explained_variance.explained_variance(bst_task, bst_post, bst_pre)
     >>> print(f"Explained Variance: {ev}, Reverse Explained Variance: {rev}")
     Explained Variance: 0.21654828336188703, Reverse Explained Variance: 0.00413191971965775
+
+    Notes
+    -----
+    n_timepoints can differ between task, post_task, pre_task
     """
+
+    # Coerce inputs to NumPy arrays and validate dimensionality
+    task = np.asarray(task)
+    pre_task = np.asarray(pre_task)
+    post_task = np.asarray(post_task)
+
+    for name, arr in (("task", task), ("post_task", post_task), ("pre_task", pre_task)):
+        if arr.ndim != 2:
+            raise ValueError(
+                f"{name} must be a 2D array of shape (n_units, n_bins); "
+                f"got array with shape {arr.shape} and ndim={arr.ndim}"
+            )
 
     # Validate feature dimensions match
     if task.shape[0] != post_task.shape[0] or task.shape[0] != pre_task.shape[0]:
@@ -496,13 +513,17 @@ def explained_variance(
     r_pre = corr_pre[li]
     r_post = corr_post[li]
 
-    # Helper: correlation between 1D vectors (guard against degenerate variance)
+    # Helper: correlation between 1D vectors (guard against degenerate variance and NaNs)
     def _corr(a, b):
-        if a.size == 0 or b.size == 0:
+        # Remove entries where either vector has NaN
+        mask = ~np.isnan(a) & ~np.isnan(b)
+        a_clean = a[mask]
+        b_clean = b[mask]
+        if a_clean.size == 0 or b_clean.size == 0:
             return np.nan
-        if np.nanstd(a) == 0 or np.nanstd(b) == 0:
+        if np.nanstd(a_clean) == 0 or np.nanstd(b_clean) == 0:
             return 0.0
-        return float(np.corrcoef(a, b)[0, 1])
+        return float(np.corrcoef(a_clean, b_clean)[0, 1])
 
     # Between-epoch correlations of pairwise templates
     beh_pos = _corr(r_beh, r_post)
