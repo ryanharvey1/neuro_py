@@ -1,4 +1,5 @@
-from typing import Any, List, Optional, Tuple, Union
+from itertools import cycle
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -409,6 +410,9 @@ def paired_lines(
     units: Optional[str] = None,
     order: Optional[List[str]] = None,
     hue_order: Optional[List[str]] = None,
+    style: Optional[str] = None,
+    style_order: Optional[List[str]] = None,
+    style_map: Optional[Union[Dict[str, str], List[str]]] = None,
     dodge: bool = True,
     dodge_width: float = 0.2,
     color: Optional[str] = None,
@@ -441,6 +445,13 @@ def paired_lines(
         Order of x-axis categories (matches seaborn convention).
     hue_order : list, optional
         Order of hue levels. If provided, points will be connected in this order.
+    style : str, optional
+        Column to map to line style (e.g., linestyle). Mimics seaborn's style mapping.
+    style_order : list, optional
+        Order of style levels. If provided, styles will follow this order.
+    style_map : dict or list, optional
+        Mapping from style level to matplotlib linestyle. If a list is provided,
+        it will be cycled across style levels.
     dodge : bool, default True
         Apply dodge offset like seaborn's dodge parameter.
     dodge_width : float, default 0.2
@@ -481,8 +492,23 @@ def paired_lines(
     if ax is None:
         ax = plt.gca()
 
+    # Validate required columns
+    required_cols = {x, y}
+    for optional_col in (hue, units, style):
+        if optional_col is not None:
+            required_cols.add(optional_col)
+    missing_cols = [col for col in required_cols if col not in data.columns]
+    if missing_cols:
+        raise ValueError(f"paired_lines: missing required columns: {missing_cols}")
+
     if order is None:
         order = data[x].unique()
+    else:
+        unknown_x = [val for val in data[x].unique() if val not in order]
+        if unknown_x:
+            raise ValueError(
+                f"paired_lines: x contains categories not in 'order': {unknown_x}"
+            )
 
     x_lookup = {label: i for i, label in enumerate(order)}
 
@@ -492,8 +518,34 @@ def paired_lines(
             hue_vals = sorted(data[hue].unique())
         else:
             hue_vals = hue_order
+            unknown_hue = [val for val in data[hue].unique() if val not in hue_order]
+            if unknown_hue:
+                raise ValueError(
+                    f"paired_lines: hue contains categories not in 'hue_order': {unknown_hue}"
+                )
     else:
         hue_vals = [None]
+
+    # Get style values and mapping
+    if style:
+        if style_order is None:
+            style_vals = sorted(data[style].dropna().unique())
+        else:
+            style_vals = style_order
+
+        if style_map is None:
+            default_styles = ["-", "--", "-.", ":"]
+            style_map_resolved = {
+                val: sty for val, sty in zip(style_vals, cycle(default_styles))
+            }
+        elif isinstance(style_map, list):
+            style_map_resolved = {
+                val: sty for val, sty in zip(style_vals, cycle(style_map))
+            }
+        else:
+            style_map_resolved = style_map
+    else:
+        style_map_resolved = None
 
     # Compute dodge offset
     effective_dodge_width = dodge_width if dodge and hue else 0
@@ -548,6 +600,15 @@ def paired_lines(
             else:
                 line_color = color
 
+            # Determine line style
+            plot_kwargs = dict(kwargs)
+            if style_map_resolved is not None:
+                style_val = g[style].iloc[0]
+                line_style = style_map_resolved.get(style_val, "-")
+                plot_kwargs.pop("linestyle", None)
+                plot_kwargs.pop("ls", None)
+                plot_kwargs["linestyle"] = line_style
+
             x0 = x_lookup[x_cat]
 
             # Get data for each hue value in order
@@ -587,7 +648,7 @@ def paired_lines(
                         alpha=alpha,
                         lw=lw,
                         zorder=zorder,
-                        **kwargs,
+                        **plot_kwargs,
                     )
     else:
         # No hue: group by units only, connect across x-categories
@@ -598,6 +659,14 @@ def paired_lines(
                     line_color = color_map.get(unit_val, color)
                 else:
                     line_color = color
+
+                plot_kwargs = dict(kwargs)
+                if style_map_resolved is not None:
+                    style_val = g[style].iloc[0]
+                    line_style = style_map_resolved.get(style_val, "-")
+                    plot_kwargs.pop("linestyle", None)
+                    plot_kwargs.pop("ls", None)
+                    plot_kwargs["linestyle"] = line_style
 
                 # Get data for each x-category in order
                 x_data = []
@@ -621,7 +690,7 @@ def paired_lines(
                             alpha=alpha,
                             lw=lw,
                             zorder=zorder,
-                            **kwargs,
+                            **plot_kwargs,
                         )
         else:
             # No units and no hue: just connect points in order across x-categories
@@ -639,6 +708,14 @@ def paired_lines(
                     x1, y1 = x_data[i]
                     x2, y2 = x_data[i + 1]
 
+                    plot_kwargs = dict(kwargs)
+                    if style_map_resolved is not None:
+                        style_val = data[style].iloc[0] if style else None
+                        line_style = style_map_resolved.get(style_val, "-")
+                        plot_kwargs.pop("linestyle", None)
+                        plot_kwargs.pop("ls", None)
+                        plot_kwargs["linestyle"] = line_style
+
                     ax.plot(
                         [x1, x2],
                         [y1, y2],
@@ -646,7 +723,7 @@ def paired_lines(
                         alpha=alpha,
                         lw=lw,
                         zorder=zorder,
-                        **kwargs,
+                        **plot_kwargs,
                     )
 
     return ax

@@ -236,6 +236,112 @@ def test_paired_lines_kwargs():
     plt.close(fig)
 
 
+def test_paired_lines_style_mapping_dict():
+    """Style mapping via style column and style_map dict."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+            "group": ["g1", "g1", "g2", "g2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        style="group",
+        style_map={"g1": "--", "g2": ":"},
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Each subject gets its style
+    line_styles = {line.get_linestyle() for line in ax.lines}
+    assert "--" in line_styles and ":" in line_styles
+    plt.close(fig)
+
+
+def test_paired_lines_style_mapping_list_cycle():
+    """Style mapping cycles list when more levels than entries."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1"] * 6,
+            "condition": ["A", "B", "A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5, 1.2, 2.2],
+            "subject": ["S1", "S1", "S2", "S2", "S3", "S3"],
+            "group": ["g1", "g1", "g2", "g2", "g3", "g3"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        style="group",
+        style_map=["--", ":"],  # should cycle
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    line_styles = {line.get_linestyle() for line in ax.lines}
+    # Expect two provided styles present, cycling covers third
+    assert "--" in line_styles and ":" in line_styles
+    plt.close(fig)
+
+
+def test_paired_lines_unknown_order_raises():
+    """Unknown x category with order specified should raise ValueError."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["T1", "T2"],
+            "condition": ["A", "B"],
+            "value": [1, 2],
+            "subject": ["S1", "S1"],
+        }
+    )
+
+    with pytest.raises(ValueError):
+        paired_lines(
+            data,
+            x="trial_type",
+            y="value",
+            hue="condition",
+            units="subject",
+            order=["T1"],
+        )
+
+
+def test_paired_lines_unknown_hue_order_raises():
+    """Unknown hue category with hue_order should raise ValueError."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1"],
+            "condition": ["A", "B"],
+            "value": [1, 2],
+            "subject": ["S1", "S1"],
+        }
+    )
+
+    with pytest.raises(ValueError):
+        paired_lines(
+            data,
+            x="trial_type",
+            y="value",
+            hue="condition",
+            units="subject",
+            hue_order=["A"],
+        )
+
+
 def test_paired_lines_order():
     """Test paired_lines with custom order parameter."""
     data = pd.DataFrame(
