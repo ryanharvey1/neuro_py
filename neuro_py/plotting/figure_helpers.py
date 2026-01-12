@@ -482,6 +482,8 @@ def paired_lines(
 
     Examples
     --------
+    Basic usage connecting points across conditions:
+
     >>> import pandas as pd
     >>> import matplotlib.pyplot as plt
     >>> import seaborn as sns
@@ -494,6 +496,20 @@ def paired_lines(
     >>> sns.boxplot(data=data, x='condition', y='value', ax=ax)
     >>> sns.stripplot(data=data, x='condition', y='value', ax=ax, color='k', alpha=0.6)
     >>> paired_lines(data, x='condition', y='value', units='subject', ax=ax, color='gray')
+
+    With hue to separate paired points by a second variable (e.g., maze type):
+
+    >>> data_hue = pd.DataFrame({
+    ...     'condition': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    ...     'value': [1, 2, 1.5, 2.5, 0.9, 2.1, 1.2, 2.3],
+    ...     'subject': ['S1', 'S1', 'S2', 'S2', 'S1', 'S1', 'S2', 'S2'],
+    ...     'maze': ['M1', 'M1', 'M1', 'M1', 'M2', 'M2', 'M2', 'M2']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> sns.boxplot(data=data_hue, x='condition', y='value', hue='maze', ax=ax)
+    >>> sns.stripplot(data=data_hue, x='condition', y='value', hue='maze', ax=ax, color='k', alpha=0.3, dodge=True)
+    >>> paired_lines(data_hue, x='condition', y='value', hue='maze', units='subject',
+    ...               palette=['red', 'blue'], ax=ax)
     """
     if ax is None:
         ax = plt.gca()
@@ -737,7 +753,7 @@ def paired_lines(
     n_categories = len(order)
     ax.set_xticks(range(n_categories))
     ax.set_xticklabels(order)
-    ax.set_xlim(-.5, n_categories - .5, auto=None)
+    ax.set_xlim(-0.5, n_categories - 0.5, auto=None)
 
     # Set axis labels if requested and not already set
     if set_labels:
