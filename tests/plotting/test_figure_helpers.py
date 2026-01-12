@@ -36,7 +36,7 @@ def test_paired_lines_no_hue():
     """Test paired_lines without hue parameter."""
     data = pd.DataFrame(
         {
-            "condition": ["A", "A", "A", "A"],
+            "condition": ["A", "B", "A", "B"],
             "value": [1, 2, 1.5, 2.5],
             "subject": ["S1", "S1", "S2", "S2"],
         }
@@ -46,7 +46,26 @@ def test_paired_lines_no_hue():
     result_ax = paired_lines(data, x="condition", y="value", units="subject", ax=ax)
 
     assert isinstance(result_ax, plt.Axes)
-    assert len(ax.lines) >= 1  # At least one line drawn
+    # Two subjects, each with A->B connection
+    assert len(ax.lines) == 2
+    plt.close(fig)
+
+
+def test_paired_lines_no_hue_no_units():
+    """Test paired_lines without hue or units connects across x categories."""
+    data = pd.DataFrame(
+        {
+            "condition": ["A", "B", "C"],
+            "value": [1.0, 2.0, 3.0],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(data, x="condition", y="value", ax=ax)
+
+    assert isinstance(result_ax, plt.Axes)
+    # One series across three x-categories yields two line segments
+    assert len(ax.lines) == 2
     plt.close(fig)
 
 

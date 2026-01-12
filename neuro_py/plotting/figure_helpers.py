@@ -525,31 +525,31 @@ def paired_lines(
         if color is None:
             color = "gray"
 
-    # Group by x and units
-    if units:
-        groupby_cols = [x, units]
-    else:
-        groupby_cols = [x]
-
-    for group_key, g in data.groupby(groupby_cols, sort=False):
+    if hue:
+        # With hue: group by x and units, connect across hue values within each x-category
         if units:
-            x_cat, unit_val = group_key
+            groupby_cols = [x, units]
         else:
-            x_cat = group_key
-            unit_val = None
+            groupby_cols = [x]
 
-        if x_cat not in x_lookup:
-            continue
+        for group_key, g in data.groupby(groupby_cols, sort=False):
+            if units:
+                x_cat, unit_val = group_key
+            else:
+                x_cat = group_key
+                unit_val = None
 
-        # Determine line color for this unit
-        if color_map and unit_val is not None:
-            line_color = color_map.get(unit_val, color)
-        else:
-            line_color = color
+            if x_cat not in x_lookup:
+                continue
 
-        x0 = x_lookup[x_cat]
+            # Determine line color for this unit
+            if color_map and unit_val is not None:
+                line_color = color_map.get(unit_val, color)
+            else:
+                line_color = color
 
-        if hue:
+            x0 = x_lookup[x_cat]
+
             # Get data for each hue value in order
             hue_data = []
             for hue_val in hue_vals:
@@ -589,21 +589,60 @@ def paired_lines(
                         zorder=zorder,
                         **kwargs,
                     )
-        else:
-            # No hue: connect points if there are multiple in the group
-            if len(g) >= 2:
-                ys = g[y].values
-                n_points = len(ys)
-                xs_positions = np.linspace(
-                    x0 - effective_dodge_width, x0 + effective_dodge_width, n_points
-                )
+    else:
+        # No hue: group by units only, connect across x-categories
+        if units:
+            for unit_val, g in data.groupby(units, sort=False):
+                # Determine line color for this unit
+                if color_map and unit_val is not None:
+                    line_color = color_map.get(unit_val, color)
+                else:
+                    line_color = color
 
-                # Draw lines between consecutive points
-                for i in range(n_points - 1):
+                # Get data for each x-category in order
+                x_data = []
+                for x_cat in order:
+                    mask = g[x] == x_cat
+                    if mask.any():
+                        x_pos = x_lookup[x_cat]
+                        y_val = g[mask][y].values[0]
+                        x_data.append((x_pos, y_val))
+
+                # Connect consecutive points across x-categories
+                if len(x_data) >= 2:
+                    for i in range(len(x_data) - 1):
+                        x1, y1 = x_data[i]
+                        x2, y2 = x_data[i + 1]
+
+                        ax.plot(
+                            [x1, x2],
+                            [y1, y2],
+                            color=line_color,
+                            alpha=alpha,
+                            lw=lw,
+                            zorder=zorder,
+                            **kwargs,
+                        )
+        else:
+            # No units and no hue: just connect points in order across x-categories
+            x_data = []
+            for x_cat in order:
+                mask = data[x] == x_cat
+                if mask.any():
+                    x_pos = x_lookup[x_cat]
+                    y_val = data[mask][y].values[0]
+                    x_data.append((x_pos, y_val))
+
+            # Connect consecutive points
+            if len(x_data) >= 2:
+                for i in range(len(x_data) - 1):
+                    x1, y1 = x_data[i]
+                    x2, y2 = x_data[i + 1]
+
                     ax.plot(
-                        [xs_positions[i], xs_positions[i + 1]],
-                        [ys[i], ys[i + 1]],
-                        color=line_color,
+                        [x1, x2],
+                        [y1, y2],
+                        color=color,
                         alpha=alpha,
                         lw=lw,
                         zorder=zorder,
