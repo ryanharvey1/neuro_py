@@ -1,5 +1,4 @@
 import matplotlib
-import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -357,6 +356,39 @@ def test_paired_lines_style_mapping_list_cycle():
     line_styles = {line.get_linestyle() for line in ax.lines}
     # Expect two provided styles present, cycling covers third
     assert "--" in line_styles and ":" in line_styles
+    plt.close(fig)
+
+
+def test_paired_lines_style_without_style_map():
+    """Style parameter works without style_map - uses default line styles."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1"] * 6,
+            "condition": ["A", "B", "A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5, 1.2, 2.2],
+            "subject": ["S1", "S1", "S2", "S2", "S3", "S3"],
+            "group": ["g1", "g1", "g2", "g2", "g3", "g3"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        style="group",
+        # Note: no style_map provided - should auto-assign default styles
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Should have lines and they should have different line styles
+    assert len(ax.lines) > 0
+    line_styles = {line.get_linestyle() for line in ax.lines}
+    # Default styles are: "-", "--", "-.", ":" so should have at least 3 different styles
+    assert len(line_styles) >= 3
     plt.close(fig)
 
 
