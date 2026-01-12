@@ -481,13 +481,16 @@ def paired_lines(
     --------
     >>> import pandas as pd
     >>> import matplotlib.pyplot as plt
+    >>> import seaborn as sns
     >>> data = pd.DataFrame({
     ...     'condition': ['A', 'B', 'A', 'B'],
     ...     'value': [1, 2, 1.5, 2.5],
     ...     'subject': ['S1', 'S1', 'S2', 'S2']
     ... })
     >>> fig, ax = plt.subplots()
-    >>> paired_lines(data, x='condition', y='value', units='subject', ax=ax)
+    >>> sns.boxplot(data=data, x='condition', y='value', ax=ax)
+    >>> sns.stripplot(data=data, x='condition', y='value', ax=ax, color='k', alpha=0.6)
+    >>> paired_lines(data, x='condition', y='value', units='subject', ax=ax, color='gray')
     """
     if ax is None:
         ax = plt.gca()
