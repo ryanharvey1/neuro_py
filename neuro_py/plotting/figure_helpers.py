@@ -1,6 +1,6 @@
-from itertools import cycle
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, Hashable
+from itertools import cycle
+from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
