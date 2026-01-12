@@ -1,5 +1,5 @@
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Hashable
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -408,10 +408,10 @@ def paired_lines(
     y: str,
     hue: Optional[str] = None,
     units: Optional[str] = None,
-    order: Optional[List[str]] = None,
-    hue_order: Optional[List[str]] = None,
+    order: Optional[List[Hashable]] = None,
+    hue_order: Optional[List[Hashable]] = None,
     style: Optional[str] = None,
-    style_order: Optional[List[str]] = None,
+    style_order: Optional[List[Hashable]] = None,
     style_map: Optional[Union[Dict[str, str], List[str]]] = None,
     set_labels: bool = True,
     dodge: bool = True,

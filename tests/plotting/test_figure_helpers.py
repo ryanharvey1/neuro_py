@@ -268,7 +268,7 @@ def test_paired_lines_sets_labels_when_missing():
 
 
 def test_paired_lines_custom_labels():
-    """Custom x/y labels override defaults when set_labels is True."""
+    """Pre-set x/y labels are preserved when set_labels is True."""
     data = pd.DataFrame(
         {
             "trial_type": ["trial1", "trial1"],
@@ -279,8 +279,9 @@ def test_paired_lines_custom_labels():
     )
 
     fig, ax = plt.subplots()
-    ax.set_xlabel("")
-    ax.set_ylabel("")
+    # Pre-set custom labels; function should not override them
+    ax.set_xlabel("Custom X")
+    ax.set_ylabel("Custom Y")
 
     result_ax = paired_lines(
         data,
@@ -292,8 +293,8 @@ def test_paired_lines_custom_labels():
     )
 
     assert isinstance(result_ax, plt.Axes)
-    assert ax.get_xlabel() == "trial_type"
-    assert ax.get_ylabel() == "value"
+    assert ax.get_xlabel() == "Custom X"
+    assert ax.get_ylabel() == "Custom Y"
     plt.close(fig)
 
 
