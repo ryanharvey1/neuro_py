@@ -440,9 +440,13 @@ def paired_lines(
         Column name for y-axis values.
     hue : str, optional
         Column to separate points within each x-category (e.g., two maze conditions).
+        When provided alone: connects points across hue values within each x-category.
+        When provided with units: connects points with the same unit but different hue
+        values within each x-category.
     units : str, optional
         Column that defines which points belong together (e.g., unique_basepath).
-        Required when connecting points across hue values.
+        When provided alone: connects points across x-categories with the same unit.
+        When provided with hue: groups by (x, units) and connects across hue values.
     order : list, optional
         Order of x-axis categories (matches seaborn convention).
     hue_order : list, optional
@@ -483,6 +487,15 @@ def paired_lines(
 
     Notes
     -----
+    The function supports three execution modes depending on parameters:
+
+    1. **Units only** (units provided, hue=None): Connects lines across x-categories
+       for each unit, useful for tracking individual subjects/units across conditions.
+    2. **Hue only** (hue provided, units=None): Connects points across different hue
+       values within each x-category, useful for showing transitions across levels.
+    3. **Units + Hue** (both provided): Groups by (x, units) and connects points
+       across hue values, allowing unit-specific lines colored/styled by hue.
+
     If ``data`` contains multiple rows with the same combination of ``x``,
     ``units``, and (if used) ``hue``, the implementation selects the first
     matching value internally and ignores additional duplicates. If this is
@@ -519,6 +532,17 @@ def paired_lines(
     >>> sns.stripplot(data=data_hue, x='condition', y='value', hue='maze', ax=ax, color='k', alpha=0.3, dodge=True)
     >>> paired_lines(data_hue, x='condition', y='value', hue='maze', units='subject',
     ...               palette=['red', 'blue'], ax=ax)
+
+    With hue only (connecting across hue values within each x-category):
+
+    >>> data_device = pd.DataFrame({
+    ...     'trial': ['A', 'A', 'A', 'B', 'B', 'B'],
+    ...     'value': [1.0, 1.5, 1.2, 2.0, 2.5, 2.3],
+    ...     'device': ['X', 'Y', 'Z', 'X', 'Y', 'Z']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> sns.stripplot(data=data_device, x='trial', y='value', hue='device', jitter=0, dodge=True, ax=ax)
+    >>> paired_lines(data_device, x='trial', y='value', hue='device', ax=ax, color='gray')
     """
     if ax is None:
         ax = plt.gca()

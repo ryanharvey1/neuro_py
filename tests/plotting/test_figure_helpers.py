@@ -604,9 +604,7 @@ def test_paired_lines_hue_without_units():
     )
 
     fig, ax = plt.subplots()
-    result_ax = paired_lines(
-        data, x="trial", y="value", hue="device", ax=ax
-    )
+    result_ax = paired_lines(data, x="trial", y="value", hue="device", ax=ax)
 
     assert isinstance(result_ax, plt.Axes)
     # With 3 devices per trial and 2 trials, we expect 2 line groups
