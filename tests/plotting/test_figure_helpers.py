@@ -1,0 +1,378 @@
+import matplotlib
+import numpy as np
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+import pytest
+
+from neuro_py.plotting.figure_helpers import paired_lines
+
+
+def test_paired_lines_basic():
+    """Test basic paired_lines functionality with hue and units."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5, 2, 3],
+            "subject": ["S1", "S1", "S2", "S2", "S3", "S3"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data, x="trial_type", y="value", hue="condition", units="subject", ax=ax
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    assert result_ax is ax
+    # Check that lines were drawn (3 subjects = 3 lines)
+    assert len(ax.lines) == 3
+    plt.close(fig)
+
+
+def test_paired_lines_no_hue():
+    """Test paired_lines without hue parameter."""
+    data = pd.DataFrame(
+        {
+            "condition": ["A", "A", "A", "A"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(data, x="condition", y="value", units="subject", ax=ax)
+
+    assert isinstance(result_ax, plt.Axes)
+    assert len(ax.lines) >= 1  # At least one line drawn
+    plt.close(fig)
+
+
+def test_paired_lines_custom_color():
+    """Test paired_lines with custom color."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        color="red",
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Check that lines have the specified color
+    for line in ax.lines:
+        assert line.get_color() == "red"
+    plt.close(fig)
+
+
+def test_paired_lines_palette():
+    """Test paired_lines with palette parameter."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5, 2, 3],
+            "subject": ["S1", "S1", "S2", "S2", "S3", "S3"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    palette = {"S1": "red", "S2": "blue", "S3": "green"}
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        palette=palette,
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    assert len(ax.lines) == 3
+    plt.close(fig)
+
+
+def test_paired_lines_palette_list():
+    """Test paired_lines with palette as a list."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    palette = ["red", "blue"]
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        palette=palette,
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_palette_seaborn():
+    """Test paired_lines with seaborn palette name."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        palette="Set2",
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_custom_dodge_width():
+    """Test paired_lines with custom dodge width."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        dodge_width=0.5,
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_kwargs():
+    """Test paired_lines with additional matplotlib kwargs."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        linestyle="--",
+        marker="o",
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Check that linestyle was applied
+    for line in ax.lines:
+        assert line.get_linestyle() == "--"
+        assert line.get_marker() == "o"
+    plt.close(fig)
+
+
+def test_paired_lines_order():
+    """Test paired_lines with custom order parameter."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["T1", "T2", "T3", "T1", "T2", "T3"],
+            "condition": ["A", "A", "A", "B", "B", "B"],
+            "value": [1, 2, 3, 1.5, 2.5, 3.5],
+            "subject": ["S1", "S1", "S1", "S2", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        order=["T3", "T2", "T1"],
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_hue_order():
+    """Test paired_lines with custom hue_order parameter."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "C", "A", "B", "C"],
+            "value": [1, 2, 3, 1.5, 2.5, 3.5],
+            "subject": ["S1", "S1", "S1", "S2", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        hue_order=["C", "B", "A"],
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_no_dodge():
+    """Test paired_lines with dodge=False."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        dodge=False,
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)
+
+
+def test_paired_lines_alpha_lw_zorder():
+    """Test paired_lines with custom alpha, linewidth, and zorder."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        alpha=0.8,
+        lw=2,
+        zorder=5,
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Check line properties
+    for line in ax.lines:
+        assert line.get_alpha() == 0.8
+        assert line.get_linewidth() == 2
+        assert line.get_zorder() == 5
+    plt.close(fig)
+
+
+def test_paired_lines_multiple_hue_values():
+    """Test paired_lines with more than 2 hue values."""
+    data = pd.DataFrame(
+        {
+            "trial_type": [
+                "trial1",
+                "trial1",
+                "trial1",
+                "trial1",
+                "trial1",
+                "trial1",
+                "trial1",
+                "trial1",
+            ],
+            "condition": ["A", "B", "C", "D", "A", "B", "C", "D"],
+            "value": [1, 2, 3, 4, 1.5, 2.5, 3.5, 4.5],
+            "subject": ["S1", "S1", "S1", "S1", "S2", "S2", "S2", "S2"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data, x="trial_type", y="value", hue="condition", units="subject", ax=ax
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # Should have lines connecting A->B, B->C, C->D for each subject
+    assert len(ax.lines) == 6  # 3 lines per subject * 2 subjects
+    plt.close(fig)
+
+
+def test_paired_lines_no_ax():
+    """Test paired_lines without providing an axes object."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "B", "A", "B"],
+            "value": [1, 2, 1.5, 2.5],
+            "subject": ["S1", "S1", "S2", "S2"],
+        }
+    )
+
+    result_ax = paired_lines(
+        data, x="trial_type", y="value", hue="condition", units="subject"
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close()

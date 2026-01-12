@@ -1,8 +1,9 @@
-from typing import Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib.patches import PathPatch
 
@@ -396,5 +397,217 @@ def clean_plot3d(ax):
     ax.set_zticks([])
     ax.xaxis.labelpad = ax.yaxis.labelpad = ax.zaxis.labelpad = 0
     ax.xaxis._axinfo["label"]["space_factor"] = 0
+
+    return ax
+
+
+def paired_lines(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    hue: Optional[str] = None,
+    units: Optional[str] = None,
+    order: Optional[List[str]] = None,
+    hue_order: Optional[List[str]] = None,
+    dodge: bool = True,
+    dodge_width: float = 0.2,
+    color: Optional[str] = None,
+    palette: Optional[Union[str, List[str], dict]] = None,
+    alpha: float = 0.5,
+    lw: float = 1,
+    ax: Optional[matplotlib.axes.Axes] = None,
+    zorder: int = 0,
+    **kwargs: Any,
+) -> matplotlib.axes.Axes:
+    """
+    Draw lines connecting paired points within each x-category.
+
+    Designed to complement seaborn boxplot/stripplot for visualizing paired data.
+
+    Parameters
+    ----------
+    data : DataFrame
+        Input data.
+    x : str
+        Column name for x-axis categories.
+    y : str
+        Column name for y-axis values.
+    hue : str, optional
+        Column to separate points within each x-category (e.g., two maze conditions).
+    units : str, optional
+        Column that defines which points belong together (e.g., unique_basepath).
+        Required when connecting points across hue values.
+    order : list, optional
+        Order of x-axis categories (matches seaborn convention).
+    hue_order : list, optional
+        Order of hue levels. If provided, points will be connected in this order.
+    dodge : bool, default True
+        Apply dodge offset like seaborn's dodge parameter.
+    dodge_width : float, default 0.2
+        Width of the dodge offset between hue categories.
+    color : str, optional
+        Line color. If None and palette is not provided, defaults to "gray".
+        Ignored if palette is provided.
+    palette : str, list, or dict, optional
+        Color palette for lines. Can be a seaborn palette name, list of colors,
+        or dict mapping units to colors. If provided, overrides color parameter.
+    alpha : float, default 0.5
+        Line transparency.
+    lw : float, default 1
+        Line width.
+    ax : matplotlib Axes, optional
+        Axes to plot on. Defaults to current axes.
+    zorder : int, default 0
+        Z-order for the lines.
+    **kwargs : additional keyword arguments
+        Passed to matplotlib's plot() function (e.g., linestyle, marker, etc.).
+
+    Returns
+    -------
+    ax : matplotlib Axes
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> import matplotlib.pyplot as plt
+    >>> data = pd.DataFrame({
+    ...     'condition': ['A', 'B', 'A', 'B'],
+    ...     'value': [1, 2, 1.5, 2.5],
+    ...     'subject': ['S1', 'S1', 'S2', 'S2']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> paired_lines(data, x='condition', y='value', units='subject', ax=ax)
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    if order is None:
+        order = data[x].unique()
+
+    x_lookup = {label: i for i, label in enumerate(order)}
+
+    # Get hue values
+    if hue:
+        if hue_order is None:
+            hue_vals = sorted(data[hue].unique())
+        else:
+            hue_vals = hue_order
+    else:
+        hue_vals = [None]
+
+    # Compute dodge offset
+    effective_dodge_width = dodge_width if dodge and hue else 0
+
+    # Set up color mapping
+    if palette is not None:
+        if isinstance(palette, str):
+            # Seaborn palette name
+            colors = sns.color_palette(
+                palette, n_colors=len(data[units].unique()) if units else 1
+            )
+            if units:
+                unit_vals = sorted(data[units].unique())
+                color_map = dict(zip(unit_vals, colors))
+            else:
+                color_map = None
+        elif isinstance(palette, dict):
+            color_map = palette
+        elif isinstance(palette, list):
+            if units:
+                unit_vals = sorted(data[units].unique())
+                color_map = dict(zip(unit_vals, palette))
+            else:
+                color_map = None
+        else:
+            color_map = None
+    else:
+        color_map = None
+        if color is None:
+            color = "gray"
+
+    # Group by x and units
+    if units:
+        groupby_cols = [x, units]
+    else:
+        groupby_cols = [x]
+
+    for group_key, g in data.groupby(groupby_cols, sort=False):
+        if units:
+            x_cat, unit_val = group_key
+        else:
+            x_cat = group_key
+            unit_val = None
+
+        if x_cat not in x_lookup:
+            continue
+
+        # Determine line color for this unit
+        if color_map and unit_val is not None:
+            line_color = color_map.get(unit_val, color)
+        else:
+            line_color = color
+
+        x0 = x_lookup[x_cat]
+
+        if hue:
+            # Get data for each hue value in order
+            hue_data = []
+            for hue_val in hue_vals:
+                mask = g[hue] == hue_val
+                if mask.any():
+                    hue_data.append((hue_val, g[mask][y].values[0]))
+
+            # Connect consecutive pairs
+            if len(hue_data) >= 2:
+                # Calculate x positions with dodge
+                n_hue = len(hue_vals)
+                if n_hue > 1:
+                    hue_offsets = np.linspace(
+                        -effective_dodge_width, effective_dodge_width, n_hue
+                    )
+                else:
+                    hue_offsets = [0]
+
+                hue_to_offset = {
+                    hue_val: offset for hue_val, offset in zip(hue_vals, hue_offsets)
+                }
+
+                # Draw lines between consecutive pairs
+                for i in range(len(hue_data) - 1):
+                    hue_val1, y1 = hue_data[i]
+                    hue_val2, y2 = hue_data[i + 1]
+
+                    x1 = x0 + hue_to_offset[hue_val1]
+                    x2 = x0 + hue_to_offset[hue_val2]
+
+                    ax.plot(
+                        [x1, x2],
+                        [y1, y2],
+                        color=line_color,
+                        alpha=alpha,
+                        lw=lw,
+                        zorder=zorder,
+                        **kwargs,
+                    )
+        else:
+            # No hue: connect points if there are multiple in the group
+            if len(g) >= 2:
+                ys = g[y].values
+                n_points = len(ys)
+                xs_positions = np.linspace(
+                    x0 - effective_dodge_width, x0 + effective_dodge_width, n_points
+                )
+
+                # Draw lines between consecutive points
+                for i in range(n_points - 1):
+                    ax.plot(
+                        [xs_positions[i], xs_positions[i + 1]],
+                        [ys[i], ys[i + 1]],
+                        color=line_color,
+                        alpha=alpha,
+                        lw=lw,
+                        zorder=zorder,
+                        **kwargs,
+                    )
 
     return ax

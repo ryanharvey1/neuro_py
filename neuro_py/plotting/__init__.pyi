@@ -11,6 +11,7 @@ __all__ = (
     "plot_joint_peth",
     "clean_plot3d",
     "AngleAnnotation",
+    "paired_lines",
 )
 
 from .decorators import (
@@ -26,4 +27,5 @@ from .figure_helpers import (
     set_equal_axis_range,
     set_plotting_defaults,
     set_size,
+    paired_lines,
 )
