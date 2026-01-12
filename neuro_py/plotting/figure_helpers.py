@@ -1,8 +1,11 @@
-from typing import Tuple, Union
+import warnings
+from itertools import cycle
+from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib.patches import PathPatch
 
@@ -396,5 +399,420 @@ def clean_plot3d(ax):
     ax.set_zticks([])
     ax.xaxis.labelpad = ax.yaxis.labelpad = ax.zaxis.labelpad = 0
     ax.xaxis._axinfo["label"]["space_factor"] = 0
+
+    return ax
+
+
+def paired_lines(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    hue: Optional[str] = None,
+    units: Optional[str] = None,
+    order: Optional[List[Hashable]] = None,
+    hue_order: Optional[List[Hashable]] = None,
+    style: Optional[str] = None,
+    style_order: Optional[List[Hashable]] = None,
+    style_map: Optional[Union[Dict[str, str], List[str]]] = None,
+    set_labels: bool = True,
+    dodge: bool = True,
+    dodge_width: float = 0.2,
+    color: Optional[str] = None,
+    palette: Optional[Union[str, List[str], dict]] = None,
+    alpha: float = 0.5,
+    lw: float = 1,
+    ax: Optional[matplotlib.axes.Axes] = None,
+    zorder: int = 0,
+    **kwargs: Any,
+) -> matplotlib.axes.Axes:
+    """
+    Draw lines connecting paired points within each x-category.
+
+    Designed to complement seaborn boxplot/stripplot for visualizing paired data.
+
+    Parameters
+    ----------
+    data : DataFrame
+        Input data.
+    x : str
+        Column name for x-axis categories.
+    y : str
+        Column name for y-axis values.
+    hue : str, optional
+        Column to separate points within each x-category (e.g., two maze conditions).
+        When provided alone: connects points across hue values within each x-category.
+        When provided with units: connects points with the same unit but different hue
+        values within each x-category.
+    units : str, optional
+        Column that defines which points belong together (e.g., unique_basepath).
+        When provided alone: connects points across x-categories with the same unit.
+        When provided with hue: groups by (x, units) and connects across hue values.
+    order : list, optional
+        Order of x-axis categories (matches seaborn convention).
+    hue_order : list, optional
+        Order of hue levels. If provided, points will be connected in this order.
+    style : str, optional
+        Column to map to line style (e.g., linestyle). Mimics seaborn's style mapping.
+    style_order : list, optional
+        Order of style levels. If provided, styles will follow this order.
+    style_map : dict or list, optional
+        Mapping from style level to matplotlib linestyle. If a list is provided,
+        it will be cycled across style levels.
+    set_labels : bool, default True
+        If True, set x and y labels when not already present on the axes.
+    dodge : bool, default True
+        Apply dodge offset like seaborn's dodge parameter.
+    dodge_width : float, default 0.2
+        Width of the dodge offset between hue categories.
+    color : str, optional
+        Line color. If None and palette is not provided, defaults to "gray".
+        Ignored if palette is provided.
+    palette : str, list, or dict, optional
+        Color palette for lines. Can be a seaborn palette name, list of colors,
+        or dict mapping units to colors. If provided, overrides color parameter.
+    alpha : float, default 0.5
+        Line transparency.
+    lw : float, default 1
+        Line width.
+    ax : matplotlib Axes, optional
+        Axes to plot on. Defaults to current axes.
+    zorder : int, default 0
+        Z-order for the lines.
+    **kwargs : additional keyword arguments
+        Passed to matplotlib's plot() function (e.g., linestyle, marker, etc.).
+
+    Returns
+    -------
+    ax : matplotlib Axes
+
+    Notes
+    -----
+    The function supports three execution modes depending on parameters:
+
+    1. **Units only** (units provided, hue=None): Connects lines across x-categories
+       for each unit, useful for tracking individual subjects/units across conditions.
+    2. **Hue only** (hue provided, units=None): Connects points across different hue
+       values within each x-category, useful for showing transitions across levels.
+    3. **Units + Hue** (both provided): Groups by (x, units) and connects points
+       across hue values, allowing unit-specific lines colored/styled by hue.
+
+    If ``data`` contains multiple rows with the same combination of ``x``,
+    ``units``, and (if used) ``hue``, the implementation selects the first
+    matching value internally and ignores additional duplicates. If this is
+    not the desired behavior, aggregate or deduplicate the data for each
+    (``x``, ``units``, ``hue``) combination before calling this function.
+
+    Examples
+    --------
+    Basic usage connecting points across conditions:
+
+    >>> import pandas as pd
+    >>> import matplotlib.pyplot as plt
+    >>> import seaborn as sns
+    >>> data = pd.DataFrame({
+    ...     'condition': ['A', 'B', 'A', 'B'],
+    ...     'value': [1, 2, 1.5, 2.5],
+    ...     'subject': ['S1', 'S1', 'S2', 'S2']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> sns.boxplot(data=data, x='condition', y='value', ax=ax)
+    >>> sns.stripplot(data=data, x='condition', y='value', ax=ax, color='k', alpha=0.6)
+    >>> paired_lines(data, x='condition', y='value', units='subject', ax=ax, color='gray')
+
+    With hue to separate paired points by a second variable (e.g., maze type):
+
+    >>> data_hue = pd.DataFrame({
+    ...     'condition': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+    ...     'value': [1, 2, 1.5, 2.5, 0.9, 2.1, 1.2, 2.3],
+    ...     'subject': ['S1', 'S1', 'S2', 'S2', 'S1', 'S1', 'S2', 'S2'],
+    ...     'maze': ['M1', 'M1', 'M1', 'M1', 'M2', 'M2', 'M2', 'M2']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> sns.boxplot(data=data_hue, x='condition', y='value', hue='maze', ax=ax)
+    >>> sns.stripplot(data=data_hue, x='condition', y='value', hue='maze', ax=ax, color='k', alpha=0.3, dodge=True)
+    >>> paired_lines(data_hue, x='condition', y='value', hue='maze', units='subject',
+    ...               palette=['red', 'blue'], ax=ax)
+
+    With hue only (connecting across hue values within each x-category):
+
+    >>> data_device = pd.DataFrame({
+    ...     'trial': ['A', 'A', 'A', 'B', 'B', 'B'],
+    ...     'value': [1.0, 1.5, 1.2, 2.0, 2.5, 2.3],
+    ...     'device': ['X', 'Y', 'Z', 'X', 'Y', 'Z']
+    ... })
+    >>> fig, ax = plt.subplots()
+    >>> sns.stripplot(data=data_device, x='trial', y='value', hue='device', jitter=0, dodge=True, ax=ax)
+    >>> paired_lines(data_device, x='trial', y='value', hue='device', ax=ax, color='gray')
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    # Validate required columns
+    required_cols = {x, y}
+    for optional_col in (hue, units, style):
+        if optional_col is not None:
+            required_cols.add(optional_col)
+    missing_cols = [col for col in required_cols if col not in data.columns]
+    if missing_cols:
+        raise ValueError(f"paired_lines: missing required columns: {missing_cols}")
+
+    if order is None:
+        order = data[x].unique()
+    else:
+        unknown_x = [val for val in data[x].unique() if val not in order]
+        if unknown_x:
+            raise ValueError(
+                f"paired_lines: x contains categories not in 'order': {unknown_x}"
+            )
+
+    x_lookup = {label: i for i, label in enumerate(order)}
+
+    # Get hue values
+    if hue:
+        if hue_order is None:
+            hue_vals = sorted(data[hue].unique())
+        else:
+            hue_vals = hue_order
+            unknown_hue = [val for val in data[hue].unique() if val not in hue_order]
+            if unknown_hue:
+                raise ValueError(
+                    f"paired_lines: hue contains categories not in 'hue_order': {unknown_hue}"
+                )
+    else:
+        hue_vals = [None]
+
+    # Warn on duplicate rows for (x, units, hue) combinations
+    dup_keys = [x]
+    if units:
+        dup_keys.append(units)
+    if hue:
+        dup_keys.append(hue)
+    dup_counts = data.groupby(dup_keys, dropna=False).size()
+    num_dup_groups = int((dup_counts > 1).sum())
+    if num_dup_groups:
+        warnings.warn(
+            (
+                f"paired_lines: detected {num_dup_groups} duplicate group(s) for "
+                f"combinations of {tuple(dup_keys)}; selecting the first value per group. "
+                "Consider aggregating or deduplicating your data."
+            ),
+            UserWarning,
+        )
+
+    # Get style values and mapping
+    if style:
+        if style_order is None:
+            style_vals = sorted(data[style].dropna().unique())
+        else:
+            style_vals = style_order
+
+        if style_map is None:
+            default_styles = ["-", "--", "-.", ":"]
+            style_map_resolved = {
+                val: sty for val, sty in zip(style_vals, cycle(default_styles))
+            }
+        elif isinstance(style_map, list):
+            style_map_resolved = {
+                val: sty for val, sty in zip(style_vals, cycle(style_map))
+            }
+        else:
+            style_map_resolved = style_map
+    else:
+        style_map_resolved = None
+
+    # Compute dodge offset
+    effective_dodge_width = dodge_width if dodge and hue else 0
+
+    # Set up color mapping
+    if palette is not None:
+        if isinstance(palette, str):
+            # Seaborn palette name
+            colors = sns.color_palette(
+                palette, n_colors=len(data[units].unique()) if units else 1
+            )
+            if units:
+                unit_vals = sorted(data[units].unique())
+                color_map = dict(zip(unit_vals, colors))
+            else:
+                color_map = None
+        elif isinstance(palette, dict):
+            color_map = palette
+        elif isinstance(palette, list):
+            if units:
+                unit_vals = sorted(data[units].unique())
+                color_map = dict(zip(unit_vals, palette))
+            else:
+                color_map = None
+        else:
+            color_map = None
+    else:
+        color_map = None
+        if color is None:
+            color = "gray"
+
+    if hue:
+        # With hue: group by x and units, connect across hue values within each x-category
+        if units:
+            groupby_cols = [x, units]
+        else:
+            groupby_cols = [x]
+
+        for group_key, g in data.groupby(groupby_cols, sort=False):
+            if units:
+                x_cat, unit_val = group_key
+            else:
+                # When grouping by single column as list, pandas returns 1-tuple
+                x_cat = group_key[0] if isinstance(group_key, tuple) else group_key
+                unit_val = None
+
+            if x_cat not in x_lookup:
+                continue
+
+            # Determine line color for this unit
+            if color_map and unit_val is not None:
+                line_color = color_map.get(unit_val, color)
+            else:
+                line_color = color
+
+            # Determine line style
+            plot_kwargs = dict(kwargs)
+            if style_map_resolved is not None:
+                style_val = g[style].iloc[0]
+                line_style = style_map_resolved.get(style_val, "-")
+                plot_kwargs.pop("linestyle", None)
+                plot_kwargs.pop("ls", None)
+                plot_kwargs["linestyle"] = line_style
+
+            x0 = x_lookup[x_cat]
+
+            # Get data for each hue value in order
+            hue_data = []
+            for hue_val in hue_vals:
+                mask = g[hue] == hue_val
+                if mask.any():
+                    hue_data.append((hue_val, g[mask][y].values[0]))
+
+            # Connect consecutive pairs
+            if len(hue_data) >= 2:
+                # Calculate x positions with dodge
+                n_hue = len(hue_vals)
+                if n_hue > 1:
+                    hue_offsets = np.linspace(
+                        -effective_dodge_width, effective_dodge_width, n_hue
+                    )
+                else:
+                    hue_offsets = [0]
+
+                hue_to_offset = {
+                    hue_val: offset for hue_val, offset in zip(hue_vals, hue_offsets)
+                }
+
+                # Draw lines between consecutive pairs
+                for i in range(len(hue_data) - 1):
+                    hue_val1, y1 = hue_data[i]
+                    hue_val2, y2 = hue_data[i + 1]
+
+                    x1 = x0 + hue_to_offset[hue_val1]
+                    x2 = x0 + hue_to_offset[hue_val2]
+
+                    ax.plot(
+                        [x1, x2],
+                        [y1, y2],
+                        color=line_color,
+                        alpha=alpha,
+                        lw=lw,
+                        zorder=zorder,
+                        **plot_kwargs,
+                    )
+    else:
+        # No hue: group by units only, connect across x-categories
+        if units:
+            for unit_val, g in data.groupby(units, sort=False):
+                # Determine line color for this unit
+                if color_map and unit_val is not None:
+                    line_color = color_map.get(unit_val, color)
+                else:
+                    line_color = color
+
+                plot_kwargs = dict(kwargs)
+                if style_map_resolved is not None:
+                    style_val = g[style].iloc[0]
+                    line_style = style_map_resolved.get(style_val, "-")
+                    plot_kwargs.pop("linestyle", None)
+                    plot_kwargs.pop("ls", None)
+                    plot_kwargs["linestyle"] = line_style
+
+                # Get data for each x-category in order
+                x_data = []
+                for x_cat in order:
+                    mask = g[x] == x_cat
+                    if mask.any():
+                        x_pos = x_lookup[x_cat]
+                        y_val = g[mask][y].values[0]
+                        x_data.append((x_pos, y_val))
+
+                # Connect consecutive points across x-categories
+                if len(x_data) >= 2:
+                    for i in range(len(x_data) - 1):
+                        x1, y1 = x_data[i]
+                        x2, y2 = x_data[i + 1]
+
+                        ax.plot(
+                            [x1, x2],
+                            [y1, y2],
+                            color=line_color,
+                            alpha=alpha,
+                            lw=lw,
+                            zorder=zorder,
+                            **plot_kwargs,
+                        )
+        else:
+            # No units and no hue: just connect points in order across x-categories
+            x_data = []
+            for x_cat in order:
+                mask = data[x] == x_cat
+                if mask.any():
+                    x_pos = x_lookup[x_cat]
+                    y_val = data[mask][y].values[0]
+                    x_data.append((x_pos, y_val))
+
+            # Connect consecutive points
+            if len(x_data) >= 2:
+                # Compute plot kwargs and style once, since they do not change across segments
+                plot_kwargs = dict(kwargs)
+                if style_map_resolved is not None:
+                    style_val = data[style].iloc[0]
+                    line_style = style_map_resolved.get(style_val, "-")
+                    plot_kwargs.pop("linestyle", None)
+                    plot_kwargs.pop("ls", None)
+                    plot_kwargs["linestyle"] = line_style
+
+                for i in range(len(x_data) - 1):
+                    x1, y1 = x_data[i]
+                    x2, y2 = x_data[i + 1]
+
+                    ax.plot(
+                        [x1, x2],
+                        [y1, y2],
+                        color=color,
+                        alpha=alpha,
+                        lw=lw,
+                        zorder=zorder,
+                        **plot_kwargs,
+                    )
+
+    # Adjust categorical axis like seaborn does: set ticks, labels, and limits
+    # Since we plot with numeric positions internally, we explicitly set the labels
+    n_categories = len(order)
+    ax.set_xticks(range(n_categories))
+    ax.set_xticklabels(order)
+    ax.set_xlim(-0.5, n_categories - 0.5, auto=None)
+
+    # Set axis labels if requested and not already set
+    if set_labels:
+        if not ax.get_xlabel():
+            ax.set_xlabel(x)
+        if not ax.get_ylabel():
+            ax.set_ylabel(y)
 
     return ax
