@@ -236,6 +236,67 @@ def test_paired_lines_kwargs():
     plt.close(fig)
 
 
+def test_paired_lines_sets_labels_when_missing():
+    """Auto-set x/y labels when axes are unlabeled and set_labels is True."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1"],
+            "condition": ["A", "B"],
+            "value": [1, 2],
+            "subject": ["S1", "S1"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    # Clear labels to simulate blank axes
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    assert ax.get_xlabel() == "trial_type"
+    assert ax.get_ylabel() == "value"
+    plt.close(fig)
+
+
+def test_paired_lines_custom_labels():
+    """Custom x/y labels override defaults when set_labels is True."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1"],
+            "condition": ["A", "B"],
+            "value": [1, 2],
+            "subject": ["S1", "S1"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+
+    result_ax = paired_lines(
+        data,
+        x="trial_type",
+        y="value",
+        hue="condition",
+        units="subject",
+        ax=ax,
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    assert ax.get_xlabel() == "trial_type"
+    assert ax.get_ylabel() == "value"
+    plt.close(fig)
+
+
 def test_paired_lines_style_mapping_dict():
     """Style mapping via style column and style_map dict."""
     data = pd.DataFrame(

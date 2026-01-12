@@ -413,6 +413,7 @@ def paired_lines(
     style: Optional[str] = None,
     style_order: Optional[List[str]] = None,
     style_map: Optional[Union[Dict[str, str], List[str]]] = None,
+    set_labels: bool = True,
     dodge: bool = True,
     dodge_width: float = 0.2,
     color: Optional[str] = None,
@@ -452,6 +453,8 @@ def paired_lines(
     style_map : dict or list, optional
         Mapping from style level to matplotlib linestyle. If a list is provided,
         it will be cycled across style levels.
+    set_labels : bool, default True
+        If True, set x and y labels when not already present on the axes.
     dodge : bool, default True
         Apply dodge offset like seaborn's dodge parameter.
     dodge_width : float, default 0.2
@@ -728,5 +731,19 @@ def paired_lines(
                         zorder=zorder,
                         **plot_kwargs,
                     )
+
+    # Adjust categorical axis like seaborn does: set ticks, labels, and limits
+    # Since we plot with numeric positions internally, we explicitly set the labels
+    n_categories = len(order)
+    ax.set_xticks(range(n_categories))
+    ax.set_xticklabels(order)
+    ax.set_xlim(-.5, n_categories - .5, auto=None)
+
+    # Set axis labels if requested and not already set
+    if set_labels:
+        if not ax.get_xlabel():
+            ax.set_xlabel(x)
+        if not ax.get_ylabel():
+            ax.set_ylabel(y)
 
     return ax
