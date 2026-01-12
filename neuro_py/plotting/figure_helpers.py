@@ -756,7 +756,7 @@ def paired_lines(
                 # Compute plot kwargs and style once, since they do not change across segments
                 plot_kwargs = dict(kwargs)
                 if style_map_resolved is not None:
-                    style_val = data[style].iloc[0] if style else None
+                    style_val = data[style].iloc[0]
                     line_style = style_map_resolved.get(style_val, "-")
                     plot_kwargs.pop("linestyle", None)
                     plot_kwargs.pop("ls", None)
