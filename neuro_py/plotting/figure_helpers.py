@@ -637,7 +637,8 @@ def paired_lines(
             if units:
                 x_cat, unit_val = group_key
             else:
-                x_cat = group_key
+                # When grouping by single column as list, pandas returns 1-tuple
+                x_cat = group_key[0] if isinstance(group_key, tuple) else group_key
                 unit_val = None
 
             if x_cat not in x_lookup:

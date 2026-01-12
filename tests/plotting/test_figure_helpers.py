@@ -589,3 +589,28 @@ def test_paired_lines_duplicate_warning():
 
     assert isinstance(result_ax, plt.Axes)
     plt.close(fig)
+
+
+def test_paired_lines_hue_without_units():
+    """Test hue without units parameter (lines 629-645)."""
+    # When hue is provided without units, the function groups by x only,
+    # and connects lines across different hue values within each x-category.
+    data = pd.DataFrame(
+        {
+            "trial": ["A", "A", "A", "B", "B", "B"],
+            "value": [1.0, 1.5, 1.2, 2.0, 2.5, 2.3],
+            "device": ["X", "Y", "Z", "X", "Y", "Z"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    result_ax = paired_lines(
+        data, x="trial", y="value", hue="device", ax=ax
+    )
+
+    assert isinstance(result_ax, plt.Axes)
+    # With 3 devices per trial and 2 trials, we expect 2 line groups
+    # (one for each trial, connecting the 3 device values)
+    # Each group has 2 lines connecting 3 points: X-Y, Y-Z
+    assert len(ax.lines) == 4
+    plt.close(fig)
