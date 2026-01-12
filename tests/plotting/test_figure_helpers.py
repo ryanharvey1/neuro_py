@@ -563,3 +563,29 @@ def test_paired_lines_no_ax():
 
     assert isinstance(result_ax, plt.Axes)
     plt.close()
+
+
+def test_paired_lines_duplicate_warning():
+    """Warn when duplicate (x, units, hue) groups are present."""
+    data = pd.DataFrame(
+        {
+            "trial_type": ["trial1", "trial1", "trial1", "trial1"],
+            "condition": ["A", "A", "B", "B"],
+            "value": [1.0, 1.1, 2.0, 2.1],
+            "subject": ["S1", "S1", "S1", "S1"],
+        }
+    )
+
+    fig, ax = plt.subplots()
+    with pytest.warns(UserWarning, match="duplicate group"):
+        result_ax = paired_lines(
+            data,
+            x="trial_type",
+            y="value",
+            hue="condition",
+            units="subject",
+            ax=ax,
+        )
+
+    assert isinstance(result_ax, plt.Axes)
+    plt.close(fig)

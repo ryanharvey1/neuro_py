@@ -1,4 +1,5 @@
 from itertools import cycle
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union, Hashable
 
 import matplotlib
@@ -480,6 +481,14 @@ def paired_lines(
     -------
     ax : matplotlib Axes
 
+    Notes
+    -----
+    If ``data`` contains multiple rows with the same combination of ``x``,
+    ``units``, and (if used) ``hue``, the implementation selects the first
+    matching value internally and ignores additional duplicates. If this is
+    not the desired behavior, aggregate or deduplicate the data for each
+    (``x``, ``units``, ``hue``) combination before calling this function.
+
     Examples
     --------
     Basic usage connecting points across conditions:
@@ -547,6 +556,24 @@ def paired_lines(
                 )
     else:
         hue_vals = [None]
+
+    # Warn on duplicate rows for (x, units, hue) combinations
+    dup_keys = [x]
+    if units:
+        dup_keys.append(units)
+    if hue:
+        dup_keys.append(hue)
+    dup_counts = data.groupby(dup_keys, dropna=False).size()
+    num_dup_groups = int((dup_counts > 1).sum())
+    if num_dup_groups:
+        warnings.warn(
+            (
+                f"paired_lines: detected {num_dup_groups} duplicate group(s) for "
+                f"combinations of {tuple(dup_keys)}; selecting the first value per group. "
+                "Consider aggregating or deduplicating your data."
+            ),
+            UserWarning,
+        )
 
     # Get style values and mapping
     if style:
