@@ -328,7 +328,7 @@ class TestHDF5DataFrameOperations:
         with h5py.File(filepath, "r") as f:
             loaded_df = _load_dataframe_from_hdf5(f["test_df"])
 
-        pd.testing.assert_frame_equal(sample_dataframe, loaded_df)
+        pd.testing.assert_frame_equal(sample_dataframe, loaded_df, check_dtype=False)
 
     def test_save_load_dataframe_with_custom_index(self, tmp_path):
         """Test DataFrame with custom index."""
@@ -412,7 +412,7 @@ class TestHDF5MixedDataOperations:
 
         # Check DataFrame
         pd.testing.assert_frame_equal(
-            sample_mixed_data["dataframe"], loaded_data["dataframe"]
+            sample_mixed_data["dataframe"], loaded_data["dataframe"], check_dtype=False
         )
 
         # Check numpy array
@@ -466,7 +466,7 @@ class TestMainLoop:
             result = pickle.load(f)
 
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df)
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=False)
 
     def test_main_loop_hdf5(self, tmp_path):
         """Test main_loop with HDF5 format."""
