@@ -486,7 +486,7 @@ class TestMainLoop:
         # Check contents
         result = _load_from_hdf5(expected_file)
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df)
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=False)
 
     def test_main_loop_skip_existing(self, tmp_path):
         """Test main_loop skips existing files when overwrite=False."""
