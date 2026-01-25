@@ -466,8 +466,7 @@ def weighted_correlation(
     place_bin_centers : Optional[np.ndarray], optional
         A 1D numpy array representing the place bin centers, by default None.
     return_full_output : bool, optional
-        If True, return trajectory, slopes, and means in addition to correlation, by default False.
-
+        If True, return trajectory, slopes, means, and intercept in addition to correlation, by default False.
     Returns
     -------
     Union[float, Tuple[float, np.ndarray, float, float, float, float]]
@@ -482,6 +481,44 @@ def weighted_correlation(
             - mean_time: weighted mean of time
             - mean_place: weighted mean of place
             - intercept_place: intercept of linear relationship (place = intercept + slope_place * time)
+
+    Examples
+    --------
+    Basic usage with just a posterior matrix:
+
+    >>> import numpy as np
+    >>> # Create a synthetic posterior with forward replay pattern
+    >>> n_place_bins, n_time_bins = 20, 10
+    >>> posterior = np.zeros((n_place_bins, n_time_bins))
+    >>> for t in range(n_time_bins):
+    ...     posterior[2*t:2*t+3, t] = 1.0  # diagonal pattern
+    >>> correlation = weighted_correlation(posterior)
+    >>> print(f"Correlation: {correlation:.3f}")
+
+    With custom time and place bin centers:
+
+    >>> time = np.linspace(0, 1, n_time_bins)  # 1 second duration
+    >>> place_bin_centers = np.linspace(0, 100, n_place_bins)  # 100 cm track
+    >>> correlation = weighted_correlation(posterior, time, place_bin_centers)
+
+    Getting full output including trajectory and slope:
+
+    >>> corr, traj, slope, mean_t, mean_p, intercept = weighted_correlation(
+    ...     posterior, time, place_bin_centers, return_full_output=True
+    ... )
+    >>> print(f"Replay speed: {slope:.1f} cm/s")
+
+    >>> plt.imshow(
+    ...    posterior,
+    ...    aspect="auto",
+    ...    origin="lower",
+    ...    extent=[time[0], time[-1], place_bin_centers[0], place_bin_centers[-1]],
+    ...   cmap="bone_r"
+    ... )
+    >>> plt.colorbar(label="Posterior Probability Density")
+    >>> plt.plot(time, slope * time + intercept, color="red", linewidth=2, label="fit line")
+    >>> plt.legend()
+    >>> plt.xlabel("Time (s)")
     """
 
     def _m(x, w) -> float:
