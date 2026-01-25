@@ -276,9 +276,9 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        # Result should be a tuple with 5 elements
+        # Result should be a tuple with 6 elements
         assert isinstance(result, tuple)
-        assert len(result) == 5
+        assert len(result) == 6
 
         (
             correlation,
@@ -286,6 +286,7 @@ class TestWeightedCorrelation:
             slope_place,
             mean_time,
             mean_place,
+            intercept_place,
         ) = result
 
         # Check types
@@ -377,11 +378,14 @@ class TestWeightedCorrelation:
             slope_place,
             mean_time,
             mean_place,
+            intercept_place,
         ) = result
 
         # Trajectory should be: mean_place + slope_place * (time - mean_time)
         expected_trajectory = mean_place + slope_place * (time - mean_time)
         assert_allclose(place_trajectory, expected_trajectory)
+        # Intercept should equal mean_place - slope_place * mean_time
+        assert_allclose(intercept_place, mean_place - slope_place * mean_time)
 
     def test_nan_handling(self):
         """Test that NaN values in posterior are handled correctly."""
@@ -475,7 +479,7 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place = result
+        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
 
         # Check that means reflect the custom values
         assert 10 <= mean_time <= 30
@@ -497,7 +501,9 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place = result
+        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
+        # Intercept should be approximately 0 for perfect diagonal
+        assert_allclose(intercept_place, 0.0, rtol=1e-5, atol=1e-8)
 
         # Slope should be approximately 10 (place increases by 10 for each unit time)
         assert_allclose(slope_place, 10.0, rtol=1e-5)
@@ -537,7 +543,9 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place = result
+        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
+        # Intercept formula consistency
+        assert_allclose(intercept_place, mean_place - slope_place * mean_time, rtol=1e-5)
 
         # Manual calculation of weighted means
         # Weight at (place=10, time=0) = 1.0

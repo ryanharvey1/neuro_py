@@ -470,17 +470,18 @@ def weighted_correlation(
 
     Returns
     -------
-    Union[float, Tuple[float, np.ndarray, float, float, float]]
+    Union[float, Tuple[float, np.ndarray, float, float, float, float]]
         If return_full_output is False:
             The weighted correlation coefficient (float).
         If return_full_output is True:
-            Tuple of (correlation, place_trajectory, slope_place, mean_time, mean_place)
+            Tuple of (correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place)
             where:
             - correlation: weighted correlation coefficient
             - place_trajectory: place position at each time bin
             - slope_place: slope of place vs time
-            - mean_time: mean time value
-            - mean_place: mean place value
+            - mean_time: weighted mean of time
+            - mean_place: weighted mean of place
+            - intercept_place: intercept of linear relationship (place = intercept + slope_place * time)
     """
 
     def _m(x, w) -> float:
@@ -533,6 +534,7 @@ def weighted_correlation(
     # Compute slope and trajectory
     slope_place = cov_time_place / cov_time_time if cov_time_time != 0 else 0.0
     place_trajectory = mean_place + slope_place * (time - mean_time)
+    intercept_place = mean_place - slope_place * mean_time
 
     return (
         correlation,
@@ -540,6 +542,7 @@ def weighted_correlation(
         slope_place,
         mean_time,
         mean_place,
+        intercept_place,
     )
 
 
