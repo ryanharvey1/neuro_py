@@ -345,6 +345,49 @@ class TestHDF5DataFrameOperations:
         pd.testing.assert_frame_equal(df, loaded_df)
 
 
+class TestHDF5StringDtype:
+    """Lock in behavior for pandas StringDtype columns."""
+
+    def test_save_load_stringdtype_python(self, tmp_path):
+        """Round-trip pandas StringDtype (python storage) via HDF5."""
+        df = pd.DataFrame({"s": pd.Series(["a", "b", None], dtype="string")})
+
+        filepath = tmp_path / "string_python.h5"
+        with h5py.File(filepath, "w") as f:
+            _save_dataframe_to_hdf5(df, f, "df")
+
+        with h5py.File(filepath, "r") as f:
+            loaded_df = _load_dataframe_from_hdf5(f["df"])
+
+        # Dtype restored as pandas StringDtype
+        assert isinstance(loaded_df["s"].dtype, pd.StringDtype)
+        # Missing values are serialized as empty strings in current implementation
+        assert loaded_df["s"].tolist() == ["a", "b", ""]
+
+    def test_save_load_stringdtype_pyarrow(self, tmp_path):
+        """Round-trip pandas StringDtype (pyarrow storage) if available."""
+        # Try to construct a pyarrow-backed StringDtype; skip if unavailable
+        try:
+            dtype_pa = pd.StringDtype(storage="pyarrow")
+        except Exception:
+            import pytest
+
+            pytest.skip("pyarrow-backed StringDtype unavailable in this env")
+
+        df = pd.DataFrame({"s": pd.Series(["x", "y"], dtype=dtype_pa)})
+
+        filepath = tmp_path / "string_pyarrow.h5"
+        with h5py.File(filepath, "w") as f:
+            _save_dataframe_to_hdf5(df, f, "df")
+
+        with h5py.File(filepath, "r") as f:
+            loaded_df = _load_dataframe_from_hdf5(f["df"])
+
+        # Dtype restored as pandas StringDtype (storage may default to python)
+        assert isinstance(loaded_df["s"].dtype, pd.StringDtype)
+        assert loaded_df["s"].tolist() == ["x", "y"]
+
+
 class TestHDF5MixedDataOperations:
     """Test HDF5 operations with mixed data types."""
 

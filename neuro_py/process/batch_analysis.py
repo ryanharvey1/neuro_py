@@ -288,27 +288,34 @@ def _save_dataframe_to_hdf5(
     # Save each column
     for orig_col, str_col in zip(df.columns, string_columns):
         try:
-            if df[orig_col].dtype == "object":
+            series = df[orig_col]
+
+            # Preserve pandas StringDtype explicitly
+            if isinstance(series.dtype, pd.StringDtype):
+                string_data = series.astype("string").fillna("").astype(str).values
+                dset = group.create_dataset(str_col, data=string_data.astype("S"))
+                dset.attrs["pandas_dtype"] = "string"
+
+            elif series.dtype == "object":
                 # Handle object columns (strings, mixed types)
-                string_data = df[orig_col].astype(str).values
+                string_data = series.astype(str).values
                 group.create_dataset(str_col, data=string_data.astype("S"))
+
             else:
-                group.create_dataset(str_col, data=df[orig_col].values)
+                group.create_dataset(str_col, data=series.values)
         except Exception as e:
             print(f"Warning: Could not save column {orig_col}: {e}")
 
     # Save index
     try:
         if hasattr(df.index, "values"):
-            index_values = df.index.values
-            # Convert string index to bytes
-            if (
-                isinstance(df.index.dtype, object)
-                and len(index_values) > 0
-                and isinstance(index_values[0], str)
-            ):
-                index_values = np.array([x.encode("utf-8") for x in index_values])
-            group.create_dataset("_index", data=index_values)
+            index_values = np.array(df.index)
+            # Convert string-like index to bytes
+            if index_values.dtype.kind in ("O", "U", "S") and len(index_values) > 0:
+                encoded = np.array([str(x).encode("utf-8") for x in index_values])
+                group.create_dataset("_index", data=encoded)
+            else:
+                group.create_dataset("_index", data=index_values)
         else:
             group.create_dataset("_index", data=np.array(df.index))
     except Exception as e:
@@ -485,11 +492,21 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
     # Load each column using string keys
     for str_col, final_col in zip(string_columns, columns):
         if str_col in h5_group:
-            col_data = h5_group[str_col][:]
-            # Handle string columns
-            if col_data.dtype.kind == "S":
+            dset = h5_group[str_col]
+            col_data = dset[:]
+            # Handle fixed-length bytes strings
+            if isinstance(col_data, np.ndarray) and col_data.dtype.kind == "S":
                 col_data = col_data.astype(str)
-            data[final_col] = col_data
+            # Handle variable-length bytes arrays (object of bytes)
+            elif isinstance(col_data, np.ndarray) and col_data.dtype.kind == "O":
+                if len(col_data) and isinstance(col_data[0], (bytes, np.bytes_)):
+                    col_data = np.array([x.decode("utf-8") for x in col_data])
+
+            # Restore pandas StringDtype when explicitly marked
+            if "pandas_dtype" in dset.attrs and dset.attrs["pandas_dtype"] == "string":
+                data[final_col] = pd.Series(col_data, dtype="string")
+            else:
+                data[final_col] = col_data
 
     # Load index
     if "_index" in h5_group:
