@@ -503,7 +503,7 @@ def weighted_correlation(
 
     time = np.asarray(time)
     place_bin_centers = place_bin_centers.squeeze()
-    posterior = np.asarray(posterior, copy=True)
+    posterior = np.array(posterior, copy=True)
     posterior[np.isnan(posterior)] = 0.0
 
     correlation = _corr(
