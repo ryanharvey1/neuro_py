@@ -487,6 +487,7 @@ def weighted_correlation(
     Basic usage with just a posterior matrix:
 
     >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
     >>> # Create a synthetic posterior with forward replay pattern
     >>> n_place_bins, n_time_bins = 20, 10
     >>> posterior = np.zeros((n_place_bins, n_time_bins))
