@@ -295,6 +295,8 @@ def _save_dataframe_to_hdf5(
                 string_data = series.astype("string").fillna("").astype(str).values
                 dset = group.create_dataset(str_col, data=string_data.astype("S"))
                 dset.attrs["pandas_dtype"] = "string"
+                # Store na_value setting to restore exactly
+                dset.attrs["string_na_value"] = str(series.dtype.na_value)
 
             elif series.dtype == "object":
                 # Check if object column contains strings
@@ -510,8 +512,11 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
             if "pandas_dtype" in dset.attrs:
                 dtype_marker = dset.attrs["pandas_dtype"]
                 if dtype_marker == "string":
-                    # StringDtype: restore as pandas StringDtype
-                    data[final_col] = pd.Series(col_data, dtype="string")
+                    # StringDtype: restore as pandas StringDtype with original na_value
+                    na_value_str = dset.attrs.get("string_na_value", "<NA>")
+                    na_value = pd.NA if na_value_str == "<NA>" else None
+                    string_dtype = pd.StringDtype(na_value=na_value)
+                    data[final_col] = pd.Series(col_data, dtype=string_dtype)
                 elif dtype_marker == "object":
                     # Object dtype: keep as object (for mixed-type columns)
                     data[final_col] = col_data
