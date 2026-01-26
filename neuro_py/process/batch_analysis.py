@@ -297,12 +297,16 @@ def _save_dataframe_to_hdf5(
                 dset.attrs["pandas_dtype"] = "string"
 
             elif series.dtype == "object":
-                # Handle object columns (strings, mixed types)
+                # Check if object column contains strings
                 string_data = series.astype(str).values
-                group.create_dataset(str_col, data=string_data.astype("S"))
+                dset = group.create_dataset(str_col, data=string_data.astype("S"))
+                # Mark as object so we can detect it on load
+                dset.attrs["pandas_dtype"] = "object"
 
             else:
-                group.create_dataset(str_col, data=series.values)
+                # For numeric and other types, save with dtype info
+                dset = group.create_dataset(str_col, data=series.values)
+                dset.attrs["pandas_dtype"] = str(series.dtype)
         except Exception as e:
             print(f"Warning: Could not save column {orig_col}: {e}")
 
@@ -502,9 +506,22 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
                 if len(col_data) and isinstance(col_data[0], (bytes, np.bytes_)):
                     col_data = np.array([x.decode("utf-8") for x in col_data])
 
-            # Restore pandas StringDtype when explicitly marked
-            if "pandas_dtype" in dset.attrs and dset.attrs["pandas_dtype"] == "string":
-                data[final_col] = pd.Series(col_data, dtype="string")
+            # Restore original dtype based on metadata
+            if "pandas_dtype" in dset.attrs:
+                dtype_marker = dset.attrs["pandas_dtype"]
+                if dtype_marker == "string":
+                    # StringDtype: restore as pandas StringDtype
+                    data[final_col] = pd.Series(col_data, dtype="string")
+                elif dtype_marker == "object":
+                    # Object dtype: keep as object (for mixed-type columns)
+                    data[final_col] = col_data
+                else:
+                    # Try to convert back to original dtype (e.g., int64, float32, etc.)
+                    try:
+                        data[final_col] = col_data.astype(dtype_marker)
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep as-is
+                        data[final_col] = col_data
             else:
                 data[final_col] = col_data
 

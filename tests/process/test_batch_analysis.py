@@ -328,7 +328,13 @@ class TestHDF5DataFrameOperations:
         with h5py.File(filepath, "r") as f:
             loaded_df = _load_dataframe_from_hdf5(f["test_df"])
 
-        pd.testing.assert_frame_equal(sample_dataframe, loaded_df, check_dtype=False)
+        # Dtypes should be preserved through HDF5 round-trip
+        pd.testing.assert_frame_equal(
+            sample_dataframe,
+            loaded_df,
+            check_dtype=True,  # Strict dtype checking (now preserved)
+            check_names=True,
+        )
 
     def test_save_load_dataframe_with_custom_index(self, tmp_path):
         """Test DataFrame with custom index."""
@@ -410,9 +416,11 @@ class TestHDF5MixedDataOperations:
         _save_to_hdf5(sample_mixed_data, filepath)
         loaded_data = _load_from_hdf5(filepath)
 
-        # Check DataFrame
+        # Dtypes should be preserved through HDF5 round-trip
         pd.testing.assert_frame_equal(
-            sample_mixed_data["dataframe"], loaded_data["dataframe"], check_dtype=False
+            sample_mixed_data["dataframe"],
+            loaded_data["dataframe"],
+            check_dtype=True,  # Strict dtype checking
         )
 
         # Check numpy array
@@ -466,7 +474,8 @@ class TestMainLoop:
             result = pickle.load(f)
 
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df, check_dtype=False)
+        # Pickle preserves dtypes naturally
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=True)
 
     def test_main_loop_hdf5(self, tmp_path):
         """Test main_loop with HDF5 format."""
@@ -486,7 +495,8 @@ class TestMainLoop:
         # Check contents
         result = _load_from_hdf5(expected_file)
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df, check_dtype=False)
+        # HDF5 now preserves dtypes through round-trip
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=True)
 
     def test_main_loop_skip_existing(self, tmp_path):
         """Test main_loop skips existing files when overwrite=False."""
