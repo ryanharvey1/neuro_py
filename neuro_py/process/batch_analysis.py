@@ -514,7 +514,12 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
                 if dtype_marker == "string":
                     # StringDtype: restore as pandas StringDtype with original na_value
                     na_value_str = dset.attrs.get("string_na_value", "<NA>")
-                    na_value = pd.NA if na_value_str == "<NA>" else None
+                    if na_value_str == "<NA>":
+                        na_value = pd.NA
+                    elif na_value_str == "nan":
+                        na_value = np.nan
+                    else:
+                        na_value = pd.NA  # fallback default
                     string_dtype = pd.StringDtype(na_value=na_value)
                     data[final_col] = pd.Series(col_data, dtype=string_dtype)
                 elif dtype_marker == "object":
