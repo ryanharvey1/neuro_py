@@ -295,7 +295,7 @@ def _save_dataframe_to_hdf5(
                 string_data = series.astype("string").fillna("").astype(str).values
                 dset = group.create_dataset(str_col, data=string_data.astype("S"))
                 dset.attrs["pandas_dtype"] = "string"
-                # Store na_value setting to restore exactly
+                # Store na_value setting (only np.nan or pd.NA are valid for StringDtype)
                 dset.attrs["string_na_value"] = str(series.dtype.na_value)
 
             elif series.dtype == "object":
@@ -512,14 +512,16 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
             if "pandas_dtype" in dset.attrs:
                 dtype_marker = dset.attrs["pandas_dtype"]
                 if dtype_marker == "string":
-                    # StringDtype: restore as pandas StringDtype with original na_value
+                    # StringDtype: restore as pandas StringDtype with original na_value.
+                    # Note: pandas StringDtype only supports np.nan or pd.NA as na_value.
                     na_value_str = dset.attrs.get("string_na_value", "<NA>")
                     if na_value_str == "<NA>":
                         na_value = pd.NA
                     elif na_value_str == "nan":
                         na_value = np.nan
                     else:
-                        na_value = pd.NA  # fallback default
+                        # Fallback for unexpected values (should not occur with standard StringDtype)
+                        na_value = pd.NA
                     string_dtype = pd.StringDtype(na_value=na_value)
                     data[final_col] = pd.Series(col_data, dtype=string_dtype)
                 elif dtype_marker == "object":
