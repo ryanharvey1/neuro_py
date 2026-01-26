@@ -559,6 +559,18 @@ def weighted_correlation(
 
     # Compute weighted means
     total_weight = np.sum(weights)
+    
+    # Handle degenerate case: no weights
+    if total_weight == 0.0:
+        return (
+            np.nan,
+            np.full_like(time, np.nan),
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        )
+    
     mean_time = np.sum(weights * time_flat) / total_weight
     mean_place = np.sum(weights * place_flat) / total_weight
 
@@ -569,8 +581,19 @@ def weighted_correlation(
     )
     cov_time_time = np.sum(weights * (time_flat - mean_time) ** 2) / total_weight
 
+    # Handle degenerate case: no temporal variance
+    if cov_time_time == 0.0:
+        return (
+            np.nan,
+            np.full_like(time, np.nan),
+            np.nan,
+            mean_time,
+            mean_place,
+            np.nan,
+        )
+
     # Compute slope and trajectory
-    slope_place = cov_time_place / cov_time_time if cov_time_time != 0 else 0.0
+    slope_place = cov_time_place / cov_time_time
     place_trajectory = mean_place + slope_place * (time - mean_time)
     intercept_place = mean_place - slope_place * mean_time
 
