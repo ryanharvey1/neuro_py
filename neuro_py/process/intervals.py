@@ -263,6 +263,7 @@ def find_intersection_intervals_strict(
 ) -> nel.EpochArray:
     """
     Find the intervals in set1 that are completely contained within set2.
+    
     Parameters
     ----------
     set1 : nelpy EpochArray
