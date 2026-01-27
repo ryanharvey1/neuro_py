@@ -452,7 +452,8 @@ def weighted_correlation(
     posterior: np.ndarray,
     time: Optional[np.ndarray] = None,
     place_bin_centers: Optional[np.ndarray] = None,
-) -> float:
+    return_full_output: bool = False,
+) -> Union[float, Tuple[float, np.ndarray, float, float, float, float]]:
     """
     Calculate the weighted correlation between time and place bin centers using a posterior probability matrix.
 
@@ -464,11 +465,61 @@ def weighted_correlation(
         A 1D numpy array representing the time bins, by default None.
     place_bin_centers : Optional[np.ndarray], optional
         A 1D numpy array representing the place bin centers, by default None.
-
+    return_full_output : bool, optional
+        If True, return trajectory, slopes, means, and intercept in addition to correlation, by default False.
     Returns
     -------
-    float
-        The weighted correlation coefficient.
+    Union[float, Tuple[float, np.ndarray, float, float, float, float]]
+        If return_full_output is False:
+            The weighted correlation coefficient (float).
+        If return_full_output is True:
+            Tuple of (correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place)
+            where:
+            - correlation: weighted correlation coefficient
+            - place_trajectory: place position at each time bin
+            - slope_place: slope of place vs time
+            - mean_time: weighted mean of time
+            - mean_place: weighted mean of place
+            - intercept_place: intercept of linear relationship (place = intercept + slope_place * time)
+
+    Examples
+    --------
+    Basic usage with just a posterior matrix:
+
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> # Create a synthetic posterior with forward replay pattern
+    >>> n_place_bins, n_time_bins = 20, 10
+    >>> posterior = np.zeros((n_place_bins, n_time_bins))
+    >>> for t in range(n_time_bins):
+    ...     posterior[2*t:2*t+3, t] = 1.0  # diagonal pattern
+    >>> correlation = weighted_correlation(posterior)
+    >>> print(f"Correlation: {correlation:.3f}")
+
+    With custom time and place bin centers:
+
+    >>> time = np.linspace(0, 1, n_time_bins)  # 1 second duration
+    >>> place_bin_centers = np.linspace(0, 100, n_place_bins)  # 100 cm track
+    >>> correlation = weighted_correlation(posterior, time, place_bin_centers)
+
+    Getting full output including trajectory and slope:
+
+    >>> corr, traj, slope, mean_t, mean_p, intercept = weighted_correlation(
+    ...     posterior, time, place_bin_centers, return_full_output=True
+    ... )
+    >>> print(f"Replay speed: {slope:.1f} cm/s")
+
+    >>> plt.imshow(
+    ...    posterior,
+    ...    aspect="auto",
+    ...    origin="lower",
+    ...    extent=[time[0], time[-1], place_bin_centers[0], place_bin_centers[-1]],
+    ...   cmap="bone_r"
+    ... )
+    >>> plt.colorbar(label="Posterior Probability Density")
+    >>> plt.plot(time, slope * time + intercept, color="red", linewidth=2, label="fit line")
+    >>> plt.legend()
+    >>> plt.xlabel("Time (s)")
     """
 
     def _m(x, w) -> float:
@@ -488,10 +539,72 @@ def weighted_correlation(
     if place_bin_centers is None:
         place_bin_centers = np.arange(posterior.shape[0])
 
+    time = np.asarray(time)
     place_bin_centers = place_bin_centers.squeeze()
+    posterior = np.array(posterior, copy=True)
     posterior[np.isnan(posterior)] = 0.0
 
-    return _corr(time[:, np.newaxis], place_bin_centers[np.newaxis, :], posterior.T)
+    correlation = _corr(
+        time[:, np.newaxis], place_bin_centers[np.newaxis, :], posterior.T
+    )
+
+    if not return_full_output:
+        return correlation
+
+    # Compute full output (trajectory, slopes, means)
+    weights = posterior.T.flatten()
+    time_2d, place_2d = np.meshgrid(time, place_bin_centers, indexing="ij")
+    time_flat = time_2d.flatten()
+    place_flat = place_2d.flatten()
+
+    # Compute weighted means
+    total_weight = np.sum(weights)
+    
+    # Handle degenerate case: no weights
+    if total_weight == 0.0:
+        return (
+            np.nan,
+            np.full_like(time, np.nan),
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        )
+    
+    mean_time = np.sum(weights * time_flat) / total_weight
+    mean_place = np.sum(weights * place_flat) / total_weight
+
+    # Compute covariances
+    cov_time_place = (
+        np.sum(weights * (time_flat - mean_time) * (place_flat - mean_place))
+        / total_weight
+    )
+    cov_time_time = np.sum(weights * (time_flat - mean_time) ** 2) / total_weight
+
+    # Handle degenerate case: no temporal variance
+    if cov_time_time == 0.0:
+        return (
+            np.nan,
+            np.full_like(time, np.nan),
+            np.nan,
+            mean_time,
+            mean_place,
+            np.nan,
+        )
+
+    # Compute slope and trajectory
+    slope_place = cov_time_place / cov_time_time
+    place_trajectory = mean_place + slope_place * (time - mean_time)
+    intercept_place = mean_place - slope_place * mean_time
+
+    return (
+        correlation,
+        place_trajectory,
+        slope_place,
+        mean_time,
+        mean_place,
+        intercept_place,
+    )
 
 
 def shuffle_and_score(

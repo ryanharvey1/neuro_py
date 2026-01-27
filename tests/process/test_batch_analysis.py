@@ -328,7 +328,13 @@ class TestHDF5DataFrameOperations:
         with h5py.File(filepath, "r") as f:
             loaded_df = _load_dataframe_from_hdf5(f["test_df"])
 
-        pd.testing.assert_frame_equal(sample_dataframe, loaded_df)
+        # Dtypes (including StringDtype na_value) should be preserved through HDF5 round-trip
+        pd.testing.assert_frame_equal(
+            sample_dataframe,
+            loaded_df,
+            check_dtype=True,
+            check_names=True,
+        )
 
     def test_save_load_dataframe_with_custom_index(self, tmp_path):
         """Test DataFrame with custom index."""
@@ -343,6 +349,49 @@ class TestHDF5DataFrameOperations:
             loaded_df = _load_dataframe_from_hdf5(f["test_df"])
 
         pd.testing.assert_frame_equal(df, loaded_df)
+
+
+class TestHDF5StringDtype:
+    """Lock in behavior for pandas StringDtype columns."""
+
+    def test_save_load_stringdtype_python(self, tmp_path):
+        """Round-trip pandas StringDtype (python storage) via HDF5."""
+        df = pd.DataFrame({"s": pd.Series(["a", "b", None], dtype="string")})
+
+        filepath = tmp_path / "string_python.h5"
+        with h5py.File(filepath, "w") as f:
+            _save_dataframe_to_hdf5(df, f, "df")
+
+        with h5py.File(filepath, "r") as f:
+            loaded_df = _load_dataframe_from_hdf5(f["df"])
+
+        # Dtype restored as pandas StringDtype
+        assert isinstance(loaded_df["s"].dtype, pd.StringDtype)
+        # Missing values are serialized as empty strings in current implementation
+        assert loaded_df["s"].tolist() == ["a", "b", ""]
+
+    def test_save_load_stringdtype_pyarrow(self, tmp_path):
+        """Round-trip pandas StringDtype (pyarrow storage) if available."""
+        # Try to construct a pyarrow-backed StringDtype; skip if unavailable
+        try:
+            dtype_pa = pd.StringDtype(storage="pyarrow")
+        except Exception:
+            import pytest
+
+            pytest.skip("pyarrow-backed StringDtype unavailable in this env")
+
+        df = pd.DataFrame({"s": pd.Series(["x", "y"], dtype=dtype_pa)})
+
+        filepath = tmp_path / "string_pyarrow.h5"
+        with h5py.File(filepath, "w") as f:
+            _save_dataframe_to_hdf5(df, f, "df")
+
+        with h5py.File(filepath, "r") as f:
+            loaded_df = _load_dataframe_from_hdf5(f["df"])
+
+        # Dtype restored as pandas StringDtype (storage may default to python)
+        assert isinstance(loaded_df["s"].dtype, pd.StringDtype)
+        assert loaded_df["s"].tolist() == ["x", "y"]
 
 
 class TestHDF5MixedDataOperations:
@@ -367,9 +416,11 @@ class TestHDF5MixedDataOperations:
         _save_to_hdf5(sample_mixed_data, filepath)
         loaded_data = _load_from_hdf5(filepath)
 
-        # Check DataFrame
+        # Dtypes should be preserved exactly through HDF5 round-trip
         pd.testing.assert_frame_equal(
-            sample_mixed_data["dataframe"], loaded_data["dataframe"]
+            sample_mixed_data["dataframe"],
+            loaded_data["dataframe"],
+            check_dtype=True,
         )
 
         # Check numpy array
@@ -423,7 +474,8 @@ class TestMainLoop:
             result = pickle.load(f)
 
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df)
+        # Pickle preserves dtypes naturally
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=True)
 
     def test_main_loop_hdf5(self, tmp_path):
         """Test main_loop with HDF5 format."""
@@ -443,7 +495,8 @@ class TestMainLoop:
         # Check contents
         result = _load_from_hdf5(expected_file)
         expected_df = pd.DataFrame({"path": [basepath], "value": [1]})
-        pd.testing.assert_frame_equal(result, expected_df)
+        # HDF5 now preserves dtypes exactly (including StringDtype na_value)
+        pd.testing.assert_frame_equal(result, expected_df, check_dtype=True)
 
     def test_main_loop_skip_existing(self, tmp_path):
         """Test main_loop skips existing files when overwrite=False."""

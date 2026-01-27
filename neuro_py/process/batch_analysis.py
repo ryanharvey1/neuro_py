@@ -288,27 +288,40 @@ def _save_dataframe_to_hdf5(
     # Save each column
     for orig_col, str_col in zip(df.columns, string_columns):
         try:
-            if df[orig_col].dtype == "object":
-                # Handle object columns (strings, mixed types)
-                string_data = df[orig_col].astype(str).values
-                group.create_dataset(str_col, data=string_data.astype("S"))
+            series = df[orig_col]
+
+            # Preserve pandas StringDtype explicitly
+            if isinstance(series.dtype, pd.StringDtype):
+                string_data = series.astype("string").fillna("").astype(str).values
+                dset = group.create_dataset(str_col, data=string_data.astype("S"))
+                dset.attrs["pandas_dtype"] = "string"
+                # Store na_value setting (only np.nan or pd.NA are valid for StringDtype)
+                dset.attrs["string_na_value"] = str(series.dtype.na_value)
+
+            elif series.dtype == "object":
+                # Check if object column contains strings
+                string_data = series.astype(str).values
+                dset = group.create_dataset(str_col, data=string_data.astype("S"))
+                # Mark as object so we can detect it on load
+                dset.attrs["pandas_dtype"] = "object"
+
             else:
-                group.create_dataset(str_col, data=df[orig_col].values)
+                # For numeric and other types, save with dtype info
+                dset = group.create_dataset(str_col, data=series.values)
+                dset.attrs["pandas_dtype"] = str(series.dtype)
         except Exception as e:
             print(f"Warning: Could not save column {orig_col}: {e}")
 
     # Save index
     try:
         if hasattr(df.index, "values"):
-            index_values = df.index.values
-            # Convert string index to bytes
-            if (
-                isinstance(df.index.dtype, object)
-                and len(index_values) > 0
-                and isinstance(index_values[0], str)
-            ):
-                index_values = np.array([x.encode("utf-8") for x in index_values])
-            group.create_dataset("_index", data=index_values)
+            index_values = np.array(df.index)
+            # Convert string-like index to bytes
+            if index_values.dtype.kind in ("O", "U", "S") and len(index_values) > 0:
+                encoded = np.array([str(x).encode("utf-8") for x in index_values])
+                group.create_dataset("_index", data=encoded)
+            else:
+                group.create_dataset("_index", data=index_values)
         else:
             group.create_dataset("_index", data=np.array(df.index))
     except Exception as e:
@@ -485,11 +498,44 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
     # Load each column using string keys
     for str_col, final_col in zip(string_columns, columns):
         if str_col in h5_group:
-            col_data = h5_group[str_col][:]
-            # Handle string columns
-            if col_data.dtype.kind == "S":
+            dset = h5_group[str_col]
+            col_data = dset[:]
+            # Handle fixed-length bytes strings
+            if isinstance(col_data, np.ndarray) and col_data.dtype.kind == "S":
                 col_data = col_data.astype(str)
-            data[final_col] = col_data
+            # Handle variable-length bytes arrays (object of bytes)
+            elif isinstance(col_data, np.ndarray) and col_data.dtype.kind == "O":
+                if len(col_data) and isinstance(col_data[0], (bytes, np.bytes_)):
+                    col_data = np.array([x.decode("utf-8") for x in col_data])
+
+            # Restore original dtype based on metadata
+            if "pandas_dtype" in dset.attrs:
+                dtype_marker = dset.attrs["pandas_dtype"]
+                if dtype_marker == "string":
+                    # StringDtype: restore as pandas StringDtype with original na_value.
+                    # Note: pandas StringDtype only supports np.nan or pd.NA as na_value.
+                    na_value_str = dset.attrs.get("string_na_value", "<NA>")
+                    if na_value_str == "<NA>":
+                        na_value = pd.NA
+                    elif na_value_str == "nan":
+                        na_value = np.nan
+                    else:
+                        # Fallback for unexpected values (should not occur with standard StringDtype)
+                        na_value = pd.NA
+                    string_dtype = pd.StringDtype(na_value=na_value)
+                    data[final_col] = pd.Series(col_data, dtype=string_dtype)
+                elif dtype_marker == "object":
+                    # Object dtype: keep as object (for mixed-type columns)
+                    data[final_col] = col_data
+                else:
+                    # Try to convert back to original dtype (e.g., int64, float32, etc.)
+                    try:
+                        data[final_col] = col_data.astype(dtype_marker)
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep as-is
+                        data[final_col] = col_data
+            else:
+                data[final_col] = col_data
 
     # Load index
     if "_index" in h5_group:
