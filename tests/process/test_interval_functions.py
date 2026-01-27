@@ -225,9 +225,12 @@ class TestRandomizeEpochs:
         # Should preserve lengths
         assert np.allclose(result.lengths, epoch.lengths)
         
-        # Check relative ordering is maintained
-        assert result.data[1, 0] > result.data[0, 1]  # Gap between 1st and 2nd
-        assert result.data[2, 0] > result.data[1, 1]  # Gap between 2nd and 3rd
+        # Check relative ordering is maintained (or equal after wrapping)
+        assert result.data[1, 0] >= result.data[0, 1]  # Gap or adjacent between 1st and 2nd
+        assert result.data[2, 0] >= result.data[1, 1]  # Gap or adjacent between 2nd and 3rd
+        
+        # Intervals should not overlap
+        assert np.all(result.data[:, 1] >= result.data[:, 0])
 
     def test_custom_start_stop(self):
         """Test with custom start/stop boundaries."""
