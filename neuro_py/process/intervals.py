@@ -258,6 +258,42 @@ def find_intersecting_intervals(
     return intersection
 
 
+def find_intersection_intervals_strict(
+    set1: nel.EpochArray, set2: nel.EpochArray
+) -> nel.EpochArray:
+    """
+    Find the intervals in set1 that are completely contained within set2.
+    Parameters
+    ----------
+    set1 : nelpy EpochArray
+        The first set of intervals to check for intersections.
+    set2 : nelpy EpochArray
+        The second set of intervals to check for intersections.
+    Returns
+    -------
+    nelpy EpochArray
+        An EpochArray containing the intervals in set1 which are completely contained within set2.
+
+    Examples
+    --------
+    >>> set1 = nel.EpochArray([(1, 3), (5, 7), (9, 10)])
+    >>> set2 = nel.EpochArray([(0, 4), (6, 8)])
+    >>> find_intersection_intervals_strict(set1, set2)
+    EpochArray([[1, 3]])
+
+    Notes
+    -----
+    Common use cases:
+    - Finding theta cycles (set1) that are completely within running periods (set2)
+    - Finding SWRs (set1) that are completely within NREM periods (set2)
+    - Generally useful when you don't want partial overlaps created by intersection of set1 & set2
+    """
+    overlap = find_intersecting_intervals(set1, set2, return_indices=False)
+    out = nel.EpochArray(set1.data[set1.lengths == overlap])
+    out._domain = set1.domain
+    return out
+
+
 def find_interval(logical: List[bool]) -> List[Tuple[int, int]]:
     """
     Find consecutive intervals of True values in a list of boolean values.
