@@ -1499,8 +1499,14 @@ def load_animal_behavior(
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
         values = data["behavior"][key]
-        if isinstance(values, (list, np.ndarray)) and len(values) != len(df):
+        if isinstance(values, dict):
             continue
+        if isinstance(values, (list, np.ndarray)):
+            arr = np.asarray(values)
+            if arr.ndim > 1:
+                continue
+            if len(arr) != len(df):
+                continue
         df[key] = values
 
     # add speed and acceleration
@@ -1967,7 +1973,13 @@ def load_spikes(
         stops = starts + stable_interval_width
 
         bst = npy.process.count_in_interval(st, starts, stops, "counts")
-        restrict_idx = np.sum(bst == 0, axis=1) < 2  # allow for 1 unstable interval max
+        if bst.shape[1] == 0:
+            restrict_idx = np.ones(len(st), dtype=bool)
+        else:
+            zero_intervals = np.sum(bst == 0, axis=1)
+            active_intervals = np.sum(bst > 0, axis=1)
+            # allow for 1 unstable interval max, and require at least 2 active intervals
+            restrict_idx = (zero_intervals < 2) & (active_intervals >= 2)
         cell_metrics = cell_metrics[restrict_idx]
         st = st[restrict_idx]
 
