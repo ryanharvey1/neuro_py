@@ -12,6 +12,7 @@ import scipy.io as sio
 from neuro_py.io.loading import (
     load_brain_regions,
     load_SleepState_states,
+    load_animal_behavior,
     load_spikes,
     load_trials,
 )
@@ -79,6 +80,117 @@ def test_load_trials_current_standard():
         assert result["startTime"].tolist() == [1.0, 2.0, 3.0]
         assert result["stopTime"].tolist() == [1.5, 2.5, 3.5]
         assert result["trialsID"].tolist() == ["A", "B", "C"]
+
+
+def test_load_animal_behavior_basic():
+    """Test basic successful loading of animal behavior data."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_behavior")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+                "z": np.array([0.0, 0.0, 0.0, 0.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "trials": np.array([[1.0, 2.0]]),
+            "states": np.array([[0, 1], [1, 0], [0, 1], [1, 0]]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "task",
+                                "startTime": 0.0,
+                                "stopTime": 3.0,
+                                "environment": "box",
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        for col in [
+            "time",
+            "x",
+            "y",
+            "z",
+            "linearized",
+            "speed",
+            "acceleration",
+            "epochs",
+            "environment",
+        ]:
+            assert col in df.columns
+
+        assert "states" not in df.columns
+        assert (df["epochs"] == "task").all()
+        assert (df["environment"] == "box").all()
+        if "trials" in df.columns:
+            assert df.loc[df["time"].between(1.0, 2.0), "trials"].eq(0).all()
+
+
+def test_load_animal_behavior_filters_random_fields():
+    """Test that random/invalid fields are filtered out from behavior payloads."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_behavior_extra")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "trials": np.array([[1.0, 2.0]]),
+            "notes": "freeform text",
+            "random_dict": {"foo": 1, "bar": 2},
+            "empty_array": np.array([]),
+            "wrong_len": np.array([1.0, 2.0]),
+            "two_d": np.array([[1, 2], [3, 4], [5, 6], [7, 8]]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "task",
+                                "startTime": 0.0,
+                                "stopTime": 3.0,
+                                "environment": "box",
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "random_dict" not in df.columns
+        assert "wrong_len" not in df.columns
+        assert "two_d" not in df.columns
+        assert "empty_array" not in df.columns
+        assert "notes" in df.columns
+        assert (df["epochs"] == "task").all()
 
 
 def test_load_trials_old_standard():
