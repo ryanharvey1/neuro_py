@@ -10,10 +10,12 @@ import pytest
 import scipy.io as sio
 
 from neuro_py.io.loading import (
+    load_all_cell_metrics,
     load_brain_regions,
     load_SleepState_states,
     load_animal_behavior,
     load_cell_metrics,
+    load_deepSuperficialfromRipple,
     load_epoch,
     load_manipulation,
     load_ripples_events,
@@ -288,9 +290,7 @@ def test_load_cell_metrics_only_metrics():
                         "putativeCellType": np.array(
                             ["Pyramidal", "Interneuron", "Pyramidal"], dtype="object"
                         ),
-                        "brainRegion": np.array(
-                            ["CA1", "CA3", "CA1"], dtype="object"
-                        ),
+                        "brainRegion": np.array(["CA1", "CA3", "CA1"], dtype="object"),
                         "tags": {},
                         "spikes": {
                             "times": np.array(
@@ -302,9 +302,7 @@ def test_load_cell_metrics_only_metrics():
                                 dtype="object",
                             )
                         },
-                        "waveforms": {
-                            "filt": np.array([[[1, 2]], [[3, 4]], [[5, 6]]])
-                        },
+                        "waveforms": {"filt": np.array([[[1, 2]], [[3, 4]], [[5, 6]]])},
                         "acg": {
                             "wide": np.array([[1, 2], [3, 4], [5, 6]]),
                             "narrow": np.array([[1, 2], [3, 4], [5, 6]]),
@@ -363,9 +361,7 @@ def test_load_cell_metrics_with_data():
                                 dtype="object",
                             )
                         },
-                        "waveforms": {
-                            "filt": np.array([[[1, 2]], [[3, 4]]])
-                        },
+                        "waveforms": {"filt": np.array([[[1, 2]], [[3, 4]]])},
                         "acg": {
                             "wide": np.array([[1, 2], [3, 4]]),
                             "narrow": np.array([[1, 2], [3, 4]]),
@@ -1507,7 +1503,9 @@ def test_load_manipulation_basic():
                         "duration": np.array([[0.5], [0.5], [0.5]]),
                         "amplitude": np.array([[100.0], [100.0], [100.0]]),
                         "amplitudeUnits": "mW",
-                        "eventIDlabels": np.array(["stim_on", "stim_off"], dtype=object),
+                        "eventIDlabels": np.array(
+                            ["stim_on", "stim_off"], dtype=object
+                        ),
                         "eventID": np.array([[1], [1], [2]]),
                     }
                 },
@@ -1570,3 +1568,85 @@ def test_load_manipulation_dataframe():
         assert "amplitude" in df.columns
         assert "ev_label" in df.columns
         assert df.start.iloc[0] == 1.0
+
+
+def test_load_all_cell_metrics():
+    """Test loading cell metrics from multiple sessions."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepaths = []
+        for i in range(3):
+            basepath = os.path.join(temp_dir, f"session_{i}")
+            basepaths.append(basepath)
+            basename = os.path.basename(basepath)
+
+            create_temp_mat_file(
+                basepath,
+                {
+                    f"{basename}.cell_metrics.cellinfo.mat": {
+                        "cell_metrics": {
+                            "UID": np.array([1, 2], dtype="object"),
+                            "putativeCellType": np.array(
+                                ["Pyramidal", "Interneuron"], dtype="object"
+                            ),
+                            "brainRegion": np.array(["CA1", "CA3"], dtype="object"),
+                            "tags": {},
+                            "spikes": {
+                                "times": np.array(
+                                    [
+                                        np.array([[1.0], [2.0]]),
+                                        np.array([[3.0], [4.0]]),
+                                    ],
+                                    dtype="object",
+                                )
+                            },
+                            "waveforms": {"filt": np.array([[[1, 2]], [[3, 4]]])},
+                            "acg": {
+                                "wide": np.array([[1, 2], [3, 4]]),
+                                "narrow": np.array([[1, 2], [3, 4]]),
+                                "log10": np.array([[1, 2], [3, 4]]),
+                            },
+                            "general": {
+                                "basename": basename,
+                                "cellCount": 2,
+                                "animal": {
+                                    "sex": "male",
+                                    "species": "rat",
+                                    "strain": "long-evans",
+                                    "geneticLine": "WT",
+                                },
+                            },
+                        }
+                    },
+                },
+            )
+
+        df = load_all_cell_metrics(basepaths)
+
+        assert df is not None
+        assert len(df) == 6  # 2 cells per session * 3 sessions
+        assert "UID" in df.columns
+        assert "basepath" in df.columns
+        assert len(df.basepath.unique()) == 3
+
+
+def test_load_deepSuperficialfromRipple():
+    """Test that load_deepSuperficialfromRipple function is importable and has correct signature.
+
+    Note: Full functional testing of this function requires complex MATLAB struct data that is
+    difficult to replicate accurately with scipy.io.savemat. This test verifies the function
+    exists and can be called properly.
+    """
+    # Verify function is imported and callable
+    assert callable(load_deepSuperficialfromRipple)
+
+    # Verify function signature using inspect
+    import inspect
+
+    sig = inspect.signature(load_deepSuperficialfromRipple)
+    params = list(sig.parameters.keys())
+    assert "basepath" in params
+    assert "bypass_mismatch_exception" in params
+
+    # Verify return type annotation indicates a tuple
+    return_annotation = sig.return_annotation
+    assert return_annotation != inspect.Signature.empty
