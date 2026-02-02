@@ -2112,7 +2112,9 @@ def load_deepSuperficialfromRipple(
             for shank in value["electrodeGroups"]:
                 channel_df.loc[channel_df.shank == shank, "ca1_shank"] = True
 
-    if (ripple_average.shape[0] != channel_df.shape[0]) & (~bypass_mismatch_exception):
+    if (ripple_average.shape[0] != channel_df.shape[0]) & (
+        not bypass_mismatch_exception
+    ):
         raise Exception(
             "size mismatch "
             + str(np.hstack(ripple_average).shape[1])
