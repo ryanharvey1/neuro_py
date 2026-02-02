@@ -13,6 +13,7 @@ from neuro_py.io.loading import (
     load_brain_regions,
     load_SleepState_states,
     load_animal_behavior,
+    load_epoch,
     load_spikes,
     load_trials,
 )
@@ -191,6 +192,81 @@ def test_load_animal_behavior_filters_random_fields():
         assert "empty_array" not in df.columns
         assert "notes" in df.columns
         assert (df["epochs"] == "task").all()
+
+
+def test_load_epoch_basic():
+    """Test basic successful loading of epochs with missing columns filled."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_epoch")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": {
+                            "name": "task",
+                            "startTime": 0.0,
+                            "stopTime": 3.0,
+                        }
+                    }
+                }
+            },
+        )
+
+        epoch_df = load_epoch(basepath)
+
+        assert not epoch_df.empty
+        for col in [
+            "name",
+            "startTime",
+            "stopTime",
+            "environment",
+            "manipulation",
+            "behavioralParadigm",
+            "stimuli",
+            "notes",
+            "basepath",
+        ]:
+            assert col in epoch_df.columns
+        assert epoch_df.name.iloc[0] == "task"
+        assert epoch_df.basepath.iloc[0] == basepath
+
+
+def test_load_epoch_with_distractor_fields():
+    """Test that distractor fields are preserved when loading epochs."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_epoch_extra")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "sleep",
+                                "startTime": 0.0,
+                                "stopTime": 10.0,
+                                "environment": "home",
+                                "extraField": "ignore_me",
+                                "weirdMetric": 123,
+                            }
+                        ]
+                    }
+                }
+            },
+        )
+
+        epoch_df = load_epoch(basepath)
+
+        assert not epoch_df.empty
+        assert "extraField" in epoch_df.columns
+        assert "weirdMetric" in epoch_df.columns
+        assert epoch_df.extraField.iloc[0] == "ignore_me"
+        assert epoch_df.weirdMetric.iloc[0] == 123
 
 
 def test_load_trials_old_standard():
