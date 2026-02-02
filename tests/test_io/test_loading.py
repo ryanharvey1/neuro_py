@@ -13,8 +13,12 @@ from neuro_py.io.loading import (
     load_brain_regions,
     load_SleepState_states,
     load_animal_behavior,
+    load_cell_metrics,
     load_epoch,
+    load_manipulation,
+    load_ripples_events,
     load_spikes,
+    load_theta_cycles,
     load_trials,
 )
 
@@ -267,6 +271,131 @@ def test_load_epoch_with_distractor_fields():
         assert "weirdMetric" in epoch_df.columns
         assert epoch_df.extraField.iloc[0] == "ignore_me"
         assert epoch_df.weirdMetric.iloc[0] == 123
+
+
+def test_load_cell_metrics_only_metrics():
+    """Test loading cell metrics with only_metrics=True."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_metrics")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.cell_metrics.cellinfo.mat": {
+                    "cell_metrics": {
+                        "UID": np.array([1, 2, 3], dtype="object"),
+                        "putativeCellType": np.array(
+                            ["Pyramidal", "Interneuron", "Pyramidal"], dtype="object"
+                        ),
+                        "brainRegion": np.array(
+                            ["CA1", "CA3", "CA1"], dtype="object"
+                        ),
+                        "tags": {},
+                        "spikes": {
+                            "times": np.array(
+                                [
+                                    np.array([[1.0], [2.0]]),
+                                    np.array([[3.0], [4.0]]),
+                                    np.array([[5.0], [6.0]]),
+                                ],
+                                dtype="object",
+                            )
+                        },
+                        "waveforms": {
+                            "filt": np.array([[[1, 2]], [[3, 4]], [[5, 6]]])
+                        },
+                        "acg": {
+                            "wide": np.array([[1, 2], [3, 4], [5, 6]]),
+                            "narrow": np.array([[1, 2], [3, 4], [5, 6]]),
+                            "log10": np.array([[1, 2], [3, 4], [5, 6]]),
+                        },
+                        "general": {
+                            "basename": basename,
+                            "cellCount": 3,
+                            "animal": {
+                                "sex": "male",
+                                "species": "rat",
+                                "strain": "long-evans",
+                                "geneticLine": "WT",
+                            },
+                        },
+                    }
+                },
+            },
+        )
+
+        df = load_cell_metrics(basepath, only_metrics=True)
+
+        assert df is not None
+        assert len(df) == 3
+        assert "UID" in df.columns
+        assert "putativeCellType" in df.columns
+        assert "brainRegion" in df.columns
+        assert "basename" in df.columns
+        assert "basepath" in df.columns
+        assert df.basepath.iloc[0] == basepath
+
+
+def test_load_cell_metrics_with_data():
+    """Test loading cell metrics with only_metrics=False returns data dict."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_metrics_full")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.cell_metrics.cellinfo.mat": {
+                    "cell_metrics": {
+                        "UID": np.array([1, 2], dtype="object"),
+                        "putativeCellType": np.array(
+                            ["Pyramidal", "Interneuron"], dtype="object"
+                        ),
+                        "brainRegion": np.array(["CA1", "CA3"], dtype="object"),
+                        "tags": {"Bad": np.array([])},
+                        "spikes": {
+                            "times": np.array(
+                                [
+                                    np.array([[1.0], [2.0]]),
+                                    np.array([[3.0], [4.0]]),
+                                ],
+                                dtype="object",
+                            )
+                        },
+                        "waveforms": {
+                            "filt": np.array([[[1, 2]], [[3, 4]]])
+                        },
+                        "acg": {
+                            "wide": np.array([[1, 2], [3, 4]]),
+                            "narrow": np.array([[1, 2], [3, 4]]),
+                            "log10": np.array([[1, 2], [3, 4]]),
+                        },
+                        "general": {
+                            "basename": basename,
+                            "cellCount": 2,
+                            "animal": {
+                                "sex": "male",
+                                "species": "rat",
+                                "strain": "long-evans",
+                                "geneticLine": "WT",
+                            },
+                        },
+                    }
+                },
+            },
+        )
+
+        df, data = load_cell_metrics(basepath, only_metrics=False)
+
+        assert df is not None
+        assert data is not None
+        assert len(df) == 2
+        assert isinstance(data, dict)
+        assert "spikes" in data
+        assert "waveforms" in data
+        assert "acg_wide" in data
+        assert len(data["spikes"]) == 2
 
 
 def test_load_trials_old_standard():
@@ -1219,3 +1348,225 @@ def test_load_SleepState_states_missing_statenames():
         # Assertions
         assert result["wake_id"] is None
         assert result["rem_id"] == 3
+
+
+def test_load_ripples_events_basic():
+    """Test basic successful loading of ripple events."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_ripples")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.ripples.events.mat": {
+                    "ripples": {
+                        "timestamps": np.array([[0.1, 0.15], [0.5, 0.55], [1.0, 1.05]]),
+                        "peaks": np.array([[0.125], [0.525], [1.025]]),
+                        "amplitude": np.array([[100.0], [150.0], [120.0]]),
+                        "duration": np.array([[0.05], [0.05], [0.05]]),
+                        "frequency": np.array([[150.0], [160.0], [155.0]]),
+                        "peakNormedPower": np.array([[2.5], [3.0], [2.8]]),
+                        "detectorName": "auto_detector",
+                        "detectorinfo": {
+                            "detectorname": "auto_detector",
+                            "detectionparms": {
+                                "Channels": 10,
+                            },
+                        },
+                    }
+                },
+            },
+        )
+
+        df = load_ripples_events(basepath)
+
+        assert not df.empty
+        assert len(df) == 3
+        assert "start" in df.columns
+        assert "stop" in df.columns
+        assert "peaks" in df.columns
+        assert "amplitude" in df.columns
+        assert "duration" in df.columns
+        assert "frequency" in df.columns
+        assert "detectorName" in df.columns
+        assert "ripple_channel" in df.columns
+        assert "basepath" in df.columns
+        assert df.start.iloc[0] == 0.1
+        assert df.stop.iloc[0] == 0.15
+        assert df.peaks.iloc[0] == 0.125
+
+
+def test_load_ripples_events_epoch_array():
+    """Test loading ripple events as EpochArray."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_ripples_epoch")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.ripples.events.mat": {
+                    "ripples": {
+                        "timestamps": np.array([[0.1, 0.15], [0.5, 0.55]]),
+                        "peaks": np.array([[0.125], [0.525]]),
+                        "amplitude": np.array([[100.0], [150.0]]),
+                        "duration": np.array([[0.05], [0.05]]),
+                        "frequency": np.array([[150.0], [160.0]]),
+                        "detectorName": "auto_detector",
+                    }
+                },
+            },
+        )
+
+        epochs = load_ripples_events(basepath, return_epoch_array=True)
+
+        assert epochs is not None
+        assert isinstance(epochs, nel.EpochArray)
+        assert epochs.n_intervals == 2
+
+
+def test_load_theta_cycles_basic():
+    """Test basic successful loading of theta cycles."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_theta")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.thetacycles.events.mat": {
+                    "thetacycles": {
+                        "timestamps": np.array([[0.1, 0.25], [0.25, 0.4], [0.4, 0.55]]),
+                        "duration": np.array([0.15, 0.15, 0.15]),
+                        "center": np.array([0.175, 0.325, 0.475]),
+                        "peaks": np.array([0.2, 0.35, 0.5]),
+                        "detectorinfo": {"theta_channel": 15},
+                    }
+                },
+            },
+        )
+
+        df = load_theta_cycles(basepath)
+
+        assert not df.empty
+        assert len(df) == 3
+        assert "start" in df.columns
+        assert "stop" in df.columns
+        assert "duration" in df.columns
+        assert "center" in df.columns
+        assert "trough" in df.columns
+        assert "theta_channel" in df.columns
+        assert df.start.iloc[0] == 0.1
+        assert df.stop.iloc[0] == 0.25
+        assert df.theta_channel.iloc[0] == 15
+
+
+def test_load_theta_cycles_epoch_array():
+    """Test loading theta cycles as EpochArray."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_theta_epoch")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.thetacycles.events.mat": {
+                    "thetacycles": {
+                        "timestamps": np.array([[0.1, 0.25], [0.25, 0.4]]),
+                        "duration": np.array([0.15, 0.15]),
+                        "center": np.array([0.175, 0.325]),
+                        "peaks": np.array([0.2, 0.35]),
+                        "detectorinfo": {"theta_channel": 15},
+                    }
+                },
+            },
+        )
+
+        epochs = load_theta_cycles(basepath, return_epoch_array=True)
+
+        assert epochs is not None
+        assert isinstance(epochs, nel.EpochArray)
+        assert epochs.n_intervals == 2
+
+
+def test_load_manipulation_basic():
+    """Test basic successful loading of manipulation events."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_manip")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.optoStim.manipulation.mat": {
+                    "optoStim": {
+                        "timestamps": np.array([[1.0, 1.5], [2.0, 2.5], [3.0, 3.5]]),
+                        "peaks": np.array([[1.25], [2.25], [3.25]]),
+                        "center": np.array([[1.25], [2.25], [3.25]]),
+                        "duration": np.array([[0.5], [0.5], [0.5]]),
+                        "amplitude": np.array([[100.0], [100.0], [100.0]]),
+                        "amplitudeUnits": "mW",
+                        "eventIDlabels": np.array(["stim_on", "stim_off"], dtype=object),
+                        "eventID": np.array([[1], [1], [2]]),
+                    }
+                },
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": {
+                            "name": "task",
+                            "startTime": 0.0,
+                            "stopTime": 10.0,
+                        }
+                    }
+                },
+            },
+        )
+
+        result = load_manipulation(basepath, struct_name="optoStim")
+
+        assert result is not None
+        assert isinstance(result, dict)
+        assert "stim_on" in result
+        assert "stim_off" in result
+        assert result["stim_on"].n_intervals == 2
+        assert result["stim_off"].n_intervals == 1
+
+
+def test_load_manipulation_dataframe():
+    """Test loading manipulation as DataFrame."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_manip_df")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.optoStim.manipulation.mat": {
+                    "optoStim": {
+                        "timestamps": np.array([[1.0, 1.5], [2.0, 2.5]]),
+                        "peaks": np.array([[1.25], [2.25]]),
+                        "center": np.array([[1.25], [2.25]]),
+                        "duration": np.array([[0.5], [0.5]]),
+                        "amplitude": np.array([[100.0], [100.0]]),
+                        "amplitudeUnits": "mW",
+                        "eventIDlabels": np.array(["stim_on"], dtype=object),
+                        "eventID": np.array([[1], [1]]),
+                    }
+                },
+            },
+        )
+
+        df = load_manipulation(
+            basepath, struct_name="optoStim", return_epoch_array=False
+        )
+
+        assert df is not None
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 2
+        assert "start" in df.columns
+        assert "stop" in df.columns
+        assert "peaks" in df.columns
+        assert "amplitude" in df.columns
+        assert "ev_label" in df.columns
+        assert df.start.iloc[0] == 1.0
