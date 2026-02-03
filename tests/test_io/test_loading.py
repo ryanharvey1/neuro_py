@@ -12,23 +12,23 @@ import scipy.io as sio
 from neuro_py.io.loading import (
     LFPLoader,
     load_all_cell_metrics,
+    load_animal_behavior,
     load_brain_regions,
+    load_cell_metrics,
     load_channel_tags,
+    load_deepSuperficialfromRipple,
     load_emg,
-    loadLFP,
+    load_epoch,
     load_events,
     load_extracellular_metadata,
-    load_SleepState_states,
-    load_animal_behavior,
-    load_cell_metrics,
-    load_deepSuperficialfromRipple,
-    load_epoch,
     load_manipulation,
     load_probe_layout,
     load_ripples_events,
+    load_SleepState_states,
     load_spikes,
     load_theta_cycles,
     load_trials,
+    loadLFP,
 )
 
 
@@ -1714,9 +1714,7 @@ def test_load_channel_tags_and_extracellular_metadata():
                                 "x": np.array([10, 20, 30, 40]),
                                 "y": np.array([1, 2, 3, 4]),
                             },
-                            "electrodeGroups": {
-                                "channels": np.array([1, 2, 3, 4])
-                            },
+                            "electrodeGroups": {"channels": np.array([1, 2, 3, 4])},
                         },
                     }
                 }
@@ -1750,9 +1748,7 @@ def test_load_probe_layout():
                                 "x": np.array([10, 20, 30, 40]),
                                 "y": np.array([1, 2, 3, 4]),
                             },
-                            "electrodeGroups": {
-                                "channels": np.array([1, 2, 3, 4])
-                            },
+                            "electrodeGroups": {"channels": np.array([1, 2, 3, 4])},
                         }
                     }
                 }
