@@ -29,6 +29,7 @@ from neuro_py.io.loading import (
     load_theta_cycles,
     load_trials,
     loadLFP,
+    loadXML,
 )
 
 
@@ -1857,3 +1858,46 @@ def test_loadLFP_reads_binary_file():
         if isinstance(lfp, np.memmap) and hasattr(lfp, "_mmap"):
             lfp._mmap.close()
         del lfp
+
+
+def test_loadXML_parses_basic_fields():
+    """Test loadXML parses channels, sampling rates, and shank mappings."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_xml")
+        os.makedirs(basepath, exist_ok=True)
+        basename = os.path.basename(basepath)
+        xml_path = os.path.join(basepath, f"{basename}.xml")
+
+        xml_content = """<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<session>
+    <acquisitionSystem>
+        <nChannels>4</nChannels>
+        <samplingRate>20000</samplingRate>
+    </acquisitionSystem>
+    <fieldPotentials>
+        <lfpSamplingRate>1250</lfpSamplingRate>
+    </fieldPotentials>
+    <anatomicalDescription>
+        <channelGroups>
+            <group>
+                <channel>0</channel>
+                <channel>1</channel>
+            </group>
+            <group>
+                <channel>2</channel>
+                <channel>3</channel>
+            </group>
+        </channelGroups>
+    </anatomicalDescription>
+</session>
+"""
+
+        with open(xml_path, "w", encoding="utf-8") as f:
+            f.write(xml_content)
+
+        n_channels, fs, fs_dat, shank_to_channel = loadXML(basepath)
+
+        assert n_channels == 4
+        assert fs == 1250
+        assert fs_dat == 20000
+        assert shank_to_channel == {0: [0, 1], 1: [2, 3]}
