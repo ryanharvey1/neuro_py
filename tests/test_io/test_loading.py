@@ -1825,7 +1825,9 @@ def test_LFPLoader_init_loads_lfp():
             return_value=(lfp_data, timestep),
         ),
     ):
-        loader = LFPLoader("dummy", channels=None, ext="lfp")
+        loader = LFPLoader(
+            "dummy", channels=None, ext="lfp", epoch=np.array([0.0, 3.0])
+        )
 
     assert isinstance(loader.lfp, nel.AnalogSignalArray)
     assert loader.lfp.data.shape == (2, 4)
