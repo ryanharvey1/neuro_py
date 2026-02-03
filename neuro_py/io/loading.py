@@ -1535,7 +1535,7 @@ def load_animal_behavior(
 
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
-        if key in {"position", "SpatialSeries", "timeSeries", "timestamps", "trials"}:
+        if key in {"position", "SpatialSeries", "timeSeries", "trials"}:
             continue
         values = data["behavior"][key]
         if isinstance(values, dict):
