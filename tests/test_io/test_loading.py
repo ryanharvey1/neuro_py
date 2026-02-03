@@ -209,7 +209,7 @@ def test_load_animal_behavior_filters_random_fields():
 
 
 def test_load_animal_behavior_filters_scalar_arrays():
-    """Test that 0-D (scalar) arrays are filtered out to prevent TypeError."""
+    """Test that 0-D (scalar) arrays are retained as metadata without errors."""
     with tempfile.TemporaryDirectory() as temp_dir:
         basepath = os.path.join(temp_dir, "session_scalar")
         basename = os.path.basename(basepath)

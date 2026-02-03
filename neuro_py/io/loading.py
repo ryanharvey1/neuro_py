@@ -1587,6 +1587,7 @@ def load_animal_behavior(
                             trial_col[idx] = t
                         _assign_column("trials", trial_col)
                 except Exception:
+                    # Trials metadata can be malformed or inconsistent across sources; skip silently.
                     pass
         else:
             try:
@@ -1597,6 +1598,7 @@ def load_animal_behavior(
                         trial_col[idx] = t
                     _assign_column("trials", trial_col)
             except Exception:
+                # Trials arrays may be ragged or have unexpected shapes; skip silently.
                 pass
 
     # add timeSeries entries when present
