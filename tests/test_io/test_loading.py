@@ -10,14 +10,21 @@ import pytest
 import scipy.io as sio
 
 from neuro_py.io.loading import (
+    LFPLoader,
     load_all_cell_metrics,
     load_brain_regions,
+    load_channel_tags,
+    load_emg,
+    loadLFP,
+    load_events,
+    load_extracellular_metadata,
     load_SleepState_states,
     load_animal_behavior,
     load_cell_metrics,
     load_deepSuperficialfromRipple,
     load_epoch,
     load_manipulation,
+    load_probe_layout,
     load_ripples_events,
     load_spikes,
     load_theta_cycles,
@@ -1650,3 +1657,205 @@ def test_load_deepSuperficialfromRipple():
     # Verify return type annotation indicates a tuple
     return_annotation = sig.return_annotation
     assert return_annotation != inspect.Signature.empty
+
+
+def test_load_events_epoch_array_and_dataframe():
+    """Test load_events returns EpochArray or DataFrame based on load_pandas flag."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_events")
+        basename = os.path.basename(basepath)
+        event_name = "my_events"
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.{event_name}.events.mat": {
+                    event_name: {
+                        "timestamps": np.array([[0.0, 1.0], [2.0, 3.0]]),
+                        "amplitude": np.array([1.0, 2.0]),
+                        "labels": np.array(["a", "b"], dtype=object),
+                        "extra2d": np.array([[1, 2], [3, 4]]),
+                    }
+                }
+            },
+        )
+
+        epoch = load_events(basepath, event_name)
+        assert isinstance(epoch, nel.EpochArray)
+        assert epoch.n_intervals == 2
+
+        df = load_events(basepath, event_name, load_pandas=True)
+        assert isinstance(df, pd.DataFrame)
+        assert list(df.columns[:2]) == ["starts", "stops"]
+        assert "amplitude" in df.columns
+        assert "labels" in df.columns
+        assert "extra2d" not in df.columns
+
+
+def test_load_channel_tags_and_extracellular_metadata():
+    """Test load_channel_tags and load_extracellular_metadata from session file."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_meta")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "channelTags": {
+                            "ripple": {"channels": np.array([1, 2])},
+                            "theta": {"channels": np.array([3, 4])},
+                        },
+                        "extracellular": {
+                            "sr": 20000,
+                            "nElectrodeGroups": 1,
+                            "chanCoords": {
+                                "x": np.array([10, 20, 30, 40]),
+                                "y": np.array([1, 2, 3, 4]),
+                            },
+                            "electrodeGroups": {
+                                "channels": np.array([1, 2, 3, 4])
+                            },
+                        },
+                    }
+                }
+            },
+        )
+
+        tags = load_channel_tags(basepath)
+        assert isinstance(tags, dict)
+        assert "ripple" in tags
+        assert "theta" in tags
+
+        meta = load_extracellular_metadata(basepath)
+        assert isinstance(meta, dict)
+        assert meta.get("sr") == 20000
+
+
+def test_load_probe_layout():
+    """Test probe layout mapping from session extracellular metadata."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_probe")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "extracellular": {
+                            "nElectrodeGroups": 1,
+                            "chanCoords": {
+                                "x": np.array([10, 20, 30, 40]),
+                                "y": np.array([1, 2, 3, 4]),
+                            },
+                            "electrodeGroups": {
+                                "channels": np.array([1, 2, 3, 4])
+                            },
+                        }
+                    }
+                }
+            },
+        )
+
+        probe_layout = load_probe_layout(basepath)
+        assert isinstance(probe_layout, pd.DataFrame)
+        assert list(probe_layout.columns) == ["x", "y", "shank", "channels"]
+        assert probe_layout["channels"].tolist() == [0, 1, 2, 3]
+        assert probe_layout["shank"].tolist() == [0, 0, 0, 0]
+
+
+def test_load_emg():
+    """Test loading EMG data and high/low epoch extraction."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_emg")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.EMGFromLFP.LFP.mat": {
+                    "EMGFromLFP": {
+                        "data": np.array([0.1, 0.95, 0.1, 0.99]),
+                        "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+                    }
+                }
+            },
+        )
+
+        emg, high_emg_epoch, low_emg_epoch = load_emg(basepath, threshold=0.9)
+        assert isinstance(emg, nel.AnalogSignalArray)
+        assert isinstance(high_emg_epoch, nel.EpochArray)
+        assert isinstance(low_emg_epoch, nel.EpochArray)
+        assert emg.data.flatten().shape[0] == 4
+        assert high_emg_epoch.n_intervals == 2
+        assert low_emg_epoch.n_intervals >= 1
+
+
+def test_load_lfp_method():
+    """Test LFPLoader.load_lfp populates lfp with returned data."""
+    lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    loader = object.__new__(LFPLoader)
+    loader.basepath = "dummy"
+    loader.nChannels = 2
+    loader.channels = None
+    loader.fs = 1250.0
+    loader.ext = "lfp"
+    loader.epoch = np.array([0.0, 3.0])
+
+    with patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, timestep)):
+        loader.load_lfp()
+
+    assert isinstance(loader.lfp, nel.AnalogSignalArray)
+    assert loader.lfp.data.shape == (2, 4)
+    assert loader.lfp.abscissa_vals.shape[0] == 4
+
+
+def test_LFPLoader_init_loads_lfp():
+    """Test LFPLoader initialization loads lfp using loadXML/loadLFP."""
+    lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+
+    assert isinstance(loader.lfp, nel.AnalogSignalArray)
+    assert loader.lfp.data.shape == (2, 4)
+    assert loader.lfp.abscissa_vals.shape[0] == 4
+
+
+def test_loadLFP_reads_binary_file():
+    """Test loadLFP reads a binary lfp file and returns data and timestamps."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_lfp")
+        os.makedirs(basepath, exist_ok=True)
+        basename = os.path.basename(basepath)
+
+        data = np.array(
+            [[1, 2], [3, 4], [5, 6], [7, 8]],
+            dtype=np.int16,
+        )
+        lfp_path = os.path.join(basepath, f"{basename}.lfp")
+        data.tofile(lfp_path)
+
+        lfp, timestep = loadLFP(basepath, n_channels=2, frequency=2.0, ext="lfp")
+
+        assert lfp.shape == (4, 2)
+        assert timestep.shape[0] == 4
+        assert np.allclose(timestep, np.array([0.0, 0.5, 1.0, 1.5]))
+
+        if isinstance(lfp, np.memmap) and hasattr(lfp, "_mmap"):
+            lfp._mmap.close()
+        del lfp
