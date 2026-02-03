@@ -319,6 +319,49 @@ def test_load_animal_behavior_spatialseries_fields():
         assert "orientation_w" in df.columns
 
 
+def test_load_animal_behavior_fails_on_overwrite():
+    """Ensure loader raises when a column would be overwritten."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_overwrite")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "SpatialSeries": {
+                "position": {
+                    "x": np.array([10.0, 11.0, 12.0, 13.0]),
+                    "y": np.array([10.0, 11.0, 10.0, 11.0]),
+                }
+            },
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "task",
+                                "startTime": 0.0,
+                                "stopTime": 3.0,
+                                "environment": "box",
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+
+        with pytest.raises(ValueError, match="already exists"):
+            load_animal_behavior(basepath)
+
+
 def test_load_animal_behavior_stress_missing_position_keys():
     """Stress test: handle missing position coordinate keys."""
     with tempfile.TemporaryDirectory() as temp_dir:

@@ -1485,9 +1485,16 @@ def load_animal_behavior(
 
     data = sio.loadmat(filename, simplify_cells=True)
 
+    def _assign_column(col_name: str, values) -> None:
+        if col_name in df.columns:
+            raise ValueError(
+                f"Column '{col_name}' already exists in behavior dataframe; refusing to overwrite."
+            )
+        df[col_name] = values
+
     # add timestamps first which provide the correct shape of df
     # here, I'm naming them time, but this should be deprecated
-    df["time"] = data["behavior"]["timestamps"]
+    _assign_column("time", data["behavior"]["timestamps"])
 
     # add all other position coordinates to df (will add everything it can within position)
     if "position" in data["behavior"] and isinstance(
@@ -1500,7 +1507,7 @@ def load_animal_behavior(
                 continue
             if isinstance(values, (list, np.ndarray)) and len(values) == 0:
                 continue
-            df[key] = values
+            _assign_column(key, values)
 
     # handle SpatialSeries containers (position/pupil/orientation, etc.)
     if "SpatialSeries" in data["behavior"] and isinstance(
@@ -1522,13 +1529,13 @@ def load_animal_behavior(
                     if arr.ndim == 1 and len(arr) != len(df):
                         continue
                 if series_name == "position":
-                    df[key] = values
+                    _assign_column(key, values)
                 else:
-                    df[f"{series_name}_{key}"] = values
+                    _assign_column(f"{series_name}_{key}", values)
 
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
-        if key in {"position", "SpatialSeries", "timeSeries", "timestamps"}:
+        if key in {"position", "SpatialSeries", "timeSeries", "timestamps", "trials"}:
             continue
         values = data["behavior"][key]
         if isinstance(values, dict):
@@ -1539,7 +1546,7 @@ def load_animal_behavior(
                 continue
             if arr.ndim == 1 and len(arr) != len(df):
                 continue
-        df[key] = values
+        _assign_column(key, values)
 
     # add speed and acceleration (only if we have x and y coordinates and enough samples)
     if (
@@ -1548,12 +1555,13 @@ def load_animal_behavior(
         and "y" in df.columns
         and len(df) > 1
     ):
-        df["speed"] = get_speed(df[["x", "y"]].values, df.time.values)
+        _assign_column("speed", get_speed(df[["x", "y"]].values, df.time.values))
     if (
         "acceleration" not in df.columns and "speed" in df.columns and len(df) > 1
     ):  # using backward difference
-        df.loc[1:, "acceleration"] = np.diff(df["speed"]) / np.diff(df["time"])
-        df.loc[0, "acceleration"] = 0  # assuming no acceleration at start
+        acc = np.zeros(len(df))
+        acc[1:] = np.diff(df["speed"]) / np.diff(df["time"])
+        _assign_column("acceleration", acc)
 
     if "trials" in data["behavior"]:
         trials = data["behavior"]["trials"]
@@ -1562,7 +1570,7 @@ def load_animal_behavior(
             if "trials" in trials and isinstance(trials["trials"], (list, np.ndarray)):
                 arr = np.asarray(trials["trials"])
                 if arr.ndim == 1 and len(arr) == len(df):
-                    df["trials"] = arr
+                    _assign_column("trials", arr)
             elif {
                 "start",
                 "stop",
@@ -1572,16 +1580,22 @@ def load_animal_behavior(
                 try:
                     starts = np.asarray(starts).astype(float)
                     stops = np.asarray(stops).astype(float)
-                    for t in range(len(starts)):
-                        idx = (df.time >= starts[t]) & (df.time <= stops[t])
-                        df.loc[idx, "trials"] = t
+                    if len(df) > 0:
+                        trial_col = np.full(len(df), np.nan)
+                        for t in range(len(starts)):
+                            idx = (df.time >= starts[t]) & (df.time <= stops[t])
+                            trial_col[idx] = t
+                        _assign_column("trials", trial_col)
                 except Exception:
                     pass
         else:
             try:
-                for t in range(trials.shape[0]):
-                    idx = (df.time >= trials[t, 0]) & (df.time <= trials[t, 1])
-                    df.loc[idx, "trials"] = t
+                if len(df) > 0:
+                    trial_col = np.full(len(df), np.nan)
+                    for t in range(trials.shape[0]):
+                        idx = (df.time >= trials[t, 0]) & (df.time <= trials[t, 1])
+                        trial_col[idx] = t
+                    _assign_column("trials", trial_col)
             except Exception:
                 pass
 
@@ -1598,13 +1612,13 @@ def load_animal_behavior(
                     continue
                 if arr.ndim == 1 and len(arr) != len(df):
                     continue
-            df[f"timeSeries_{key}"] = values
+            _assign_column(f"timeSeries_{key}", values)
 
     # Initialize epoch columns with object dtype to hold strings
-    if "epochs" not in df.columns:
-        df["epochs"] = pd.Series(dtype=object)
-    if "environment" not in df.columns:
-        df["environment"] = pd.Series(dtype=object)
+    if "epochs" in df.columns or "environment" in df.columns:
+        raise ValueError("Column overwrite detected for 'epochs' or 'environment'.")
+    _assign_column("epochs", pd.Series([None] * len(df), dtype=object))
+    _assign_column("environment", pd.Series([None] * len(df), dtype=object))
 
     # Only process epochs if df is not empty
     if len(df) > 0:
