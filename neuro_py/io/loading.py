@@ -1490,14 +1490,46 @@ def load_animal_behavior(
     df["time"] = data["behavior"]["timestamps"]
 
     # add all other position coordinates to df (will add everything it can within position)
-    for key in data["behavior"]["position"].keys():
-        values = data["behavior"]["position"][key]
-        if isinstance(values, (list, np.ndarray)) and len(values) == 0:
-            continue
-        df[key] = values
+    if "position" in data["behavior"] and isinstance(
+        data["behavior"]["position"], dict
+    ):
+        for key in data["behavior"]["position"].keys():
+            values = data["behavior"]["position"][key]
+            # Skip empty arrays and non-array values (e.g., nested dicts)
+            if isinstance(values, dict):
+                continue
+            if isinstance(values, (list, np.ndarray)) and len(values) == 0:
+                continue
+            df[key] = values
+
+    # handle SpatialSeries containers (position/pupil/orientation, etc.)
+    if "SpatialSeries" in data["behavior"] and isinstance(
+        data["behavior"]["SpatialSeries"], dict
+    ):
+        spatial_series = data["behavior"]["SpatialSeries"]
+        for series_name, series in spatial_series.items():
+            if not isinstance(series, dict):
+                continue
+            for key, values in series.items():
+                if key in {"units", "resolution", "referenceFrame", "coordinateSystem"}:
+                    continue
+                if isinstance(values, dict):
+                    continue
+                if isinstance(values, (list, np.ndarray)):
+                    arr = np.asarray(values)
+                    if arr.ndim > 1:
+                        continue
+                    if arr.ndim == 1 and len(arr) != len(df):
+                        continue
+                if series_name == "position":
+                    df[key] = values
+                else:
+                    df[f"{series_name}_{key}"] = values
 
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
+        if key in {"position", "SpatialSeries", "timeSeries", "timestamps"}:
+            continue
         values = data["behavior"][key]
         if isinstance(values, dict):
             continue
@@ -1505,32 +1537,85 @@ def load_animal_behavior(
             arr = np.asarray(values)
             if arr.ndim > 1:
                 continue
-            if len(arr) != len(df):
+            if arr.ndim == 1 and len(arr) != len(df):
                 continue
         df[key] = values
 
-    # add speed and acceleration
-    if "speed" not in df.columns:
+    # add speed and acceleration (only if we have x and y coordinates and enough samples)
+    if (
+        "speed" not in df.columns
+        and "x" in df.columns
+        and "y" in df.columns
+        and len(df) > 1
+    ):
         df["speed"] = get_speed(df[["x", "y"]].values, df.time.values)
-    if "acceleration" not in df.columns:  # using backward difference
+    if (
+        "acceleration" not in df.columns and "speed" in df.columns and len(df) > 1
+    ):  # using backward difference
         df.loc[1:, "acceleration"] = np.diff(df["speed"]) / np.diff(df["time"])
         df.loc[0, "acceleration"] = 0  # assuming no acceleration at start
 
-    trials = data["behavior"]["trials"]
-    try:
-        for t in range(trials.shape[0]):
-            idx = (df.time >= trials[t, 0]) & (df.time <= trials[t, 1])
-            df.loc[idx, "trials"] = t
-    except Exception:
-        pass
+    if "trials" in data["behavior"]:
+        trials = data["behavior"]["trials"]
+        # If trials is a struct/dict, support common fields
+        if isinstance(trials, dict):
+            if "trials" in trials and isinstance(trials["trials"], (list, np.ndarray)):
+                arr = np.asarray(trials["trials"])
+                if arr.ndim == 1 and len(arr) == len(df):
+                    df["trials"] = arr
+            elif {
+                "start",
+                "stop",
+            }.issubset(trials.keys()) or {"starts", "stops"}.issubset(trials.keys()):
+                starts = trials.get("start", trials.get("starts"))
+                stops = trials.get("stop", trials.get("stops"))
+                try:
+                    starts = np.asarray(starts).astype(float)
+                    stops = np.asarray(stops).astype(float)
+                    for t in range(len(starts)):
+                        idx = (df.time >= starts[t]) & (df.time <= stops[t])
+                        df.loc[idx, "trials"] = t
+                except Exception:
+                    pass
+        else:
+            try:
+                for t in range(trials.shape[0]):
+                    idx = (df.time >= trials[t, 0]) & (df.time <= trials[t, 1])
+                    df.loc[idx, "trials"] = t
+            except Exception:
+                pass
 
-    epochs = load_epoch(basepath)
-    for t in range(epochs.shape[0]):
-        idx = (df.time >= epochs.startTime.iloc[t]) & (
-            df.time <= epochs.stopTime.iloc[t]
-        )
-        df.loc[idx, "epochs"] = epochs.name.iloc[t]
-        df.loc[idx, "environment"] = epochs.environment.iloc[t]
+    # add timeSeries entries when present
+    if "timeSeries" in data["behavior"] and isinstance(
+        data["behavior"]["timeSeries"], dict
+    ):
+        for key, values in data["behavior"]["timeSeries"].items():
+            if isinstance(values, dict):
+                continue
+            if isinstance(values, (list, np.ndarray)):
+                arr = np.asarray(values)
+                if arr.ndim > 1:
+                    continue
+                if arr.ndim == 1 and len(arr) != len(df):
+                    continue
+            df[f"timeSeries_{key}"] = values
+
+    # Initialize epoch columns with object dtype to hold strings
+    if "epochs" not in df.columns:
+        df["epochs"] = pd.Series(dtype=object)
+    if "environment" not in df.columns:
+        df["environment"] = pd.Series(dtype=object)
+
+    # Only process epochs if df is not empty
+    if len(df) > 0:
+        epochs = load_epoch(basepath)
+        for t in range(epochs.shape[0]):
+            idx = (df.time >= epochs.startTime.iloc[t]) & (
+                df.time <= epochs.stopTime.iloc[t]
+            )
+            if idx.any():
+                df.loc[idx, "epochs"] = epochs.name.iloc[t]
+                df.loc[idx, "environment"] = epochs.environment.iloc[t]
     return df
 
 

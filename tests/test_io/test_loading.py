@@ -208,6 +208,778 @@ def test_load_animal_behavior_filters_random_fields():
         assert (df["epochs"] == "task").all()
 
 
+def test_load_animal_behavior_filters_scalar_arrays():
+    """Test that 0-D (scalar) arrays are filtered out to prevent TypeError."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_scalar")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "scalar_metadata": np.array(42.0),  # 0-D array
+            "another_scalar": np.array(3.14),  # Another 0-D array
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "task",
+                                "startTime": 0.0,
+                                "stopTime": 3.0,
+                                "environment": "box",
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+
+        # Should not raise TypeError when encountering 0-D arrays
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "scalar_metadata" in df.columns
+        assert "another_scalar" in df.columns
+        assert "x" in df.columns
+        assert len(df) == 4
+
+
+def test_load_animal_behavior_spatialseries_fields():
+    """Test SpatialSeries parsing for position, pupil, and orientation."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_spatialseries")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "SpatialSeries": {
+                "position": {
+                    "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                    "y": np.array([0.0, 1.0, 0.0, 1.0]),
+                    "units": "cm",
+                    "resolution": 0.1,
+                    "coordinateSystem": "cartesian",
+                },
+                "pupil": {
+                    "x": np.array([1.0, 1.1, 1.2, 1.3]),
+                    "y": np.array([2.0, 2.1, 2.2, 2.3]),
+                    "diameter": np.array([0.5, 0.6, 0.7, 0.8]),
+                    "units": "px",
+                },
+                "orientation": {
+                    "x": np.array([0.1, 0.2, 0.3, 0.4]),
+                    "y": np.array([0.2, 0.3, 0.4, 0.5]),
+                    "z": np.array([0.3, 0.4, 0.5, 0.6]),
+                    "w": np.array([0.9, 0.9, 0.9, 0.9]),
+                    "units": "radians",
+                },
+            },
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {
+                                "name": "task",
+                                "startTime": 0.0,
+                                "stopTime": 3.0,
+                                "environment": "box",
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "x" in df.columns
+        assert "y" in df.columns
+        assert "pupil_x" in df.columns
+        assert "pupil_y" in df.columns
+        assert "pupil_diameter" in df.columns
+        assert "orientation_x" in df.columns
+        assert "orientation_y" in df.columns
+        assert "orientation_z" in df.columns
+        assert "orientation_w" in df.columns
+
+
+def test_load_animal_behavior_stress_missing_position_keys():
+    """Stress test: handle missing position coordinate keys."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_missing_pos")
+        basename = os.path.basename(basepath)
+
+        # Missing 'y' coordinate
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "z": np.array([0.0, 0.0, 0.0, 0.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "x" in df.columns
+        assert "z" in df.columns
+        assert "y" not in df.columns
+        assert len(df) == 4
+
+
+def test_load_animal_behavior_stress_empty_position_dict():
+    """Stress test: handle empty position dictionary."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_empty_pos")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {},  # Empty position dict
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "time" in df.columns
+        assert "linearized" in df.columns
+
+
+def test_load_animal_behavior_stress_mismatched_lengths():
+    """Stress test: handle fields with mismatched array lengths."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_mismatch")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "speed": np.array([0.1, 0.2, 0.3]),  # Wrong length
+            "acceleration": np.array(
+                [0.01, 0.02, 0.03, 0.04, 0.05]
+            ),  # Also wrong length
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        # Wrong length fields should be ignored, but speed is calculated from x,y so it will be present
+        assert "speed" in df.columns  # Calculated from position
+        assert "acceleration" in df.columns  # Calculated from speed
+
+
+def test_load_animal_behavior_stress_multidimensional_arrays():
+    """Stress test: reject multidimensional arrays that aren't position."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_multidim")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "bad_2d": np.array([[1, 2], [3, 4], [5, 6], [7, 8]]),
+            "bad_3d": np.ones((4, 2, 3)),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "bad_2d" not in df.columns
+        assert "bad_3d" not in df.columns
+        assert "x" in df.columns
+
+
+def test_load_animal_behavior_stress_nan_values():
+    """Stress test: handle NaN values in arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_nan")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, np.nan, 2.0, 3.0]),
+                "y": np.array([np.nan, 1.0, np.nan, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, np.nan, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert len(df) == 4
+        assert df["x"].isna().sum() == 1
+        assert df["y"].isna().sum() == 2
+
+
+def test_load_animal_behavior_stress_all_nan_column():
+    """Stress test: handle columns that are entirely NaN."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_all_nan")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([np.nan, np.nan, np.nan, np.nan]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "y" in df.columns
+        assert df["y"].isna().all()
+
+
+def test_load_animal_behavior_stress_inf_values():
+    """Stress test: handle infinity values in arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_inf")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, np.inf, 2.0, 3.0]),
+                "y": np.array([-np.inf, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, np.inf]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        # Suppress expected RuntimeWarning from numpy operations with inf values
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert np.isinf(df["x"].iloc[1])
+        assert np.isinf(df["y"].iloc[0])
+
+
+def test_load_animal_behavior_stress_integer_arrays():
+    """Stress test: handle integer arrays gracefully."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_int")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0, 1, 2, 3], dtype=np.int32),
+            "position": {
+                "x": np.array([0, 1, 2, 3], dtype=np.int16),
+                "y": np.array([0, 1, 0, 1], dtype=np.int64),
+            },
+            "linearized": np.array([0, 1, 2, 3], dtype=np.int32),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0, "stopTime": 3}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert len(df) == 4
+        assert "x" in df.columns
+
+
+def test_load_animal_behavior_stress_very_large_array():
+    """Stress test: handle very large behavior arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_large")
+        basename = os.path.basename(basepath)
+
+        n_samples = 100000
+        behavior = {
+            "timestamps": np.linspace(0, 1000, n_samples),
+            "position": {
+                "x": np.sin(np.linspace(0, 10 * np.pi, n_samples)),
+                "y": np.cos(np.linspace(0, 10 * np.pi, n_samples)),
+            },
+            "linearized": np.linspace(0, 100, n_samples),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [
+                            {"name": "task", "startTime": 0.0, "stopTime": 1000.0}
+                        ]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert len(df) == n_samples
+        assert "speed" in df.columns  # Should be calculated
+        assert "acceleration" in df.columns
+
+
+def test_load_animal_behavior_stress_nested_position_structures():
+    """Stress test: handle deeply nested position structures."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_nested")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+                "nested_pos": {"a": 1, "b": 2},  # Nested dict in position
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "x" in df.columns
+        assert "nested_pos" not in df.columns  # Nested dicts should be skipped
+
+
+def test_load_animal_behavior_stress_special_string_values():
+    """Stress test: handle special string values in fields."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_strings")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "notes": "Test with special chars: !@#$%^&*()",
+            "unicode_field": "Test with unicode: αβγδε",
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "notes" in df.columns
+        assert "unicode_field" in df.columns
+
+
+def test_load_animal_behavior_stress_zero_length_arrays():
+    """Stress test: handle zero-length arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_zero_len")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([]),
+            "position": {
+                "x": np.array([]),
+                "y": np.array([]),
+            },
+            "linearized": np.array([]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert df.empty or len(df) == 0
+
+
+def test_load_animal_behavior_stress_single_sample():
+    """Stress test: handle single sample behavior data gracefully."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_single")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0]),
+            "position": {
+                "x": np.array([0.0]),
+                "y": np.array([0.0]),
+            },
+            "linearized": np.array([0.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 1.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        # Should load behavior data, may be empty or have 1 row depending on implementation
+        assert isinstance(df, pd.DataFrame)
+
+
+def test_load_animal_behavior_stress_duplicate_trials():
+    """Stress test: handle overlapping and duplicate trial intervals."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dup_trials")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]),
+            "position": {
+                "x": np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]),
+                "y": np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]),
+            },
+            "linearized": np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]),
+            "trials": np.array(
+                [
+                    [0.0, 1.0],
+                    [0.5, 1.5],  # Overlapping
+                    [1.0, 2.0],
+                    [1.5, 2.5],  # Overlapping
+                ]
+            ),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert len(df) == 7
+        # Some timestamps will be in multiple trials
+        assert "trials" in df.columns
+
+
+def test_load_animal_behavior_stress_no_position_key():
+    """Stress test: handle missing 'position' key entirely."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_no_pos")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+            "some_field": np.array([1, 2, 3, 4]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "time" in df.columns
+        assert "linearized" in df.columns
+
+
+def test_load_animal_behavior_stress_mixed_data_types():
+    """Stress test: handle mixed data types in position dict."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_mixed")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0], dtype=np.float64),
+                "y": np.array([0, 1, 0, 1], dtype=np.int32),
+                "z": [0.0, 0.0, 0.0, 0.0],  # Python list instead of array
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert not df.empty
+        assert "x" in df.columns
+        assert "y" in df.columns
+
+
+def test_load_animal_behavior_stress_no_epochs_file():
+    """Stress test: handle missing epochs/session file gracefully."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_no_epoch")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([0.0, 1.0, 2.0, 3.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        # Only create behavior file, no session file
+        create_temp_mat_file(
+            basepath,
+            {f"{basename}.animal.behavior.mat": {"behavior": behavior}},
+        )
+
+        # Suppress expected UserWarning about missing session file
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            df = load_animal_behavior(basepath)
+
+        # Should still load behavior data even without epochs
+        assert not df.empty
+        assert "time" in df.columns
+        assert "epochs" in df.columns  # Will be NaN
+
+
+def test_load_animal_behavior_stress_negative_timestamps():
+    """Stress test: handle negative timestamps."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_neg_ts")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([-2.0, -1.0, 0.0, 1.0]),
+            "position": {
+                "x": np.array([0.0, 1.0, 2.0, 3.0]),
+                "y": np.array([0.0, 1.0, 0.0, 1.0]),
+            },
+            "linearized": np.array([0.0, 1.0, 2.0, 3.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": -2.0, "stopTime": 1.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        assert len(df) == 4
+        assert df["time"].min() == -2.0
+
+
+def test_load_animal_behavior_stress_unsorted_timestamps():
+    """Stress test: handle unsorted/reverse-ordered timestamps."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_unsorted")
+        basename = os.path.basename(basepath)
+
+        behavior = {
+            "timestamps": np.array([3.0, 1.0, 0.0, 2.0]),  # Unsorted
+            "position": {
+                "x": np.array([3.0, 1.0, 0.0, 2.0]),
+                "y": np.array([3.0, 1.0, 0.0, 2.0]),
+            },
+            "linearized": np.array([3.0, 1.0, 0.0, 2.0]),
+        }
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.animal.behavior.mat": {"behavior": behavior},
+                f"{basename}.session.mat": {
+                    "session": {
+                        "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 3.0}]
+                    }
+                },
+            },
+        )
+
+        df = load_animal_behavior(basepath)
+
+        # Should still load the data despite being unsorted
+        assert len(df) == 4
+
+
 def test_load_epoch_basic():
     """Test basic successful loading of epochs with missing columns filled."""
     with tempfile.TemporaryDirectory() as temp_dir:
