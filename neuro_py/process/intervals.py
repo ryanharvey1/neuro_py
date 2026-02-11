@@ -12,70 +12,344 @@ from numba import jit
 def randomize_epochs(
     epoch: EpochArray,
     randomize_each: bool = True,
-    start_stop: Optional[np.ndarray] = None,
+    start_stop: Optional[
+        Union[
+            np.ndarray,
+            nel.EpochArray,
+            core.IntervalArray,
+            List[List[float]],
+            Tuple[float, float],
+        ]
+    ] = None,
+    avoid_split: bool = False,
+    preserve: bool = False,
 ) -> EpochArray:
-    """
-    Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
+    """Randomly shift intervals within a single or multi-interval support.
 
-    This method takes a EpochArray object as input, and can either randomly shift each epoch by a different amount
-    (if `randomize_each` is True) or shift all the epochs by the same amount (if `randomize_each` is False).
-    In either case, the method wraps the shifted epochs around the original time boundaries to make sure they remain
-    within the original time range. It then returns the modified EpochArray object.
+    This function applies either circular shifts (default) across the *combined* linearized
+    support or segment-wise constrained shifts (`avoid_split`, `preserve` modes) to the intervals
+    of an input :class:`nelpy.core.EpochArray`. Multi-interval supports (disjoint segments) are
+    handled transparently and intervals may split when wrapping across gaps (except when
+    constrained).
+
+    Modes
+    -----
+    1. Default (no flags):
+       Each interval (or the entire set) is circularly shifted along the concatenated support.
+       Crossing a gap causes an interval to split, increasing interval count.
+    2. ``avoid_split=True``:
+       Intervals must remain wholly inside their originating segment. Picks per-interval or
+       common shift from feasible ranges; raises if impossible for a common shift.
+    3. ``preserve=True``:
+       Guarantees identical interval count and total duration (duration of union of intervals).
+       Intervals spanning multiple support segments are left unchanged. Intervals within a single
+       segment are redistributed *without overlap* by randomly allocating gap space (Dirichlet)
+       between them. Ordering inside a segment may change if ``randomize_each=True``.
+
+    Parameter semantics
+    -------------------
+    ``randomize_each`` controls independence of shifts:
+    - True: Each interval gets its own shift (or its own gap positioning in ``preserve`` mode).
+    - False: One common circular shift (default mode) OR one feasible per-segment shift
+      (``preserve=False, avoid_split=True``) OR segment-wise common shift with fallback 0
+      (``preserve=True``).
+
+    Support resolution order:
+    1. Explicit ``start_stop`` argument (single [[start, stop]] or (n,2) array / EpochArray)
+    2. Finite ``epoch.domain`` if present
+    3. Fallback interval ``[epoch.start, epoch.stop]``
+
+    Guarantees
+    ----------
+    - ``preserve=True`` keeps: interval count, total duration (sum of lengths), and prevents overlap
+      within each support segment (except for spanning intervals which remain unchanged).
+    - ``avoid_split=True`` keeps interval count unless your original intervals can’t all share a common
+      shift when ``randomize_each=False`` (then a ValueError is raised).
+    - All output intervals lie inside the provided/inferred support.
+
+    Performance Notes
+    -----------------
+    Complexity is O(n + k) where n = number of intervals, k = support segments.
+    Splitting in default mode can increase the number of intervals (worst-case doubling if each wraps once).
 
     Parameters
     ----------
     epoch : EpochArray
-        The EpochArray object whose epochs should be shifted and wrapped.
-    randomize_each : bool, optional
-        If True, each epoch will be shifted by a different random amount.
-        If False, all the epochs will be shifted by the same random amount. Defaults to True.
-    start_stop : array, optional
-        If not None, time support will be taken from start_stop
+        Intervals to randomize. Must already lie within the chosen support.
+    randomize_each : bool, default True
+        Independent per-interval shifts (or per-interval gap placement in ``preserve`` mode).
+        Set False for a single common shift or per-segment collective shift.
+    start_stop : (2,) or (n,2) array-like | EpochArray | IntervalArray, optional
+        Support definition. If None, uses finite ``epoch.domain`` when available else ``[epoch.start, epoch.stop]``.
+    avoid_split : bool, default False
+        Constrain shifts to remain inside original segment. May raise for infeasible common shift.
+    preserve : bool, default False
+        Redistribute intervals segment-wise without overlap, preserving count & total duration.
 
     Returns
     -------
-    new_epochs : EpochArray
-        The modified EpochArray object with the shifted and wrapped epochs.
+    EpochArray
+        Randomized (and possibly split or redistributed) intervals.
+
+    Raises
+    ------
+    ValueError
+        - Support intervals malformed (shape/ordering)
+        - Interval outside support
+        - ``avoid_split=True`` and interval spans multiple segments
+        - ``avoid_split=True`` with ``randomize_each=False`` and no common feasible shift
+
+    Examples
+    --------
+    Basic single interval support:
+    >>> import nelpy as nel
+    >>> from neuro_py.process.intervals import randomize_epochs
+    >>> epochs = nel.EpochArray([[2.0, 4.0], [6.0, 7.0]])
+    >>> out = randomize_epochs(epochs, randomize_each=False)
+    >>> out.n_intervals in (2, 3)  # may split if wrapping
+    True
+
+    Multi-interval support supplied explicitly:
+    >>> support = np.array([[0.0, 5.0], [10.0, 15.0]])
+    >>> out2 = randomize_epochs(epochs, start_stop=support, randomize_each=True)
+    >>> out2.domain.n_intervals == 2
+    True
+
+    Using domain if present:
+    >>> domain = nel.EpochArray([[0.0, 5.0], [10.0, 12.0]])
+    >>> epochs2 = nel.EpochArray([[1.0, 2.0], [10.5, 11.0]], domain=domain)
+    >>> out3 = randomize_epochs(epochs2, randomize_each=False)
+    >>> np.allclose(out3.domain.data, domain.data)
+    True
+
+    Avoid splitting intervals across gaps:
+    >>> epochs3 = nel.EpochArray([[1.0, 2.0], [10.5, 11.0]], domain=domain)
+    >>> out4 = randomize_epochs(epochs3, avoid_split=True, randomize_each=True)
+    >>> out4.n_intervals == epochs3.n_intervals
+    True
+
+    Preserve count and total duration (non-overlapping redistribution):
+    >>> preserved = randomize_epochs(epochs3, preserve=True)
+    >>> np.isclose(preserved.duration, epochs3.duration)
+    True
+    >>> preserved.n_intervals == epochs3.n_intervals
+    True
+
+    Common shift with avoid_split (may raise if infeasible):
+    >>> try:
+    ...     _ = randomize_epochs(epochs3, avoid_split=True, randomize_each=False)
+    ...     ok = True
+    ... except ValueError:
+    ...     ok = False
+    >>> ok in (True, False)
+    True
+
+    Notes
+    -----
+    - For reproducibility set a global NumPy seed before calling (preserve mode uses a fresh RNG).
+    - Intervals spanning multiple segments are never moved in ``preserve`` mode.
+    - Setting ``preserve=True`` with ``randomize_each=False`` keeps relative ordering inside each segment.
     """
 
-    def wrap_intervals(intervals, start, stop):
-        idx = np.any(intervals > stop, axis=1)
-        intervals[idx] = intervals[idx] - stop + start
+    # --- support normalization ---
+    def _to_support_intervals(
+        ss: Optional[
+            Union[
+                np.ndarray,
+                nel.EpochArray,
+                core.IntervalArray,
+                List[List[float]],
+                Tuple[float, float],
+            ]
+        ],
+        src_epoch: EpochArray,
+    ) -> Tuple[np.ndarray, nel.EpochArray]:
+        """Resolve support definition.
 
-        idx = np.any(intervals < start, axis=1)
-        intervals[idx] = intervals[idx] - start + stop
-        return intervals
+        Preference order:
+        1. Explicit start_stop argument
+        2. Finite epoch.domain if available (multi or single interval)
+        3. Fallback to [epoch.start, epoch.stop]
+        """
+        if ss is None:
+            use_domain = (
+                hasattr(src_epoch, "domain")
+                and src_epoch.domain.n_intervals > 0
+                and np.isfinite(src_epoch.domain.start)
+                and np.isfinite(src_epoch.domain.stop)
+            )
+            if use_domain:
+                support_ep = nel.EpochArray(src_epoch.domain.data.copy())
+            else:
+                support_ep = nel.EpochArray([[src_epoch.start, src_epoch.stop]])
+        else:
+            if isinstance(ss, (nel.EpochArray, core.IntervalArray)):
+                support_ep = nel.EpochArray(np.asarray(ss.data).copy())
+            else:
+                arr = np.asarray(ss, dtype=float)
+                if arr.ndim == 1 and arr.shape[0] == 2:
+                    arr = arr.reshape(1, 2)
+                if arr.ndim != 2 or arr.shape[1] != 2:
+                    raise ValueError("start_stop must be shape (2,) or (n,2)")
+                support_ep = nel.EpochArray(arr)
+        support_ep._sort()
+        return support_ep.data.copy(), support_ep
 
-    new_epochs = epoch.copy()
+    support_intervals, support_epoch = _to_support_intervals(start_stop, epoch)
+    if support_intervals.size == 0:
+        return epoch.copy()
 
-    if start_stop is None:
-        start = new_epochs.start
-        stop = new_epochs.stop
-    else:
-        start, stop = start_stop
+    seg_lengths = support_intervals[:, 1] - support_intervals[:, 0]
+    if np.any(seg_lengths < 0):
+        raise ValueError("Support intervals must have start <= stop")
+    total_T = float(np.sum(seg_lengths))
+    if total_T <= 0:
+        return epoch.copy()
 
-    ts_range = stop - start
+    lin_ends = np.cumsum(seg_lengths)
+    lin_starts = lin_ends - seg_lengths
 
+    def _segment_index(t: float) -> int:
+        idx = np.searchsorted(support_intervals[:, 0], t, side="right") - 1
+        if idx < 0 or t > support_intervals[idx, 1]:
+            raise ValueError("Timestamp outside support intervals")
+        return int(idx)
+
+    def abs_to_lin(t: float) -> float:
+        j = _segment_index(t)
+        return float(lin_starts[j] + (t - support_intervals[j, 0]))
+
+    def lin_to_abs(a: float, b: float) -> List[Tuple[float, float]]:
+        out: List[Tuple[float, float]] = []
+        for j in range(support_intervals.shape[0]):
+            ls, le = lin_starts[j], lin_ends[j]
+            s = max(a, ls)
+            e = min(b, le)
+            if e > s:
+                abs_s = support_intervals[j, 0] + (s - ls)
+                abs_e = support_intervals[j, 0] + (e - ls)
+                out.append((float(abs_s), float(abs_e)))
+        return out
+
+    # --- preserve mode (non-overlapping, keep total union duration & count) ---
+    if preserve:
+        # Group intervals by segment
+        segment_map: dict[int, List[Tuple[float, float]]] = {}
+        spanning: List[
+            Tuple[float, float]
+        ] = []  # intervals crossing segments (kept unchanged)
+        for a, b in epoch.data:
+            j_a = _segment_index(float(a))
+            j_b = _segment_index(float(b))
+            if j_a != j_b:
+                spanning.append((float(a), float(b)))
+            else:
+                segment_map.setdefault(j_a, []).append((float(a), float(b)))
+
+        out: List[Tuple[float, float]] = []
+        rng = np.random.default_rng()
+        for j, intervals_j in segment_map.items():
+            seg_start, seg_stop = support_intervals[j]
+            seg_len = seg_stop - seg_start
+            # lengths
+            lengths = [b - a for (a, b) in intervals_j]
+            total_len = float(np.sum(lengths))
+            slack = seg_len - total_len
+            if slack <= 0:
+                # No room: keep ordering, anchored to segment start
+                cur = seg_start
+                for L in lengths:
+                    out.append((float(cur), float(cur + L)))
+                    cur += L
+                continue
+            # Generate gap allocations (g_0 .. g_n) summing to slack
+            n = len(lengths)
+            # Dirichlet for gaps ensures non-negative
+            gaps = rng.dirichlet(alpha=np.ones(n + 1)) * slack
+            # Optionally shuffle intervals if randomize_each True
+            if randomize_each and n > 1:
+                order = rng.permutation(n)
+                lengths_shuffled = [lengths[i] for i in order]
+            else:
+                lengths_shuffled = lengths
+            # Build new positions
+            pos = seg_start + gaps[0]
+            for idx, L in enumerate(lengths_shuffled):
+                start_new = float(pos)
+                stop_new = float(pos + L)
+                out.append((start_new, stop_new))
+                pos = stop_new + gaps[idx + 1]
+
+        # Add spanning intervals unchanged
+        out.extend(spanning)
+
+        new_epochs = nel.EpochArray(np.asarray(out))
+        new_epochs._sort()
+        new_epochs._domain = support_epoch.domain
+        new_epochs._domain._data = support_intervals.copy()
+        return new_epochs
+
+    # --- avoid_split mode ---
+    if avoid_split:
+        ranges: List[Tuple[float, float]] = []
+        for a, b in epoch.data:
+            j_a = _segment_index(float(a))
+            j_b = _segment_index(float(b))
+            if j_a != j_b:
+                raise ValueError(
+                    "avoid_split=True requires each interval lie within a single support segment"
+                )
+            seg_start, seg_stop = support_intervals[j_a]
+            low = seg_start - a
+            high = seg_stop - b
+            if high <= low:
+                raise ValueError(
+                    "Interval has no valid shift range under avoid_split constraint"
+                )
+            ranges.append((low, high))
+        if randomize_each:
+            shifts = np.array([float(np.random.uniform(l, h)) for (l, h) in ranges])
+        else:
+            low_c = max(l for (l, _h) in ranges)
+            high_c = min(h for (_l, h) in ranges)
+            if high_c <= low_c:
+                raise ValueError(
+                    "No common shift satisfying all intervals under avoid_split"
+                )
+            s = float(np.random.uniform(low_c, high_c))
+            shifts = np.full(epoch.n_intervals, s, dtype=float)
+        out = [(a + s, b + s) for (a, b), s in zip(epoch.data, shifts)]
+        new_epochs = nel.EpochArray(np.asarray(out))
+        new_epochs._sort()
+        new_epochs._domain = support_epoch.domain
+        new_epochs._domain._data = support_intervals.copy()
+        return new_epochs
+
+    # --- unconstrained circular shift over combined support ---
     if randomize_each:
-        # Randomly shift each epoch by a different amount
-        random_order = random.sample(
-            range(-int(ts_range), int(ts_range)), new_epochs.n_intervals
-        )
-
-        new_intervals = new_epochs.data + np.expand_dims(random_order, axis=1)
-        new_epochs._data = wrap_intervals(new_intervals, start, stop)
+        shifts = np.random.uniform(0.0, total_T, size=epoch.n_intervals)
     else:
-        # Shift all the epochs by the same amount
-        random_shift = random.randint(-int(ts_range), int(ts_range))
-        new_epochs._data = wrap_intervals((new_epochs.data + random_shift), start, stop)
+        s = float(np.random.uniform(0.0, total_T))
+        shifts = np.full(epoch.n_intervals, s, dtype=float)
 
-    if not new_epochs.isempty:
-        if np.any(new_epochs.data[:, 1] - new_epochs.data[:, 0] < 0):
-            raise ValueError("start must be less than or equal to stop")
+    out: List[Tuple[float, float]] = []
+    for i, (a, b) in enumerate(epoch.data):
+        a_lin = abs_to_lin(float(a))
+        b_lin = abs_to_lin(float(b))
+        da = (a_lin + shifts[i]) % total_T
+        db = (b_lin + shifts[i]) % total_T
+        lin_ranges = [(da, db)] if da <= db else [(da, total_T), (0.0, db)]
+        for lr_a, lr_b in lin_ranges:
+            out.extend(lin_to_abs(lr_a, lr_b))
 
+    new_epochs = nel.EpochArray(np.asarray(out))
     new_epochs._sort()
-
+    new_epochs._domain = support_epoch.domain
+    new_epochs._domain._data = support_intervals.copy()
     return new_epochs
+
+
+# NOTE: previous experimental function `randomize_epochs_new` has been merged into `randomize_epochs`.
 
 
 def split_epoch_by_width(
