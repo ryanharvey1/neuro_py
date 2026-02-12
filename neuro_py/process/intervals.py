@@ -58,8 +58,8 @@ def randomize_epochs(
 
     if randomize_each:
         # Randomly shift each epoch by a different amount
-        random_order = random.sample(
-            range(-int(ts_range), int(ts_range)), new_epochs.n_intervals
+        random_order = random.choices(
+            range(-int(ts_range), int(ts_range)), k=new_epochs.n_intervals
         )
 
         new_intervals = new_epochs.data + np.expand_dims(random_order, axis=1)
@@ -263,7 +263,7 @@ def find_intersection_intervals_strict(
 ) -> nel.EpochArray:
     """
     Find the intervals in set1 that are completely contained within set2.
-    
+
     Parameters
     ----------
     set1 : nelpy EpochArray
