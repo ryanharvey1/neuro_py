@@ -253,6 +253,17 @@ class TestRandomizeEpochs:
             result = randomize_epochs(epoch, randomize_each=True)
             assert np.all(result.data[:, 1] > result.data[:, 0])
 
+    def test_randomize_each_small_range_many_intervals(self):
+        """Test randomize_each with more intervals than possible shifts."""
+        intervals = [(i, i + 0.5) for i in range(20)]
+        epoch = nel.EpochArray(intervals)
+        start_stop = np.array([0.0, 3.0])
+
+        result = randomize_epochs(epoch, randomize_each=True, start_stop=start_stop)
+
+        assert result.n_intervals == epoch.n_intervals
+        assert np.allclose(result.lengths, epoch.lengths)
+
 
 class TestSplitEpochByWidth:
     """Tests for split_epoch_by_width function."""
