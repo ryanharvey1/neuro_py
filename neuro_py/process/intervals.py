@@ -53,8 +53,6 @@ def randomize_epochs(
     else:
         start, stop = start_stop
 
-    ts_range = stop - start
-
     if randomize_each:
         # Randomly shift each epoch while keeping intervals within bounds
         min_shifts = start - new_epochs.data[:, 0]
