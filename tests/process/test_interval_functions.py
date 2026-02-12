@@ -205,11 +205,11 @@ class TestRandomizeEpochs:
         assert result.n_intervals == epoch.n_intervals
 
         # Should preserve interval lengths
-        assert np.allclose(result.lengths, epoch.lengths)
+        assert np.allclose(np.sort(result.lengths), np.sort(epoch.lengths))
 
         # Should be within domain bounds
-        assert result.start >= epoch.start
-        assert result.stop <= epoch.stop
+        assert result.start >= epoch.start - 1e-12
+        assert result.stop <= epoch.stop + 1e-12
 
     def test_randomize_all_same(self):
         """Test randomizing all epochs by the same amount."""
@@ -225,10 +225,10 @@ class TestRandomizeEpochs:
 
         # Check relative ordering is maintained (or equal after wrapping)
         assert (
-            result.data[1, 0] >= result.data[0, 1]
+            result.data[1, 0] >= result.data[0, 1] - 1e-12
         )  # Gap or adjacent between 1st and 2nd
         assert (
-            result.data[2, 0] >= result.data[1, 1]
+            result.data[2, 0] >= result.data[1, 1] - 1e-12
         )  # Gap or adjacent between 2nd and 3rd
 
         # Intervals should not overlap
@@ -241,8 +241,8 @@ class TestRandomizeEpochs:
 
         result = randomize_epochs(epoch, randomize_each=True, start_stop=start_stop)
 
-        assert result.start >= start_stop[0]
-        assert result.stop <= start_stop[1]
+        assert result.start >= start_stop[0] - 1e-12
+        assert result.stop <= start_stop[1] + 1e-12
 
     def test_wrapping(self):
         """Test that intervals wrap around correctly."""
@@ -252,6 +252,28 @@ class TestRandomizeEpochs:
         for _ in range(10):
             result = randomize_epochs(epoch, randomize_each=True)
             assert np.all(result.data[:, 1] > result.data[:, 0])
+
+    def test_randomize_each_small_range_many_intervals(self):
+        """Test randomize_each with more intervals than possible shifts."""
+        intervals = [(i * 0.1, i * 0.1 + 0.05) for i in range(20)]
+        epoch = nel.EpochArray(intervals)
+        start_stop = np.array([0.0, 3.0])
+
+        result = randomize_epochs(epoch, randomize_each=True, start_stop=start_stop)
+
+        assert result.n_intervals == epoch.n_intervals
+        assert np.allclose(np.sort(result.lengths), np.sort(epoch.lengths))
+
+    def test_randomize_each_subsecond_range(self):
+        """Test randomize_each with a sub-second range."""
+        intervals = [(0.0, 0.1), (0.2, 0.35), (0.5, 0.65)]
+        epoch = nel.EpochArray(intervals)
+        start_stop = np.array([0.0, 0.7])
+
+        result = randomize_epochs(epoch, randomize_each=True, start_stop=start_stop)
+
+        assert result.n_intervals == epoch.n_intervals
+        assert np.allclose(np.sort(result.lengths), np.sort(epoch.lengths))
 
 
 class TestSplitEpochByWidth:

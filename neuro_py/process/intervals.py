@@ -1,4 +1,3 @@
-import random
 from typing import List, Optional, Tuple, Union
 
 import nelpy as nel
@@ -54,19 +53,26 @@ def randomize_epochs(
     else:
         start, stop = start_stop
 
-    ts_range = stop - start
-
     if randomize_each:
-        # Randomly shift each epoch by a different amount
-        random_order = random.sample(
-            range(-int(ts_range), int(ts_range)), new_epochs.n_intervals
-        )
+        # Randomly shift each epoch while keeping intervals within bounds
+        min_shifts = start - new_epochs.data[:, 0]
+        max_shifts = stop - new_epochs.data[:, 1]
+        if np.any(min_shifts > max_shifts):
+            raise ValueError("start_stop must fully cover epoch intervals")
 
+        random_order = np.random.uniform(min_shifts, max_shifts)
         new_intervals = new_epochs.data + np.expand_dims(random_order, axis=1)
         new_epochs._data = wrap_intervals(new_intervals, start, stop)
     else:
-        # Shift all the epochs by the same amount
-        random_shift = random.randint(-int(ts_range), int(ts_range))
+        # Shift all the epochs by the same amount while keeping within bounds
+        min_shifts = start - new_epochs.data[:, 0]
+        max_shifts = stop - new_epochs.data[:, 1]
+        min_shift = np.max(min_shifts)
+        max_shift = np.min(max_shifts)
+        if min_shift > max_shift:
+            raise ValueError("start_stop must fully cover epoch intervals")
+
+        random_shift = np.random.uniform(min_shift, max_shift)
         new_epochs._data = wrap_intervals((new_epochs.data + random_shift), start, stop)
 
     if not new_epochs.isempty:
@@ -263,7 +269,7 @@ def find_intersection_intervals_strict(
 ) -> nel.EpochArray:
     """
     Find the intervals in set1 that are completely contained within set2.
-    
+
     Parameters
     ----------
     set1 : nelpy EpochArray
