@@ -24,7 +24,7 @@ def crossCorr(
     """
     Perform the discrete cross-correlogram of two time series.
 
-    This function calculates the firing rate of the series 't2' relative to the timings of 't1'.
+    This function calculates the **firing rate** of the series 't2' relative to the timings of 't1'.
     The units should be in seconds for all arguments.
 
     Parameters
@@ -107,7 +107,7 @@ def compute_psth(
     Compute the Peri-Stimulus Time Histogram (PSTH) from spike trains.
 
     This function calculates the PSTH for a given set of spike times aligned to specific events.
-    The PSTH provides a histogram of spike counts in response to the events over a defined time window.
+    The PSTH provides time-resolved **firing rates** in response to the events over a defined time window.
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ def joint_peth(
     peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    joint_peth - produce a joint histogram for the co-occurrence of two sets of signals around events.
+    Produce a joint histogram for the co-occurrence of two sets of signals around events.
 
     This analysis tests for interactions. For example, the interaction of
     ripples and spindles around the occurrence of delta waves. It is a good way
@@ -779,7 +779,8 @@ def count_in_interval(
     Parameters
     ----------
     st : np.ndarray
-        A 1D array where each element is a spike train for a unit.
+        A jagged array where each element is a spike train for a unit.
+        (n units x variable length spike times)
 
     event_starts : np.ndarray
         A 1D array containing the start times of events.
