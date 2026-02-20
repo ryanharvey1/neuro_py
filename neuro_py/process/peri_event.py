@@ -800,6 +800,36 @@ def count_in_interval(
     np.ndarray
         A 2D array (n units x n epochs) where each column shows the counts (or binary values or firing rates)
         per unit for each epoch.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # Create spike trains for 3 units with different spike times
+    >>> unit_1_spikes = np.array([0.1, 0.3, 0.5, 1.2, 1.8])
+    >>> unit_2_spikes = np.array([0.2, 0.8, 1.5])
+    >>> unit_3_spikes = np.array([0.05, 0.4, 0.9, 1.1])
+    >>> st = np.array([unit_1_spikes, unit_2_spikes, unit_3_spikes], dtype=object)
+    >>> # Define two events with their start and stop times
+    >>> event_starts = np.array([0.0, 1.0])
+    >>> event_stops = np.array([0.7, 2.0])
+    >>> # Count spikes in each interval
+    >>> counts = count_in_interval(st, event_starts, event_stops, par_type='counts')
+    >>> print(counts)
+    [[3. 2.]
+     [1. 1.]
+     [2. 1.]]
+    >>> # Get binary presence/absence
+    >>> binary = count_in_interval(st, event_starts, event_stops, par_type='binary')
+    >>> print(binary)
+    [[1. 1.]
+     [1. 1.]
+     [1. 1.]]
+    >>> # Calculate firing rates
+    >>> rates = count_in_interval(st, event_starts, event_stops, par_type='firing_rate')
+    >>> print(rates)
+    [[4.28571429 2.   ]
+     [1.42857143 1.   ]
+     [2.85714286 1.   ]]
     """
     # convert to numpy array
     event_starts, event_stops = np.array(event_starts), np.array(event_stops)
