@@ -24,8 +24,8 @@ def crossCorr(
     """
     Perform the discrete cross-correlogram of two time series.
 
-    This function calculates the **firing rate** of the series 't2' relative to the timings of 't1'.
-    The units should be in seconds for all arguments.
+    This function calculates the **rates (Hz)** of the series 't2' relative to
+    the timings of 't1'. The units should be in seconds for all arguments.
 
     Parameters
     ----------
@@ -97,35 +97,39 @@ def crossCorr(
 
 
 def compute_psth(
-    spikes: np.ndarray,
+    data: np.ndarray,
     event: np.ndarray,
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: list = None,
 ) -> pd.DataFrame:
     """
-    Compute the Peri-Stimulus Time Histogram (PSTH) from spike trains.
+    Compute the Peri-Stimulus Time Histogram (PSTH) for discrete-time events.
 
-    This function calculates the PSTH for a given set of spike times aligned to specific events.
-    The PSTH provides time-resolved **firing rates** in response to the events over a defined time window.
+    This function calculates the PSTH for a given set of discrete-time events
+    (e.g. spike times) aligned to specific reference events. The PSTH provides
+    time-resolved **rates (Hz)** in response to the events over a defined time window.
 
     Parameters
     ----------
-    spikes : np.ndarray
-        An array of spike times for multiple trials, with each trial in a separate row.
+    data : np.ndarray
+        An array of discrete-time events (e.g. spike times) for multiple trials,
+        with each trial in a separate row.
     event : np.ndarray
-        An array of event times to which the spikes are aligned.
+        An array of reference event times to which the data are aligned.
     bin_width : float, optional
         Width of each time bin in seconds (default is 0.002 seconds).
     n_bins : int, optional
         Number of bins to create for the histogram (default is 100).
     window : list, optional
-        Time window around each event to consider for the PSTH. If None, a symmetric window is created based on `n_bins` and `bin_width`.
+        Time window around each event to consider for the PSTH. If None, a
+        symmetric window is created based on `n_bins` and `bin_width`.
 
     Returns
     -------
     pd.DataFrame
-        A DataFrame containing the PSTH, indexed by time bins and columns representing each trial's PSTH.
+        A DataFrame containing the PSTH, indexed by time bins and columns
+        representing each trial's PSTH.
 
     Notes
     -----
@@ -153,9 +157,9 @@ def compute_psth(
             -(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1
         )
 
-    ccg = pd.DataFrame(index=times, columns=np.arange(len(spikes)))
-    # Now we can iterate over spikes
-    for i, s in enumerate(spikes):
+    ccg = pd.DataFrame(index=times, columns=np.arange(len(data)))
+    # Now we can iterate over trials
+    for i, s in enumerate(data):
         ccg[i] = crossCorr(event, s, bin_width, n_bins)
 
     # if window was not symmetric, remove the extra bins
@@ -767,20 +771,20 @@ def event_triggered_average_fast(
 
 
 def count_in_interval(
-    st: np.ndarray,
+    data: np.ndarray,
     event_starts: np.ndarray,
     event_stops: np.ndarray,
     par_type: str = "counts",
 ) -> np.ndarray:
     """
-    Count timestamps in specified intervals and return a matrix where each
-    column represents the counts for each spike train over given event epochs.
+    Count discrete-time events in specified intervals and return a matrix where each
+    column represents counts for each discrete-time event series over given epochs.
 
     Parameters
     ----------
-    st : np.ndarray
-        A jagged array where each element is a spike train for a unit.
-        (n units x variable length spike times)
+    data : np.ndarray
+        A jagged array where each element contains discrete-time events times for
+        a series (e.g. spike times for a neuron). (n series x variable length event times).
 
     event_starts : np.ndarray
         A 1D array containing the start times of events.
@@ -792,14 +796,14 @@ def count_in_interval(
         The type of count calculation to perform:
         - 'counts': returns raw counts of spikes in the intervals.
         - 'binary': returns a binary matrix indicating presence (1) or absence (0) of spikes.
-        - 'firing_rate': returns the firing rate calculated as counts divided by the interval duration.
+        - 'rate': returns the firing rate calculated as counts divided by the interval duration.
         Defaults to 'binary'.
 
     Returns
     -------
     np.ndarray
-        A 2D array (n units x n epochs) where each column shows the counts (or binary values or firing rates)
-        per unit for each epoch.
+        A 2D array (n series x n epochs) where each column shows the counts
+        (or binary values or rates) per series for each epoch.
 
     Examples
     --------
@@ -835,10 +839,10 @@ def count_in_interval(
     event_starts, event_stops = np.array(event_starts), np.array(event_stops)
 
     # initialize matrix
-    unit_mat = np.zeros((len(st), (len(event_starts))))
+    unit_mat = np.zeros((len(data), (len(event_starts))))
 
     # loop over units and bin spikes into epochs
-    for i, s in enumerate(st):
+    for i, s in enumerate(data):
         idx1 = np.searchsorted(s, event_starts, "right")
         idx2 = np.searchsorted(s, event_stops, "left")
         unit_mat[i, :] = idx2 - idx1
