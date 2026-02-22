@@ -472,6 +472,13 @@ def sync(
         Sample indices for each synchronized sample, referencing the original
         `samples` order (0-based indices).
 
+    Notes
+    -----
+    Similar to get_raster_points but returns the synchronized samples in a 
+    single array and also returns the indices of the events and samples that 
+    correspond to each synchronized sample. 
+
+
     References
     ----------
     - Original MATLAB implementation: Sync.m from FMAToolbox
@@ -501,6 +508,27 @@ def sync(
     array([1, 1, 0, 0])
     >>> Is  # indices into original samples
     array([1, 2, 0, 3])
+
+    Real-world example with spike times and ripple events:
+
+    >>> basepath = r"U:\data\hpc_ctx_project\HP17\hp17_day48_20250603"
+    >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
+    >>> ripples = npy.io.load_ripples_events(basepath, return_epoch_array=True)
+    >>> sleep_states = npy.io.load_SleepState_states(basepath, return_epoch_array=True)
+    >>> nrem = sleep_states.get("NREMstate")
+    >>> synchronized, Ie, Is = npy.process.sync(
+    ...     st.data[1], ripples[nrem].starts, durations=(-0.5, 0.5)
+    ... )
+
+    >>> plt.figure(figsize=(6, 4))
+    >>> plt.scatter(synchronized[:, 0], Ie, s=4, alpha=0.2, marker="|", color="k")
+    >>> plt.axvline(0, color="r", ls="--", lw=2)
+    >>> plt.xlabel("Time from event (s)")
+    >>> plt.ylabel("Event #")
+    >>> plt.title("Event-aligned raster")
+    >>> plt.xlim(-0.5, 0.5)
+    >>> plt.ylim(0, np.max(Ie) + 1)
+    >>> plt.show()
     """
     samples = np.asarray(samples)
     sync_times = np.asarray(sync_times).reshape(-1)
