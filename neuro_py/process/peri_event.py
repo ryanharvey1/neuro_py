@@ -437,6 +437,154 @@ def peth_matrix(
     return H * bin_width, times
 
 
+def sync(
+    samples: np.ndarray,
+    sync_times: np.ndarray,
+    durations: Tuple[float, float] = (-0.5, 0.5),
+    fast: bool = False,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Synchronize sample timestamps to reference events.
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        Sample array with timestamps in the first column. Can be shape (n_samples,)
+        or (n_samples, n_features).
+    sync_times : np.ndarray
+        1D array of synchronizing event times.
+    durations : tuple of float, optional
+        Time window around each event as (start, stop), in seconds.
+        Defaults to (-0.5, 0.5).
+    fast : bool, optional
+        If True, assumes `samples` and `sync_times` are already sorted and skips sorting.
+        Defaults to False.
+
+    Returns
+    -------
+    synchronized : np.ndarray
+        Samples that fall within event windows, with first column replaced by
+        time relative to event.
+    Ie : np.ndarray
+        Event indices for each synchronized sample, referencing the original
+        `sync_times` order (0-based indices).
+    Is : np.ndarray
+        Sample indices for each synchronized sample, referencing the original
+        `samples` order (0-based indices).
+
+    References
+    ----------
+    - Original MATLAB implementation: Sync.m from FMAToolbox
+
+    Examples
+    --------
+    Basic usage with 1D timestamps:
+
+    >>> samples = np.array([0.9, 1.1, 2.0, 2.1, 3.0])
+    >>> sync_times = np.array([1.0, 2.0])
+    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15))
+    >>> synchronized[:, 0]
+    array([-0.1,  0.1,  0. ,  0.1])
+    >>> Ie
+    array([0, 0, 1, 1])
+    >>> Is
+    array([0, 1, 2, 3])
+
+    Usage with unsorted samples and extra columns:
+
+    >>> samples = np.array([[2.0, 20.0], [0.9, 9.0], [1.1, 11.0], [2.1, 21.0]])
+    >>> sync_times = np.array([2.0, 1.0])
+    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15))
+    >>> synchronized[:, 0]
+    array([-0.1,  0.1,  0. ,  0.1])
+    >>> Ie  # indices into original sync_times
+    array([1, 1, 0, 0])
+    >>> Is  # indices into original samples
+    array([1, 2, 0, 3])
+    """
+    samples = np.asarray(samples)
+    sync_times = np.asarray(sync_times).reshape(-1)
+
+    if samples.ndim == 1:
+        samples = samples.reshape(-1, 1)
+    if samples.ndim != 2 or samples.shape[1] < 1:
+        raise ValueError("'samples' must be a 1D array or a 2D array with timestamps in column 0")
+    if sync_times.ndim != 1:
+        raise ValueError("'sync_times' must be a 1D array")
+    if len(durations) != 2 or durations[0] > durations[1]:
+        raise ValueError("'durations' must be (start, stop) with start <= stop")
+
+    if len(sync_times) == 0 or samples.shape[0] == 0:
+        return np.empty((0, samples.shape[1])), np.array([], dtype=int), np.array([], dtype=int)
+
+    sort_samples = None
+    sort_sync = None
+
+    work_samples = samples
+    work_sync = sync_times
+
+    if not fast:
+        sort_samples = np.argsort(samples[:, 0], kind="mergesort")
+        work_samples = samples[sort_samples]
+
+        sort_sync = np.argsort(sync_times, kind="mergesort")
+        work_sync = sync_times[sort_sync]
+
+    sample_times = work_samples[:, 0]
+
+    starts = []
+    stops = []
+    events_with_hits = []
+
+    left_idx = 0
+    right_idx = 0
+    n_samples = len(sample_times)
+
+    for event_i, event_t in enumerate(work_sync):
+        start_t = event_t + durations[0]
+        stop_t = event_t + durations[1]
+
+        while left_idx < n_samples and sample_times[left_idx] < start_t:
+            left_idx += 1
+
+        if right_idx < left_idx:
+            right_idx = left_idx
+
+        while right_idx < n_samples and sample_times[right_idx] <= stop_t:
+            right_idx += 1
+
+        if right_idx > left_idx:
+            starts.append(left_idx)
+            stops.append(right_idx)
+            events_with_hits.append(event_i)
+
+    if len(starts) == 0:
+        return np.empty((0, samples.shape[1])), np.array([], dtype=int), np.array([], dtype=int)
+
+    lengths = np.array(stops, dtype=int) - np.array(starts, dtype=int)
+    total_hits = int(np.sum(lengths))
+
+    Is = np.empty(total_hits, dtype=int)
+    Ie = np.empty(total_hits, dtype=int)
+
+    write_pos = 0
+    for start_idx, stop_idx, event_i, run_len in zip(starts, stops, events_with_hits, lengths):
+        next_write = write_pos + run_len
+        Is[write_pos:next_write] = np.arange(start_idx, stop_idx, dtype=int)
+        Ie[write_pos:next_write] = event_i
+        write_pos = next_write
+
+    synchronized = work_samples[Is].copy()
+    synchronized[:, 0] = synchronized[:, 0] - work_sync[Ie]
+
+    if sort_samples is not None:
+        Is = sort_samples[Is]
+    if sort_sync is not None:
+        Ie = sort_sync[Ie]
+
+    return synchronized, Ie, Is
+
+
 def event_triggered_average_irregular_sample(
     timestamps: np.ndarray,
     data: np.ndarray,

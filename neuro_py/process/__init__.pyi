@@ -56,6 +56,7 @@ __all__ = (
     "compute_image_spread",
     "event_triggered_cross_correlation",
     "pairwise_event_triggered_cross_correlation",
+    "sync",
 )
 
 from . import batch_analysis
@@ -97,6 +98,7 @@ from .peri_event import (
     nearest_event_delay,
     peth_matrix,
     relative_times,
+    sync,
 )
 from .precession_utils import (
     acf_power,
