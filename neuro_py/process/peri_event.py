@@ -624,7 +624,7 @@ def sync(
     >>> plt.show()
     """
     samples = np.asarray(samples)
-    sync_times = np.asarray(sync_times).reshape(-1)
+    sync_times = np.asarray(sync_times)
 
     if samples.ndim == 1:
         samples = samples.reshape(-1, 1)
@@ -632,8 +632,10 @@ def sync(
         raise ValueError(
             "'samples' must be a 1D array or a 2D array with timestamps in column 0"
         )
-    if sync_times.ndim != 1:
-        raise ValueError("'sync_times' must be a 1D array")
+    if sync_times.ndim == 2 and sync_times.shape[1] == 1:
+        sync_times = sync_times[:, 0]
+    elif sync_times.ndim != 1:
+        raise ValueError("'sync_times' must be a 1D array or a 2D column vector")
     if len(durations) != 2 or durations[0] > durations[1]:
         raise ValueError("'durations' must be (start, stop) with start <= stop")
 
