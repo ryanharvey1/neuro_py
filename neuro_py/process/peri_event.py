@@ -437,11 +437,99 @@ def peth_matrix(
     return H * bin_width, times
 
 
+@jit(nopython=True)
+def _sync_find_windows(
+    sample_times: np.ndarray,
+    event_times: np.ndarray,
+    start_offset: float,
+    stop_offset: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+    """
+    Numba-compiled function to find time windows for each event.
+
+    Returns arrays of starts, stops, events_with_hits, and total_hits count.
+    """
+    n_samples = len(sample_times)
+    n_events = len(event_times)
+
+    # Pre-allocate maximum possible size
+    starts = np.empty(n_events, dtype=np.int64)
+    stops = np.empty(n_events, dtype=np.int64)
+    events_with_hits = np.empty(n_events, dtype=np.int64)
+
+    n_hits = 0
+    total_hits = 0
+    left_idx = 0
+    right_idx = 0
+
+    for event_i in range(n_events):
+        event_t = event_times[event_i]
+        start_t = event_t + start_offset
+        stop_t = event_t + stop_offset
+
+        # Advance left pointer
+        while left_idx < n_samples and sample_times[left_idx] < start_t:
+            left_idx += 1
+
+        # Ensure right_idx is at least left_idx
+        if right_idx < left_idx:
+            right_idx = left_idx
+
+        # Advance right pointer
+        while right_idx < n_samples and sample_times[right_idx] <= stop_t:
+            right_idx += 1
+
+        # Record if we found any samples in this window
+        if right_idx > left_idx:
+            starts[n_hits] = left_idx
+            stops[n_hits] = right_idx
+            events_with_hits[n_hits] = event_i
+            total_hits += right_idx - left_idx
+            n_hits += 1
+
+    # Trim arrays to actual size
+    starts = starts[:n_hits]
+    stops = stops[:n_hits]
+    events_with_hits = events_with_hits[:n_hits]
+
+    return starts, stops, events_with_hits, total_hits
+
+
+@jit(nopython=True)
+def _sync_fill_indices(
+    starts: np.ndarray,
+    stops: np.ndarray,
+    events_with_hits: np.ndarray,
+    total_hits: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Numba-compiled function to fill Is and Ie index arrays.
+    """
+    Is = np.empty(total_hits, dtype=np.int64)
+    Ie = np.empty(total_hits, dtype=np.int64)
+
+    write_pos = 0
+    for i in range(len(starts)):
+        start_idx = starts[i]
+        stop_idx = stops[i]
+        event_i = events_with_hits[i]
+        run_len = stop_idx - start_idx
+
+        # Fill this segment
+        for j in range(run_len):
+            Is[write_pos + j] = start_idx + j
+            Ie[write_pos + j] = event_i
+
+        write_pos += run_len
+
+    return Is, Ie
+
+
 def sync(
     samples: np.ndarray,
     sync_times: np.ndarray,
     durations: Tuple[float, float] = (-0.5, 0.5),
-    fast: bool = False,
+    fast: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Synchronize sample timestamps to reference events.
@@ -450,15 +538,16 @@ def sync(
     ----------
     samples : np.ndarray
         Sample array with timestamps in the first column. Can be shape (n_samples,)
-        or (n_samples, n_features).
+        or (n_samples, n_features). Assumed to be sorted by default.
     sync_times : np.ndarray
-        1D array of synchronizing event times.
+        1D array of synchronizing event times. Assumed to be sorted by default.
     durations : tuple of float, optional
         Time window around each event as (start, stop), in seconds.
         Defaults to (-0.5, 0.5).
     fast : bool, optional
         If True, assumes `samples` and `sync_times` are already sorted and skips sorting.
-        Defaults to False.
+        If False, sorts the inputs (slower but handles unsorted data).
+        Defaults to True.
 
     Returns
     -------
@@ -474,9 +563,13 @@ def sync(
 
     Notes
     -----
-    Similar to get_raster_points but returns the synchronized samples in a 
-    single array and also returns the indices of the events and samples that 
-    correspond to each synchronized sample. 
+    By default, this function assumes both `samples` and `sync_times` are sorted
+    in ascending order for maximum performance. If your data is unsorted, set
+    `fast=False` to enable automatic sorting (with index remapping).
+
+    Similar to get_raster_points but returns the synchronized samples in a
+    single array and also returns the indices of the events and samples that
+    correspond to each synchronized sample. Also is much faster than get_raster_points.
 
 
     References
@@ -501,7 +594,7 @@ def sync(
 
     >>> samples = np.array([[2.0, 20.0], [0.9, 9.0], [1.1, 11.0], [2.1, 21.0]])
     >>> sync_times = np.array([2.0, 1.0])
-    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15))
+    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15), fast=False)
     >>> synchronized[:, 0]
     array([-0.1,  0.1,  0. ,  0.1])
     >>> Ie  # indices into original sync_times
@@ -536,14 +629,20 @@ def sync(
     if samples.ndim == 1:
         samples = samples.reshape(-1, 1)
     if samples.ndim != 2 or samples.shape[1] < 1:
-        raise ValueError("'samples' must be a 1D array or a 2D array with timestamps in column 0")
+        raise ValueError(
+            "'samples' must be a 1D array or a 2D array with timestamps in column 0"
+        )
     if sync_times.ndim != 1:
         raise ValueError("'sync_times' must be a 1D array")
     if len(durations) != 2 or durations[0] > durations[1]:
         raise ValueError("'durations' must be (start, stop) with start <= stop")
 
     if len(sync_times) == 0 or samples.shape[0] == 0:
-        return np.empty((0, samples.shape[1])), np.array([], dtype=int), np.array([], dtype=int)
+        return (
+            np.empty((0, samples.shape[1])),
+            np.array([], dtype=int),
+            np.array([], dtype=int),
+        )
 
     sort_samples = None
     sort_sync = None
@@ -560,47 +659,19 @@ def sync(
 
     sample_times = work_samples[:, 0]
 
-    starts = []
-    stops = []
-    events_with_hits = []
-
-    left_idx = 0
-    right_idx = 0
-    n_samples = len(sample_times)
-
-    for event_i, event_t in enumerate(work_sync):
-        start_t = event_t + durations[0]
-        stop_t = event_t + durations[1]
-
-        while left_idx < n_samples and sample_times[left_idx] < start_t:
-            left_idx += 1
-
-        if right_idx < left_idx:
-            right_idx = left_idx
-
-        while right_idx < n_samples and sample_times[right_idx] <= stop_t:
-            right_idx += 1
-
-        if right_idx > left_idx:
-            starts.append(left_idx)
-            stops.append(right_idx)
-            events_with_hits.append(event_i)
+    # Use numba-compiled functions for the core sweep and index filling
+    starts, stops, events_with_hits, total_hits = _sync_find_windows(
+        sample_times, work_sync, durations[0], durations[1]
+    )
 
     if len(starts) == 0:
-        return np.empty((0, samples.shape[1])), np.array([], dtype=int), np.array([], dtype=int)
+        return (
+            np.empty((0, samples.shape[1])),
+            np.array([], dtype=int),
+            np.array([], dtype=int),
+        )
 
-    lengths = np.array(stops, dtype=int) - np.array(starts, dtype=int)
-    total_hits = int(np.sum(lengths))
-
-    Is = np.empty(total_hits, dtype=int)
-    Ie = np.empty(total_hits, dtype=int)
-
-    write_pos = 0
-    for start_idx, stop_idx, event_i, run_len in zip(starts, stops, events_with_hits, lengths):
-        next_write = write_pos + run_len
-        Is[write_pos:next_write] = np.arange(start_idx, stop_idx, dtype=int)
-        Ie[write_pos:next_write] = event_i
-        write_pos = next_write
+    Is, Ie = _sync_fill_indices(starts, stops, events_with_hits, total_hits)
 
     synchronized = work_samples[Is].copy()
     synchronized[:, 0] = synchronized[:, 0] - work_sync[Ie]
