@@ -439,8 +439,12 @@ class TestComputeBiasMatrixOptimized(unittest.TestCase):
         spike_times = np.concatenate(
             [np.random.rand(n_spikes_per_neuron) for _ in range(n_neurons)]
         )
-        spike_times = np.sort(spike_times)
         neuron_ids = np.repeat(np.arange(n_neurons), n_spikes_per_neuron)
+
+        # Sort spike times and neuron IDs together to maintain correspondence
+        sort_idx = np.argsort(spike_times)
+        spike_times = spike_times[sort_idx]
+        neuron_ids = neuron_ids[sort_idx]
 
         bias_matrix = compute_bias_matrix_optimized_(spike_times, neuron_ids, n_neurons)
 
@@ -467,8 +471,8 @@ class TestComputeBiasMatrixOptimized(unittest.TestCase):
         # neuron 3 fires before 0 → bias[3,0] should be low
 
         assert bias_matrix.shape == (total_neurons, total_neurons)
-        # Values should be finite
-        assert np.all(np.isfinite(bias_matrix[np.isfinite(bias_matrix)]))
+        # Values should be finite (no Inf values; NaN allowed for pairs with no data)
+        assert ~np.any(np.isinf(bias_matrix))
 
     def test_compute_bias_matrix_sequential_reverse(self):
         """Test with clearly sequential reverse spikes (3→2→1→0)."""
@@ -490,7 +494,8 @@ class TestComputeBiasMatrixOptimized(unittest.TestCase):
         # neuron 0 fires before 3 → bias[0,3] should be low
 
         assert bias_matrix.shape == (total_neurons, total_neurons)
-        assert np.all(np.isfinite(bias_matrix[np.isfinite(bias_matrix)]))
+        # Values should be finite (no Inf values; NaN allowed for pairs with no data)
+        assert ~np.any(np.isinf(bias_matrix))
 
     def test_compute_bias_matrix_reproducible(self):
         """Test that results are reproducible."""

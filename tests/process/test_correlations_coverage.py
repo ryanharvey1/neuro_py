@@ -10,13 +10,16 @@ import pytest
 from neuro_py.process.correlations import compute_AutoCorrs, pairwise_cross_corr
 from neuro_py.process.peri_event import crossCorr
 
-# Pre-warm the JIT compiler with proper types to avoid typing issues
-_prewarm_t1 = np.array([0.1, 0.2], dtype=np.float64)
-_prewarm_t2 = np.array([0.15, 0.25], dtype=np.float64)
-try:
-    crossCorr(_prewarm_t1, _prewarm_t2, 0.01, 10)
-except:
-    pass
+
+@pytest.fixture(scope="module", autouse=True)
+def prewarm_jit():
+    """Pre-warm the JIT compiler with proper types to avoid typing issues during tests."""
+    prewarm_t1 = np.array([0.1, 0.2], dtype=np.float64)
+    prewarm_t2 = np.array([0.15, 0.25], dtype=np.float64)
+    try:
+        crossCorr(prewarm_t1, prewarm_t2, 0.01, 10)
+    except Exception as e:
+        pytest.fail(f"JIT compilation failed during pre-warm: {e}")
 
 
 class TestComputeAutoCorrs:
@@ -104,7 +107,7 @@ class TestComputeAutoCorrs:
         """Test with multiple neurons."""
         n_neurons = 5
         spks = np.array(
-            [np.random.rand(20).astype(np.float64) for _ in range(n_neurons)],
+            [np.sort(np.random.rand(20)).astype(np.float64) for _ in range(n_neurons)],
             dtype=object,
         )
         result = compute_AutoCorrs(spks, binsize=0.001, nbins=100)
@@ -306,7 +309,7 @@ class TestPairwiseCrossCorr:
         """Test with many neurons and pairs."""
         n_neurons = 10
         spks = np.array(
-            [np.random.rand(30).astype(np.float64) for _ in range(n_neurons)],
+            [np.sort(np.random.rand(30)).astype(np.float64) for _ in range(n_neurons)],
             dtype=object,
         )
         result = pairwise_cross_corr(spks, binsize=0.001, nbins=100)

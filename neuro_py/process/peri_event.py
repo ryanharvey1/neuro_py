@@ -22,7 +22,7 @@ def crossCorr(
     nbins: int,
 ) -> np.ndarray:
     """
-    Compute a true cross-correlogram using independent event-wise histograms.
+    Compute a cross-correlogram using independent event-wise histograms.
 
     This is the standard definition of a cross-correlogram: each reference event (t1)
     independently computes a histogram of all target timestamps (t2) relative to it.
@@ -54,14 +54,11 @@ def crossCorr(
     Order of t1 does not affect the result.
     Suitable for spike-to-event analysis (e.g., spikes relative to ripples).
 
-    Has the same interface as crossCorr() but computes true independent
-    event-wise histograms instead of monotonic-sweep correlogram.
-
     Examples
     --------
     >>> t1 = np.array([1.0, 2.0])
     >>> t2 = np.sort(np.array([1.1, 1.3, 2.1, 2.3]))
-    >>> result = cross_correlogram(t1, t2, binsize=0.2, nbins=4)
+    >>> result = crossCorr(t1, t2, binsize=0.2, nbins=4)
     >>> result.shape
     (5,)
     """

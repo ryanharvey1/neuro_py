@@ -15,14 +15,15 @@ from neuro_py.process.peri_event import (
 
 def test_crosscorr_even_nbins_is_adjusted_and_values_are_expected():
     t1 = np.array([1.0, 2.0])
-    t2 = np.array([1.1, 1.3, 2.1, 2.3])
+    # Use non-boundary values to avoid floating bin-edge rounding effects.
+    t2 = np.array([1.11, 1.31, 2.11, 2.31])
 
     result = crossCorr(t1, t2, binsize=0.2, nbins=4)
 
     assert result.shape == (5,)
-    # Note: This uses a monotonic sweep across events, so not a true cross-correlogram.
-    # Each t2 sample is counted at most once across all t1 events.
-    np.testing.assert_allclose(result, np.array([0.0, 0.0, 0.0, 7.5, 2.5]))
+    # crossCorr now computes a true event-wise cross-correlogram: each t2 is
+    # considered relative to each t1, and with these inputs the last two bins match.
+    np.testing.assert_allclose(result, np.array([0.0, 0.0, 0.0, 5.0, 5.0]))
 
 
 def test_compute_psth_with_nonsymmetric_window_crops_to_original_range():
