@@ -61,7 +61,7 @@ def crossCorr(
     # Calculate the half-width of the cross-correlogram window
     w = (nbins / 2) * binsize
     C = np.zeros(nbins)
-    i2 = 1
+    i2 = 0
 
     # Iterate through the first time series
     for i1 in range(nt1):
@@ -72,7 +72,7 @@ def crossCorr(
             i2 = i2 + 1
 
         # Find the index of the last element in 't2' that is within 'lbound'
-        while i2 > 1 and t2[i2 - 1] > lbound:
+        while i2 > 0 and t2[i2 - 1] > lbound:
             i2 = i2 - 1
 
         rbound = lbound
@@ -91,6 +91,98 @@ def crossCorr(
             C[j] += k
 
     # Normalize the cross-correlogram by dividing by the total observation time and bin size
+    C = C / (nt1 * binsize)
+
+    return C
+
+
+@jit(nopython=True)
+def cross_correlogram(
+    t1: np.ndarray,
+    t2: np.ndarray,
+    binsize: float,
+    nbins: int,
+) -> np.ndarray:
+    """
+    Compute a true cross-correlogram using independent event-wise histograms.
+
+    This is the standard definition of a cross-correlogram: each reference event (t1)
+    independently computes a histogram of all target timestamps (t2) relative to it.
+    Each t2 sample can contribute to every t1 event (no "consumption").
+
+    Efficient O(nt1 * (log(nt2) + nt2)) implementation using binary search for
+    initial positioning, then single-pass binning per event.
+
+    Parameters
+    ----------
+    t1 : np.ndarray
+        Reference events (can be unsorted, any order).
+    t2 : np.ndarray
+        Target timestamps (must be sorted in ascending order).
+    binsize : float
+        Bin width in seconds.
+    nbins : int
+        Number of bins (will be adjusted to be odd).
+
+    Returns
+    -------
+    np.ndarray
+        Normalized cross-correlogram (rate in Hz).
+        Shape (nbins,) where nbins is adjusted to be odd.
+
+    Notes
+    -----
+    True cross-correlogram: each t2 sample contributes to every t1 event.
+    Order of t1 does not affect the result.
+    Suitable for spike-to-event analysis (e.g., spikes relative to ripples).
+
+    Has the same interface as crossCorr() but computes true independent
+    event-wise histograms instead of monotonic-sweep correlogram.
+
+    Examples
+    --------
+    >>> t1 = np.array([1.0, 2.0])
+    >>> t2 = np.sort(np.array([1.1, 1.3, 2.1, 2.3]))
+    >>> result = cross_correlogram(t1, t2, binsize=0.2, nbins=4)
+    >>> result.shape
+    (5,)
+    """
+    # Ensure nbins is odd
+    nbins = int(nbins)
+    if np.floor(nbins / 2) * 2 == nbins:
+        nbins = nbins + 1
+
+    nt1 = len(t1)
+    nt2 = len(t2)
+
+    w = (nbins / 2) * binsize
+    C = np.zeros(nbins)
+
+    # For each reference event, independently compute histogram
+    for i1 in range(nt1):
+        lbound = t1[i1] - w
+        ubound = lbound + nbins * binsize
+
+        # Binary search to find first t2 sample in window
+        left = 0
+        right = nt2
+        while left < right:
+            mid = (left + right) // 2
+            if t2[mid] < lbound:
+                left = mid + 1
+            else:
+                right = mid
+
+        # Single pass through t2 samples in this event's window
+        # Bin each sample directly using its offset from lbound
+        k = left
+        while k < nt2 and t2[k] < ubound:
+            bin_j = int((t2[k] - lbound) / binsize)
+            if 0 <= bin_j < nbins:
+                C[bin_j] += 1
+            k += 1
+
+    # Normalize by number of events and bin width
     C = C / (nt1 * binsize)
 
     return C
