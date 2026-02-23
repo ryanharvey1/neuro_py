@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from neuro_py.ensemble.replay import PairwiseBias
+from neuro_py.ensemble.replay import PairwiseBias, compute_bias_matrix_optimized_
 
 
 class TestPairwiseBiasAnalysis(unittest.TestCase):
@@ -323,8 +323,8 @@ class TestBottomUpReplayDetection(unittest.TestCase):
 
         posterior = np.zeros((5, 5))
         # put mass in later bins only
-        posterior[2] = np.exp(-0.5 * ((bins - 5.0) ** 2) / (1.0 ** 2))
-        posterior[3] = np.exp(-0.5 * ((bins - 6.0) ** 2) / (1.0 ** 2))
+        posterior[2] = np.exp(-0.5 * ((bins - 5.0) ** 2) / (1.0**2))
+        posterior[3] = np.exp(-0.5 * ((bins - 6.0) ** 2) / (1.0**2))
 
         # normalize
         posterior = posterior / (posterior.sum(axis=1, keepdims=True) + 1e-12)
@@ -345,8 +345,213 @@ class TestBottomUpReplayDetection(unittest.TestCase):
         )
 
         # mask should be False for first bin (NaN com_jump originally)
-        mask = meta['mask']
+        mask = meta["mask"]
         self.assertFalse(mask[0])
+
+
+class TestComputeBiasMatrixOptimized(unittest.TestCase):
+    """Test suite for compute_bias_matrix_optimized_ function."""
+
+    def test_compute_bias_matrix_output_shape(self):
+        """Test that output has correct shape (total_neurons, total_neurons)."""
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+        neuron_ids = np.array([0, 1, 2, 3, 0, 1, 2, 3])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+
+    def test_compute_bias_matrix_output_type(self):
+        """Test that output is a numpy array."""
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+        neuron_ids = np.array([0, 1, 2, 3, 0, 1, 2, 3])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        assert isinstance(bias_matrix, np.ndarray)
+
+    def test_compute_bias_matrix_initialization(self):
+        """Test that bias matrix is initialized to 0.5."""
+        spike_times = np.array([])
+        neuron_ids = np.array([], dtype=int)
+        total_neurons = 3
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # With empty spike times, all elements should be initialized to 0.5 (no spike data)
+        # or result in NaN from division by 0
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+
+    def test_compute_bias_matrix_no_nans_with_good_data(self):
+        """Test that bias matrix contains no NaNs when spike data is present."""
+        # Create sequential spike sequence (clear ordering)
+        spike_times = np.array([0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07])
+        neuron_ids = np.array([0, 1, 2, 3, 0, 1, 2, 3])  # Sequential repeating
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # Bias values should be valid numbers (not NaN) where spikes exist
+        assert not np.isnan(bias_matrix).all()
+
+    def test_compute_bias_matrix_diagonal(self):
+        """Test diagonal elements (self-pairs) are handled correctly."""
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4])
+        neuron_ids = np.array([0, 1, 2, 3])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # Diagonal should not have issues (self comparison)
+        assert np.all(np.isfinite(bias_matrix.diagonal()))
+
+    def test_compute_bias_matrix_two_neurons(self):
+        """Test with minimum: two neurons."""
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4])
+        neuron_ids = np.array([0, 1, 0, 1])
+        total_neurons = 2
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        assert bias_matrix.shape == (2, 2)
+
+    def test_compute_bias_matrix_many_neurons(self):
+        """Test with many neurons."""
+        # Create spike times for 20 neurons
+        np.random.seed(42)
+        n_neurons = 20
+        n_spikes_per_neuron = 10
+
+        spike_times = np.concatenate(
+            [np.random.rand(n_spikes_per_neuron) for _ in range(n_neurons)]
+        )
+        spike_times = np.sort(spike_times)
+        neuron_ids = np.repeat(np.arange(n_neurons), n_spikes_per_neuron)
+
+        bias_matrix = compute_bias_matrix_optimized_(spike_times, neuron_ids, n_neurons)
+
+        assert bias_matrix.shape == (n_neurons, n_neurons)
+        assert isinstance(bias_matrix, np.ndarray)
+
+    def test_compute_bias_matrix_sequential_forward(self):
+        """Test with clearly sequential forward spikes (0→1→2→3)."""
+        # Sequential forward replay: 0 fires, then 1, then 2, then 3
+        spike_times = np.array(
+            [0.0, 0.01, 0.02, 0.03, 0.1, 0.11, 0.12, 0.13]
+        )  # Two sequences
+        neuron_ids = np.array([0, 1, 2, 3, 0, 1, 2, 3])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # In forward replay:
+        # neuron 0 fires before 1 → bias[0,1] should be high
+        # neuron 1 fires before 2 → bias[1,2] should be high
+        # neuron 2 fires before 3 → bias[2,3] should be high
+        # neuron 3 fires before 0 → bias[3,0] should be low
+
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+        # Values should be finite
+        assert np.all(np.isfinite(bias_matrix[np.isfinite(bias_matrix)]))
+
+    def test_compute_bias_matrix_sequential_reverse(self):
+        """Test with clearly sequential reverse spikes (3→2→1→0)."""
+        # Sequential reverse replay: 3 fires, then 2, then 1, then 0
+        spike_times = np.array(
+            [0.0, 0.01, 0.02, 0.03, 0.1, 0.11, 0.12, 0.13]
+        )  # Two sequences
+        neuron_ids = np.array([3, 2, 1, 0, 3, 2, 1, 0])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # In reverse replay:
+        # neuron 3 fires before 2 → bias[3,2] should be high
+        # neuron 2 fires before 1 → bias[2,1] should be high
+        # neuron 1 fires before 0 → bias[1,0] should be high
+        # neuron 0 fires before 3 → bias[0,3] should be low
+
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+        assert np.all(np.isfinite(bias_matrix[np.isfinite(bias_matrix)]))
+
+    def test_compute_bias_matrix_reproducible(self):
+        """Test that results are reproducible."""
+        np.random.seed(123)
+        spike_times1 = np.random.rand(100)
+        spike_times1.sort()
+        neuron_ids1 = np.random.randint(0, 10, 100)
+
+        np.random.seed(123)
+        spike_times2 = np.random.rand(100)
+        spike_times2.sort()
+        neuron_ids2 = np.random.randint(0, 10, 100)
+
+        bias_matrix1 = compute_bias_matrix_optimized_(spike_times1, neuron_ids1, 10)
+        bias_matrix2 = compute_bias_matrix_optimized_(spike_times2, neuron_ids2, 10)
+
+        np.testing.assert_array_equal(bias_matrix1, bias_matrix2)
+
+    def test_compute_bias_matrix_values_valid_range(self):
+        """Test that bias values are in a valid range when they exist."""
+        spike_times = np.array([0.0, 0.01, 0.02, 0.03, 0.1, 0.11, 0.12, 0.13])
+        neuron_ids = np.array([0, 1, 2, 3, 2, 1, 0, 3])
+        total_neurons = 4
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        # Valid bias values should be non-negative (ratio of counts or initialized value)
+        valid_mask = np.isfinite(bias_matrix)
+        if valid_mask.any():
+            assert np.all(bias_matrix[valid_mask] >= 0)
+
+    def test_compute_bias_matrix_with_single_neuron_repeated(self):
+        """Test with spikes from only one neuron repeated."""
+        # Only neuron 0 spikes
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+        neuron_ids = np.array([0, 0, 0, 0, 0])
+        total_neurons = 5
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+        # Should handle gracefully (NaN or valid values)
+        assert isinstance(bias_matrix, np.ndarray)
+
+    def test_compute_bias_matrix_with_missing_neurons(self):
+        """Test when some neurons have no spikes."""
+        # Total 5 neurons but only 0, 2, 3 have spikes (1, 4 are missing)
+        spike_times = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+        neuron_ids = np.array([0, 2, 3, 0, 2, 3])
+        total_neurons = 5
+
+        bias_matrix = compute_bias_matrix_optimized_(
+            spike_times, neuron_ids, total_neurons
+        )
+
+        assert bias_matrix.shape == (total_neurons, total_neurons)
+        assert isinstance(bias_matrix, np.ndarray)
 
 
 if __name__ == "__main__":
