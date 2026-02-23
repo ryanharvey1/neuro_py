@@ -57,6 +57,7 @@ __all__ = (
     "event_triggered_cross_correlation",
     "pairwise_event_triggered_cross_correlation",
     "sync",
+    "peth",
 )
 
 from . import batch_analysis
@@ -96,6 +97,7 @@ from .peri_event import (
     get_raster_points,
     joint_peth,
     nearest_event_delay,
+    peth,
     peth_matrix,
     relative_times,
     sync,

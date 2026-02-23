@@ -9,6 +9,7 @@ from neuro_py.process.peri_event import (
     event_triggered_average_irregular_sample,
     get_raster_points,
     joint_peth,
+    peth,
     peth_matrix,
 )
 
@@ -158,3 +159,303 @@ def test_event_spiking_threshold_filters_events_by_population_response():
     assert valid_events.shape == (2,)
     assert valid_events.dtype == bool
     assert not valid_events[1]
+
+
+class TestPeth:
+    """Test suite for the peth function with various nelpy types."""
+
+    def test_peth_with_spiketrainarray(self):
+        """Test peth with SpikeTrainArray (point process data)."""
+        SpikeTrainArray = pytest.importorskip("nelpy").SpikeTrainArray
+
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        st = SpikeTrainArray([spike_train_1, spike_train_2], fs=1000)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH
+        result = peth(st, events, window=[-0.5, 0.5], bin_width=0.1, n_bins=10)
+
+        # Check output structure
+        assert isinstance(result, pytest.importorskip("pandas").DataFrame)
+        assert result.shape[1] == 2  # Two spike trains
+        assert len(result.index) > 0  # Has time bins
+        # Values should be firing rates (Hz)
+        assert result.values.min() >= 0
+
+    def test_peth_with_analogsignalarray(self):
+        """Test peth with AnalogSignalArray (continuous data)."""
+        AnalogSignalArray = pytest.importorskip("nelpy").AnalogSignalArray
+        pd = pytest.importorskip("pandas")
+
+        # Create continuous signal (2 channels, 100 samples)
+        timestamps = np.linspace(0, 5, 100)
+        signal = np.vstack(
+            [np.sin(2 * np.pi * timestamps), np.cos(2 * np.pi * timestamps)]
+        )
+        # AnalogSignalArray expects data as (n_signals, n_samples)
+        asa = AnalogSignalArray(timestamps=timestamps, data=signal)
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute PETH
+        result = peth(asa, events, window=[-0.2, 0.2], bin_width=0.01)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2  # Two channels
+        assert len(result.index) > 0  # Has time bins
+        # Check that index represents time bins around events
+        assert result.index.min() >= -0.2 - 1e-6
+        assert result.index.max() <= 0.2 + 1e-6
+
+    def test_peth_with_positionarray(self):
+        """Test peth with PositionArray (2D position data)."""
+        # Try multiple import paths for PositionArray
+        PositionArray = None
+        try:
+            from nelpy.auxiliary import PositionArray
+        except ImportError:
+            try:
+                from nelpy import PositionArray
+            except ImportError:
+                pytest.skip("PositionArray not available in nelpy")
+
+        pd = pytest.importorskip("pandas")
+
+        # Create position data (x, y coordinates)
+        timestamps = np.linspace(0, 5, 100)
+        x_pos = np.sin(2 * np.pi * timestamps)
+        y_pos = np.cos(2 * np.pi * timestamps)
+        position = PositionArray(
+            timestamps=timestamps, data=np.vstack([x_pos, y_pos])
+        )
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute PETH
+        result = peth(position, events, window=[-0.2, 0.2], bin_width=0.01)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2  # x and y coordinates
+        assert len(result.index) > 0
+        # Check that index represents time bins around events
+        assert result.index.min() >= -0.2 - 1e-6
+        assert result.index.max() <= 0.2 + 1e-6
+
+    def test_peth_with_eventarray(self):
+        """Test peth with EventArray (point process data)."""
+        nelpy = pytest.importorskip("nelpy")
+        pd = pytest.importorskip("pandas")
+
+        # Create event arrays
+        event_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        event_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+
+        # EventArray expects a list of arrays
+        ea = nelpy.EventArray([event_train_1, event_train_2])
+
+        # Create reference events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH
+        result = peth(ea, events, window=[-0.5, 0.5], bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2  # Two event trains
+        assert len(result.index) > 0
+        assert result.values.min() >= 0  # Rates should be non-negative
+
+    def test_peth_with_binnedspiketrainarray(self):
+        """Test peth with BinnedSpikeTrainArray."""
+        nelpy = pytest.importorskip("nelpy")
+        pd = pytest.importorskip("pandas")
+
+        # Create spike trains and bin them
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        st = nelpy.SpikeTrainArray([spike_train_1, spike_train_2], fs=1000)
+
+        # Bin the spikes
+        bst = st.bin(ds=0.01)
+
+        # Create events well within the binned data range for the requested window
+        window = [-0.5, 0.5]
+        valid_events = bst.bin_centers[
+            (bst.bin_centers + window[0] >= bst.bin_centers[0])
+            & (bst.bin_centers + window[1] <= bst.bin_centers[-1])
+        ]
+        assert len(valid_events) >= 2
+        events = np.array(
+            [
+                valid_events[len(valid_events) // 3],
+                valid_events[2 * len(valid_events) // 3],
+            ]
+        )
+
+        # Compute PETH
+        result = peth(bst, events, window=window, bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        # BinnedSpikeTrainArray may flatten to single series - check for at least 1 column
+        assert result.shape[1] >= 1
+        assert len(result.index) > 0
+        assert result.values.min() >= 0
+
+    def test_peth_with_numpy_object_array(self):
+        """Test peth with numpy object array (point process data)."""
+        pd = pytest.importorskip("pandas")
+
+        # Create spike trains as object array
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH
+        result = peth(spikes, events, window=[-0.5, 0.5], bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2  # Two spike trains
+        assert len(result.index) > 0
+        assert result.values.min() >= 0
+
+    def test_peth_with_numpy_1d_array(self):
+        """Test peth with 1D numpy array (single point process)."""
+        pd = pytest.importorskip("pandas")
+
+        # Create single spike train
+        spike_train = np.array([0.9, 1.1, 2.1, 2.3])
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH
+        result = peth(spike_train, events, window=[-0.5, 0.5], bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 1  # Single spike train
+        assert len(result.index) > 0
+        assert result.values.min() >= 0
+
+    def test_peth_with_empty_spike_trains(self):
+        """Test peth handles empty spike trains gracefully."""
+        pd = pytest.importorskip("pandas")
+
+        # Create empty spike trains
+        spike_train_1 = np.array([], dtype=np.float64)
+        spike_train_2 = np.array([1.1, 2.1])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH
+        result = peth(spikes, events, window=[-0.5, 0.5], bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2
+        assert len(result.index) > 0
+        # First column should have zeros (empty spike train)
+        assert result[0].sum() == 0
+
+    def test_peth_with_asymmetric_window(self):
+        """Test peth with asymmetric window."""
+        pd = pytest.importorskip("pandas")
+
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 1.3, 2.1])
+        spike_train_2 = np.array([0.95, 1.15, 1.25, 2.05])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with asymmetric window
+        result = peth(spikes, events, window=[-0.2, 0.4], bin_width=0.1)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 2
+        # Window should be preserved even if asymmetric
+        assert result.index.min() >= -0.2 - 1e-6
+        assert result.index.max() <= 0.4 + 1e-6
+
+    def test_peth_default_window_and_bins(self):
+        """Test peth with default window and bins."""
+        pd = pytest.importorskip("pandas")
+
+        # Create spike trains
+        spike_train = np.array([0.9, 1.0, 1.1, 2.0, 2.1])
+        spikes = np.array([spike_train], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with defaults (no window specified)
+        result = peth(spikes, events, bin_width=0.002, n_bins=100)
+
+        # Check output structure
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape[1] == 1
+        # Default should create symmetric window based on n_bins * bin_width
+        expected_half_window = (100 * 0.002) / 2
+        assert result.index.min() >= -expected_half_window - 1e-6
+        assert result.index.max() <= expected_half_window + 1e-6
+
+    def test_peth_raises_error_for_2d_numpy_array(self):
+        """Test peth raises error for 2D numpy array without AnalogSignalArray."""
+        # Create 2D numpy array (continuous data)
+        signal = np.random.randn(100, 2)
+        events = np.array([1.0, 2.0])
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="continuous numpy arrays"):
+            peth(signal, events, window=[-0.5, 0.5])
+
+    def test_peth_raises_error_for_unsupported_type(self):
+        """Test peth raises error for unsupported data type."""
+        events = np.array([1.0, 2.0])
+
+        # Should raise TypeError
+        with pytest.raises(TypeError, match="Unsupported data type"):
+            peth("invalid_data", events, window=[-0.5, 0.5])
+
+    def test_peth_consistency_with_compute_psth(self):
+        """Test that peth gives similar results to compute_psth for point process."""
+        pd = pytest.importorskip("pandas")
+
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute with both functions
+        result_peth = peth(spikes, events, window=[-0.5, 0.5], bin_width=0.1, n_bins=10)
+        result_psth = compute_psth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, n_bins=10
+        )
+
+        # Should have same shape
+        assert result_peth.shape == result_psth.shape
+
+        # Values should be very close (may differ slightly due to implementation details)
+        np.testing.assert_allclose(
+            result_peth.values, result_psth.values, rtol=1e-10, atol=1e-10
+        )

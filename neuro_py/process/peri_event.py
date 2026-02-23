@@ -5,7 +5,13 @@ import bottleneck as bn
 import numpy as np
 import pandas as pd
 from nelpy import EpochArray
-from nelpy.core._eventarray import SpikeTrainArray
+from nelpy.core import (
+    AnalogSignalArray,
+    BinnedSpikeTrainArray,
+    PositionArray,
+    SpikeTrainArray,
+)
+from nelpy.core._eventarray import BinnedEventArray, EventArray, SpikeTrainArray
 from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
@@ -167,6 +173,8 @@ def compute_psth(
     ccg = pd.DataFrame(index=times, columns=np.arange(len(data)))
     # Now we can iterate over trials
     for i, s in enumerate(data):
+        # Ensure spike times are float64 for numba compatibility
+        s = np.asarray(s, dtype=np.float64)
         ccg[i] = crossCorr(event, s, bin_width, n_bins)
 
     # if window was not symmetric, remove the extra bins
@@ -1024,6 +1032,211 @@ def event_triggered_average_fast(
         return bn.nanmean(avg_signal, axis=2), time_lags
     else:
         return avg_signal, time_lags
+
+
+def peth(
+    data,
+    events: np.ndarray,
+    window: Union[list, None] = None,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+) -> pd.DataFrame:
+    """
+    Compute peri-event time histogram (PETH) for nelpy data objects or numpy arrays.
+
+    This is a high-level function that handles multiple data types and automatically
+    computes the appropriate PETH based on the input data type. For point process data
+    (spikes/events), it computes firing rates (Hz). For continuous data (analog signals),
+    it computes event-triggered averages.
+
+    Parameters
+    ----------
+    data : nelpy object or np.ndarray
+        Data can be:
+        - AnalogSignalArray: continuous signals
+        - PositionArray: 2D/3D position data (x, y, [z] coordinates)
+        - SpikeTrainArray: spike trains
+        - BinnedSpikeTrainArray: binned spike trains
+        - EventArray: event times
+        - BinnedEventArray: binned events
+        - np.ndarray: array of spike times (object array) or continuous signal
+    events : np.ndarray
+        1D array of event times to align data to.
+    window : list, optional
+        Time window around events [start, end] in seconds.
+        If None, uses symmetric window based on n_bins and bin_width.
+    bin_width : float, optional
+        Width of time bins in seconds (default 0.002).
+    n_bins : int, optional
+        Number of bins (default 100). Ignored if window is specified.
+
+    Returns
+    -------
+    pd.DataFrame
+        PETH with time bins as index and each series/signal as columns.
+        Values are rates (Hz) for point process data or averaged
+        signal values for continuous data.
+
+    Examples
+    --------
+    >>> # With SpikeTrainArray
+    >>> st, _ = loading.load_spikes(basepath)
+    >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
+    >>> peth_df = peth(st, ripples.starts, window=[-0.5, 0.5], bin_width=0.01)
+
+    >>> # With AnalogSignalArray
+    >>> import numpy as np
+    >>> from nelpy import AnalogSignalArray
+    >>> timestamps = np.linspace(0, 5, 100)
+    >>> signal = np.vstack([
+    ...     np.sin(2 * np.pi * timestamps),
+    ...     np.cos(2 * np.pi * timestamps),
+    ... ])
+    >>> lfp = AnalogSignalArray(timestamps=timestamps, data=signal)
+    >>> events = np.array([1.0, 2.0, 3.0])
+    >>> peth_df = peth(lfp, events, window=[-0.2, 0.2])
+
+    >>> # With PositionArray
+    >>> from nelpy import PositionArray
+    >>> x_pos = np.sin(2 * np.pi * timestamps)
+    >>> y_pos = np.cos(2 * np.pi * timestamps)
+    >>> position = PositionArray(timestamps=timestamps, data=np.vstack([x_pos, y_pos]))
+    >>> peth_df = peth(position, events, window=[-0.5, 0.5])
+
+    >>> # With numpy array
+    >>> spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+    >>> peth_df = peth(spikes, events, window=[-0.5, 0.5])
+
+    Notes
+    -----
+    - For point process data (spikes/events), uses crossCorr to compute firing rates
+    - For continuous data (analog signals), uses event_triggered_average
+    - Returns rates in Hz for point process data
+    - Handles both regular and irregularly sampled continuous data
+
+    See Also
+    --------
+    compute_psth : Lower-level PSTH computation for numpy arrays
+    event_triggered_average : Event-triggered averaging for continuous signals
+    crossCorr : Cross-correlogram computation
+    """
+
+    # Determine data type and extract spike/signal data
+    is_continuous = False
+
+    if isinstance(
+        data,
+        (AnalogSignalArray, PositionArray, BinnedSpikeTrainArray, BinnedEventArray),
+    ):
+        # Continuous signal data (includes position and binned spike/event data)
+        is_continuous = True
+
+        # Use bin_centers for binned data, abscissa_vals for others
+        if isinstance(data, (BinnedSpikeTrainArray, BinnedEventArray)):
+            timestamps = data.bin_centers
+        else:
+            timestamps = data.abscissa_vals
+
+        signal = data.data.T  # transpose to (n_samples, n_signals)
+        # Use n_signals if available (AnalogSignalArray/PositionArray), otherwise n_series (BinnedSpikeTrainArray)
+        n_series = getattr(
+            data, "n_series", getattr(data, "n_signals", data.data.shape[0])
+        )
+
+    elif isinstance(data, (SpikeTrainArray, EventArray)):
+        # Point process data - extract spike times
+        is_continuous = False
+        spike_data = data.data
+        n_series = len(spike_data)
+
+    elif isinstance(data, np.ndarray):
+        # Numpy array - determine if continuous or point process
+        if data.dtype == object:
+            # Object array - assume point process
+            is_continuous = False
+            spike_data = data
+            n_series = len(spike_data)
+        else:
+            # Regular array - could be continuous or point process
+            # If 2D, assume continuous; if 1D, assume point process
+            if data.ndim == 2:
+                # Continuous data
+                is_continuous = True
+                # Need timestamps - if not provided, we can't use event_triggered_average
+                # Fall back to treating as point process
+                raise ValueError(
+                    "For continuous numpy arrays, please use AnalogSignalArray or provide "
+                    "timestamps separately via event_triggered_average function."
+                )
+            else:
+                # 1D array - single point process
+                is_continuous = False
+                spike_data = np.array([data], dtype=object)
+                n_series = 1
+    else:
+        raise TypeError(
+            f"Unsupported data type: {type(data)}. "
+            "Must be AnalogSignalArray, PositionArray, SpikeTrainArray, BinnedSpikeTrainArray, "
+            "EventArray, BinnedEventArray, or np.ndarray"
+        )
+
+    # Calculate time bins
+    window_original = None
+    if window is not None:
+        # Check if window is symmetric around 0, if not make it so
+        if ((window[1] - window[0]) / 2 != window[1]) | (
+            (window[1] - window[0]) / -2 != window[0]
+        ):
+            window_original = np.array(window)
+            window = [-np.max(np.abs(window)), np.max(np.abs(window))]
+
+        times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        n_bins = len(times) - 1
+    else:
+        times = np.linspace(
+            -(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1
+        )
+
+    # Compute PETH based on data type
+    if is_continuous:
+        # Continuous data - use event_triggered_average
+        if window is None:
+            window = [times[0], times[-1]]
+
+        # Calculate sampling rate
+        sampling_rate = 1 / np.median(np.diff(timestamps))
+
+        # Compute event-triggered average
+        avg_signal, time_lags = event_triggered_average(
+            timestamps,
+            signal,
+            events,
+            sampling_rate=sampling_rate,
+            window=window,
+            return_average=True,
+            return_pandas=False,
+        )
+
+        # Create DataFrame
+        peth_df = pd.DataFrame(avg_signal, index=time_lags, columns=np.arange(n_series))
+
+    else:
+        # Point process data - use crossCorr
+        peth_df = pd.DataFrame(index=times, columns=np.arange(n_series))
+
+        for i, s in enumerate(spike_data):
+            # Ensure spike times are float64
+            if len(s) > 0:
+                s = np.asarray(s, dtype=np.float64)
+            else:
+                s = np.array([], dtype=np.float64)
+            peth_df[i] = crossCorr(events, s, bin_width, n_bins)
+
+    # If window was not symmetric, remove the extra bins
+    if window is not None and window_original is not None:
+        peth_df = peth_df.loc[window_original[0] : window_original[1], :]
+
+    return peth_df
 
 
 def count_in_interval(
