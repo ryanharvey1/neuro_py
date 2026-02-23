@@ -852,7 +852,14 @@ def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
             crosscorr = crossCorr(spikes_i, spikes_j, 0.001, 100)
 
             # Count how many times neuron i spikes before neuron j
-            bias_matrix[i, j] = np.divide(crosscorr[:50].sum(), crosscorr[51:].sum())
+            before_count = crosscorr[:50].sum()
+            after_count = crosscorr[51:].sum()
+            
+            # Only compute bias if we have spikes in both directions
+            # Otherwise, keep the default neutral value of 0.5
+            if before_count + after_count > 0:
+                bias_matrix[i, j] = before_count / (before_count + after_count)
+            # else: keep default 0.5 (neither forward nor reverse bias)
 
     return bias_matrix
 
