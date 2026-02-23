@@ -57,7 +57,6 @@ __all__ = (
     "event_triggered_cross_correlation",
     "pairwise_event_triggered_cross_correlation",
     "sync",
-    "cross_correlogram",
 )
 
 from . import batch_analysis
@@ -87,7 +86,6 @@ from .peri_event import (
     compute_psth,
     count_events,
     count_in_interval,
-    cross_correlogram,
     crossCorr,
     deconvolve_peth,
     event_spiking_threshold,

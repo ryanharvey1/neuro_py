@@ -10,7 +10,6 @@ from neuro_py.process.peri_event import (
     get_raster_points,
     joint_peth,
     peth_matrix,
-    cross_correlogram,
 )
 
 
@@ -24,45 +23,6 @@ def test_crosscorr_even_nbins_is_adjusted_and_values_are_expected():
     # Note: This uses a monotonic sweep across events, so not a true cross-correlogram.
     # Each t2 sample is counted at most once across all t1 events.
     np.testing.assert_allclose(result, np.array([0.0, 0.0, 0.0, 7.5, 2.5]))
-
-
-def test_cross_correlogram_computes_true_histogram_per_event():
-    """Test the true cross-correlogram: each t1 sees all t2 samples."""
-    t1 = np.array([1.0, 2.0])
-    t2 = np.sort(np.array([1.1, 1.3, 2.1, 2.3]))  # Must be sorted
-
-    result = cross_correlogram(t1, t2, binsize=0.2, nbins=11)
-
-    assert result.shape == (11,)
-    # Each event independently sees all t2 samples.
-    # Event 0 at 1.0 sees [1.1, 1.3] (2 samples)
-    # Event 1 at 2.0 sees [1.1, 1.3, 2.1, 2.3] (4 samples)
-    # Total raw count = 6, normalized = 6 / (2 * 0.2) = 15.0
-    assert np.abs(np.sum(result) - 15.0) < 0.01
-
-
-def test_cross_correlogram_is_order_independent():
-    """True cross-correlogram gives same result regardless of t1 order."""
-    t2 = np.sort(np.array([1.1, 1.3, 2.1, 2.3]))
-
-    result1 = cross_correlogram(np.array([1.0, 2.0]), t2, binsize=0.2, nbins=11)
-    result2 = cross_correlogram(np.array([2.0, 1.0]), t2, binsize=0.2, nbins=11)
-
-    # Both should give same histograms (order doesn't matter)
-    np.testing.assert_allclose(result1, result2)
-
-
-def test_cross_correlogram_unsorted_t1():
-    """True cross-correlogram works with unsorted t1."""
-    t1_unsorted = np.array([5.0, 2.0, 8.0])
-    t2 = np.sort(np.array([2.1, 5.1, 8.1]))
-
-    result = cross_correlogram(t1_unsorted, t2, binsize=0.2, nbins=11)
-
-    # Each of 3 events should find one spike in their window
-    assert result.shape == (11,)
-    # Verify each event found spikes (result is non-zero)
-    assert np.sum(result) > 0
 
 
 def test_compute_psth_with_nonsymmetric_window_crops_to_original_range():
