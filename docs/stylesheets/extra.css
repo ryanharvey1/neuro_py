@@ -46,6 +46,17 @@
   color: #fff;
 }
 
+/* ── Tabs text color ─────────────────────────────────────────────────────── */
+
+.md-tabs__link {
+  color: rgba(255, 255, 255, 0.8);
+}
+.md-tabs__link:hover,
+.md-tabs__item--active .md-tabs__link {
+  color: #fff;
+  font-weight: 600;
+}
+
 /* Light search bar against the gradient header */
 .md-header .md-search__button {
   background-color: rgba(255, 255, 255, 0.12);
