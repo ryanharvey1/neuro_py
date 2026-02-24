@@ -112,7 +112,7 @@ class DetectDS(object):
 
     In command line
 
-    >>> python detect_dentate_spike.py Z:\Data\Can\OML22\day20
+    >>> python detect_dentate_spike.py Z:/Data/Can/OML22/day20
     """
 
     def __init__(
