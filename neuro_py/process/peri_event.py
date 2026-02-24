@@ -11,7 +11,7 @@ from nelpy.core import (
     PositionArray,
     SpikeTrainArray,
 )
-from nelpy.core._eventarray import BinnedEventArray, EventArray, SpikeTrainArray
+from nelpy.core._eventarray import BinnedEventArray, EventArray
 from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
@@ -691,7 +691,9 @@ def sync(
 
     Is, Ie = _sync_fill_indices(starts, stops, events_with_hits, total_hits)
 
-    synchronized = work_samples[Is].copy()
+    # Ensure synchronized has floating dtype so relative times are preserved
+    # If samples were integer, subtraction would silently truncate to integers
+    synchronized = work_samples[Is].astype(np.float64, copy=True)
     synchronized[:, 0] = synchronized[:, 0] - work_sync[Ie]
 
     if sort_samples is not None:
