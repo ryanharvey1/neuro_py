@@ -1,0 +1,1250 @@
+<!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link href=../correlations/ rel=prev><link href=../peri_event/ rel=next><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.2"><title>neuro_py.process.intervals - neuro_py</title><link rel=stylesheet href=../../../../assets/stylesheets/main.484c7ddc.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><link rel=stylesheet href=../../../../assets/_mkdocstrings.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=indigo data-md-color-accent=indigo> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#neuro_py.process.intervals class=md-skip> Skip to content </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow md-header--lifted" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=../../../.. title=neuro_py class="md-header__button md-logo" aria-label=neuro_py data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> neuro_py </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> neuro_py.process.intervals </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=default data-md-color-primary=indigo data-md-color-accent=indigo aria-label="Switch to light mode" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=light data-md-color-primary=custom data-md-color-accent=custom aria-label="Switch to dark mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_2 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=indigo data-md-color-accent=blue aria-label="Switch to system preference" type=radio name=__palette id=__palette_2> <label class="md-header__button md-icon" title="Switch to system preference" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/ryanharvey1/neuro_py title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> ryanharvey1/neuro_py </div> </a> </div> </nav> <nav class=md-tabs aria-label=Tabs data-md-component=tabs> <div class=md-grid> <ul class=md-tabs__list> <li class=md-tabs__item> <a href=../../../.. class=md-tabs__link> Home </a> </li> <li class="md-tabs__item md-tabs__item--active"> <a href=../../ class=md-tabs__link> API Reference </a> </li> <li class=md-tabs__item> <a href=../../../../tutorials/attractor_landscape/ class=md-tabs__link> Tutorials </a> </li> </ul> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary md-nav--lifted" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=neuro_py class="md-nav__button md-logo" aria-label=neuro_py data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg> </a> neuro_py </label> <div class=md-nav__source> <a href=https://github.com/ryanharvey1/neuro_py title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> ryanharvey1/neuro_py </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> Home </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> API Reference </span> </a> <label class="md-nav__link " for=__nav_2 id=__nav_2_label tabindex> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_2_label aria-expanded=true> <label class=md-nav__title for=__nav_2> <span class="md-nav__icon md-icon"></span> API Reference </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_2> <label class=md-nav__link for=__nav_2_2 id=__nav_2_2_label tabindex> <span class=md-ellipsis> behavior </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_2_label aria-expanded=false> <label class=md-nav__title for=__nav_2_2> <span class="md-nav__icon md-icon"></span> behavior </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../behavior/cheeseboard/ class=md-nav__link> <span class=md-ellipsis> cheeseboard </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/circle_maze/ class=md-nav__link> <span class=md-ellipsis> circle_maze </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/get_trials/ class=md-nav__link> <span class=md-ellipsis> get_trials </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/kinematics/ class=md-nav__link> <span class=md-ellipsis> kinematics </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/linear_positions/ class=md-nav__link> <span class=md-ellipsis> linear_positions </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/linearization/ class=md-nav__link> <span class=md-ellipsis> linearization </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/linearization_pipeline/ class=md-nav__link> <span class=md-ellipsis> linearization_pipeline </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/preprocessing/ class=md-nav__link> <span class=md-ellipsis> preprocessing </span> </a> </li> <li class=md-nav__item> <a href=../../behavior/well_traversal_classification/ class=md-nav__link> <span class=md-ellipsis> well_traversal_classification </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_3> <label class=md-nav__link for=__nav_2_3 id=__nav_2_3_label tabindex> <span class=md-ellipsis> detectors </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_3_label aria-expanded=false> <label class=md-nav__title for=__nav_2_3> <span class="md-nav__icon md-icon"></span> detectors </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../detectors/dentate_spike/ class=md-nav__link> <span class=md-ellipsis> dentate_spike </span> </a> </li> <li class=md-nav__item> <a href=../../detectors/up_down_state/ class=md-nav__link> <span class=md-ellipsis> up_down_state </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_4> <div class="md-nav__link md-nav__container"> <a href=../../ensemble/decoding/ class="md-nav__link "> <span class=md-ellipsis> ensemble </span> </a> <label class="md-nav__link " for=__nav_2_4 id=__nav_2_4_label tabindex> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_4_label aria-expanded=false> <label class=md-nav__title for=__nav_2_4> <span class="md-nav__icon md-icon"></span> ensemble </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../ensemble/assembly/ class=md-nav__link> <span class=md-ellipsis> assembly </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/assembly_reactivation/ class=md-nav__link> <span class=md-ellipsis> assembly_reactivation </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/dynamics/ class=md-nav__link> <span class=md-ellipsis> dynamics </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/explained_variance/ class=md-nav__link> <span class=md-ellipsis> explained_variance </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/geometry/ class=md-nav__link> <span class=md-ellipsis> geometry </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/pairwise_bias_correlation/ class=md-nav__link> <span class=md-ellipsis> pairwise_bias_correlation </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/replay/ class=md-nav__link> <span class=md-ellipsis> replay </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/similarity_index/ class=md-nav__link> <span class=md-ellipsis> similarity_index </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/similaritymat/ class=md-nav__link> <span class=md-ellipsis> similaritymat </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_5> <label class=md-nav__link for=__nav_2_5 id=__nav_2_5_label tabindex> <span class=md-ellipsis> decoding </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_5_label aria-expanded=false> <label class=md-nav__title for=__nav_2_5> <span class="md-nav__icon md-icon"></span> decoding </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../ensemble/decoding/bayesian/ class=md-nav__link> <span class=md-ellipsis> bayesian </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/lstm/ class=md-nav__link> <span class=md-ellipsis> lstm </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/m2mlstm/ class=md-nav__link> <span class=md-ellipsis> m2mlstm </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/mlp/ class=md-nav__link> <span class=md-ellipsis> mlp </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/pipeline/ class=md-nav__link> <span class=md-ellipsis> pipeline </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/preprocess/ class=md-nav__link> <span class=md-ellipsis> preprocess </span> </a> </li> <li class=md-nav__item> <a href=../../ensemble/decoding/transformer/ class=md-nav__link> <span class=md-ellipsis> transformer </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_6> <label class=md-nav__link for=__nav_2_6 id=__nav_2_6_label tabindex> <span class=md-ellipsis> io </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_6_label aria-expanded=false> <label class=md-nav__title for=__nav_2_6> <span class="md-nav__icon md-icon"></span> io </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../io/loading/ class=md-nav__link> <span class=md-ellipsis> loading </span> </a> </li> <li class=md-nav__item> <a href=../../io/saving/ class=md-nav__link> <span class=md-ellipsis> saving </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_7> <label class=md-nav__link for=__nav_2_7 id=__nav_2_7_label tabindex> <span class=md-ellipsis> lfp </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_7_label aria-expanded=false> <label class=md-nav__title for=__nav_2_7> <span class="md-nav__icon md-icon"></span> lfp </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../lfp/CSD/ class=md-nav__link> <span class=md-ellipsis> CSD </span> </a> </li> <li class=md-nav__item> <a href=../../lfp/preprocessing/ class=md-nav__link> <span class=md-ellipsis> preprocessing </span> </a> </li> <li class=md-nav__item> <a href=../../lfp/spectral/ class=md-nav__link> <span class=md-ellipsis> spectral </span> </a> </li> <li class=md-nav__item> <a href=../../lfp/theta_cycles/ class=md-nav__link> <span class=md-ellipsis> theta_cycles </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_8> <label class=md-nav__link for=__nav_2_8 id=__nav_2_8_label tabindex> <span class=md-ellipsis> plotting </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_8_label aria-expanded=false> <label class=md-nav__title for=__nav_2_8> <span class="md-nav__icon md-icon"></span> plotting </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../plotting/decorators/ class=md-nav__link> <span class=md-ellipsis> decorators </span> </a> </li> <li class=md-nav__item> <a href=../../plotting/events/ class=md-nav__link> <span class=md-ellipsis> events </span> </a> </li> <li class=md-nav__item> <a href=../../plotting/figure_helpers/ class=md-nav__link> <span class=md-ellipsis> figure_helpers </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_9 checked> <label class=md-nav__link for=__nav_2_9 id=__nav_2_9_label tabindex> <span class=md-ellipsis> process </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_9_label aria-expanded=true> <label class=md-nav__title for=__nav_2_9> <span class="md-nav__icon md-icon"></span> process </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../batch_analysis/ class=md-nav__link> <span class=md-ellipsis> batch_analysis </span> </a> </li> <li class=md-nav__item> <a href=../correlations/ class=md-nav__link> <span class=md-ellipsis> correlations </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> intervals </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> intervals </span> </a> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#neuro_py.process.intervals class=md-nav__link> <span class=md-ellipsis> intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals._find_intersecting_intervals class=md-nav__link> <span class=md-ellipsis> _find_intersecting_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_intersecting_intervals class=md-nav__link> <span class=md-ellipsis> find_intersecting_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_intersection_intervals_strict class=md-nav__link> <span class=md-ellipsis> find_intersection_intervals_strict </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_interval class=md-nav__link> <span class=md-ellipsis> find_interval </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.get_overlapping_intervals class=md-nav__link> <span class=md-ellipsis> get_overlapping_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.in_intervals class=md-nav__link> <span class=md-ellipsis> in_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.in_intervals_interval class=md-nav__link> <span class=md-ellipsis> in_intervals_interval </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.overlap_intersect class=md-nav__link> <span class=md-ellipsis> overlap_intersect </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.randomize_epochs class=md-nav__link> <span class=md-ellipsis> randomize_epochs </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.shift_epoch_array class=md-nav__link> <span class=md-ellipsis> shift_epoch_array </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.split_epoch_by_width class=md-nav__link> <span class=md-ellipsis> split_epoch_by_width </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.split_epoch_equal_parts class=md-nav__link> <span class=md-ellipsis> split_epoch_equal_parts </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.truncate_epoch class=md-nav__link> <span class=md-ellipsis> truncate_epoch </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../peri_event/ class=md-nav__link> <span class=md-ellipsis> peri_event </span> </a> </li> <li class=md-nav__item> <a href=../precession_utils/ class=md-nav__link> <span class=md-ellipsis> precession_utils </span> </a> </li> <li class=md-nav__item> <a href=../pychronux/ class=md-nav__link> <span class=md-ellipsis> pychronux </span> </a> </li> <li class=md-nav__item> <a href=../utils/ class=md-nav__link> <span class=md-ellipsis> utils </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_10> <label class=md-nav__link for=__nav_2_10 id=__nav_2_10_label tabindex> <span class=md-ellipsis> raw </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_10_label aria-expanded=false> <label class=md-nav__title for=__nav_2_10> <span class="md-nav__icon md-icon"></span> raw </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../raw/preprocessing/ class=md-nav__link> <span class=md-ellipsis> preprocessing </span> </a> </li> <li class=md-nav__item> <a href=../../raw/spike_sorting/ class=md-nav__link> <span class=md-ellipsis> spike_sorting </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_11> <label class=md-nav__link for=__nav_2_11 id=__nav_2_11_label tabindex> <span class=md-ellipsis> session </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_11_label aria-expanded=false> <label class=md-nav__title for=__nav_2_11> <span class="md-nav__icon md-icon"></span> session </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../session/locate_epochs/ class=md-nav__link> <span class=md-ellipsis> locate_epochs </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_12> <label class=md-nav__link for=__nav_2_12 id=__nav_2_12_label tabindex> <span class=md-ellipsis> spikes </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_12_label aria-expanded=false> <label class=md-nav__title for=__nav_2_12> <span class="md-nav__icon md-icon"></span> spikes </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../spikes/spike_tools/ class=md-nav__link> <span class=md-ellipsis> spike_tools </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_13> <label class=md-nav__link for=__nav_2_13 id=__nav_2_13_label tabindex> <span class=md-ellipsis> stats </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_13_label aria-expanded=false> <label class=md-nav__title for=__nav_2_13> <span class="md-nav__icon md-icon"></span> stats </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../stats/circ_stats/ class=md-nav__link> <span class=md-ellipsis> circ_stats </span> </a> </li> <li class=md-nav__item> <a href=../../stats/regression/ class=md-nav__link> <span class=md-ellipsis> regression </span> </a> </li> <li class=md-nav__item> <a href=../../stats/stats/ class=md-nav__link> <span class=md-ellipsis> stats </span> </a> </li> <li class=md-nav__item> <a href=../../stats/system_identifier/ class=md-nav__link> <span class=md-ellipsis> system_identifier </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_14> <label class=md-nav__link for=__nav_2_14 id=__nav_2_14_label tabindex> <span class=md-ellipsis> tuning </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_14_label aria-expanded=false> <label class=md-nav__title for=__nav_2_14> <span class="md-nav__icon md-icon"></span> tuning </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../tuning/fields/ class=md-nav__link> <span class=md-ellipsis> fields </span> </a> </li> <li class=md-nav__item> <a href=../../tuning/maps/ class=md-nav__link> <span class=md-ellipsis> maps </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_2_15> <label class=md-nav__link for=__nav_2_15 id=__nav_2_15_label tabindex> <span class=md-ellipsis> util </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_2_15_label aria-expanded=false> <label class=md-nav__title for=__nav_2_15> <span class="md-nav__icon md-icon"></span> util </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../util/array/ class=md-nav__link> <span class=md-ellipsis> array </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3> <label class=md-nav__link for=__nav_3 id=__nav_3_label tabindex=0> <span class=md-ellipsis> Tutorials </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=false> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Tutorials </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../../tutorials/attractor_landscape/ class=md-nav__link> <span class=md-ellipsis> Attractor Estimation </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/batch_analysis/ class=md-nav__link> <span class=md-ellipsis> Batch Analysis </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/bias_correlation/ class=md-nav__link> <span class=md-ellipsis> Bias Correlation </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/explained_variance/ class=md-nav__link> <span class=md-ellipsis> Explained Variance </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/decoding/ class=md-nav__link> <span class=md-ellipsis> Neural Decoding </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/neural_geodynamics/ class=md-nav__link> <span class=md-ellipsis> Neural Geodynamics </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/peth_tutorial/ class=md-nav__link> <span class=md-ellipsis> PETH </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/reactivation/ class=md-nav__link> <span class=md-ellipsis> Reactivation </span> </a> </li> <li class=md-nav__item> <a href=../../../../tutorials/spatial_map/ class=md-nav__link> <span class=md-ellipsis> Spatial Map </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#neuro_py.process.intervals class=md-nav__link> <span class=md-ellipsis> intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals._find_intersecting_intervals class=md-nav__link> <span class=md-ellipsis> _find_intersecting_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_intersecting_intervals class=md-nav__link> <span class=md-ellipsis> find_intersecting_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_intersection_intervals_strict class=md-nav__link> <span class=md-ellipsis> find_intersection_intervals_strict </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.find_interval class=md-nav__link> <span class=md-ellipsis> find_interval </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.get_overlapping_intervals class=md-nav__link> <span class=md-ellipsis> get_overlapping_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.in_intervals class=md-nav__link> <span class=md-ellipsis> in_intervals </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.in_intervals_interval class=md-nav__link> <span class=md-ellipsis> in_intervals_interval </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.overlap_intersect class=md-nav__link> <span class=md-ellipsis> overlap_intersect </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.randomize_epochs class=md-nav__link> <span class=md-ellipsis> randomize_epochs </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.shift_epoch_array class=md-nav__link> <span class=md-ellipsis> shift_epoch_array </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.split_epoch_by_width class=md-nav__link> <span class=md-ellipsis> split_epoch_by_width </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.split_epoch_equal_parts class=md-nav__link> <span class=md-ellipsis> split_epoch_equal_parts </span> </a> </li> <li class=md-nav__item> <a href=#neuro_py.process.intervals.truncate_epoch class=md-nav__link> <span class=md-ellipsis> truncate_epoch </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <nav class=md-path aria-label=Navigation> <ol class=md-path__list> <li class=md-path__item> <a href=../../../.. class=md-path__link> <span class=md-ellipsis> Home </span> </a> </li> <li class=md-path__item> <a href=../../behavior/ class=md-path__link> <span class=md-ellipsis> API Reference </span> </a> </li> <li class=md-path__item> <a href=../batch_analysis/ class=md-path__link> <span class=md-ellipsis> process </span> </a> </li> </ol> </nav> <article class="md-content__inner md-typeset"> <a href=https://github.com/ryanharvey1/neuro_py/edit/main/docs/neuro_py/process/intervals.py title="Edit this page" class="md-content__button md-icon" rel=edit> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg> </a> <a href=https://github.com/ryanharvey1/neuro_py/raw/main/docs/neuro_py/process/intervals.py title="View source of this page" class="md-content__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg> </a> <h1> intervals</h1> <div class="doc doc-object doc-module"> <a id=neuro_py.process.intervals></a> <div class="doc doc-contents first"> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals._find_intersecting_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>_find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Find the amount of time two sets of intervals are intersecting each other for each interval in set1.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>set1</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of intervals represented as pairs of start and end times.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>set2</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of intervals represented as pairs of start and end times.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>list of float</code> </td> <td> <div class=doc-md-description> <p>A list of floats, where each float represents the amount of time the corresponding interval in set1 intersects with any interval in set2.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>194</span>
+<span class=normal>195</span>
+<span class=normal>196</span>
+<span class=normal>197</span>
+<span class=normal>198</span>
+<span class=normal>199</span>
+<span class=normal>200</span>
+<span class=normal>201</span>
+<span class=normal>202</span>
+<span class=normal>203</span>
+<span class=normal>204</span>
+<span class=normal>205</span>
+<span class=normal>206</span>
+<span class=normal>207</span>
+<span class=normal>208</span>
+<span class=normal>209</span>
+<span class=normal>210</span>
+<span class=normal>211</span>
+<span class=normal>212</span>
+<span class=normal>213</span>
+<span class=normal>214</span>
+<span class=normal>215</span>
+<span class=normal>216</span>
+<span class=normal>217</span>
+<span class=normal>218</span>
+<span class=normal>219</span>
+<span class=normal>220</span>
+<span class=normal>221</span>
+<span class=normal>222</span>
+<span class=normal>223</span>
+<span class=normal>224</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@jit</span><span class=p>(</span><span class=n>nopython</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>set2</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>List</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Find the amount of time two sets of intervals are intersecting each other for each interval in set1.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    set1 : ndarray</span>
+<span class=sd>        An array of intervals represented as pairs of start and end times.</span>
+<span class=sd>    set2 : ndarray</span>
+<span class=sd>        An array of intervals represented as pairs of start and end times.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    list of float</span>
+<span class=sd>        A list of floats, where each float represents the amount of time the</span>
+<span class=sd>        corresponding interval in set1 intersects with any interval in set2.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>intersecting_intervals</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=p>(</span><span class=n>start1</span><span class=p>,</span> <span class=n>end1</span><span class=p>)</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>set1</span><span class=p>):</span>
+        <span class=c1># Check if any of the intervals in set2 intersect with the current interval in set1</span>
+        <span class=k>for</span> <span class=n>start2</span><span class=p>,</span> <span class=n>end2</span> <span class=ow>in</span> <span class=n>set2</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>start2</span> <span class=o>&lt;=</span> <span class=n>end1</span> <span class=ow>and</span> <span class=n>end2</span> <span class=o>&gt;=</span> <span class=n>start1</span><span class=p>:</span>
+                <span class=c1># Calculate the amount of intersection between the two intervals</span>
+                <span class=n>intersection</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>end1</span><span class=p>,</span> <span class=n>end2</span><span class=p>)</span> <span class=o>-</span> <span class=nb>max</span><span class=p>(</span><span class=n>start1</span><span class=p>,</span> <span class=n>start2</span><span class=p>)</span>
+                <span class=n>intersecting_intervals</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>intersection</span><span class=p>)</span>
+                <span class=k>break</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>intersecting_intervals</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># No intersection found</span>
+
+    <span class=k>return</span> <span class=n>intersecting_intervals</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.find_intersecting_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>,</span> <span class=n>return_indices</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Find the amount of time two sets of intervals are intersecting each other for each intersection.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>set1</code> </td> <td> <code>nelpy EpochArray</code> </td> <td> <div class=doc-md-description> <p>The first set of intervals to check for intersections.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>set2</code> </td> <td> <code>nelpy EpochArray</code> </td> <td> <div class=doc-md-description> <p>The second set of intervals to check for intersections.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>return_indices</code> </td> <td> <code><span title=bool>bool</span></code> </td> <td> <div class=doc-md-description> <p>If True, return the indices of the intervals in set2 that intersect with each interval in set1. If False, return the amount of time each interval in set1 intersects with any interval in set2.</p> </div> </td> <td> <code>True</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=typing.Union>Union</span>[<span title=numpy.ndarray>ndarray</span>, <span title=typing.List>List</span>[<span title=bool>bool</span>]]</code> </td> <td> <div class=doc-md-description> <p>If return_indices is True, returns a boolean array indicating whether each interval in set1 intersects with any interval in set2. If return_indices is False, returns a NumPy array with the amount of time each interval in set1 intersects with any interval in set2.</p> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>set1</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>([(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>),</span> <span class=p>(</span><span class=mi>5</span><span class=p>,</span> <span class=mi>7</span><span class=p>),</span> <span class=p>(</span><span class=mi>9</span><span class=p>,</span> <span class=mi>10</span><span class=p>)])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>set2</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>([(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>4</span><span class=p>),</span> <span class=p>(</span><span class=mi>6</span><span class=p>,</span> <span class=mi>8</span><span class=p>)])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>)</span>
+<span class=go>[True, True, False]</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>,</span> <span class=n>return_indices</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=go>[1, 2, 0]</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>227</span>
+<span class=normal>228</span>
+<span class=normal>229</span>
+<span class=normal>230</span>
+<span class=normal>231</span>
+<span class=normal>232</span>
+<span class=normal>233</span>
+<span class=normal>234</span>
+<span class=normal>235</span>
+<span class=normal>236</span>
+<span class=normal>237</span>
+<span class=normal>238</span>
+<span class=normal>239</span>
+<span class=normal>240</span>
+<span class=normal>241</span>
+<span class=normal>242</span>
+<span class=normal>243</span>
+<span class=normal>244</span>
+<span class=normal>245</span>
+<span class=normal>246</span>
+<span class=normal>247</span>
+<span class=normal>248</span>
+<span class=normal>249</span>
+<span class=normal>250</span>
+<span class=normal>251</span>
+<span class=normal>252</span>
+<span class=normal>253</span>
+<span class=normal>254</span>
+<span class=normal>255</span>
+<span class=normal>256</span>
+<span class=normal>257</span>
+<span class=normal>258</span>
+<span class=normal>259</span>
+<span class=normal>260</span>
+<span class=normal>261</span>
+<span class=normal>262</span>
+<span class=normal>263</span>
+<span class=normal>264</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>find_intersecting_intervals</span><span class=p>(</span>
+    <span class=n>set1</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>set2</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>return_indices</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Union</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>List</span><span class=p>[</span><span class=nb>bool</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Find the amount of time two sets of intervals are intersecting each other for each intersection.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    set1 : nelpy EpochArray</span>
+<span class=sd>        The first set of intervals to check for intersections.</span>
+<span class=sd>    set2 : nelpy EpochArray</span>
+<span class=sd>        The second set of intervals to check for intersections.</span>
+<span class=sd>    return_indices : bool, optional</span>
+<span class=sd>        If True, return the indices of the intervals in set2 that intersect with each interval in set1.</span>
+<span class=sd>        If False, return the amount of time each interval in set1 intersects with any interval in set2.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    Union[np.ndarray, List[bool]]</span>
+<span class=sd>        If return_indices is True, returns a boolean array indicating whether each interval in set1 intersects with any interval in set2.</span>
+<span class=sd>        If return_indices is False, returns a NumPy array with the amount of time each interval in set1 intersects with any interval in set2.</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; set1 = nel.EpochArray([(1, 3), (5, 7), (9, 10)])</span>
+<span class=sd>    &gt;&gt;&gt; set2 = nel.EpochArray([(2, 4), (6, 8)])</span>
+<span class=sd>    &gt;&gt;&gt; find_intersecting_intervals(set1, set2)</span>
+<span class=sd>    [True, True, False]</span>
+<span class=sd>    &gt;&gt;&gt; find_intersecting_intervals(set1, set2, return_indices=False)</span>
+<span class=sd>    [1, 2, 0]</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>core</span><span class=o>.</span><span class=n>IntervalArray</span><span class=p>)</span> <span class=o>&amp;</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>set2</span><span class=p>,</span> <span class=n>core</span><span class=o>.</span><span class=n>IntervalArray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;only EpochArrays are supported&quot;</span><span class=p>)</span>
+
+    <span class=n>intersection</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>_find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=n>set2</span><span class=o>.</span><span class=n>data</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>return_indices</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>intersection</span> <span class=o>&gt;</span> <span class=mi>0</span>
+    <span class=k>return</span> <span class=n>intersection</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.find_intersection_intervals_strict class="doc doc-heading"> <code class="highlight language-python"><span class=n>find_intersection_intervals_strict</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Find the intervals in set1 that are completely contained within set2.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>set1</code> </td> <td> <code>nelpy EpochArray</code> </td> <td> <div class=doc-md-description> <p>The first set of intervals to check for intersections.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>set2</code> </td> <td> <code>nelpy EpochArray</code> </td> <td> <div class=doc-md-description> <p>The second set of intervals to check for intersections.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>nelpy EpochArray</code> </td> <td> <div class=doc-md-description> <p>An EpochArray containing the intervals in set1 which are completely contained within set2.</p> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>set1</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>([(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>),</span> <span class=p>(</span><span class=mi>5</span><span class=p>,</span> <span class=mi>7</span><span class=p>),</span> <span class=p>(</span><span class=mi>9</span><span class=p>,</span> <span class=mi>10</span><span class=p>)])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>set2</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>([(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>4</span><span class=p>),</span> <span class=p>(</span><span class=mi>6</span><span class=p>,</span> <span class=mi>8</span><span class=p>)])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>find_intersection_intervals_strict</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>)</span>
+<span class=go>EpochArray([[1, 3]])</span>
+</code></pre></div> <details class=note open> <summary>Notes</summary> <p>Common use cases: - Finding theta cycles (set1) that are completely within running periods (set2) - Finding SWRs (set1) that are completely within NREM periods (set2) - Generally useful when you don't want partial overlaps created by intersection of set1 &amp; set2</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>267</span>
+<span class=normal>268</span>
+<span class=normal>269</span>
+<span class=normal>270</span>
+<span class=normal>271</span>
+<span class=normal>272</span>
+<span class=normal>273</span>
+<span class=normal>274</span>
+<span class=normal>275</span>
+<span class=normal>276</span>
+<span class=normal>277</span>
+<span class=normal>278</span>
+<span class=normal>279</span>
+<span class=normal>280</span>
+<span class=normal>281</span>
+<span class=normal>282</span>
+<span class=normal>283</span>
+<span class=normal>284</span>
+<span class=normal>285</span>
+<span class=normal>286</span>
+<span class=normal>287</span>
+<span class=normal>288</span>
+<span class=normal>289</span>
+<span class=normal>290</span>
+<span class=normal>291</span>
+<span class=normal>292</span>
+<span class=normal>293</span>
+<span class=normal>294</span>
+<span class=normal>295</span>
+<span class=normal>296</span>
+<span class=normal>297</span>
+<span class=normal>298</span>
+<span class=normal>299</span>
+<span class=normal>300</span>
+<span class=normal>301</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>find_intersection_intervals_strict</span><span class=p>(</span>
+    <span class=n>set1</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>set2</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Find the intervals in set1 that are completely contained within set2.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    set1 : nelpy EpochArray</span>
+<span class=sd>        The first set of intervals to check for intersections.</span>
+<span class=sd>    set2 : nelpy EpochArray</span>
+<span class=sd>        The second set of intervals to check for intersections.</span>
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    nelpy EpochArray</span>
+<span class=sd>        An EpochArray containing the intervals in set1 which are completely contained within set2.</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; set1 = nel.EpochArray([(1, 3), (5, 7), (9, 10)])</span>
+<span class=sd>    &gt;&gt;&gt; set2 = nel.EpochArray([(0, 4), (6, 8)])</span>
+<span class=sd>    &gt;&gt;&gt; find_intersection_intervals_strict(set1, set2)</span>
+<span class=sd>    EpochArray([[1, 3]])</span>
+
+<span class=sd>    Notes</span>
+<span class=sd>    -----</span>
+<span class=sd>    Common use cases:</span>
+<span class=sd>    - Finding theta cycles (set1) that are completely within running periods (set2)</span>
+<span class=sd>    - Finding SWRs (set1) that are completely within NREM periods (set2)</span>
+<span class=sd>    - Generally useful when you don&#39;t want partial overlaps created by intersection of set1 &amp; set2</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>overlap</span> <span class=o>=</span> <span class=n>find_intersecting_intervals</span><span class=p>(</span><span class=n>set1</span><span class=p>,</span> <span class=n>set2</span><span class=p>,</span> <span class=n>return_indices</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+    <span class=n>out</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span><span class=n>set1</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>set1</span><span class=o>.</span><span class=n>lengths</span> <span class=o>==</span> <span class=n>overlap</span><span class=p>])</span>
+    <span class=n>out</span><span class=o>.</span><span class=n>_domain</span> <span class=o>=</span> <span class=n>set1</span><span class=o>.</span><span class=n>domain</span>
+    <span class=k>return</span> <span class=n>out</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.find_interval class="doc doc-heading"> <code class="highlight language-python"><span class=n>find_interval</span><span class=p>(</span><span class=n>logical</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Find consecutive intervals of True values in a list of boolean values.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>logical</code> </td> <td> <code><span title=typing.List>List</span>[<span title=bool>bool</span>]</code> </td> <td> <div class=doc-md-description> <p>The list of boolean values.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=typing.List>List</span>[<span title=typing.Tuple>Tuple</span>[<span title=int>int</span>, <span title=int>int</span>]]</code> </td> <td> <div class=doc-md-description> <p>A list of tuples representing the start and end indices of each consecutive interval of True values in the logical list.</p> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>find_interval</span><span class=p>([</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>])</span>
+<span class=go>[(2, 4), (6, 7), (10, 11)]</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>find_interval</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>])</span>
+<span class=go>[(0, 2), (4, 5), (9, 10)]</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>304</span>
+<span class=normal>305</span>
+<span class=normal>306</span>
+<span class=normal>307</span>
+<span class=normal>308</span>
+<span class=normal>309</span>
+<span class=normal>310</span>
+<span class=normal>311</span>
+<span class=normal>312</span>
+<span class=normal>313</span>
+<span class=normal>314</span>
+<span class=normal>315</span>
+<span class=normal>316</span>
+<span class=normal>317</span>
+<span class=normal>318</span>
+<span class=normal>319</span>
+<span class=normal>320</span>
+<span class=normal>321</span>
+<span class=normal>322</span>
+<span class=normal>323</span>
+<span class=normal>324</span>
+<span class=normal>325</span>
+<span class=normal>326</span>
+<span class=normal>327</span>
+<span class=normal>328</span>
+<span class=normal>329</span>
+<span class=normal>330</span>
+<span class=normal>331</span>
+<span class=normal>332</span>
+<span class=normal>333</span>
+<span class=normal>334</span>
+<span class=normal>335</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>find_interval</span><span class=p>(</span><span class=n>logical</span><span class=p>:</span> <span class=n>List</span><span class=p>[</span><span class=nb>bool</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>List</span><span class=p>[</span><span class=n>Tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Find consecutive intervals of True values in a list of boolean values.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    logical : List[bool]</span>
+<span class=sd>        The list of boolean values.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    List[Tuple[int, int]]</span>
+<span class=sd>        A list of tuples representing the start and end indices of each consecutive interval of True values in the logical list.</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; find_interval([0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1])</span>
+<span class=sd>    [(2, 4), (6, 7), (10, 11)]</span>
+<span class=sd>    &gt;&gt;&gt; find_interval([1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1])</span>
+<span class=sd>    [(0, 2), (4, 5), (9, 10)]</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>intervals</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>start</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>value</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>logical</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>value</span> <span class=ow>and</span> <span class=n>start</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>start</span> <span class=o>=</span> <span class=n>i</span>
+        <span class=k>elif</span> <span class=ow>not</span> <span class=n>value</span> <span class=ow>and</span> <span class=n>start</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>intervals</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>start</span><span class=p>,</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+            <span class=n>start</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=n>start</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>intervals</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>start</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>logical</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>intervals</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.get_overlapping_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_overlapping_intervals</span><span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>stop</span><span class=p>,</span> <span class=n>interval_width</span><span class=p>,</span> <span class=n>slideby</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Generate overlapping intervals within a specified time range.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>start</code> </td> <td> <code><span title=float>float</span></code> </td> <td> <div class=doc-md-description> <p>The start time of the time range.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>stop</code> </td> <td> <code><span title=float>float</span></code> </td> <td> <div class=doc-md-description> <p>The stop time of the time range.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>interval_width</code> </td> <td> <code><span title=float>float</span></code> </td> <td> <div class=doc-md-description> <p>The width of each interval in seconds.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>slideby</code> </td> <td> <code><span title=float>float</span></code> </td> <td> <div class=doc-md-description> <p>The amount to slide the interval by in seconds.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=numpy.ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>A 2D array containing (start, stop) pairs for all overlapping intervals.</p> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>get_overlapping_intervals</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+<span class=go>array([[0, 2],</span>
+<span class=go>    [1, 3],</span>
+<span class=go>    [2, 4],</span>
+<span class=go>    [3, 5],</span>
+<span class=go>    [4, 6],</span>
+<span class=go>    [5, 7],</span>
+<span class=go>    [6, 8],</span>
+<span class=go>    [7, 9]])</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>608</span>
+<span class=normal>609</span>
+<span class=normal>610</span>
+<span class=normal>611</span>
+<span class=normal>612</span>
+<span class=normal>613</span>
+<span class=normal>614</span>
+<span class=normal>615</span>
+<span class=normal>616</span>
+<span class=normal>617</span>
+<span class=normal>618</span>
+<span class=normal>619</span>
+<span class=normal>620</span>
+<span class=normal>621</span>
+<span class=normal>622</span>
+<span class=normal>623</span>
+<span class=normal>624</span>
+<span class=normal>625</span>
+<span class=normal>626</span>
+<span class=normal>627</span>
+<span class=normal>628</span>
+<span class=normal>629</span>
+<span class=normal>630</span>
+<span class=normal>631</span>
+<span class=normal>632</span>
+<span class=normal>633</span>
+<span class=normal>634</span>
+<span class=normal>635</span>
+<span class=normal>636</span>
+<span class=normal>637</span>
+<span class=normal>638</span>
+<span class=normal>639</span>
+<span class=normal>640</span>
+<span class=normal>641</span>
+<span class=normal>642</span>
+<span class=normal>643</span>
+<span class=normal>644</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>get_overlapping_intervals</span><span class=p>(</span>
+    <span class=n>start</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>stop</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>interval_width</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>slideby</span><span class=p>:</span> <span class=nb>float</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Generate overlapping intervals within a specified time range.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    start : float</span>
+<span class=sd>        The start time of the time range.</span>
+<span class=sd>    stop : float</span>
+<span class=sd>        The stop time of the time range.</span>
+<span class=sd>    interval_width : float</span>
+<span class=sd>        The width of each interval in seconds.</span>
+<span class=sd>    slideby : float</span>
+<span class=sd>        The amount to slide the interval by in seconds.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    np.ndarray</span>
+<span class=sd>        A 2D array containing (start, stop) pairs for all overlapping intervals.</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; get_overlapping_intervals(0, 10, 2, 1)</span>
+<span class=sd>    array([[0, 2],</span>
+<span class=sd>        [1, 3],</span>
+<span class=sd>        [2, 4],</span>
+<span class=sd>        [3, 5],</span>
+<span class=sd>        [4, 6],</span>
+<span class=sd>        [5, 7],</span>
+<span class=sd>        [6, 8],</span>
+<span class=sd>        [7, 9]])</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>starts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>stop</span> <span class=o>-</span> <span class=n>interval_width</span><span class=p>,</span> <span class=n>slideby</span><span class=p>)</span>
+    <span class=n>stops</span> <span class=o>=</span> <span class=n>starts</span> <span class=o>+</span> <span class=n>interval_width</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>column_stack</span><span class=p>((</span><span class=n>starts</span><span class=p>,</span> <span class=n>stops</span><span class=p>))</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.in_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>in_intervals</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>,</span> <span class=n>return_interval</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Find which timestamps fall within the given intervals.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>timestamps</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of timestamp values. Assumes sorted.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>intervals</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of time intervals, represented as pairs of start and end times.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>return_interval</code> </td> <td> <code>(<span title=bool>bool</span>, <span title=optional>optional</span>(default=False))</code> </td> <td> <div class=doc-md-description> <p>If True, return the index of the interval to which each timestamp belongs.</p> </div> </td> <td> <code>False</code> </td> </tr> <tr class=doc-section-item> <td> <code>shift</code> </td> <td> <code>(<span title=bool>bool</span>, <span title=optional>optional</span>(default=False))</code> </td> <td> <div class=doc-md-description> <p>If True, return the shifted timestamps</p> </div> </td> <td> <code>False</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td><code>in_interval</code></td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>A logical index indicating which timestamps fall within the intervals.</p> </div> </td> </tr> <tr class=doc-section-item> <td><code>interval</code></td> <td> <code>(<span title=ndarray>ndarray</span>, <span title=optional>optional</span>)</code> </td> <td> <div class=doc-md-description> <p>A ndarray indicating for each timestamps which interval it was within.</p> </div> </td> </tr> <tr class=doc-section-item> <td><code>shifted_timestamps</code></td> <td> <code>(<span title=ndarray>ndarray</span>, <span title=optional>optional</span>)</code> </td> <td> <div class=doc-md-description> <p>The shifted timestamps</p> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>timestamps</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>8</span><span class=p>])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>intervals</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>4</span><span class=p>],</span> <span class=p>[</span><span class=mi>5</span><span class=p>,</span> <span class=mi>7</span><span class=p>]])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>in_intervals</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>)</span>
+<span class=go>array([False,  True,  True,  True,  True,  True,  True, False])</span>
+</code></pre></div> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>in_intervals</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>,</span> <span class=n>return_interval</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=go>(array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=go>array([nan,  0.,  0.,  0.,  1.,  1.,  1., nan]))</span>
+</code></pre></div> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>in_intervals</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=go>(array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=go>array([0, 1, 2, 2, 3, 4]))</span>
+</code></pre></div> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>in_intervals</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>,</span> <span class=n>return_interval</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=go>(array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=go>array([0, 0, 0, 1, 1, 1]),</span>
+<span class=go>array([0, 1, 2, 2, 3, 4]))</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>339</span>
+<span class=normal>340</span>
+<span class=normal>341</span>
+<span class=normal>342</span>
+<span class=normal>343</span>
+<span class=normal>344</span>
+<span class=normal>345</span>
+<span class=normal>346</span>
+<span class=normal>347</span>
+<span class=normal>348</span>
+<span class=normal>349</span>
+<span class=normal>350</span>
+<span class=normal>351</span>
+<span class=normal>352</span>
+<span class=normal>353</span>
+<span class=normal>354</span>
+<span class=normal>355</span>
+<span class=normal>356</span>
+<span class=normal>357</span>
+<span class=normal>358</span>
+<span class=normal>359</span>
+<span class=normal>360</span>
+<span class=normal>361</span>
+<span class=normal>362</span>
+<span class=normal>363</span>
+<span class=normal>364</span>
+<span class=normal>365</span>
+<span class=normal>366</span>
+<span class=normal>367</span>
+<span class=normal>368</span>
+<span class=normal>369</span>
+<span class=normal>370</span>
+<span class=normal>371</span>
+<span class=normal>372</span>
+<span class=normal>373</span>
+<span class=normal>374</span>
+<span class=normal>375</span>
+<span class=normal>376</span>
+<span class=normal>377</span>
+<span class=normal>378</span>
+<span class=normal>379</span>
+<span class=normal>380</span>
+<span class=normal>381</span>
+<span class=normal>382</span>
+<span class=normal>383</span>
+<span class=normal>384</span>
+<span class=normal>385</span>
+<span class=normal>386</span>
+<span class=normal>387</span>
+<span class=normal>388</span>
+<span class=normal>389</span>
+<span class=normal>390</span>
+<span class=normal>391</span>
+<span class=normal>392</span>
+<span class=normal>393</span>
+<span class=normal>394</span>
+<span class=normal>395</span>
+<span class=normal>396</span>
+<span class=normal>397</span>
+<span class=normal>398</span>
+<span class=normal>399</span>
+<span class=normal>400</span>
+<span class=normal>401</span>
+<span class=normal>402</span>
+<span class=normal>403</span>
+<span class=normal>404</span>
+<span class=normal>405</span>
+<span class=normal>406</span>
+<span class=normal>407</span>
+<span class=normal>408</span>
+<span class=normal>409</span>
+<span class=normal>410</span>
+<span class=normal>411</span>
+<span class=normal>412</span>
+<span class=normal>413</span>
+<span class=normal>414</span>
+<span class=normal>415</span>
+<span class=normal>416</span>
+<span class=normal>417</span>
+<span class=normal>418</span>
+<span class=normal>419</span>
+<span class=normal>420</span>
+<span class=normal>421</span>
+<span class=normal>422</span>
+<span class=normal>423</span>
+<span class=normal>424</span>
+<span class=normal>425</span>
+<span class=normal>426</span>
+<span class=normal>427</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>in_intervals</span><span class=p>(</span>
+    <span class=n>timestamps</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+    <span class=n>intervals</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+    <span class=n>return_interval</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+    <span class=n>shift</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Union</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>Tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>Optional</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Find which timestamps fall within the given intervals.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    timestamps : ndarray</span>
+<span class=sd>        An array of timestamp values. Assumes sorted.</span>
+<span class=sd>    intervals : ndarray</span>
+<span class=sd>        An array of time intervals, represented as pairs of start and end times.</span>
+<span class=sd>    return_interval : bool, optional (default=False)</span>
+<span class=sd>        If True, return the index of the interval to which each timestamp belongs.</span>
+<span class=sd>    shift : bool, optional (default=False)</span>
+<span class=sd>        If True, return the shifted timestamps</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    in_interval : ndarray</span>
+<span class=sd>        A logical index indicating which timestamps fall within the intervals.</span>
+<span class=sd>    interval : ndarray, optional</span>
+<span class=sd>        A ndarray indicating for each timestamps which interval it was within.</span>
+<span class=sd>    shifted_timestamps : ndarray, optional</span>
+<span class=sd>        The shifted timestamps</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; timestamps = np.array([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class=sd>    &gt;&gt;&gt; intervals = np.array([[2, 4], [5, 7]])</span>
+<span class=sd>    &gt;&gt;&gt; in_intervals(timestamps, intervals)</span>
+<span class=sd>    array([False,  True,  True,  True,  True,  True,  True, False])</span>
+
+<span class=sd>    &gt;&gt;&gt; in_intervals(timestamps, intervals, return_interval=True)</span>
+<span class=sd>    (array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=sd>    array([nan,  0.,  0.,  0.,  1.,  1.,  1., nan]))</span>
+
+<span class=sd>    &gt;&gt;&gt; in_intervals(timestamps, intervals, shift=True)</span>
+<span class=sd>    (array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=sd>    array([0, 1, 2, 2, 3, 4]))</span>
+
+<span class=sd>    &gt;&gt;&gt; in_intervals(timestamps, intervals, return_interval=True, shift=True)</span>
+<span class=sd>    (array([False,  True,  True,  True,  True,  True,  True, False]),</span>
+<span class=sd>    array([0, 0, 0, 1, 1, 1]),</span>
+<span class=sd>    array([0, 1, 2, 2, 3, 4]))</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>in_interval</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>timestamps</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>bool_</span><span class=p>)</span>
+    <span class=n>interval</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>timestamps</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>nan</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>)</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>intervals</span><span class=p>):</span>
+        <span class=c1># Find the leftmost index of a timestamp that is &gt;= start</span>
+        <span class=n>left</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>searchsorted</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>side</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>left</span> <span class=o>==</span> <span class=nb>len</span><span class=p>(</span><span class=n>timestamps</span><span class=p>):</span>
+            <span class=c1># If start is greater than all timestamps, skip this interval</span>
+            <span class=k>continue</span>
+        <span class=c1># Find the rightmost index of a timestamp that is &lt;= end</span>
+        <span class=n>right</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>searchsorted</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>side</span><span class=o>=</span><span class=s2>&quot;right&quot;</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>right</span> <span class=o>==</span> <span class=n>left</span><span class=p>:</span>
+            <span class=c1># If there are no timestamps in the interval, skip it</span>
+            <span class=k>continue</span>
+        <span class=c1># Mark the timestamps in the interval</span>
+        <span class=n>in_interval</span><span class=p>[</span><span class=n>left</span><span class=p>:</span><span class=n>right</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>interval</span><span class=p>[</span><span class=n>left</span><span class=p>:</span><span class=n>right</span><span class=p>]</span> <span class=o>=</span> <span class=n>i</span>
+
+    <span class=k>if</span> <span class=n>shift</span><span class=p>:</span>
+        <span class=c1># Restrict to the timestamps that fall within the intervals</span>
+        <span class=n>interval</span> <span class=o>=</span> <span class=n>interval</span><span class=p>[</span><span class=n>in_interval</span><span class=p>]</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=nb>int</span><span class=p>)</span>
+
+        <span class=c1># Calculate shifts based on intervals</span>
+        <span class=n>shifts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>cumsum</span><span class=p>(</span><span class=n>intervals</span><span class=p>[</span><span class=mi>1</span><span class=p>:,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>-</span> <span class=n>intervals</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>]),</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>)[</span>
+            <span class=n>interval</span>
+        <span class=p>]</span>
+
+        <span class=c1># Apply shifts to timestamps</span>
+        <span class=n>shifted_timestamps</span> <span class=o>=</span> <span class=n>timestamps</span><span class=p>[</span><span class=n>in_interval</span><span class=p>]</span> <span class=o>-</span> <span class=n>shifts</span> <span class=o>-</span> <span class=n>intervals</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span>
+
+    <span class=k>if</span> <span class=n>return_interval</span> <span class=ow>and</span> <span class=n>shift</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>in_interval</span><span class=p>,</span> <span class=n>interval</span><span class=p>,</span> <span class=n>shifted_timestamps</span>
+
+    <span class=k>if</span> <span class=n>return_interval</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>in_interval</span><span class=p>,</span> <span class=n>interval</span>
+
+    <span class=k>if</span> <span class=n>shift</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>in_interval</span><span class=p>,</span> <span class=n>shifted_timestamps</span>
+
+    <span class=k>return</span> <span class=n>in_interval</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.in_intervals_interval class="doc doc-heading"> <code class="highlight language-python"><span class=n>in_intervals_interval</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>for each timestamps value, the index of the interval to which it belongs (nan = none)</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>timestamps</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of timestamp values. assumes sorted</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>intervals</code> </td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>An array of time intervals, represented as pairs of start and end times.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td></td> <td> <code><span title=ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>A ndarray indicating for each timestamps which interval it was within.</p> </div> </td> </tr> <tr class=doc-section-item> <td><code>Note</code></td> <td> <code>produces same result as in_intervals with return_interval=True</code> </td> <td> <div class=doc-md-description> </div> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>timestamps</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>8</span><span class=p>])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>intervals</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>4</span><span class=p>],</span> <span class=p>[</span><span class=mi>5</span><span class=p>,</span> <span class=mi>7</span><span class=p>]])</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>in_intervals_interval</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>intervals</span><span class=p>)</span>
+<span class=go>array([nan,  0,  0,  0,  1,  1,  1, nan])</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>430</span>
+<span class=normal>431</span>
+<span class=normal>432</span>
+<span class=normal>433</span>
+<span class=normal>434</span>
+<span class=normal>435</span>
+<span class=normal>436</span>
+<span class=normal>437</span>
+<span class=normal>438</span>
+<span class=normal>439</span>
+<span class=normal>440</span>
+<span class=normal>441</span>
+<span class=normal>442</span>
+<span class=normal>443</span>
+<span class=normal>444</span>
+<span class=normal>445</span>
+<span class=normal>446</span>
+<span class=normal>447</span>
+<span class=normal>448</span>
+<span class=normal>449</span>
+<span class=normal>450</span>
+<span class=normal>451</span>
+<span class=normal>452</span>
+<span class=normal>453</span>
+<span class=normal>454</span>
+<span class=normal>455</span>
+<span class=normal>456</span>
+<span class=normal>457</span>
+<span class=normal>458</span>
+<span class=normal>459</span>
+<span class=normal>460</span>
+<span class=normal>461</span>
+<span class=normal>462</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@jit</span><span class=p>(</span><span class=n>nopython</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>in_intervals_interval</span><span class=p>(</span><span class=n>timestamps</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>intervals</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    for each timestamps value, the index of the interval to which it belongs (nan = none)</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    timestamps : ndarray</span>
+<span class=sd>        An array of timestamp values. assumes sorted</span>
+<span class=sd>    intervals : ndarray</span>
+<span class=sd>        An array of time intervals, represented as pairs of start and end times.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    ndarray</span>
+<span class=sd>        A ndarray indicating for each timestamps which interval it was within.</span>
+
+<span class=sd>    Note: produces same result as in_intervals with return_interval=True</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; timestamps = np.array([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class=sd>    &gt;&gt;&gt; intervals = np.array([[2, 4], [5, 7]])</span>
+<span class=sd>    &gt;&gt;&gt; in_intervals_interval(timestamps, intervals)</span>
+<span class=sd>    array([nan,  0,  0,  0,  1,  1,  1, nan])</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>in_interval</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>timestamps</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>nan</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>numba</span><span class=o>.</span><span class=n>prange</span><span class=p>(</span><span class=n>intervals</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]):</span>
+        <span class=n>start</span><span class=p>,</span> <span class=n>end</span> <span class=o>=</span> <span class=n>intervals</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=n>mask</span> <span class=o>=</span> <span class=p>(</span><span class=n>timestamps</span> <span class=o>&gt;=</span> <span class=n>start</span><span class=p>)</span> <span class=o>&amp;</span> <span class=p>(</span><span class=n>timestamps</span> <span class=o>&lt;=</span> <span class=n>end</span><span class=p>)</span>
+        <span class=n>in_interval</span><span class=p>[</span><span class=n>mask</span><span class=p>]</span> <span class=o>=</span> <span class=n>i</span>
+
+    <span class=k>return</span> <span class=n>in_interval</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.overlap_intersect class="doc doc-heading"> <code class="highlight language-python"><span class=n>overlap_intersect</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>interval</span><span class=p>,</span> <span class=n>return_indices</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns the epochs with overlap with the given interval.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>epoch</code> </td> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The epochs to check.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>interval</code> </td> <td> <code><span title=nelpy.IntervalArray>IntervalArray</span></code> </td> <td> <div class=doc-md-description> <p>The interval to check for overlap.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>return_indices</code> </td> <td> <code><span title=bool>bool</span></code> </td> <td> <div class=doc-md-description> <p>If True, returns the indices of the overlapping epochs. Default is True.</p> </div> </td> <td> <code>True</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The epochs with overlap with the interval.</p> </div> </td> </tr> <tr class=doc-section-item> <td> <code>(<span title=typing.Tuple>Tuple</span>[<span title=nelpy.EpochArray>EpochArray</span>, <span title=numpy.ndarray>ndarray</span>], <span title=optional>optional</span>)</code> </td> <td> <div class=doc-md-description> <p>If <code>return_indices</code> is True, also returns the indices of the overlapping epochs.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span>
+<span class=normal>161</span>
+<span class=normal>162</span>
+<span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
+<span class=normal>166</span>
+<span class=normal>167</span>
+<span class=normal>168</span>
+<span class=normal>169</span>
+<span class=normal>170</span>
+<span class=normal>171</span>
+<span class=normal>172</span>
+<span class=normal>173</span>
+<span class=normal>174</span>
+<span class=normal>175</span>
+<span class=normal>176</span>
+<span class=normal>177</span>
+<span class=normal>178</span>
+<span class=normal>179</span>
+<span class=normal>180</span>
+<span class=normal>181</span>
+<span class=normal>182</span>
+<span class=normal>183</span>
+<span class=normal>184</span>
+<span class=normal>185</span>
+<span class=normal>186</span>
+<span class=normal>187</span>
+<span class=normal>188</span>
+<span class=normal>189</span>
+<span class=normal>190</span>
+<span class=normal>191</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>overlap_intersect</span><span class=p>(</span>
+    <span class=n>epoch</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>interval</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>IntervalArray</span><span class=p>,</span> <span class=n>return_indices</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Union</span><span class=p>[</span><span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>Tuple</span><span class=p>[</span><span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Returns the epochs with overlap with the given interval.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    epoch : nelpy.EpochArray</span>
+<span class=sd>        The epochs to check.</span>
+<span class=sd>    interval : nelpy.IntervalArray</span>
+<span class=sd>        The interval to check for overlap.</span>
+<span class=sd>    return_indices : bool, optional</span>
+<span class=sd>        If True, returns the indices of the overlapping epochs. Default is True.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    nelpy.EpochArray</span>
+<span class=sd>        The epochs with overlap with the interval.</span>
+<span class=sd>    Tuple[nelpy.EpochArray, np.ndarray], optional</span>
+<span class=sd>        If `return_indices` is True, also returns the indices of the overlapping epochs.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>new_intervals</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>indices</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>epa</span> <span class=ow>in</span> <span class=n>epoch</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>any</span><span class=p>((</span><span class=n>interval</span><span class=o>.</span><span class=n>starts</span> <span class=o>&lt;</span> <span class=n>epa</span><span class=o>.</span><span class=n>stop</span><span class=p>)</span> <span class=o>&amp;</span> <span class=p>(</span><span class=n>interval</span><span class=o>.</span><span class=n>stops</span> <span class=o>&gt;</span> <span class=n>epa</span><span class=o>.</span><span class=n>start</span><span class=p>)):</span>
+            <span class=n>new_intervals</span><span class=o>.</span><span class=n>append</span><span class=p>([</span><span class=n>epa</span><span class=o>.</span><span class=n>start</span><span class=p>,</span> <span class=n>epa</span><span class=o>.</span><span class=n>stop</span><span class=p>])</span>
+            <span class=n>cand_ep_idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span>
+                <span class=p>(</span><span class=n>interval</span><span class=o>.</span><span class=n>starts</span> <span class=o>&lt;</span> <span class=n>epa</span><span class=o>.</span><span class=n>stop</span><span class=p>)</span> <span class=o>&amp;</span> <span class=p>(</span><span class=n>interval</span><span class=o>.</span><span class=n>stops</span> <span class=o>&gt;</span> <span class=n>epa</span><span class=o>.</span><span class=n>start</span><span class=p>)</span>
+            <span class=p>)</span>
+            <span class=n>indices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cand_ep_idx</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=mi>0</span><span class=p>])</span>
+    <span class=n>out</span> <span class=o>=</span> <span class=nb>type</span><span class=p>(</span><span class=n>epoch</span><span class=p>)(</span><span class=n>new_intervals</span><span class=p>)</span>
+    <span class=n>out</span><span class=o>.</span><span class=n>_domain</span> <span class=o>=</span> <span class=n>epoch</span><span class=o>.</span><span class=n>domain</span>
+    <span class=k>if</span> <span class=n>return_indices</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>out</span><span class=p>,</span> <span class=n>indices</span>
+    <span class=k>return</span> <span class=n>out</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.randomize_epochs class="doc doc-heading"> <code class="highlight language-python"><span class=n>randomize_epochs</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>randomize_each</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>start_stop</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.</p> <p>This method takes a EpochArray object as input, and can either randomly shift each epoch by a different amount (if <code>randomize_each</code> is True) or shift all the epochs by the same amount (if <code>randomize_each</code> is False). In either case, the method wraps the shifted epochs around the original time boundaries to make sure they remain within the original time range. It then returns the modified EpochArray object.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>epoch</code> </td> <td> <code><span title=nelpy.core.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The EpochArray object whose epochs should be shifted and wrapped.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>randomize_each</code> </td> <td> <code><span title=bool>bool</span></code> </td> <td> <div class=doc-md-description> <p>If True, each epoch will be shifted by a different random amount. If False, all the epochs will be shifted by the same random amount. Defaults to True.</p> </div> </td> <td> <code>True</code> </td> </tr> <tr class=doc-section-item> <td> <code>start_stop</code> </td> <td> <code><span title=array>array</span></code> </td> <td> <div class=doc-md-description> <p>If not None, time support will be taken from start_stop</p> </div> </td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td><code>new_epochs</code></td> <td> <code><span title=nelpy.core.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The modified EpochArray object with the shifted and wrapped epochs.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>11</span>
+<span class=normal>12</span>
+<span class=normal>13</span>
+<span class=normal>14</span>
+<span class=normal>15</span>
+<span class=normal>16</span>
+<span class=normal>17</span>
+<span class=normal>18</span>
+<span class=normal>19</span>
+<span class=normal>20</span>
+<span class=normal>21</span>
+<span class=normal>22</span>
+<span class=normal>23</span>
+<span class=normal>24</span>
+<span class=normal>25</span>
+<span class=normal>26</span>
+<span class=normal>27</span>
+<span class=normal>28</span>
+<span class=normal>29</span>
+<span class=normal>30</span>
+<span class=normal>31</span>
+<span class=normal>32</span>
+<span class=normal>33</span>
+<span class=normal>34</span>
+<span class=normal>35</span>
+<span class=normal>36</span>
+<span class=normal>37</span>
+<span class=normal>38</span>
+<span class=normal>39</span>
+<span class=normal>40</span>
+<span class=normal>41</span>
+<span class=normal>42</span>
+<span class=normal>43</span>
+<span class=normal>44</span>
+<span class=normal>45</span>
+<span class=normal>46</span>
+<span class=normal>47</span>
+<span class=normal>48</span>
+<span class=normal>49</span>
+<span class=normal>50</span>
+<span class=normal>51</span>
+<span class=normal>52</span>
+<span class=normal>53</span>
+<span class=normal>54</span>
+<span class=normal>55</span>
+<span class=normal>56</span>
+<span class=normal>57</span>
+<span class=normal>58</span>
+<span class=normal>59</span>
+<span class=normal>60</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span>
+<span class=normal>68</span>
+<span class=normal>69</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span>
+<span class=normal>82</span>
+<span class=normal>83</span>
+<span class=normal>84</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>randomize_epochs</span><span class=p>(</span>
+    <span class=n>epoch</span><span class=p>:</span> <span class=n>EpochArray</span><span class=p>,</span>
+    <span class=n>randomize_each</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+    <span class=n>start_stop</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>EpochArray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.</span>
+
+<span class=sd>    This method takes a EpochArray object as input, and can either randomly shift each epoch by a different amount</span>
+<span class=sd>    (if `randomize_each` is True) or shift all the epochs by the same amount (if `randomize_each` is False).</span>
+<span class=sd>    In either case, the method wraps the shifted epochs around the original time boundaries to make sure they remain</span>
+<span class=sd>    within the original time range. It then returns the modified EpochArray object.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    epoch : EpochArray</span>
+<span class=sd>        The EpochArray object whose epochs should be shifted and wrapped.</span>
+<span class=sd>    randomize_each : bool, optional</span>
+<span class=sd>        If True, each epoch will be shifted by a different random amount.</span>
+<span class=sd>        If False, all the epochs will be shifted by the same random amount. Defaults to True.</span>
+<span class=sd>    start_stop : array, optional</span>
+<span class=sd>        If not None, time support will be taken from start_stop</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    new_epochs : EpochArray</span>
+<span class=sd>        The modified EpochArray object with the shifted and wrapped epochs.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>wrap_intervals</span><span class=p>(</span><span class=n>intervals</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>stop</span><span class=p>):</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>intervals</span> <span class=o>&gt;</span> <span class=n>stop</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+        <span class=n>intervals</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>intervals</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>-</span> <span class=n>stop</span> <span class=o>+</span> <span class=n>start</span>
+
+        <span class=n>idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>intervals</span> <span class=o>&lt;</span> <span class=n>start</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+        <span class=n>intervals</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>intervals</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>-</span> <span class=n>start</span> <span class=o>+</span> <span class=n>stop</span>
+        <span class=k>return</span> <span class=n>intervals</span>
+
+    <span class=n>new_epochs</span> <span class=o>=</span> <span class=n>epoch</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+
+    <span class=k>if</span> <span class=n>start_stop</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>start</span> <span class=o>=</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>start</span>
+        <span class=n>stop</span> <span class=o>=</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>stop</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>start</span><span class=p>,</span> <span class=n>stop</span> <span class=o>=</span> <span class=n>start_stop</span>
+
+    <span class=k>if</span> <span class=n>randomize_each</span><span class=p>:</span>
+        <span class=c1># Randomly shift each epoch while keeping intervals within bounds</span>
+        <span class=n>min_shifts</span> <span class=o>=</span> <span class=n>start</span> <span class=o>-</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span>
+        <span class=n>max_shifts</span> <span class=o>=</span> <span class=n>stop</span> <span class=o>-</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>min_shifts</span> <span class=o>&gt;</span> <span class=n>max_shifts</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;start_stop must fully cover epoch intervals&quot;</span><span class=p>)</span>
+
+        <span class=n>random_order</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>min_shifts</span><span class=p>,</span> <span class=n>max_shifts</span><span class=p>)</span>
+        <span class=n>new_intervals</span> <span class=o>=</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>expand_dims</span><span class=p>(</span><span class=n>random_order</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+        <span class=n>new_epochs</span><span class=o>.</span><span class=n>_data</span> <span class=o>=</span> <span class=n>wrap_intervals</span><span class=p>(</span><span class=n>new_intervals</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>stop</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=c1># Shift all the epochs by the same amount while keeping within bounds</span>
+        <span class=n>min_shifts</span> <span class=o>=</span> <span class=n>start</span> <span class=o>-</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span>
+        <span class=n>max_shifts</span> <span class=o>=</span> <span class=n>stop</span> <span class=o>-</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>]</span>
+        <span class=n>min_shift</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>min_shifts</span><span class=p>)</span>
+        <span class=n>max_shift</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>min</span><span class=p>(</span><span class=n>max_shifts</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>min_shift</span> <span class=o>&gt;</span> <span class=n>max_shift</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;start_stop must fully cover epoch intervals&quot;</span><span class=p>)</span>
+
+        <span class=n>random_shift</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>min_shift</span><span class=p>,</span> <span class=n>max_shift</span><span class=p>)</span>
+        <span class=n>new_epochs</span><span class=o>.</span><span class=n>_data</span> <span class=o>=</span> <span class=n>wrap_intervals</span><span class=p>((</span><span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span> <span class=o>+</span> <span class=n>random_shift</span><span class=p>),</span> <span class=n>start</span><span class=p>,</span> <span class=n>stop</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>isempty</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>new_epochs</span><span class=o>.</span><span class=n>data</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;start must be less than or equal to stop&quot;</span><span class=p>)</span>
+
+    <span class=n>new_epochs</span><span class=o>.</span><span class=n>_sort</span><span class=p>()</span>
+
+    <span class=k>return</span> <span class=n>new_epochs</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.shift_epoch_array class="doc doc-heading"> <code class="highlight language-python"><span class=n>shift_epoch_array</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Shift an EpochArray by another EpochArray.</p> <p>Shifting means that intervals in 'epoch' will be relative to intervals in 'epoch_shift' as if 'epoch_shift' intervals were without gaps.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>epoch</code> </td> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The intervals to shift.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>epoch_shift</code> </td> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The intervals to shift by.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The shifted EpochArray.</p> </div> </td> </tr> </tbody> </table> <details class=note open> <summary>Notes</summary> <p>This function restricts 'epoch' to those within 'epoch_shift' as epochs between 'epoch_shift' intervals would result in a duration of 0.</p> <p>Visual representation: inputs: epoch = [ ] [ ][] [] epoch_shift = [ ][] [ ] becomes: epoch = [ ] [ ] [] epoch_shift = [ ][][ ]</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>542</span>
+<span class=normal>543</span>
+<span class=normal>544</span>
+<span class=normal>545</span>
+<span class=normal>546</span>
+<span class=normal>547</span>
+<span class=normal>548</span>
+<span class=normal>549</span>
+<span class=normal>550</span>
+<span class=normal>551</span>
+<span class=normal>552</span>
+<span class=normal>553</span>
+<span class=normal>554</span>
+<span class=normal>555</span>
+<span class=normal>556</span>
+<span class=normal>557</span>
+<span class=normal>558</span>
+<span class=normal>559</span>
+<span class=normal>560</span>
+<span class=normal>561</span>
+<span class=normal>562</span>
+<span class=normal>563</span>
+<span class=normal>564</span>
+<span class=normal>565</span>
+<span class=normal>566</span>
+<span class=normal>567</span>
+<span class=normal>568</span>
+<span class=normal>569</span>
+<span class=normal>570</span>
+<span class=normal>571</span>
+<span class=normal>572</span>
+<span class=normal>573</span>
+<span class=normal>574</span>
+<span class=normal>575</span>
+<span class=normal>576</span>
+<span class=normal>577</span>
+<span class=normal>578</span>
+<span class=normal>579</span>
+<span class=normal>580</span>
+<span class=normal>581</span>
+<span class=normal>582</span>
+<span class=normal>583</span>
+<span class=normal>584</span>
+<span class=normal>585</span>
+<span class=normal>586</span>
+<span class=normal>587</span>
+<span class=normal>588</span>
+<span class=normal>589</span>
+<span class=normal>590</span>
+<span class=normal>591</span>
+<span class=normal>592</span>
+<span class=normal>593</span>
+<span class=normal>594</span>
+<span class=normal>595</span>
+<span class=normal>596</span>
+<span class=normal>597</span>
+<span class=normal>598</span>
+<span class=normal>599</span>
+<span class=normal>600</span>
+<span class=normal>601</span>
+<span class=normal>602</span>
+<span class=normal>603</span>
+<span class=normal>604</span>
+<span class=normal>605</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>shift_epoch_array</span><span class=p>(</span>
+    <span class=n>epoch</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Shift an EpochArray by another EpochArray.</span>
+
+<span class=sd>    Shifting means that intervals in &#39;epoch&#39; will be relative to</span>
+<span class=sd>    intervals in &#39;epoch_shift&#39; as if &#39;epoch_shift&#39; intervals were without gaps.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    epoch : nel.EpochArray</span>
+<span class=sd>        The intervals to shift.</span>
+<span class=sd>    epoch_shift : nel.EpochArray</span>
+<span class=sd>        The intervals to shift by.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    nel.EpochArray</span>
+<span class=sd>        The shifted EpochArray.</span>
+
+<span class=sd>    Notes</span>
+<span class=sd>    -----</span>
+<span class=sd>    This function restricts &#39;epoch&#39; to those within &#39;epoch_shift&#39; as</span>
+<span class=sd>    epochs between &#39;epoch_shift&#39; intervals would result in a duration of 0.</span>
+
+<span class=sd>    Visual representation:</span>
+<span class=sd>    inputs:</span>
+<span class=sd>        epoch       =   [  ]   [  ] [  ]  []</span>
+<span class=sd>        epoch_shift =   [    ] [    ]   [    ]</span>
+<span class=sd>    becomes:</span>
+<span class=sd>        epoch       =   [  ]  [  ]    []</span>
+<span class=sd>        epoch_shift =   [    ][    ][    ]</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=c1># input validation</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>&quot;epoch must be a nelpy EpochArray&quot;</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>epoch_shift</span><span class=p>,</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>&quot;epoch_shift must be a nelpy EpochArray&quot;</span><span class=p>)</span>
+
+    <span class=c1># restrict epoch to epoch_shift and extract starts and stops</span>
+    <span class=n>epoch_starts</span><span class=p>,</span> <span class=n>epoch_stops</span> <span class=o>=</span> <span class=n>epoch</span><span class=p>[</span><span class=n>epoch_shift</span><span class=p>]</span><span class=o>.</span><span class=n>data</span><span class=o>.</span><span class=n>T</span>
+
+    <span class=c1># shift starts and stops by epoch_shift</span>
+    <span class=n>_</span><span class=p>,</span> <span class=n>epoch_starts_shifted</span> <span class=o>=</span> <span class=n>in_intervals</span><span class=p>(</span><span class=n>epoch_starts</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=n>_</span><span class=p>,</span> <span class=n>epoch_stops_shifted</span> <span class=o>=</span> <span class=n>in_intervals</span><span class=p>(</span><span class=n>epoch_stops</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=c1># shift time support as well, if one exists</span>
+    <span class=n>support_starts_shifted</span><span class=p>,</span> <span class=n>support_stops_shifted</span> <span class=o>=</span> <span class=o>-</span><span class=n>np</span><span class=o>.</span><span class=n>inf</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>inf</span>
+    <span class=k>if</span> <span class=n>epoch</span><span class=o>.</span><span class=n>domain</span><span class=o>.</span><span class=n>start</span> <span class=o>!=</span> <span class=o>-</span><span class=n>np</span><span class=o>.</span><span class=n>inf</span><span class=p>:</span>
+        <span class=n>_</span><span class=p>,</span> <span class=n>support_starts_shifted</span> <span class=o>=</span> <span class=n>in_intervals</span><span class=p>(</span>
+            <span class=n>epoch</span><span class=o>.</span><span class=n>domain</span><span class=o>.</span><span class=n>start</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span>
+        <span class=p>)</span>
+    <span class=k>if</span> <span class=n>epoch</span><span class=o>.</span><span class=n>domain</span><span class=o>.</span><span class=n>stop</span> <span class=o>!=</span> <span class=n>np</span><span class=o>.</span><span class=n>inf</span><span class=p>:</span>
+        <span class=n>_</span><span class=p>,</span> <span class=n>support_stops_shifted</span> <span class=o>=</span> <span class=n>in_intervals</span><span class=p>(</span>
+            <span class=n>epoch</span><span class=o>.</span><span class=n>domain</span><span class=o>.</span><span class=n>stop</span><span class=p>,</span> <span class=n>epoch_shift</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=n>shift</span><span class=o>=</span><span class=kc>True</span>
+        <span class=p>)</span>
+
+    <span class=n>session_domain</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>([</span><span class=n>support_starts_shifted</span><span class=p>,</span> <span class=n>support_stops_shifted</span><span class=p>])</span>
+
+    <span class=c1># package shifted intervals into epoch array with shifted time support</span>
+    <span class=k>return</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>epoch_starts_shifted</span><span class=p>,</span> <span class=n>epoch_stops_shifted</span><span class=p>])</span><span class=o>.</span><span class=n>T</span><span class=p>,</span> <span class=n>domain</span><span class=o>=</span><span class=n>session_domain</span>
+    <span class=p>)</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.split_epoch_by_width class="doc doc-heading"> <code class="highlight language-python"><span class=n>split_epoch_by_width</span><span class=p>(</span><span class=n>intervals</span><span class=p>,</span> <span class=n>bin_width</span><span class=o>=</span><span class=mf>0.001</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Generate combined intervals (start, stop) at a specified width within given intervals.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>intervals</code> </td> <td> <code><span title=typing.List>List</span>[<span title=typing.Tuple>Tuple</span>[<span title=float>float</span>, <span title=float>float</span>]]</code> </td> <td> <div class=doc-md-description> <p>A list of (start, end) tuples representing intervals.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>bin_width</code> </td> <td> <code><span title=float>float</span></code> </td> <td> <div class=doc-md-description> <p>The width of each bin in seconds. Default is 0.001 (1 ms).</p> </div> </td> <td> <code>0.001</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=numpy.ndarray>ndarray</span></code> </td> <td> <div class=doc-md-description> <p>A 2D array containing (start, stop) pairs for all bins across intervals.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 87</span>
+<span class=normal> 88</span>
+<span class=normal> 89</span>
+<span class=normal> 90</span>
+<span class=normal> 91</span>
+<span class=normal> 92</span>
+<span class=normal> 93</span>
+<span class=normal> 94</span>
+<span class=normal> 95</span>
+<span class=normal> 96</span>
+<span class=normal> 97</span>
+<span class=normal> 98</span>
+<span class=normal> 99</span>
+<span class=normal>100</span>
+<span class=normal>101</span>
+<span class=normal>102</span>
+<span class=normal>103</span>
+<span class=normal>104</span>
+<span class=normal>105</span>
+<span class=normal>106</span>
+<span class=normal>107</span>
+<span class=normal>108</span>
+<span class=normal>109</span>
+<span class=normal>110</span>
+<span class=normal>111</span>
+<span class=normal>112</span>
+<span class=normal>113</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>split_epoch_by_width</span><span class=p>(</span>
+    <span class=n>intervals</span><span class=p>:</span> <span class=n>List</span><span class=p>[</span><span class=n>Tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]],</span> <span class=n>bin_width</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.001</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Generate combined intervals (start, stop) at a specified width within given intervals.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    intervals : List[Tuple[float, float]]</span>
+<span class=sd>        A list of (start, end) tuples representing intervals.</span>
+<span class=sd>    bin_width : float</span>
+<span class=sd>        The width of each bin in seconds. Default is 0.001 (1 ms).</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    np.ndarray</span>
+<span class=sd>        A 2D array containing (start, stop) pairs for all bins across intervals.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>bin_intervals</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>start</span><span class=p>,</span> <span class=n>end</span> <span class=ow>in</span> <span class=n>intervals</span><span class=p>:</span>
+        <span class=c1># Generate bin edges</span>
+        <span class=n>edges</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>bin_width</span><span class=p>)</span>
+        <span class=n>edges</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>edges</span><span class=p>,</span> <span class=n>end</span><span class=p>)</span>  <span class=c1># Ensure the final end is included</span>
+        <span class=c1># Generate intervals (start, stop) for each bin</span>
+        <span class=n>intervals</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>((</span><span class=n>edges</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>],</span> <span class=n>edges</span><span class=p>[</span><span class=mi>1</span><span class=p>:]),</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+        <span class=n>bin_intervals</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>intervals</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>vstack</span><span class=p>(</span><span class=n>bin_intervals</span><span class=p>)</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.split_epoch_equal_parts class="doc doc-heading"> <code class="highlight language-python"><span class=n>split_epoch_equal_parts</span><span class=p>(</span><span class=n>intervals</span><span class=p>,</span> <span class=n>n_parts</span><span class=p>,</span> <span class=n>return_epoch_array</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Split multiple intervals into equal parts.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>intervals</code> </td> <td> <code>(<span title=array>array</span> - <span title=like>like</span>, <span title=shape>shape</span>(<span title=n_intervals>n_intervals</span>, 2))</code> </td> <td> <div class=doc-md-description> <p>The intervals to split.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>n_parts</code> </td> <td> <code><span title=int>int</span></code> </td> <td> <div class=doc-md-description> <p>The number of parts to split each interval into.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>return_epoch_array</code> </td> <td> <code><span title=bool>bool</span></code> </td> <td> <div class=doc-md-description> <p>If True, returns the intervals as a nelpy.EpochArray object. Defaults to True.</p> </div> </td> <td> <code>True</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td><code>split_intervals</code></td> <td> <code>(<span title=array>array</span> - <span title=like>like</span>, <span title=shape>shape</span>(<span title=n_intervals>n_intervals</span> * <span title=n_parts>n_parts</span>, 2) or <span title=nelpy.EpochArray>EpochArray</span>)</code> </td> <td> <div class=doc-md-description> <p>The split intervals.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>116</span>
+<span class=normal>117</span>
+<span class=normal>118</span>
+<span class=normal>119</span>
+<span class=normal>120</span>
+<span class=normal>121</span>
+<span class=normal>122</span>
+<span class=normal>123</span>
+<span class=normal>124</span>
+<span class=normal>125</span>
+<span class=normal>126</span>
+<span class=normal>127</span>
+<span class=normal>128</span>
+<span class=normal>129</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span>
+<span class=normal>143</span>
+<span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span>
+<span class=normal>150</span>
+<span class=normal>151</span>
+<span class=normal>152</span>
+<span class=normal>153</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>split_epoch_equal_parts</span><span class=p>(</span>
+    <span class=n>intervals</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>n_parts</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>return_epoch_array</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Union</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Split multiple intervals into equal parts.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    intervals : array-like, shape (n_intervals, 2)</span>
+<span class=sd>        The intervals to split.</span>
+<span class=sd>    n_parts : int</span>
+<span class=sd>        The number of parts to split each interval into.</span>
+<span class=sd>    return_epoch_array : bool, optional</span>
+<span class=sd>        If True, returns the intervals as a nelpy.EpochArray object. Defaults to True.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    split_intervals : array-like, shape (n_intervals * n_parts, 2) or nelpy.EpochArray</span>
+<span class=sd>        The split intervals.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=c1># Ensure intervals is a numpy array</span>
+    <span class=n>intervals</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>asarray</span><span class=p>(</span><span class=n>intervals</span><span class=p>)</span>
+
+    <span class=c1># Number of intervals</span>
+    <span class=n>n_intervals</span> <span class=o>=</span> <span class=n>intervals</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+
+    <span class=c1># Preallocate the output array</span>
+    <span class=n>split_intervals</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=n>n_intervals</span> <span class=o>*</span> <span class=n>n_parts</span><span class=p>,</span> <span class=mi>2</span><span class=p>))</span>
+
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>interval</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>intervals</span><span class=p>):</span>
+        <span class=n>start</span><span class=p>,</span> <span class=n>end</span> <span class=o>=</span> <span class=n>interval</span>
+        <span class=n>epoch_parts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>n_parts</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=n>epoch_parts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>vstack</span><span class=p>((</span><span class=n>epoch_parts</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>],</span> <span class=n>epoch_parts</span><span class=p>[</span><span class=mi>1</span><span class=p>:]))</span><span class=o>.</span><span class=n>T</span>
+        <span class=n>split_intervals</span><span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>n_parts</span> <span class=p>:</span> <span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n_parts</span><span class=p>]</span> <span class=o>=</span> <span class=n>epoch_parts</span>
+
+    <span class=k>if</span> <span class=n>return_epoch_array</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span><span class=n>split_intervals</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>split_intervals</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=neuro_py.process.intervals.truncate_epoch class="doc doc-heading"> <code class="highlight language-python"><span class=n>truncate_epoch</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>time</span><span class=o>=</span><span class=mi>3600</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Truncates an EpochArray to achieve a specified cumulative time duration.</p> <p>This function takes an input EpochArray 'epoch' and a 'time' value representing the desired cumulative time duration in seconds. It returns a new EpochArray containing intervals that cumulatively match the specified time.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>epoch</code> </td> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>The input EpochArray containing intervals to be truncated.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>time</code> </td> <td> <code><span title=typing.Union>Union</span>[<span title=int>int</span>, <span title=float>float</span>]</code> </td> <td> <div class=doc-md-description> <p>The desired cumulative time in seconds (default is 3600).</p> </div> </td> <td> <code>3600</code> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code><span title=nelpy.EpochArray>EpochArray</span></code> </td> <td> <div class=doc-md-description> <p>A new EpochArray containing intervals that cumulatively match the specified time.</p> </div> </td> </tr> </tbody> </table> <details class=algorithm open> <summary>Algorithm</summary> <ol> <li>Calculate the cumulative lengths of intervals in the 'epoch'.</li> <li>If the cumulative time of the 'epoch' is already less than or equal to 'time', return the original 'epoch'.</li> <li>Find the last interval that fits within the specified 'time' and create a new EpochArray 'truncated_intervals' with intervals up to that point.</li> <li>To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.</li> <li>Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached or all intervals are used.</li> </ol> </details> <p><span class=doc-section-title>Examples:</span></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>epoch_data</span> <span class=o>=</span> <span class=p>[(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>6</span><span class=p>),</span> <span class=p>(</span><span class=mi>8</span><span class=p>,</span> <span class=mi>10</span><span class=p>)]</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>epoch</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span><span class=n>epoch_data</span><span class=p>)</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>truncated_epoch</span> <span class=o>=</span> <span class=n>truncate_epoch</span><span class=p>(</span><span class=n>epoch</span><span class=p>,</span> <span class=n>time</span><span class=o>=</span><span class=mi>7</span><span class=p>)</span>
+</code></pre></div> <details class=mkdocstrings-source> <summary>Source code in <code>neuro_py/process/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>465</span>
+<span class=normal>466</span>
+<span class=normal>467</span>
+<span class=normal>468</span>
+<span class=normal>469</span>
+<span class=normal>470</span>
+<span class=normal>471</span>
+<span class=normal>472</span>
+<span class=normal>473</span>
+<span class=normal>474</span>
+<span class=normal>475</span>
+<span class=normal>476</span>
+<span class=normal>477</span>
+<span class=normal>478</span>
+<span class=normal>479</span>
+<span class=normal>480</span>
+<span class=normal>481</span>
+<span class=normal>482</span>
+<span class=normal>483</span>
+<span class=normal>484</span>
+<span class=normal>485</span>
+<span class=normal>486</span>
+<span class=normal>487</span>
+<span class=normal>488</span>
+<span class=normal>489</span>
+<span class=normal>490</span>
+<span class=normal>491</span>
+<span class=normal>492</span>
+<span class=normal>493</span>
+<span class=normal>494</span>
+<span class=normal>495</span>
+<span class=normal>496</span>
+<span class=normal>497</span>
+<span class=normal>498</span>
+<span class=normal>499</span>
+<span class=normal>500</span>
+<span class=normal>501</span>
+<span class=normal>502</span>
+<span class=normal>503</span>
+<span class=normal>504</span>
+<span class=normal>505</span>
+<span class=normal>506</span>
+<span class=normal>507</span>
+<span class=normal>508</span>
+<span class=normal>509</span>
+<span class=normal>510</span>
+<span class=normal>511</span>
+<span class=normal>512</span>
+<span class=normal>513</span>
+<span class=normal>514</span>
+<span class=normal>515</span>
+<span class=normal>516</span>
+<span class=normal>517</span>
+<span class=normal>518</span>
+<span class=normal>519</span>
+<span class=normal>520</span>
+<span class=normal>521</span>
+<span class=normal>522</span>
+<span class=normal>523</span>
+<span class=normal>524</span>
+<span class=normal>525</span>
+<span class=normal>526</span>
+<span class=normal>527</span>
+<span class=normal>528</span>
+<span class=normal>529</span>
+<span class=normal>530</span>
+<span class=normal>531</span>
+<span class=normal>532</span>
+<span class=normal>533</span>
+<span class=normal>534</span>
+<span class=normal>535</span>
+<span class=normal>536</span>
+<span class=normal>537</span>
+<span class=normal>538</span>
+<span class=normal>539</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>truncate_epoch</span><span class=p>(</span>
+    <span class=n>epoch</span><span class=p>:</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>,</span> <span class=n>time</span><span class=p>:</span> <span class=n>Union</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mi>3600</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+<span class=sd>    Truncates an EpochArray to achieve a specified cumulative time duration.</span>
+
+<span class=sd>    This function takes an input EpochArray &#39;epoch&#39; and a &#39;time&#39; value representing</span>
+<span class=sd>    the desired cumulative time duration in seconds. It returns a new EpochArray</span>
+<span class=sd>    containing intervals that cumulatively match the specified time.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    epoch : nel.EpochArray</span>
+<span class=sd>        The input EpochArray containing intervals to be truncated.</span>
+<span class=sd>    time : Union[int, float], optional</span>
+<span class=sd>        The desired cumulative time in seconds (default is 3600).</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    nel.EpochArray</span>
+<span class=sd>        A new EpochArray containing intervals that cumulatively match</span>
+<span class=sd>        the specified time.</span>
+
+<span class=sd>    Algorithm</span>
+<span class=sd>    ---------</span>
+<span class=sd>    1. Calculate the cumulative lengths of intervals in the &#39;epoch&#39;.</span>
+<span class=sd>    2. If the cumulative time of the &#39;epoch&#39; is already less than or equal to &#39;time&#39;,</span>
+<span class=sd>        return the original &#39;epoch&#39;.</span>
+<span class=sd>    3. Find the last interval that fits within the specified &#39;time&#39; and create a new EpochArray</span>
+<span class=sd>        &#39;truncated_intervals&#39; with intervals up to that point.</span>
+<span class=sd>    4. To achieve the desired cumulative time, calculate the remaining time needed to reach &#39;time&#39;.</span>
+<span class=sd>    5. Add portions of the next interval to &#39;truncated_intervals&#39; until the desired &#39;time&#39; is reached</span>
+<span class=sd>        or all intervals are used.</span>
+
+<span class=sd>    Examples</span>
+<span class=sd>    --------</span>
+<span class=sd>    &gt;&gt;&gt; epoch_data = [(0, 2), (3, 6), (8, 10)]</span>
+<span class=sd>    &gt;&gt;&gt; epoch = nel.EpochArray(epoch_data)</span>
+<span class=sd>    &gt;&gt;&gt; truncated_epoch = truncate_epoch(epoch, time=7)</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+
+    <span class=k>if</span> <span class=n>epoch</span><span class=o>.</span><span class=n>isempty</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>epoch</span>
+
+    <span class=c1># calcuate cumulative lengths</span>
+    <span class=n>cumulative_lengths</span> <span class=o>=</span> <span class=n>epoch</span><span class=o>.</span><span class=n>lengths</span><span class=o>.</span><span class=n>cumsum</span><span class=p>()</span>
+
+    <span class=c1># No truncation needed</span>
+    <span class=k>if</span> <span class=n>cumulative_lengths</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>time</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>epoch</span>
+
+    <span class=c1># Find the last interval that fits within the time and make new epoch</span>
+    <span class=n>idx</span> <span class=o>=</span> <span class=n>cumulative_lengths</span> <span class=o>&lt;=</span> <span class=n>time</span>
+    <span class=n>truncated_intervals</span> <span class=o>=</span> <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span><span class=n>epoch</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>idx</span><span class=p>])</span>
+
+    <span class=c1># It&#39;s unlikely that the last interval will fit perfectly, so add the remainder from the next interval</span>
+    <span class=c1>#   until the epoch is the desired length</span>
+    <span class=n>interval_i</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>time</span> <span class=o>-</span> <span class=n>truncated_intervals</span><span class=o>.</span><span class=n>duration</span><span class=p>)</span> <span class=o>&gt;</span> <span class=mf>1e-10</span> <span class=ow>or</span> <span class=n>interval_i</span> <span class=o>&gt;</span> <span class=nb>len</span><span class=p>(</span><span class=n>epoch</span><span class=p>):</span>
+        <span class=c1># Add the last interval</span>
+        <span class=n>next_interval</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>cumulative_lengths</span> <span class=o>&gt;=</span> <span class=n>time</span><span class=p>)[</span><span class=mi>0</span><span class=p>][</span><span class=n>interval_i</span><span class=p>])</span>
+
+        <span class=n>remainder</span> <span class=o>=</span> <span class=p>(</span>
+            <span class=n>nel</span><span class=o>.</span><span class=n>EpochArray</span><span class=p>(</span>
+                <span class=p>[</span>
+                    <span class=n>epoch</span><span class=p>[</span><span class=n>next_interval</span><span class=p>]</span><span class=o>.</span><span class=n>start</span><span class=p>,</span>
+                    <span class=n>epoch</span><span class=p>[</span><span class=n>next_interval</span><span class=p>]</span><span class=o>.</span><span class=n>start</span> <span class=o>+</span> <span class=p>(</span><span class=n>time</span> <span class=o>-</span> <span class=n>truncated_intervals</span><span class=o>.</span><span class=n>duration</span><span class=p>),</span>
+                <span class=p>]</span>
+            <span class=p>)</span>
+            <span class=o>&amp;</span> <span class=n>epoch</span><span class=p>[</span><span class=n>next_interval</span><span class=p>]</span>
+        <span class=p>)</span>
+        <span class=n>truncated_intervals</span> <span class=o>=</span> <span class=n>truncated_intervals</span> <span class=o>|</span> <span class=n>remainder</span>
+        <span class=n>interval_i</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=k>return</span> <span class=n>truncated_intervals</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> </article> </div> <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> Back to top </button> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=Footer> <a href=../correlations/ class="md-footer__link md-footer__link--prev" aria-label="Previous:  correlations"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> Previous </span> <div class=md-ellipsis> correlations </div> </div> </a> <a href=../peri_event/ class="md-footer__link md-footer__link--next" aria-label="Next:  peri_event"> <div class=md-footer__title> <span class=md-footer__direction> Next </span> <div class=md-ellipsis> peri_event </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> Made with <a href=https://squidfunk.github.io/mkdocs-material/ target=_blank rel=noopener> Material for MkDocs </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tooltips", "content.tabs.link", "navigation.footer", "navigation.indexes", "navigation.instant.prefetch", "navigation.instant.preview", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.79ae519e.min.js></script> </body> </html>
