@@ -978,8 +978,8 @@ class PairwiseBias(object):
             Spike times during post-task (e.g., sleep).
         post_neurons : np.ndarray
             Neuron identifiers for post-task spikes.
-        task_normalized : np.ndarray
-            Normalized task bias matrix.
+        task_skew_bias : np.ndarray
+            Task skew bias matrix.
         post_intervals : np.ndarray
             Intervals for post-task epochs.
         interval_i : int

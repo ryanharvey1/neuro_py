@@ -76,7 +76,7 @@ class ExplainedVariance(object):
     Examples
     --------
     # Load data
-    >>> basepath = r"U:\data\HMC\HMC1\day8"
+    >>> basepath = "U:/data/HMC/HMC1/day8"
     >>> st,cm = loading.load_spikes(basepath,brainRegion="CA1",putativeCellType="Pyr")
 
     >>> epoch_df = loading.load_epoch(basepath)
@@ -457,7 +457,7 @@ def explained_variance(
     >>> import neuro_py as npy
     >>> import nelpy as nel
     >>> from neuro_py.ensemble import explained_variance
-    >>> basepath = r"S:\data\HMC\HMC1\day8"
+    >>> basepath = "S:/data/HMC/HMC1/day8"
     >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
     >>> epoch_df = npy.io.load_epoch(basepath)
     >>> beh_epochs = nel.EpochArray(epoch_df[["startTime", "stopTime"]].values)

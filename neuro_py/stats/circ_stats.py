@@ -501,8 +501,8 @@ def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...
 
     Each non-keyword argument is another data array that is centered.
 
-    Parameters
-    ----------
+    Other Parameters
+    ----------------
     axis : int, optional
         The mean is computed along this dimension (default is None).
         **Must be used as a keyword argument!**

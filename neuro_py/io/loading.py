@@ -209,7 +209,7 @@ class LFPLoader(object):
     Examples
     --------
     >>> # load lfp file
-    >>> basepath = r"X:/data/Barrage/NN10/day10"
+    >>> basepath = "X:/data/Barrage/NN10/day10"
     >>> lfp = loading.LFPLoader(basepath,ext="lfp")
     >>> lfp
         <AnalogSignalArray at 0x25ba1576640: 128 signals> for a total of 5:33:58:789 hours
@@ -2309,7 +2309,7 @@ def load_manipulation(
 
     Examples
     -------
-    >>> basepath = r"Z:\Data\Can\OML22\day8"
+    >>> basepath = r"Z:/Data/Can/OML22/day8"
     >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
     >>> df_manipulation.head(2)
 
@@ -2323,7 +2323,7 @@ def load_manipulation(
         8426.85245  8426.86745  8426.859950  8426.859950  0.01500   17516       pulse_respect_baseline
         ====== ========== ========== ========== ========== ========== ========================
 
-    >>> basepath = r"Z:\Data\Can\OML22\day8"
+    >>> basepath = "Z:/Data/Can/OML22/day8"
     >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=True)
     >>> df_manipulation
 
