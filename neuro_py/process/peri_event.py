@@ -147,6 +147,8 @@ def compute_psth(
     Notes
     -----
     If the specified window is not symmetric around 0, it is adjusted to be symmetric.
+    Each trial's times must be sorted in ascending order. This function
+    relies on `crossCorr`, which uses binary search and assumes sorted input.
 
     Examples
     -------
@@ -157,9 +159,9 @@ def compute_psth(
     if window is not None:
         window_original = None
         # check if window is symmetric around 0, if not make it so
-        if ((window[1] - window[0]) / 2 != window[1]) | (
-            (window[1] - window[0]) / -2 != window[0]
-        ):
+        mid = (window[1] - window[0]) / 2.0
+        is_symmetric = np.isclose(mid, window[1]) and np.isclose(-mid, window[0])
+        if not is_symmetric:
             window_original = np.array(window)
             window = [-np.max(np.abs(window)), np.max(np.abs(window))]
 
@@ -407,7 +409,7 @@ def peth_matrix(
     time_ref: np.ndarray,
     bin_width: float = 0.002,
     n_bins: int = 100,
-    window: Union[list, None] = None,
+    window: Union[Tuple[float, float], None] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate a peri-event time histogram (PETH) matrix.
@@ -425,6 +427,7 @@ def peth_matrix(
     window : tuple, optional
         A tuple containing the start and end times of the window to be plotted around each reference time.
         If not provided, the window will be centered around each reference time and have a width of `n_bins * bin_width` seconds.
+        Use a tuple to avoid numba reflected-list warnings.
 
     Returns
     -------
@@ -437,8 +440,17 @@ def peth_matrix(
     """
     if window is not None:
         times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        # Compute n_bins from window-based times
         n_bins = len(times) - 1
+        # Ensure n_bins is odd, same way crossCorr does it
+        if np.floor(n_bins / 2) * 2 == n_bins:
+            n_bins = n_bins + 1
     else:
+        # Ensure n_bins is odd before computing times (crossCorr expects odd)
+        n_bins = int(n_bins)
+        if np.floor(n_bins / 2) * 2 == n_bins:
+            n_bins = n_bins + 1
+
         times = (
             np.arange(0, bin_width * n_bins, bin_width)
             - (bin_width * n_bins) / 2
@@ -1133,6 +1145,10 @@ def peth(
     -----
     - For point process data (spikes/events), uses crossCorr to compute firing rates
     - For continuous data (analog signals), uses event_triggered_average
+        - For continuous data, output resolution follows the signal sampling rate;
+            `bin_width` is ignored unless you resample beforehand
+        - For numpy/object arrays of spike times, each spike train must be sorted in
+            ascending order (crossCorr assumes sorted targets)
     - Returns rates in Hz for point process data
     - Handles both regular and irregularly sampled continuous data
 
@@ -1264,6 +1280,7 @@ def peth(
             # Use peth_matrix for event-wise PETH
             # Build matrix for each spike train: (n_time_bins, n_signals, n_events)
             matrices_list = []
+            window_arg = None if window is None else (window[0], window[1])
 
             for i, s in enumerate(spike_data):
                 # Ensure spike times are float64
@@ -1274,7 +1291,7 @@ def peth(
 
                 # peth_matrix returns (n_time_bins, n_events)
                 H, t = peth_matrix(
-                    s, events, bin_width=bin_width, n_bins=n_bins, window=window
+                    s, events, bin_width=bin_width, n_bins=n_bins, window=window_arg
                 )
                 matrices_list.append(H)
 
