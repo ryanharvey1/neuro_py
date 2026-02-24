@@ -48,6 +48,25 @@ theme:
   - search.highlight
   - search.suggest
   - toc.follow
+markdown_extensions:
+- attr_list
+- md_in_html
+- admonition
+- pymdownx.details
+- pymdownx.superfences
+- pymdownx.emoji:
+    emoji_index: !!python/name:materialx.emoji.twemoji
+    emoji_generator: !!python/name:materialx.emoji.to_svg
+- pymdownx.highlight:
+    use_pygments: true
+- pymdownx.inlinehilite
+- pymdownx.tabbed:
+    alternate_style: true
+- def_list
+- footnotes
+- tables
+- toc:
+    permalink: true
 plugins:
 - search
 - mkdocstrings:
@@ -61,6 +80,852 @@ plugins:
           - '!tests'
           - '!test_*'
 nav:
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
+- Home: index.md
+- API Reference:
+  - Overview: reference/index.md
+  - behavior:
+    - behavior: reference/neuro_py/behavior/index.md
+    - cheeseboard: reference/neuro_py/behavior/cheeseboard.md
+    - circle_maze: reference/neuro_py/behavior/circle_maze.md
+    - get_trials: reference/neuro_py/behavior/get_trials.md
+    - kinematics: reference/neuro_py/behavior/kinematics.md
+    - linear_positions: reference/neuro_py/behavior/linear_positions.md
+    - linearization: reference/neuro_py/behavior/linearization.md
+    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
+    - preprocessing: reference/neuro_py/behavior/preprocessing.md
+    - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
+  - detectors:
+    - detectors: reference/neuro_py/detectors/index.md
+    - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - up_down_state: reference/neuro_py/detectors/up_down_state.md
+  - ensemble:
+    - ensemble: reference/neuro_py/ensemble/index.md
+    - assembly: reference/neuro_py/ensemble/assembly.md
+    - assembly_reactivation: reference/neuro_py/ensemble/assembly_reactivation.md
+    - decoding: reference/neuro_py/ensemble/decoding/index.md
+    - bayesian: reference/neuro_py/ensemble/decoding/bayesian.md
+    - lstm: reference/neuro_py/ensemble/decoding/lstm.md
+    - m2mlstm: reference/neuro_py/ensemble/decoding/m2mlstm.md
+    - mlp: reference/neuro_py/ensemble/decoding/mlp.md
+    - pipeline: reference/neuro_py/ensemble/decoding/pipeline.md
+    - preprocess: reference/neuro_py/ensemble/decoding/preprocess.md
+    - transformer: reference/neuro_py/ensemble/decoding/transformer.md
+    - dynamics: reference/neuro_py/ensemble/dynamics.md
+    - explained_variance: reference/neuro_py/ensemble/explained_variance.md
+    - geometry: reference/neuro_py/ensemble/geometry.md
+    - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - replay: reference/neuro_py/ensemble/replay.md
+    - similarity_index: reference/neuro_py/ensemble/similarity_index.md
+    - similaritymat: reference/neuro_py/ensemble/similaritymat.md
+  - io:
+    - io: reference/neuro_py/io/index.md
+    - loading: reference/neuro_py/io/loading.md
+    - saving: reference/neuro_py/io/saving.md
+  - lfp:
+    - lfp: reference/neuro_py/lfp/index.md
+    - CSD: reference/neuro_py/lfp/CSD.md
+    - preprocessing: reference/neuro_py/lfp/preprocessing.md
+    - spectral: reference/neuro_py/lfp/spectral.md
+    - theta_cycles: reference/neuro_py/lfp/theta_cycles.md
+  - plotting:
+    - plotting: reference/neuro_py/plotting/index.md
+    - decorators: reference/neuro_py/plotting/decorators.md
+    - events: reference/neuro_py/plotting/events.md
+    - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+  - process:
+    - process: reference/neuro_py/process/index.md
+    - batch_analysis: reference/neuro_py/process/batch_analysis.md
+    - correlations: reference/neuro_py/process/correlations.md
+    - intervals: reference/neuro_py/process/intervals.md
+    - peri_event: reference/neuro_py/process/peri_event.md
+    - precession_utils: reference/neuro_py/process/precession_utils.md
+    - pychronux: reference/neuro_py/process/pychronux.md
+    - utils: reference/neuro_py/process/utils.md
+  - raw:
+    - raw: reference/neuro_py/raw/index.md
+    - preprocessing: reference/neuro_py/raw/preprocessing.md
+    - spike_sorting: reference/neuro_py/raw/spike_sorting.md
+  - session:
+    - session: reference/neuro_py/session/index.md
+    - locate_epochs: reference/neuro_py/session/locate_epochs.md
+  - spikes:
+    - spikes: reference/neuro_py/spikes/index.md
+    - spike_tools: reference/neuro_py/spikes/spike_tools.md
+  - stats:
+    - stats: reference/neuro_py/stats/index.md
+    - circ_stats: reference/neuro_py/stats/circ_stats.md
+    - regression: reference/neuro_py/stats/regression.md
+    - stats: reference/neuro_py/stats/stats.md
+    - system_identifier: reference/neuro_py/stats/system_identifier.md
+  - tuning:
+    - tuning: reference/neuro_py/tuning/index.md
+    - fields: reference/neuro_py/tuning/fields.md
+    - maps: reference/neuro_py/tuning/maps.md
+  - util:
+    - util: reference/neuro_py/util/index.md
+    - array: reference/neuro_py/util/array.md
+- Tutorials:
+  - Attractor Landscape: tutorials/attractor_landscape.md
+  - Batch Analysis: tutorials/batch_analysis.md
+  - Bias Correlation: tutorials/bias_correlation.md
+  - Decoding: tutorials/decoding.md
+  - Explained Variance: tutorials/explained_variance.md
+  - Neural Geodynamics: tutorials/neural_geodynamics.md
+  - Peth Tutorial: tutorials/peth_tutorial.md
+  - Reactivation: tutorials/reactivation.md
+  - Spatial Map: tutorials/spatial_map.md
 - Home: index.md
 - API Reference:
   - Overview: reference/index.md
