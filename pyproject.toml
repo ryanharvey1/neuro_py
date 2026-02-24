@@ -48,30 +48,18 @@ csd = [
 ]
 # For documentation generation
 docs = [
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.5.34",
+    "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "mkdocs-gen-files>=0.5.0",
-    "mkdocs-literate-nav>=0.6.1",
-    "mkdocs-section-index>=0.3.9",
-    "mkdocs-include-markdown-plugin>=6.2.2",
-    "mkdocs-jupyter>=0.24.8",
-    "mkdocs-minify-plugin>=0.8.0"
+    "nbconvert>=7.0.0"
 ]
 # An "all" group that combines all optional groups
 all = [
     "elephant>=1.1.0",
     "neo>=0.13.3",
     "quantities>=0.15.0",
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.5.34",
+    "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "mkdocs-gen-files>=0.5.0",
-    "mkdocs-literate-nav>=0.6.1",
-    "mkdocs-section-index>=0.3.9",
-    "mkdocs-include-markdown-plugin>=6.2.2",
-    "mkdocs-jupyter>=0.24.8",
-    "mkdocs-minify-plugin>=0.8.0"
+    "nbconvert>=7.0.0"
 ]
 
 [project.urls]

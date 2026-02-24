@@ -2,25 +2,26 @@ name: Docs
 on: [push, pull_request]
 jobs:
   build:
-    name: Deploy docs
+    name: Build & Deploy docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download source
-        uses: actions/checkout@v3
-      - name: Install Crystal
-        uses: oprypin/install-crystal@v1
+      - name: Checkout source
+        uses: actions/checkout@v4
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install Python libs
-        run: pip install .[all]
-      - name: Install Crystal libs
-        run: |
-          shards init
-          shards install
+      - name: Install dependencies
+        run: pip install .[docs]
+      - name: Pre-build (generate reference, convert tutorials)
+        run: python docs/prebuild.py
       - name: Build site
-        run: mkdocs build
+        run: zensical build
       - name: Deploy to gh-pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: mkdocs gh-deploy --force
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

@@ -134,6 +134,11 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Generated docs content (created by docs/prebuild.py)
+docs/reference/
+docs/tutorials/
+docs/index.md
+
 # mypy
 .mypy_cache/
 .dmypy.json
