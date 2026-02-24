@@ -855,7 +855,7 @@ def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
             before_count = crosscorr[:50].sum()
             after_count = crosscorr[51:].sum()
             
-            # Only compute bias if we have spikes in both directions
+            # Only compute bias if we have any spikes between this neuron pair
             # Otherwise, keep the default neutral value of 0.5
             if before_count + after_count > 0:
                 bias_matrix[i, j] = before_count / (before_count + after_count)
