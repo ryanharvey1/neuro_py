@@ -429,7 +429,8 @@ def peth_matrix(
     Returns
     -------
     H : ndarray
-        A 2D array representing the PETH matrix.
+        A 2D array representing the PETH matrix with rates in Hz.
+        Shape is (n_time_bins, n_events).
     t : ndarray
         A 1D array of time values corresponding to the bins in the PETH matrix.
 
@@ -449,7 +450,7 @@ def peth_matrix(
     for event_i in prange(len(time_ref)):
         H[:, event_i] = crossCorr([time_ref[event_i]], data, bin_width, n_bins)
 
-    return H * bin_width, times
+    return H, times
 
 
 @jit(nopython=True)
@@ -1040,7 +1041,8 @@ def peth(
     window: Union[list, None] = None,
     bin_width: float = 0.002,
     n_bins: int = 100,
-) -> pd.DataFrame:
+    average: bool = True,
+) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
     """
     Compute peri-event time histogram (PETH) for nelpy data objects or numpy arrays.
 
@@ -1069,20 +1071,35 @@ def peth(
         Width of time bins in seconds (default 0.002).
     n_bins : int, optional
         Number of bins (default 100). Ignored if window is specified.
+    average : bool, optional
+        If True (default), returns averaged PETH across all events as DataFrame.
+        If False, returns event-wise PETH matrix and time bins array.
 
     Returns
     -------
-    pd.DataFrame
-        PETH with time bins as index and each series/signal as columns.
-        Values are rates (Hz) for point process data or averaged
-        signal values for continuous data.
+    pd.DataFrame or Tuple[np.ndarray, np.ndarray]
+        If average=True:
+            DataFrame with time bins as index and each series/signal as columns.
+            Values are rates (Hz) for point process data or averaged
+            signal values for continuous data.
+        If average=False:
+            Tuple of (peth_matrix, time_bins) where:
+            - peth_matrix: 3D array with shape (n_time_bins, n_signals, n_events)
+            - time_bins: 1D array of time bin centers
 
     Examples
     --------
-    >>> # With SpikeTrainArray
+    >>> # With SpikeTrainArray - averaged across events
     >>> st, _ = loading.load_spikes(basepath)
     >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
     >>> peth_df = peth(st, ripples.starts, window=[-0.5, 0.5], bin_width=0.01)
+
+    >>> # Get event-wise matrix for detailed analysis
+    >>> peth_matrix, time_bins = peth(st, ripples.starts, window=[-0.5, 0.5],
+    ...                               bin_width=0.01, average=False)
+    >>> # peth_matrix.shape: (n_time_bins, n_units, n_events)
+    >>> # Can now analyze individual events
+    >>> strong_events = peth_matrix.sum(axis=(0,1)) > threshold
 
     >>> # With AnalogSignalArray
     >>> import numpy as np
@@ -1095,6 +1112,9 @@ def peth(
     >>> lfp = AnalogSignalArray(timestamps=timestamps, data=signal)
     >>> events = np.array([1.0, 2.0, 3.0])
     >>> peth_df = peth(lfp, events, window=[-0.2, 0.2])
+
+    >>> # Get event-wise continuous data
+    >>> lfp_matrix, time_lags = peth(lfp, events, window=[-0.2, 0.2], average=False)
 
     >>> # With PositionArray
     >>> from nelpy import PositionArray
@@ -1207,33 +1227,68 @@ def peth(
         sampling_rate = 1 / np.median(np.diff(timestamps))
 
         # Compute event-triggered average
-        avg_signal, time_lags = event_triggered_average(
+        result, time_lags = event_triggered_average(
             timestamps,
             signal,
             events,
             sampling_rate=sampling_rate,
             window=window,
-            return_average=True,
+            return_average=average,
             return_pandas=False,
         )
 
-        # Create DataFrame
-        peth_df = pd.DataFrame(avg_signal, index=time_lags, columns=np.arange(n_series))
+        if average:
+            # Create DataFrame from averaged result
+            peth_df = pd.DataFrame(result, index=time_lags, columns=np.arange(n_series))
+        else:
+            # Return matrix directly: (n_time_bins, n_signals, n_events)
+            # event_triggered_average already returns in the correct shape
+            return result, time_lags
 
     else:
-        # Point process data - use crossCorr
-        peth_df = pd.DataFrame(index=times, columns=np.arange(n_series))
+        # Point process data
+        if average:
+            # Use crossCorr for averaged PETH
+            peth_df = pd.DataFrame(index=times, columns=np.arange(n_series))
 
-        for i, s in enumerate(spike_data):
-            # Ensure spike times are float64
-            if len(s) > 0:
-                s = np.asarray(s, dtype=np.float64)
-            else:
-                s = np.array([], dtype=np.float64)
-            peth_df[i] = crossCorr(events, s, bin_width, n_bins)
+            for i, s in enumerate(spike_data):
+                # Ensure spike times are float64
+                if len(s) > 0:
+                    s = np.asarray(s, dtype=np.float64)
+                else:
+                    s = np.array([], dtype=np.float64)
+                peth_df[i] = crossCorr(events, s, bin_width, n_bins)
+        else:
+            # Use peth_matrix for event-wise PETH
+            # Build matrix for each spike train: (n_time_bins, n_signals, n_events)
+            matrices_list = []
 
-    # If window was not symmetric, remove the extra bins
-    if window is not None and window_original is not None:
+            for i, s in enumerate(spike_data):
+                # Ensure spike times are float64
+                if len(s) > 0:
+                    s = np.asarray(s, dtype=np.float64)
+                else:
+                    s = np.array([], dtype=np.float64)
+
+                # peth_matrix returns (n_time_bins, n_events)
+                H, t = peth_matrix(
+                    s, events, bin_width=bin_width, n_bins=n_bins, window=window
+                )
+                matrices_list.append(H)
+
+            # Stack into (n_time_bins, n_signals, n_events)
+            result_matrix = np.stack(matrices_list, axis=1)
+
+            # If window was not symmetric, trim the time dimension
+            if window is not None and window_original is not None:
+                mask = (t >= window_original[0]) & (t <= window_original[1])
+                result_matrix = result_matrix[mask, :, :]
+                t = t[mask]
+
+            return result_matrix, t
+
+    # If window was not symmetric, remove the extra bins (only for averaged DataFrame)
+    if average and window is not None and window_original is not None:
         peth_df = peth_df.loc[window_original[0] : window_original[1], :]
 
     return peth_df

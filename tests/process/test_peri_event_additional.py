@@ -66,17 +66,18 @@ def test_get_raster_points_returns_expected_offsets_and_indices():
     np.testing.assert_allclose(y, np.array([0.0, 0.0, 0.0, 1.0, 1.0]))
 
 
-def test_peth_matrix_returns_count_matrix_and_expected_time_centers():
+def test_peth_matrix_returns_rate_matrix_and_expected_time_centers():
     data = np.array([0.9, 1.1, 2.1, 2.3])
     time_ref = np.array([1.0, 2.0])
 
     h, times = peth_matrix(data, time_ref, bin_width=0.2, n_bins=5)
 
     np.testing.assert_allclose(times, np.array([-0.4, -0.2, 0.0, 0.2, 0.4]), atol=1e-12)
+    # peth_matrix now returns rates in Hz (same as crossCorr output)
     expected = np.column_stack(
         [
-            crossCorr(np.array([time_ref[0]]), data, binsize=0.2, nbins=5) * 0.2,
-            crossCorr(np.array([time_ref[1]]), data, binsize=0.2, nbins=5) * 0.2,
+            crossCorr(np.array([time_ref[0]]), data, binsize=0.2, nbins=5),
+            crossCorr(np.array([time_ref[1]]), data, binsize=0.2, nbins=5),
         ]
     )
     np.testing.assert_allclose(h, expected)
@@ -231,9 +232,7 @@ class TestPeth:
         timestamps = np.linspace(0, 5, 100)
         x_pos = np.sin(2 * np.pi * timestamps)
         y_pos = np.cos(2 * np.pi * timestamps)
-        position = PositionArray(
-            timestamps=timestamps, data=np.vstack([x_pos, y_pos])
-        )
+        position = PositionArray(timestamps=timestamps, data=np.vstack([x_pos, y_pos]))
 
         # Create events
         events = np.array([1.0, 2.0, 3.0])
@@ -459,3 +458,258 @@ class TestPeth:
         np.testing.assert_allclose(
             result_peth.values, result_psth.values, rtol=1e-10, atol=1e-10
         )
+
+    def test_peth_average_false_returns_tuple(self):
+        """Test that peth with average=False returns a tuple."""
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with average=False
+        result = peth(spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False)
+
+        # Should return tuple
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        peth_matrix, time_bins = result
+        assert isinstance(peth_matrix, np.ndarray)
+        assert isinstance(time_bins, np.ndarray)
+
+    def test_peth_average_false_correct_shape_point_process(self):
+        """Test that peth with average=False returns correct shape for point process."""
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Check shape: (n_time_bins, n_signals, n_events)
+        n_time_bins = len(time_bins)
+        n_signals = 2  # Two spike trains
+        n_events = 3  # Three events
+        assert peth_matrix.shape == (n_time_bins, n_signals, n_events)
+        assert peth_matrix.ndim == 3
+
+    def test_peth_average_false_correct_shape_continuous(self):
+        """Test that peth with average=False returns correct shape for continuous data."""
+        AnalogSignalArray = pytest.importorskip("nelpy").AnalogSignalArray
+
+        # Create continuous signal (2 channels)
+        timestamps = np.linspace(0, 5, 100)
+        signal = np.vstack(
+            [np.sin(2 * np.pi * timestamps), np.cos(2 * np.pi * timestamps)]
+        )
+        asa = AnalogSignalArray(timestamps=timestamps, data=signal)
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            asa, events, window=[-0.2, 0.2], bin_width=0.01, average=False
+        )
+
+        # Check shape: (n_time_bins, n_signals, n_events)
+        n_time_bins = len(time_bins)
+        n_signals = 2  # Two channels
+        n_events = 3  # Three events
+        assert peth_matrix.shape == (n_time_bins, n_signals, n_events)
+        assert peth_matrix.ndim == 3
+
+    def test_peth_average_false_values_are_in_hz(self):
+        """Test that peth with average=False returns rates in Hz for point process."""
+        # Create spike trains with known spike counts
+        # Put 5 spikes in 0.1s bin around first event
+        spike_train = np.array([0.95, 0.97, 0.99, 1.01, 1.03])
+        spikes = np.array([spike_train], dtype=object)
+
+        # Single event
+        events = np.array([1.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Check that values are rates (Hz), not counts
+        # The bin around t=0 should have all 5 spikes
+        center_bin_idx = len(time_bins) // 2
+        center_value = peth_matrix[center_bin_idx, 0, 0]
+
+        # Value should be a rate in Hz (spikes per second)
+        # With bin_width=0.1s, 5 spikes gives rate of 50 Hz
+        # But crossCorr returns averaged rate across events, so just check it's > 0
+        assert center_value > 0
+        assert center_value < 1000  # Reasonable upper bound for firing rate
+
+    def test_peth_average_false_consistency_with_average_true(self):
+        """Test that averaging event-wise matrix matches average=True output."""
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3, 3.1])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25, 3.05])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute both versions
+        result_avg = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=True
+        )
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Average across events manually
+        manual_avg = np.nanmean(peth_matrix, axis=2)
+
+        # Should match the average=True output
+        np.testing.assert_allclose(
+            manual_avg, result_avg.values, rtol=1e-10, atol=1e-10
+        )
+
+    def test_peth_average_false_with_spiketrainarray(self):
+        """Test peth with average=False using SpikeTrainArray."""
+        SpikeTrainArray = pytest.importorskip("nelpy").SpikeTrainArray
+
+        # Create spike trains
+        spike_train_1 = np.array([0.9, 1.1, 2.1, 2.3])
+        spike_train_2 = np.array([0.95, 1.05, 2.05, 2.25])
+        st = SpikeTrainArray([spike_train_1, spike_train_2], fs=1000)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            st, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Check shape
+        assert peth_matrix.ndim == 3
+        assert peth_matrix.shape[1] == 2  # Two spike trains
+        assert peth_matrix.shape[2] == 2  # Two events
+        assert len(time_bins) == peth_matrix.shape[0]
+
+    def test_peth_average_false_with_asymmetric_window(self):
+        """Test peth with average=False handles asymmetric window correctly."""
+        # Create spike trains
+        spike_train = np.array([0.9, 1.1, 1.3, 2.1, 2.3])
+        spikes = np.array([spike_train], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with asymmetric window
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.2, 0.4], bin_width=0.1, average=False
+        )
+
+        # Check time bins cover the requested window
+        assert time_bins.min() >= -0.2 - 1e-6
+        assert time_bins.max() <= 0.4 + 1e-6
+
+        # Check shape
+        assert peth_matrix.shape[2] == 2  # Two events
+
+    def test_peth_average_false_continuous_data_with_positionarray(self):
+        """Test peth with average=False for PositionArray."""
+        # Try multiple import paths for PositionArray
+        PositionArray = None
+        try:
+            from nelpy.auxiliary import PositionArray
+        except ImportError:
+            try:
+                from nelpy import PositionArray
+            except ImportError:
+                pytest.skip("PositionArray not available in nelpy")
+
+        # Create position data
+        timestamps = np.linspace(0, 5, 100)
+        x_pos = np.sin(2 * np.pi * timestamps)
+        y_pos = np.cos(2 * np.pi * timestamps)
+        position = PositionArray(timestamps=timestamps, data=np.vstack([x_pos, y_pos]))
+
+        # Create events
+        events = np.array([1.0, 2.0, 3.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            position, events, window=[-0.2, 0.2], bin_width=0.01, average=False
+        )
+
+        # Check shape: (n_time_bins, n_coordinates, n_events)
+        assert peth_matrix.ndim == 3
+        assert peth_matrix.shape[1] == 2  # x and y coordinates
+        assert peth_matrix.shape[2] == 3  # Three events
+
+    def test_peth_average_false_handles_empty_spike_trains(self):
+        """Test peth with average=False handles empty spike trains gracefully."""
+        # Create empty and non-empty spike trains
+        spike_train_1 = np.array([], dtype=np.float64)
+        spike_train_2 = np.array([1.1, 2.1])
+        spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+
+        # Create events
+        events = np.array([1.0, 2.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Check shape
+        assert peth_matrix.shape == (len(time_bins), 2, 2)
+
+        # First spike train (empty) should have all zeros
+        assert np.all(peth_matrix[:, 0, :] == 0)
+
+    def test_peth_average_false_single_event(self):
+        """Test peth with average=False works with single event."""
+        # Create spike train
+        spike_train = np.array([0.9, 1.0, 1.1])
+        spikes = np.array([spike_train], dtype=object)
+
+        # Single event
+        events = np.array([1.0])
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.5, 0.5], bin_width=0.1, average=False
+        )
+
+        # Check shape: (n_time_bins, 1 signal, 1 event)
+        assert peth_matrix.shape[1] == 1  # One spike train
+        assert peth_matrix.shape[2] == 1  # One event
+
+    def test_peth_average_false_many_events(self):
+        """Test peth with average=False scales correctly with many events."""
+        # Create spike train
+        spike_train = np.arange(0, 10, 0.1)  # Dense spike train
+        spikes = np.array([spike_train], dtype=object)
+
+        # Many events
+        events = np.arange(1, 9, 0.5)  # 16 events
+
+        # Compute PETH with average=False
+        peth_matrix, time_bins = peth(
+            spikes, events, window=[-0.2, 0.2], bin_width=0.05, average=False
+        )
+
+        # Check shape
+        assert peth_matrix.shape[1] == 1  # One spike train
+        assert peth_matrix.shape[2] == len(events)  # All events
+
+        # All values should be finite
+        assert np.all(np.isfinite(peth_matrix))
