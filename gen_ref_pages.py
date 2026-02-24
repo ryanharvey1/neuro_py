@@ -16,7 +16,7 @@ for path in sorted(src.rglob("*.py")):
         continue
     if "tests" in path.relative_to(src).parts:
         continue
-    
+
     if path.relative_to(src).parts[0] != "neuro_py":
         continue
     module_path = path.relative_to(src).with_suffix("")
