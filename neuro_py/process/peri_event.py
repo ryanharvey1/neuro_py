@@ -5,7 +5,13 @@ import bottleneck as bn
 import numpy as np
 import pandas as pd
 from nelpy import EpochArray
-from nelpy.core._eventarray import SpikeTrainArray
+from nelpy.core import (
+    AnalogSignalArray,
+    BinnedSpikeTrainArray,
+    PositionArray,
+    SpikeTrainArray,
+)
+from nelpy.core._eventarray import BinnedEventArray, EventArray
 from numba import jit, prange
 from scipy import stats
 from scipy.linalg import toeplitz
@@ -22,75 +28,82 @@ def crossCorr(
     nbins: int,
 ) -> np.ndarray:
     """
-    Perform the discrete cross-correlogram of two time series.
+    Compute a cross-correlogram using independent event-wise histograms.
 
-    This function calculates the **rates (Hz)** of the series 't2' relative to
-    the timings of 't1'. The units should be in seconds for all arguments.
+    This is the standard definition of a cross-correlogram: each reference event (t1)
+    independently computes a histogram of all target timestamps (t2) relative to it.
+    Each t2 sample can contribute to every t1 event (no "consumption").
+
+    Efficient O(nt1 * (log(nt2) + nt2)) implementation using binary search for
+    initial positioning, then single-pass binning per event.
 
     Parameters
     ----------
     t1 : np.ndarray
-        First time series.
+        Reference events (can be unsorted, any order).
     t2 : np.ndarray
-        Second time series.
+        Target timestamps (must be sorted in ascending order).
     binsize : float
-        Size of the bin in seconds.
+        Bin width in seconds.
     nbins : int
-        Number of bins.
+        Number of bins (will be adjusted to be odd).
 
     Returns
     -------
     np.ndarray
-        Cross-correlogram of the two time series.
+        Normalized cross-correlogram (rate in Hz).
+        Shape (nbins,) where nbins is adjusted to be odd.
 
     Notes
     -----
-    This implementation is based on the work of Guillaume Viejo.
-    References:
-    - https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py
-    - https://github.com/pynapple-org/pynapple/blob/main/pynapple/process/correlograms.py
-    """
-    # Calculate the length of the input time series
-    nt1 = len(t1)
-    nt2 = len(t2)
+    True cross-correlogram: each t2 sample contributes to every t1 event.
+    Order of t1 does not affect the result.
+    Suitable for spike-to-event analysis (e.g., spikes relative to ripples).
 
-    # Ensure that 'nbins' is an odd number
+    Examples
+    --------
+    >>> t1 = np.array([1.0, 2.0])
+    >>> t2 = np.sort(np.array([1.1, 1.3, 2.1, 2.3]))
+    >>> result = crossCorr(t1, t2, binsize=0.2, nbins=4)
+    >>> result.shape
+    (5,)
+    """
+    # Ensure nbins is odd
+    nbins = int(nbins)
     if np.floor(nbins / 2) * 2 == nbins:
         nbins = nbins + 1
 
-    # Calculate the half-width of the cross-correlogram window
+    nt1 = len(t1)
+    nt2 = len(t2)
+
     w = (nbins / 2) * binsize
     C = np.zeros(nbins)
-    i2 = 1
 
-    # Iterate through the first time series
+    # For each reference event, independently compute histogram
     for i1 in range(nt1):
         lbound = t1[i1] - w
+        ubound = lbound + nbins * binsize
 
-        # Find the index of the first element in 't2' that is within 'lbound'
-        while i2 < nt2 and t2[i2] < lbound:
-            i2 = i2 + 1
+        # Binary search to find first t2 sample in window
+        left = 0
+        right = nt2
+        while left < right:
+            mid = (left + right) // 2
+            if t2[mid] < lbound:
+                left = mid + 1
+            else:
+                right = mid
 
-        # Find the index of the last element in 't2' that is within 'lbound'
-        while i2 > 1 and t2[i2 - 1] > lbound:
-            i2 = i2 - 1
+        # Single pass through t2 samples in this event's window
+        # Bin each sample directly using its offset from lbound
+        k = left
+        while k < nt2 and t2[k] < ubound:
+            bin_j = int((t2[k] - lbound) / binsize)
+            if 0 <= bin_j < nbins:
+                C[bin_j] += 1
+            k += 1
 
-        rbound = lbound
-        last_index = i2
-
-        # Calculate the cross-correlogram values for each bin
-        for j in range(nbins):
-            k = 0
-            rbound = rbound + binsize
-
-            # Count the number of elements in 't2' that fall within the bin
-            while last_index < nt2 and t2[last_index] < rbound:
-                last_index = last_index + 1
-                k = k + 1
-
-            C[j] += k
-
-    # Normalize the cross-correlogram by dividing by the total observation time and bin size
+    # Normalize by number of events and bin width
     C = C / (nt1 * binsize)
 
     return C
@@ -134,6 +147,8 @@ def compute_psth(
     Notes
     -----
     If the specified window is not symmetric around 0, it is adjusted to be symmetric.
+    Each trial's times must be sorted in ascending order. This function
+    relies on `crossCorr`, which uses binary search and assumes sorted input.
 
     Examples
     -------
@@ -144,9 +159,9 @@ def compute_psth(
     if window is not None:
         window_original = None
         # check if window is symmetric around 0, if not make it so
-        if ((window[1] - window[0]) / 2 != window[1]) | (
-            (window[1] - window[0]) / -2 != window[0]
-        ):
+        mid = (window[1] - window[0]) / 2.0
+        is_symmetric = np.isclose(mid, window[1]) and np.isclose(-mid, window[0])
+        if not is_symmetric:
             window_original = np.array(window)
             window = [-np.max(np.abs(window)), np.max(np.abs(window))]
 
@@ -160,6 +175,8 @@ def compute_psth(
     ccg = pd.DataFrame(index=times, columns=np.arange(len(data)))
     # Now we can iterate over trials
     for i, s in enumerate(data):
+        # Ensure spike times are float64 for numba compatibility
+        s = np.asarray(s, dtype=np.float64)
         ccg[i] = crossCorr(event, s, bin_width, n_bins)
 
     # if window was not symmetric, remove the extra bins
@@ -392,7 +409,7 @@ def peth_matrix(
     time_ref: np.ndarray,
     bin_width: float = 0.002,
     n_bins: int = 100,
-    window: Union[list, None] = None,
+    window: Union[Tuple[float, float], None] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate a peri-event time histogram (PETH) matrix.
@@ -410,19 +427,30 @@ def peth_matrix(
     window : tuple, optional
         A tuple containing the start and end times of the window to be plotted around each reference time.
         If not provided, the window will be centered around each reference time and have a width of `n_bins * bin_width` seconds.
+        Use a tuple to avoid numba reflected-list warnings.
 
     Returns
     -------
     H : ndarray
-        A 2D array representing the PETH matrix.
+        A 2D array representing the PETH matrix with rates in Hz.
+        Shape is (n_time_bins, n_events).
     t : ndarray
         A 1D array of time values corresponding to the bins in the PETH matrix.
 
     """
     if window is not None:
         times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        # Compute n_bins from window-based times
         n_bins = len(times) - 1
+        # Ensure n_bins is odd, same way crossCorr does it
+        if np.floor(n_bins / 2) * 2 == n_bins:
+            n_bins = n_bins + 1
     else:
+        # Ensure n_bins is odd before computing times (crossCorr expects odd)
+        n_bins = int(n_bins)
+        if np.floor(n_bins / 2) * 2 == n_bins:
+            n_bins = n_bins + 1
+
         times = (
             np.arange(0, bin_width * n_bins, bin_width)
             - (bin_width * n_bins) / 2
@@ -434,7 +462,258 @@ def peth_matrix(
     for event_i in prange(len(time_ref)):
         H[:, event_i] = crossCorr([time_ref[event_i]], data, bin_width, n_bins)
 
-    return H * bin_width, times
+    return H, times
+
+
+@jit(nopython=True)
+def _sync_find_windows(
+    sample_times: np.ndarray,
+    event_times: np.ndarray,
+    start_offset: float,
+    stop_offset: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+    """
+    Numba-compiled function to find time windows for each event.
+
+    Returns arrays of starts, stops, events_with_hits, and total_hits count.
+    """
+    n_samples = len(sample_times)
+    n_events = len(event_times)
+
+    # Pre-allocate maximum possible size
+    starts = np.empty(n_events, dtype=np.int64)
+    stops = np.empty(n_events, dtype=np.int64)
+    events_with_hits = np.empty(n_events, dtype=np.int64)
+
+    n_hits = 0
+    total_hits = 0
+    left_idx = 0
+    right_idx = 0
+
+    for event_i in range(n_events):
+        event_t = event_times[event_i]
+        start_t = event_t + start_offset
+        stop_t = event_t + stop_offset
+
+        # Advance left pointer
+        while left_idx < n_samples and sample_times[left_idx] < start_t:
+            left_idx += 1
+
+        # Ensure right_idx is at least left_idx
+        if right_idx < left_idx:
+            right_idx = left_idx
+
+        # Advance right pointer
+        while right_idx < n_samples and sample_times[right_idx] <= stop_t:
+            right_idx += 1
+
+        # Record if we found any samples in this window
+        if right_idx > left_idx:
+            starts[n_hits] = left_idx
+            stops[n_hits] = right_idx
+            events_with_hits[n_hits] = event_i
+            total_hits += right_idx - left_idx
+            n_hits += 1
+
+    # Trim arrays to actual size
+    starts = starts[:n_hits]
+    stops = stops[:n_hits]
+    events_with_hits = events_with_hits[:n_hits]
+
+    return starts, stops, events_with_hits, total_hits
+
+
+@jit(nopython=True)
+def _sync_fill_indices(
+    starts: np.ndarray,
+    stops: np.ndarray,
+    events_with_hits: np.ndarray,
+    total_hits: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Numba-compiled function to fill Is and Ie index arrays.
+    """
+    Is = np.empty(total_hits, dtype=np.int64)
+    Ie = np.empty(total_hits, dtype=np.int64)
+
+    write_pos = 0
+    for i in range(len(starts)):
+        start_idx = starts[i]
+        stop_idx = stops[i]
+        event_i = events_with_hits[i]
+        run_len = stop_idx - start_idx
+
+        # Fill this segment
+        for j in range(run_len):
+            Is[write_pos + j] = start_idx + j
+            Ie[write_pos + j] = event_i
+
+        write_pos += run_len
+
+    return Is, Ie
+
+
+def sync(
+    samples: np.ndarray,
+    sync_times: np.ndarray,
+    durations: Tuple[float, float] = (-0.5, 0.5),
+    fast: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Synchronize sample timestamps to reference events.
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        Sample array with timestamps in the first column. Can be shape (n_samples,)
+        or (n_samples, n_features). Assumed to be sorted by default.
+    sync_times : np.ndarray
+        1D array of synchronizing event times. Assumed to be sorted by default.
+    durations : tuple of float, optional
+        Time window around each event as (start, stop), in seconds.
+        Defaults to (-0.5, 0.5).
+    fast : bool, optional
+        If True, assumes `samples` and `sync_times` are already sorted and skips sorting.
+        If False, sorts the inputs (slower but handles unsorted data).
+        Defaults to True.
+
+    Returns
+    -------
+    synchronized : np.ndarray
+        Samples that fall within event windows, with first column replaced by
+        time relative to event.
+    Ie : np.ndarray
+        Event indices for each synchronized sample, referencing the original
+        `sync_times` order (0-based indices).
+    Is : np.ndarray
+        Sample indices for each synchronized sample, referencing the original
+        `samples` order (0-based indices).
+
+    Notes
+    -----
+    By default, this function assumes both `samples` and `sync_times` are sorted
+    in ascending order for maximum performance. If your data is unsorted, set
+    `fast=False` to enable automatic sorting (with index remapping).
+
+    Similar to get_raster_points but returns the synchronized samples in a
+    single array and also returns the indices of the events and samples that
+    correspond to each synchronized sample. Also is much faster than get_raster_points.
+
+
+    References
+    ----------
+    - Original MATLAB implementation: Sync.m from FMAToolbox
+
+    Examples
+    --------
+    Basic usage with 1D timestamps:
+
+    >>> samples = np.array([0.9, 1.1, 2.0, 2.1, 3.0])
+    >>> sync_times = np.array([1.0, 2.0])
+    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15))
+    >>> synchronized[:, 0]
+    array([-0.1,  0.1,  0. ,  0.1])
+    >>> Ie
+    array([0, 0, 1, 1])
+    >>> Is
+    array([0, 1, 2, 3])
+
+    Usage with unsorted samples and extra columns:
+
+    >>> samples = np.array([[2.0, 20.0], [0.9, 9.0], [1.1, 11.0], [2.1, 21.0]])
+    >>> sync_times = np.array([2.0, 1.0])
+    >>> synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15), fast=False)
+    >>> synchronized[:, 0]
+    array([-0.1,  0.1,  0. ,  0.1])
+    >>> Ie  # indices into original sync_times
+    array([1, 1, 0, 0])
+    >>> Is  # indices into original samples
+    array([1, 2, 0, 3])
+
+    Real-world example with spike times and ripple events:
+
+    >>> basepath = r"U:\data\hpc_ctx_project\HP17\hp17_day48_20250603"
+    >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
+    >>> ripples = npy.io.load_ripples_events(basepath, return_epoch_array=True)
+    >>> sleep_states = npy.io.load_SleepState_states(basepath, return_epoch_array=True)
+    >>> nrem = sleep_states.get("NREMstate")
+    >>> synchronized, Ie, Is = npy.process.sync(
+    ...     st.data[1], ripples[nrem].starts, durations=(-0.5, 0.5)
+    ... )
+
+    >>> plt.figure(figsize=(6, 4))
+    >>> plt.scatter(synchronized[:, 0], Ie, s=4, alpha=0.2, marker="|", color="k")
+    >>> plt.axvline(0, color="r", ls="--", lw=2)
+    >>> plt.xlabel("Time from event (s)")
+    >>> plt.ylabel("Event #")
+    >>> plt.title("Event-aligned raster")
+    >>> plt.xlim(-0.5, 0.5)
+    >>> plt.ylim(0, np.max(Ie) + 1)
+    >>> plt.show()
+    """
+    samples = np.asarray(samples)
+    sync_times = np.asarray(sync_times)
+
+    if samples.ndim == 1:
+        samples = samples.reshape(-1, 1)
+    if samples.ndim != 2 or samples.shape[1] < 1:
+        raise ValueError(
+            "'samples' must be a 1D array or a 2D array with timestamps in column 0"
+        )
+    if sync_times.ndim == 2 and sync_times.shape[1] == 1:
+        sync_times = sync_times[:, 0]
+    elif sync_times.ndim != 1:
+        raise ValueError("'sync_times' must be a 1D array or a 2D column vector")
+    if len(durations) != 2 or durations[0] > durations[1]:
+        raise ValueError("'durations' must be (start, stop) with start <= stop")
+
+    if len(sync_times) == 0 or samples.shape[0] == 0:
+        return (
+            np.empty((0, samples.shape[1])),
+            np.array([], dtype=int),
+            np.array([], dtype=int),
+        )
+
+    sort_samples = None
+    sort_sync = None
+
+    work_samples = samples
+    work_sync = sync_times
+
+    if not fast:
+        sort_samples = np.argsort(samples[:, 0], kind="mergesort")
+        work_samples = samples[sort_samples]
+
+        sort_sync = np.argsort(sync_times, kind="mergesort")
+        work_sync = sync_times[sort_sync]
+
+    sample_times = work_samples[:, 0]
+
+    # Use numba-compiled functions for the core sweep and index filling
+    starts, stops, events_with_hits, total_hits = _sync_find_windows(
+        sample_times, work_sync, durations[0], durations[1]
+    )
+
+    if len(starts) == 0:
+        return (
+            np.empty((0, samples.shape[1])),
+            np.array([], dtype=int),
+            np.array([], dtype=int),
+        )
+
+    Is, Ie = _sync_fill_indices(starts, stops, events_with_hits, total_hits)
+
+    # Ensure synchronized has floating dtype so relative times are preserved
+    # If samples were integer, subtraction would silently truncate to integers
+    synchronized = work_samples[Is].astype(np.float64, copy=True)
+    synchronized[:, 0] = synchronized[:, 0] - work_sync[Ie]
+
+    if sort_samples is not None:
+        Is = sort_samples[Is]
+    if sort_sync is not None:
+        Ie = sort_sync[Ie]
+
+    return synchronized, Ie, Is
 
 
 def event_triggered_average_irregular_sample(
@@ -768,6 +1047,270 @@ def event_triggered_average_fast(
         return bn.nanmean(avg_signal, axis=2), time_lags
     else:
         return avg_signal, time_lags
+
+
+def peth(
+    data,
+    events: np.ndarray,
+    window: Union[list, None] = None,
+    bin_width: float = 0.002,
+    n_bins: int = 100,
+    average: bool = True,
+) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
+    """
+    Compute peri-event time histogram (PETH) for nelpy data objects or numpy arrays.
+
+    This is a high-level function that handles multiple data types and automatically
+    computes the appropriate PETH based on the input data type. For point process data
+    (spikes/events), it computes firing rates (Hz). For continuous data (analog signals),
+    it computes event-triggered averages.
+
+    Parameters
+    ----------
+    data : nelpy object or np.ndarray
+        Data can be:
+        - AnalogSignalArray: continuous signals
+        - PositionArray: 2D/3D position data (x, y, [z] coordinates)
+        - SpikeTrainArray: spike trains
+        - BinnedSpikeTrainArray: binned spike trains
+        - EventArray: event times
+        - BinnedEventArray: binned events
+        - np.ndarray: array of spike times (object array) or continuous signal
+    events : np.ndarray
+        1D array of event times to align data to.
+    window : list, optional
+        Time window around events [start, end] in seconds.
+        If None, uses symmetric window based on n_bins and bin_width.
+    bin_width : float, optional
+        Width of time bins in seconds (default 0.002).
+    n_bins : int, optional
+        Number of bins (default 100). Ignored if window is specified.
+    average : bool, optional
+        If True (default), returns averaged PETH across all events as DataFrame.
+        If False, returns event-wise PETH matrix and time bins array.
+
+    Returns
+    -------
+    pd.DataFrame or Tuple[np.ndarray, np.ndarray]
+        If average=True:
+            DataFrame with time bins as index and each series/signal as columns.
+            Values are rates (Hz) for point process data or averaged
+            signal values for continuous data.
+        If average=False:
+            Tuple of (peth_matrix, time_bins) where:
+            - peth_matrix: 3D array with shape (n_time_bins, n_signals, n_events)
+            - time_bins: 1D array of time bin centers
+
+    Examples
+    --------
+    >>> # With SpikeTrainArray - averaged across events
+    >>> st, _ = loading.load_spikes(basepath)
+    >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
+    >>> peth_df = peth(st, ripples.starts, window=[-0.5, 0.5], bin_width=0.01)
+
+    >>> # Get event-wise matrix for detailed analysis
+    >>> peth_matrix, time_bins = peth(st, ripples.starts, window=[-0.5, 0.5],
+    ...                               bin_width=0.01, average=False)
+    >>> # peth_matrix.shape: (n_time_bins, n_units, n_events)
+    >>> # Can now analyze individual events
+    >>> strong_events = peth_matrix.sum(axis=(0,1)) > threshold
+
+    >>> # With AnalogSignalArray
+    >>> import numpy as np
+    >>> from nelpy import AnalogSignalArray
+    >>> timestamps = np.linspace(0, 5, 100)
+    >>> signal = np.vstack([
+    ...     np.sin(2 * np.pi * timestamps),
+    ...     np.cos(2 * np.pi * timestamps),
+    ... ])
+    >>> lfp = AnalogSignalArray(timestamps=timestamps, data=signal)
+    >>> events = np.array([1.0, 2.0, 3.0])
+    >>> peth_df = peth(lfp, events, window=[-0.2, 0.2])
+
+    >>> # Get event-wise continuous data
+    >>> lfp_matrix, time_lags = peth(lfp, events, window=[-0.2, 0.2], average=False)
+
+    >>> # With PositionArray
+    >>> from nelpy import PositionArray
+    >>> x_pos = np.sin(2 * np.pi * timestamps)
+    >>> y_pos = np.cos(2 * np.pi * timestamps)
+    >>> position = PositionArray(timestamps=timestamps, data=np.vstack([x_pos, y_pos]))
+    >>> peth_df = peth(position, events, window=[-0.5, 0.5])
+
+    >>> # With numpy array
+    >>> spikes = np.array([spike_train_1, spike_train_2], dtype=object)
+    >>> peth_df = peth(spikes, events, window=[-0.5, 0.5])
+
+    Notes
+    -----
+    - For point process data (spikes/events), uses crossCorr to compute firing rates
+    - For continuous data (analog signals), uses event_triggered_average
+        - For continuous data, output resolution follows the signal sampling rate;
+            `bin_width` is ignored unless you resample beforehand
+        - For numpy/object arrays of spike times, each spike train must be sorted in
+            ascending order (crossCorr assumes sorted targets)
+    - Returns rates in Hz for point process data
+    - Handles both regular and irregularly sampled continuous data
+
+    See Also
+    --------
+    compute_psth : Lower-level PSTH computation for numpy arrays
+    event_triggered_average : Event-triggered averaging for continuous signals
+    crossCorr : Cross-correlogram computation
+    """
+
+    # Determine data type and extract spike/signal data
+    is_continuous = False
+
+    if isinstance(
+        data,
+        (AnalogSignalArray, PositionArray, BinnedSpikeTrainArray, BinnedEventArray),
+    ):
+        # Continuous signal data (includes position and binned spike/event data)
+        is_continuous = True
+
+        # Use bin_centers for binned data, abscissa_vals for others
+        if isinstance(data, (BinnedSpikeTrainArray, BinnedEventArray)):
+            timestamps = data.bin_centers
+        else:
+            timestamps = data.abscissa_vals
+
+        signal = data.data.T  # transpose to (n_samples, n_signals)
+        # Use n_signals if available (AnalogSignalArray/PositionArray), otherwise n_series (BinnedSpikeTrainArray)
+        n_series = getattr(
+            data, "n_series", getattr(data, "n_signals", data.data.shape[0])
+        )
+
+    elif isinstance(data, (SpikeTrainArray, EventArray)):
+        # Point process data - extract spike times
+        is_continuous = False
+        spike_data = data.data
+        n_series = len(spike_data)
+
+    elif isinstance(data, np.ndarray):
+        # Numpy array - determine if continuous or point process
+        if data.dtype == object:
+            # Object array - assume point process
+            is_continuous = False
+            spike_data = data
+            n_series = len(spike_data)
+        else:
+            # Regular array - could be continuous or point process
+            # If 2D, assume continuous; if 1D, assume point process
+            if data.ndim == 2:
+                # Continuous data
+                is_continuous = True
+                # Need timestamps - if not provided, we can't use event_triggered_average
+                # Fall back to treating as point process
+                raise ValueError(
+                    "For continuous numpy arrays, please use AnalogSignalArray or provide "
+                    "timestamps separately via event_triggered_average function."
+                )
+            else:
+                # 1D array - single point process
+                is_continuous = False
+                spike_data = np.array([data], dtype=object)
+                n_series = 1
+    else:
+        raise TypeError(
+            f"Unsupported data type: {type(data)}. "
+            "Must be AnalogSignalArray, PositionArray, SpikeTrainArray, BinnedSpikeTrainArray, "
+            "EventArray, BinnedEventArray, or np.ndarray"
+        )
+
+    # Calculate time bins
+    window_original = None
+    if window is not None:
+        # Check if window is symmetric around 0, if not make it so
+        if ((window[1] - window[0]) / 2 != window[1]) | (
+            (window[1] - window[0]) / -2 != window[0]
+        ):
+            window_original = np.array(window)
+            window = [-np.max(np.abs(window)), np.max(np.abs(window))]
+
+        times = np.arange(window[0], window[1] + bin_width / 2, bin_width)
+        n_bins = len(times) - 1
+    else:
+        times = np.linspace(
+            -(n_bins * bin_width) / 2, (n_bins * bin_width) / 2, n_bins + 1
+        )
+
+    # Compute PETH based on data type
+    if is_continuous:
+        # Continuous data - use event_triggered_average
+        if window is None:
+            window = [times[0], times[-1]]
+
+        # Calculate sampling rate
+        sampling_rate = 1 / np.median(np.diff(timestamps))
+
+        # Compute event-triggered average
+        result, time_lags = event_triggered_average(
+            timestamps,
+            signal,
+            events,
+            sampling_rate=sampling_rate,
+            window=window,
+            return_average=average,
+            return_pandas=False,
+        )
+
+        if average:
+            # Create DataFrame from averaged result
+            peth_df = pd.DataFrame(result, index=time_lags, columns=np.arange(n_series))
+        else:
+            # Return matrix directly: (n_time_bins, n_signals, n_events)
+            # event_triggered_average already returns in the correct shape
+            return result, time_lags
+
+    else:
+        # Point process data
+        if average:
+            # Use crossCorr for averaged PETH
+            peth_df = pd.DataFrame(index=times, columns=np.arange(n_series))
+
+            for i, s in enumerate(spike_data):
+                # Ensure spike times are float64
+                if len(s) > 0:
+                    s = np.asarray(s, dtype=np.float64)
+                else:
+                    s = np.array([], dtype=np.float64)
+                peth_df[i] = crossCorr(events, s, bin_width, n_bins)
+        else:
+            # Use peth_matrix for event-wise PETH
+            # Build matrix for each spike train: (n_time_bins, n_signals, n_events)
+            matrices_list = []
+            window_arg = None if window is None else (window[0], window[1])
+
+            for i, s in enumerate(spike_data):
+                # Ensure spike times are float64
+                if len(s) > 0:
+                    s = np.asarray(s, dtype=np.float64)
+                else:
+                    s = np.array([], dtype=np.float64)
+
+                # peth_matrix returns (n_time_bins, n_events)
+                H, t = peth_matrix(
+                    s, events, bin_width=bin_width, n_bins=n_bins, window=window_arg
+                )
+                matrices_list.append(H)
+
+            # Stack into (n_time_bins, n_signals, n_events)
+            result_matrix = np.stack(matrices_list, axis=1)
+
+            # If window was not symmetric, trim the time dimension
+            if window is not None and window_original is not None:
+                mask = (t >= window_original[0]) & (t <= window_original[1])
+                result_matrix = result_matrix[mask, :, :]
+                t = t[mask]
+
+            return result_matrix, t
+
+    # If window was not symmetric, remove the extra bins (only for averaged DataFrame)
+    if average and window is not None and window_original is not None:
+        peth_df = peth_df.loc[window_original[0] : window_original[1], :]
+
+    return peth_df
 
 
 def count_in_interval(

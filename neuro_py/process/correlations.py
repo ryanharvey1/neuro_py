@@ -40,8 +40,10 @@ def compute_AutoCorrs(
     for i, s in enumerate(spks):
         if len(s) == 0:
             continue
+        # Explicitly convert to float64 array to ensure proper typing for numba jit
+        s_arr = np.asarray(s, dtype=np.float64)
         # Calling the crossCorr function
-        autocorrs[i] = crossCorr(s, s, binsize, nbins)
+        autocorrs[i] = crossCorr(s_arr, s_arr, binsize, nbins)
 
     # And don't forget to replace the 0 ms for 0
     autocorrs.loc[0] = 0.0
@@ -152,12 +154,18 @@ def pairwise_cross_corr(
 
     def compute_crosscorr(pair):
         i, j = pair
-        crosscorr = crossCorr(spks[i], spks[j], binsize, nbins)
+        # Explicitly convert to float64 arrays to ensure proper typing for numba jit
+        spk_i = np.asarray(spks[i], dtype=np.float64)
+        spk_j = np.asarray(spks[j], dtype=np.float64)
+        crosscorr = crossCorr(spk_i, spk_j, binsize, nbins)
         return crosscorr
 
     def compute_crosscorr_deconvolve(pair):
         i, j = pair
-        crosscorr, _ = deconvolve_peth(spks[i], spks[j], binsize, nbins)
+        # Explicitly convert to float64 arrays to ensure proper typing for numba jit
+        spk_i = np.asarray(spks[i], dtype=np.float64)
+        spk_j = np.asarray(spks[j], dtype=np.float64)
+        crosscorr, _ = deconvolve_peth(spk_i, spk_j, binsize, nbins)
         return crosscorr
 
     if deconvolve:
