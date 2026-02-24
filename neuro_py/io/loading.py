@@ -2309,7 +2309,7 @@ def load_manipulation(
 
     Examples
     -------
-    >>> basepath = r"Z:/Data/Can/OML22/day8"
+    >>> basepath = "Z:/Data/Can/OML22/day8"
     >>> df_manipulation = load_manipulation(basepath, struct_name="optoStim", return_epoch_array=False)
     >>> df_manipulation.head(2)
 

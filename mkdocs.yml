@@ -7,6 +7,7 @@ extra_css:
 extra_javascript:
   - javascripts/extra.js
 theme:
+  name: material
   palette:
     - media: (prefers-color-scheme)
       toggle:
