@@ -96,5 +96,6 @@ nav:
   - Explained Variance: tutorials/explained_variance.ipynb
   - Neural Decoding: tutorials/decoding.ipynb
   - Neural Geodynamics: tutorials/neural_geodynamics.ipynb
+  - PETH: tutorials/peth_tutorial.ipynb
   - Reactivation: tutorials/reactivation.ipynb
   - Spatial Map: tutorials/spatial_map.ipynb
