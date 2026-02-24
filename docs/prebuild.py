@@ -614,9 +614,12 @@ def update_nav(ref_nav: list) -> None:
     # Find and replace the nav section in the file text
     import re
 
-    # Match from "nav:" at the start of a line to the next top-level key or EOF
+    # Match "nav:" and every following line that is either blank, starts with
+    # "- " (top-level entry), or starts with whitespace (nested entries).
+    # Stops at the first non-blank, non-indented, non-"- " line (i.e. the
+    # next top-level YAML key) or EOF.
     nav_pattern = re.compile(
-        r"^nav:\s*\n(?:[ \t]+-.*\n|[ \t]+\S.*\n)*",
+        r"^nav:\s*\n(?:[ \t]*-.*\n|[ \t]+\S.*\n|\s*\n)*",
         re.MULTILINE,
     )
     match = nav_pattern.search(text)
