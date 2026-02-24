@@ -170,7 +170,7 @@ def remove_inactive_cells(
     >>> from neuro_py.process.utils import remove_inactive_cells
 
     >>> # load data from session
-    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+    >>> basepath = "Z:/Data/hpc_ctx_project/HP04/day_1_20240320"
 
     >>> # load spikes and cell metrics (cm)
     >>> st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")
@@ -327,7 +327,7 @@ def remove_inactive_cells_pre_task_post(
     >>> mport nelpy as nel
 
     >>> # load data from session
-    >>> basepath = r"Z:\Data\hpc_ctx_project\HP04\day_1_20240320"
+    >>> basepath = "Z:/Data/hpc_ctx_project/HP04/day_1_20240320"
 
     >>> # load spikes and cell metrics (cm)
     >>> st, cm = loading.load_spikes(basepath, brainRegion="CA1", putativeCellType="Pyr")

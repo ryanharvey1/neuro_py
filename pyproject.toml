@@ -10,14 +10,14 @@ readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Ryan Harvey", email = "ryanh412@gmail.com" }]
 keywords = ["electrophysiology", "neuroscience", "data analysis"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "numpy>=1.23.0",
@@ -36,7 +36,11 @@ dependencies = [
     "Bottleneck>=1.4.2",
     "tensorboard>=2.18.0",
     "lightning>=2.4.0",
-    "h5py>=3.13.0"
+    "h5py>=3.13.0",
+    "decorator>=4.4.2",
+    # Conditional dependency for Python < 3.11
+    "tomli>=2.4.0; python_version < '3.11'",
+    "PyYAML>=6.0"
 ]
 
 [project.optional-dependencies]
@@ -48,30 +52,18 @@ csd = [
 ]
 # For documentation generation
 docs = [
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.5.34",
+    "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "mkdocs-gen-files>=0.5.0",
-    "mkdocs-literate-nav>=0.6.1",
-    "mkdocs-section-index>=0.3.9",
-    "mkdocs-include-markdown-plugin>=6.2.2",
-    "mkdocs-jupyter>=0.24.8",
-    "mkdocs-minify-plugin>=0.8.0"
+    "nbconvert>=7.0.0"
 ]
 # An "all" group that combines all optional groups
 all = [
     "elephant>=1.1.0",
     "neo>=0.13.3",
     "quantities>=0.15.0",
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.5.34",
+    "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "mkdocs-gen-files>=0.5.0",
-    "mkdocs-literate-nav>=0.6.1",
-    "mkdocs-section-index>=0.3.9",
-    "mkdocs-include-markdown-plugin>=6.2.2",
-    "mkdocs-jupyter>=0.24.8",
-    "mkdocs-minify-plugin>=0.8.0"
+    "nbconvert>=7.0.0"
 ]
 
 [project.urls]

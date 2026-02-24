@@ -223,7 +223,7 @@ def joint_peth(
 
     >>> # load ripples, delta waves, and PFC pyramidal cell spikes from basepath
 
-    >>> basepath = r"Z:\\Data\\HMC1\\day8"
+    >>> basepath = "Z:/Data/HMC1/day8"
 
     >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=True)
     >>> delta_waves = loading.load_events(basepath, epoch_name="deltaWaves")
@@ -632,7 +632,7 @@ def sync(
 
     Real-world example with spike times and ripple events:
 
-    >>> basepath = r"U:\data\hpc_ctx_project\HP17\hp17_day48_20250603"
+    >>> basepath = "U:/data/hpc_ctx_project/HP17/hp17_day48_20250603"
     >>> st, cm = npy.io.load_spikes(basepath, brainRegion="CA1")
     >>> ripples = npy.io.load_ripples_events(basepath, return_epoch_array=True)
     >>> sleep_states = npy.io.load_SleepState_states(basepath, return_epoch_array=True)
@@ -1815,7 +1815,7 @@ def event_spiking_threshold(
 
     Examples
     -------
-    >>> basepath = r"U:\\data\\hpc_ctx_project\\HP04\\day_32_20240430"
+    >>> basepath = "U:/data/hpc_ctx_project/HP04/day_32_20240430"
     >>> ripples = loading.load_ripples_events(basepath, return_epoch_array=False)
     >>> st, cell_metrics = loading.load_spikes(
             basepath,

@@ -353,7 +353,7 @@ def event_triggered_wavelet(
     -------
     >>> from neuro_py.lfp.spectral import event_triggered_wavelet
 
-    >>> basepath = r"Z:\\Data\\hpc_ctx_project\\HP04\\day_34_20240503"
+    >>> basepath = "Z:/Data/hpc_ctx_project/HP04/day_34_20240503"
 
     >>> # load lfp
     >>> nChannels, fs, _, _ = loading.loadXML(basepath)

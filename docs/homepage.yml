@@ -1,0 +1,144 @@
+# Module metadata for the docs homepage.
+# Icons use Material Design icons (https://pictogrammers.com/library/mdi/).
+# Descriptions are short summaries shown on the landing page cards.
+# Only modules listed here appear on the homepage; order determines display order.
+
+modules:
+  behavior:
+    icon: material-routes
+    description: >-
+      Track and linearize animal positions, classify well traversals,
+      and compute kinematics from freely moving recordings.
+
+  ensemble:
+    icon: material-brain
+    description: >-
+      Detect neural assemblies, measure reactivation, compute explained
+      variance, decode position, and analyze replay events.
+
+  lfp:
+    icon: material-sine-wave
+    description: >-
+      Spectral analysis, current source density (CSD), theta cycle
+      detection, and LFP preprocessing pipelines.
+
+  process:
+    icon: material-timer-outline
+    description: >-
+      Peri-event time histograms, cross-correlations, interval
+      manipulation, batch analysis, and signal utilities.
+
+  spikes:
+    icon: material-lightning-bolt
+    description: >-
+      Spike train tools for computing firing rates, burst detection,
+      and other single-unit analysis utilities.
+
+  tuning:
+    icon: material-chart-scatter-plot
+    description: >-
+      Spatial tuning maps, place field detection, and receptive field
+      analysis for spatial coding studies.
+
+  detectors:
+    icon: material-magnify-scan
+    description: >-
+      Automated detection of dentate spikes, UP/DOWN states, and other
+      electrophysiological events.
+
+  stats:
+    icon: material-chart-bell-curve
+    description: >-
+      Circular statistics, regression models, system identification,
+      and statistical testing utilities.
+
+  plotting:
+    icon: material-chart-line
+    description: >-
+      Publication-ready figure helpers, event raster plots, and
+      plotting decorators for consistent styling.
+
+  io:
+    icon: material-database
+    description: >-
+      Load and save electrophysiology data — spikes, LFP, epochs,
+      ripples, sleep states, and CellExplorer formats.
+
+  raw:
+    icon: material-chip
+    description: >-
+      Raw data preprocessing, spike sorting progress tracking,
+      and Phy log parsing utilities.
+
+  session:
+    icon: material-calendar-clock
+    description: >-
+      Locate behavioral epochs, identify pre/task/post structure,
+      and manage recording session metadata.
+
+# Tutorial metadata — icon and display title override.
+# Key must match the notebook filename (without .ipynb).
+# Tutorials not listed here use auto-generated titles and a default icon.
+
+tutorials:
+  spatial_map:
+    icon: material-map-marker-path
+    title: Spatial Maps
+    description: Build place fields and spatial tuning curves from freely moving data.
+
+  peth_tutorial:
+    icon: material-chart-timeline-variant
+    title: Peri-Event Analysis
+    description: Align neural activity to behavioral events with PETHs.
+
+  reactivation:
+    icon: material-reload
+    title: Reactivation
+    description: Detect and quantify neural assembly reactivation during sleep.
+
+  explained_variance:
+    icon: material-percent-outline
+    title: Explained Variance
+    description: Measure how much sleep activity is explained by prior experience.
+
+  bias_correlation:
+    icon: material-swap-horizontal
+    title: Bias Correlation
+    description: Compute pairwise bias correlations across behavioral epochs.
+
+  decoding:
+    icon: material-head-cog
+    title: Decoding
+    description: Decode position and variables from neural population activity.
+
+  batch_analysis:
+    icon: material-layers-triple
+    title: Batch Analysis
+    description: Run analyses across multiple sessions with parallel batch tools.
+
+  attractor_landscape:
+    icon: material-orbit
+    title: Attractor Landscape
+    description: Visualize neural attractor dynamics and energy landscapes.
+
+  neural_geodynamics:
+    icon: material-earth
+    title: Neural Geodynamics
+    description: Explore geometric dynamics of neural population activity.
+
+# Map dependency package names to Material icons for the "Built With" grid.
+# Only deps listed here are shown; unlisted deps are skipped.
+
+dep_icons:
+  numpy: material-math-integral-box
+  scipy: material-function-variant
+  matplotlib: material-chart-line
+  scikit-learn: material-robot
+  pandas: material-table-large
+  numba: material-speedometer
+  seaborn: material-palette
+  nelpy: material-brain
+  lightning: material-lightning-bolt
+  h5py: material-file-document
+  PyWavelets: material-wave
+  tqdm: material-progress-clock

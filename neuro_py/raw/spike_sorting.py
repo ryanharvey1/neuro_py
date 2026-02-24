@@ -31,7 +31,7 @@ def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
     Examples
     --------
     >>> import neuro_py as npy
-    >>> npy.raw.spike_sorting_progress(r"D:\KiloSort\hp18_day12_20250416\Kilosort_2025-04-17_161532\cluster_info.tsv")
+    >>> npy.raw.spike_sorting_progress("D:/KiloSort/hp18_day12_20250416/Kilosort_2025-04-17_161532/cluster_info.tsv")
 
     Notes
     ------
@@ -226,7 +226,7 @@ def phy_log_to_epocharray(filename: str, merge_gap: float = 30):
     Examples
     --------
     >>> import neuro_py as npy
-    >>> filename = r"D:\KiloSort\HP18\hp18_day11_20250415\Kilosort_2025-04-16_224949\phy.log"
+    >>> filename = "D:/KiloSort/HP18/hp18_day11_20250415/Kilosort_2025-04-16_224949/phy.log"
     >>> timestamps = npy.raw.phy_log_to_epocharray(filename)
     >>> timestamps
     <EpochArray at 0x1f6c7da5710: 80 epochs> of length 4:02:01:591 hours

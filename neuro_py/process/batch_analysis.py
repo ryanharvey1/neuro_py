@@ -33,8 +33,8 @@ def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle")
 
     Examples
     -------
-    >>> basepath = r"Z:\\Data\\AYAold\\AB3\\AB3_38_41"
-    >>> save_path = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23"
+    >>> basepath = "Z:/Data/AYAold/AB3/AB3_38_41"
+    >>> save_path = "Z:/home/ryanh/projects/ripple_heterogeneity/replay_02_17_23"
     >>> encode_file_path(basepath, save_path)
     "Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     """
@@ -69,9 +69,9 @@ def decode_file_path(save_file: str) -> str:
 
     Examples
     -------
-    >>> save_file = r"Z:\\home\\ryanh\\projects\\ripple_heterogeneity\\replay_02_17_23\\Z---___Data___AYAold___AB3___AB3_38_41.pkl"
+    >>> save_file = "Z:/home/ryanh/projects/ripple_heterogeneity/replay_02_17_23/Z---___Data___AYAold___AB3___AB3_38_41.pkl"
     >>> decode_file_path(save_file)
-    "Z:\\Data\\AYAold\\AB3\\AB3_38_41"
+    "Z:/Data/AYAold/AB3/AB3_38_41"
     """
 
     # get basepath from save_file
