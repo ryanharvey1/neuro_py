@@ -10,7 +10,7 @@ Run this before `zensical build`:
 Generated outputs:
     docs/reference/   - API reference markdown pages (from neuro_py source)
     docs/tutorials/   - Tutorial markdown files (converted from .ipynb)
-    docs/index.md     - Homepage (copied from README.md)
+    docs/index.md     - Homepage (synthesized from selected README.md sections and homepage.yml)
     mkdocs.yml        - Nav section updated with full reference tree
 """
 
