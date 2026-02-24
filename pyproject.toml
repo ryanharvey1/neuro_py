@@ -37,6 +37,7 @@ dependencies = [
     "tensorboard>=2.18.0",
     "lightning>=2.4.0",
     "h5py>=3.13.0",
+    "decorator>=4.4.2",
     # Conditional dependency for Python < 3.11
     "tomli>=2.4.0; python_version < '3.11'",
     "PyYAML>=6.0"
