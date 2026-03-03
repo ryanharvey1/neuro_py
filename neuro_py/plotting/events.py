@@ -169,7 +169,10 @@ def plot_peth(
         lineplot_ax = sns.lineplot(data=peth_long, x="index", y="peth", ax=ax, **kwargs)
 
     ax.set_xlabel("Time (s)")
-    sns.despine(ax=ax)
+    try:
+        sns.despine(ax=ax)
+    except Exception:
+        pass
     return lineplot_ax
 
 
@@ -283,5 +286,8 @@ def plot_peth_fast(
         upper = np.percentile(boot_stats, 100 * (1 + ci) / 2, axis=0)
     ax.fill_between(peth.index, lower, upper, alpha=alpha, **kwargs)
     ax.set_xlabel("Time (s)")
-    sns.despine(ax=ax)
+    try:
+        sns.despine(ax=ax)
+    except Exception:
+        pass
     return ax
