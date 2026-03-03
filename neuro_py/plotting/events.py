@@ -171,7 +171,9 @@ def plot_peth(
     ax.set_xlabel("Time (s)")
     try:
         sns.despine(ax=ax)
-    except Exception:
+    except (AttributeError, KeyError):
+        # Some non-standard axes (e.g., certain GridSpec-based axes) may not expose
+        # the spine mapping expected by seaborn.despine.
         pass
     return lineplot_ax
 
@@ -288,6 +290,8 @@ def plot_peth_fast(
     ax.set_xlabel("Time (s)")
     try:
         sns.despine(ax=ax)
-    except Exception:
+    except (AttributeError, KeyError):
+        # Some non-standard axes (e.g., certain GridSpec-based axes) may not expose
+        # the spine mapping expected by seaborn.despine.
         pass
     return ax
