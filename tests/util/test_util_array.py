@@ -1,12 +1,14 @@
 import unittest
 
 import numpy as np
+import pandas as pd
 
 from neuro_py.util.array import (
     circular_interp,
     find_terminal_masked_indices,
     replace_border_zeros_with_nan,
     shrink,
+    zscore_columns,
 )
 
 
@@ -338,3 +340,64 @@ def test_shrink_single_element_blocks():
     mat = np.random.rand(5, 7)
     shrunk = shrink(mat, 1, 1)
     np.testing.assert_allclose(mat, shrunk)
+
+
+def test_zscore_columns_mean_std():
+    """Each column should have mean 0 and std 1."""
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3, 4, 5],
+            "b": [10, 20, 30, 40, 50],
+        }
+    )
+
+    z = zscore_columns(df, ddof=0)
+
+    # Means should be ~0
+    assert np.allclose(z.mean(axis=0), 0.0)
+
+    # Std should be ~1
+    assert np.allclose(z.std(axis=0, ddof=0), 1.0)
+
+
+def test_zscore_preserves_structure():
+    """Index and columns should be preserved."""
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        index=["t1", "t2", "t3", "t4", "t5"],
+        columns=["unit1", "unit2", "unit3"],
+    )
+
+    z = zscore_columns(df)
+
+    assert list(z.index) == list(df.index)
+    assert list(z.columns) == list(df.columns)
+    assert z.shape == df.shape
+
+
+def test_zscore_does_not_modify_input():
+    """Original dataframe should not be modified."""
+    df = pd.DataFrame(np.random.randn(5, 2))
+    df_copy = df.copy()
+
+    _ = zscore_columns(df)
+
+    pd.testing.assert_frame_equal(df, df_copy)
+
+
+def test_zscore_zero_variance_column():
+    """Columns with zero variance should become NaN."""
+    df = pd.DataFrame(
+        {
+            "constant": [1, 1, 1, 1],
+            "varying": [1, 2, 3, 4],
+        }
+    )
+
+    z = zscore_columns(df, ddof=0)
+
+    # Constant column should be all NaN
+    assert z["constant"].isna().all()
+
+    # Varying column should have mean 0
+    assert np.isclose(z["varying"].mean(), 0.0)

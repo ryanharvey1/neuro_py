@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 
 
 def find_terminal_masked_indices(
@@ -318,3 +319,73 @@ def shrink(matrix: np.ndarray, row_bin_size: int, column_bin_size: int) -> np.nd
     )
 
     return shrunk
+
+
+def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
+    """
+    Z-score each column of a DataFrame.
+
+    Each column is normalized independently by subtracting its mean
+    and dividing by its standard deviation:
+
+        z = (x - mean) / std
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input data. Z-scoring is performed independently for each column.
+    ddof : int, optional
+        Delta degrees of freedom used when computing the standard deviation.
+        The divisor used is ``N - ddof``. Default is 0 (population standard deviation).
+
+    Returns
+    -------
+    pandas.DataFrame
+        A new DataFrame with each column z-scored. The index and columns
+        are preserved.
+
+    Notes
+    -----
+    - Columns with zero variance will result in NaN values.
+    - The input DataFrame is not modified.
+
+    Examples
+    --------
+    Basic usage:
+
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({
+    ...     "a": [1, 2, 3],
+    ...     "b": [10, 20, 30],
+    ... })
+    >>> z = zscore_columns(df, ddof=0)
+    >>> z.round(3)
+           a      b
+    0 -1.225 -1.225
+    1  0.000  0.000
+    2  1.225  1.225
+
+    Means are approximately zero:
+
+    >>> z.mean().round(6)
+    a    0.0
+    b    0.0
+    dtype: float64
+
+    Standard deviations are approximately one:
+
+    >>> z.std(ddof=0).round(6)
+    a    1.0
+    b    1.0
+    dtype: float64
+
+    Zero-variance columns produce NaNs:
+
+    >>> df = pd.DataFrame({"constant": [1, 1, 1]})
+    >>> zscore_columns(df)
+       constant
+    0       NaN
+    1       NaN
+    2       NaN
+    """
+    return (df - df.mean(axis=0)) / df.std(axis=0, ddof=ddof)
