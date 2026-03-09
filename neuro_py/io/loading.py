@@ -186,7 +186,7 @@ def loadLFP(
             return data, timestep
 
 
-class LFPLoader(object):
+class LFPLoader(nel.AnalogSignalArray):
     """
     Simple class to load LFP or wideband data from a recording folder.
 
@@ -239,26 +239,29 @@ class LFPLoader(object):
         # get xml data
         self.get_xml_data()
 
-        # set sampling rate based on the extension of the file (lfp or dat)
-        if self.ext == "dat":
-            self.fs = self.fs_dat
-
         # load lfp
         self.load_lfp()
+
+    @property
+    def lfp(self) -> "LFPLoader":
+        """Backward-compatible alias so existing code can keep using loader.lfp."""
+        return self
 
     def get_xml_data(self) -> None:
         nChannels, fs, fs_dat, shank_to_channel = loadXML(self.basepath)
         self.nChannels = nChannels
-        self.fs = fs
+        self.fs_lfp = fs
         self.fs_dat = fs_dat
         self.shank_to_channel = shank_to_channel
 
     def load_lfp(self) -> None:
+        fs = self.fs_dat if self.ext == "dat" else self.fs_lfp
+
         lfp, timestep = loadLFP(
             self.basepath,
             n_channels=self.nChannels,
             channel=self.channels,
-            frequency=self.fs,
+            frequency=fs,
             ext=self.ext,
         )
 
@@ -269,30 +272,37 @@ class LFPLoader(object):
             if intervals.ndim == 1:
                 intervals = intervals[np.newaxis, :]
         else:
-            intervals = np.array([0, timestep.shape[0] / self.fs])[np.newaxis, :]
+            intervals = np.array([timestep[0], timestep[-1]])[np.newaxis, :]
 
         idx = in_intervals(timestep, intervals)
 
         # if loading all, don't index as to preserve memmap
         if idx.all():
-            self.lfp = nel.AnalogSignalArray(
-                data=lfp.T,
-                timestamps=timestep,
-                fs=self.fs,
-                support=nel.EpochArray(intervals),
-            )
+            selected = lfp
+            timestamps = timestep
+            support = nel.EpochArray(intervals)
         else:
-            self.lfp = nel.AnalogSignalArray(
-                data=lfp[idx, None].T,
-                timestamps=timestep[idx],
-                fs=self.fs,
-                support=nel.EpochArray(
-                    np.array([min(timestep[idx]), max(timestep[idx])])
-                ),
+            selected = lfp[idx]
+            timestamps = timestep[idx]
+            support = nel.EpochArray(
+                np.array([[min(timestep[idx]), max(timestep[idx])]])
             )
 
-    def __repr__(self) -> None:
-        return self.lfp.__repr__()
+        # Normalize to (n_samples, n_signals) so both 1-channel and multi-channel
+        # selections initialize AnalogSignalArray consistently.
+        if np.ndim(selected) == 1:
+            selected = selected[:, np.newaxis]
+        data = selected.T
+
+        super().__init__(
+            data=data,
+            timestamps=timestamps,
+            fs=fs,
+            support=support,
+        )
+
+    def __repr__(self) -> str:
+        return super().__repr__()
 
     def get_phase(self, band2filter: list = [6, 12], ford: int = 3) -> np.ndarray:
         """
@@ -312,7 +322,7 @@ class LFPLoader(object):
         """
         band2filter = np.array(band2filter, dtype=float)
         b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-        filt_sig = signal.filtfilt(b, a, self.lfp.data, padtype="odd")
+        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
         return np.angle(signal.hilbert(filt_sig))
 
     def get_freq_phase_amp(
@@ -348,7 +358,7 @@ class LFPLoader(object):
 
         b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
 
-        filt_sig = signal.filtfilt(b, a, self.lfp.data, padtype="odd")
+        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
         phase = np.angle(signal.hilbert(filt_sig))
         amplitude = np.abs(signal.hilbert(filt_sig))
         amplitude_filtered = signal.filtfilt(b, a, amplitude, padtype="odd")
@@ -360,7 +370,7 @@ class LFPLoader(object):
         )
 
         # Calculate the derivative of the unwrapped phase to get frequency
-        dt = np.diff(self.lfp.abscissa_vals)
+        dt = np.diff(self.abscissa_vals)
         if np.allclose(dt, dt[0]):  # Check if sampling is uniform
             dt = dt[0]  # Use a single scalar for uniform sampling
         else:
