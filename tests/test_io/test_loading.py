@@ -2614,7 +2614,7 @@ def test_load_lfp_method():
     loader.basepath = "dummy"
     loader.nChannels = 2
     loader.channels = None
-    loader.fs = 1250.0
+    loader.fs_lfp = 1250.0
     loader.ext = "lfp"
     loader.epoch = np.array([0.0, 3.0])
 
@@ -2650,6 +2650,162 @@ def test_LFPLoader_init_loads_lfp():
     assert loader.lfp.abscissa_vals.shape[0] == 4
 
 
+def test_LFPLoader_dat_uses_fs_dat():
+    """Test LFPLoader uses fs_dat when ext='dat'."""
+    lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ) as mock_load_lfp,
+    ):
+        LFPLoader("dummy", channels=None, ext="dat", epoch=np.array([0.0, 3.0]))
+
+    assert mock_load_lfp.call_args.kwargs["frequency"] == 20000.0
+
+
+def test_LFPLoader_lfp_alias_returns_self():
+    """Test LFPLoader.lfp remains a backward-compatible alias to self."""
+    lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+
+    assert loader.lfp is loader
+    assert isinstance(loader, nel.AnalogSignalArray)
+
+
+def test_LFPLoader_epoch_restricts_time_support():
+    """Test LFPLoader applies epoch restriction to loaded timestamps."""
+    lfp_data = np.array(
+        [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]], dtype=np.int16
+    )
+    timestep = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp", epoch=np.array([1.0, 3.0]))
+
+    assert loader.abscissa_vals.min() >= 1.0
+    assert loader.abscissa_vals.max() <= 3.0
+
+
+def test_LFPLoader_get_freq_phase_amp_shapes():
+    """Test LFPLoader.get_freq_phase_amp output shapes match input signal shape."""
+    n_samples = 200
+    t = np.arange(n_samples) / 1250.0
+    sig_a = np.sin(2 * np.pi * 8 * t)
+    sig_b = np.cos(2 * np.pi * 8 * t)
+    lfp_data = np.vstack([sig_a, sig_b]).T.astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, t),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+
+    filt_sig, phase, amplitude, amplitude_filtered, frequency = loader.get_freq_phase_amp(
+        band2filter=[6, 12], ford=3, kernel_size=5
+    )
+
+    expected_shape = loader.data.shape
+    assert filt_sig.shape == expected_shape
+    assert phase.shape == expected_shape
+    assert amplitude.shape == expected_shape
+    assert amplitude_filtered.shape == expected_shape
+    assert frequency.shape == expected_shape
+
+
+def test_LFPLoader_single_channel_selection_returns_one_signal():
+    """Test LFPLoader with channels=int returns one signal with preserved time axis."""
+    lfp_data = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, timestep)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    assert isinstance(loader, nel.AnalogSignalArray)
+    assert loader.data.shape == (1, 4)
+    assert loader.abscissa_vals.shape[0] == 4
+
+
+def test_LFPLoader_multi_channel_selection_returns_many_signals():
+    """Test LFPLoader with channels=list returns one row per selected channel."""
+    lfp_data = np.array(
+        [[1.0, 10.0], [2.0, 20.0], [3.0, 30.0], [4.0, 40.0]], dtype=np.float32
+    )
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, timestep)),
+    ):
+        loader = LFPLoader("dummy", channels=[0, 1], ext="lfp")
+
+    assert isinstance(loader, nel.AnalogSignalArray)
+    assert loader.data.shape == (2, 4)
+    assert np.allclose(loader.data[0], np.array([1.0, 2.0, 3.0, 4.0]))
+    assert np.allclose(loader.data[1], np.array([10.0, 20.0, 30.0, 40.0]))
+
+
+def test_LFPLoader_get_phase_single_channel_shape():
+    """Test LFPLoader.get_phase returns a 2D shape for single-channel data."""
+    n_samples = 300
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    phase = loader.get_phase(band2filter=[6, 12], ford=3)
+    assert phase.shape == (1, n_samples)
+
+
 def test_loadLFP_reads_binary_file():
     """Test loadLFP reads a binary lfp file and returns data and timestamps."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2673,6 +2829,30 @@ def test_loadLFP_reads_binary_file():
         if isinstance(lfp, np.memmap) and hasattr(lfp, "_mmap"):
             lfp._mmap.close()
         del lfp
+
+
+def test_loadLFP_reads_selected_channel_list():
+    """Test loadLFP with a list of channels returns selected columns only."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_lfp_ch")
+        os.makedirs(basepath, exist_ok=True)
+        basename = os.path.basename(basepath)
+
+        data = np.array(
+            [[1, 10, 100], [2, 20, 200], [3, 30, 300], [4, 40, 400]],
+            dtype=np.int16,
+        )
+        lfp_path = os.path.join(basepath, f"{basename}.lfp")
+        data.tofile(lfp_path)
+
+        lfp, timestep = loadLFP(
+            basepath, n_channels=3, channel=[0, 2], frequency=2.0, ext="lfp"
+        )
+
+        assert lfp.shape == (4, 2)
+        assert np.array_equal(lfp[:, 0], np.array([1, 2, 3, 4]))
+        assert np.array_equal(lfp[:, 1], np.array([100, 200, 300, 400]))
+        assert timestep.shape[0] == 4
 
 
 def test_loadXML_parses_basic_fields():
