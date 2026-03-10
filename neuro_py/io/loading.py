@@ -129,12 +129,19 @@ class VirtualConcatenatedDat:
             return np.array(False)
 
         if func is np.squeeze:
+            a = args[0]
             axis = kwargs.get("axis", None)
             if axis is None:
-                return self
-            raise ValueError(
-                "cannot select an axis to squeeze out which has size not equal to one"
-            )
+                if not any(s == 1 for s in a.shape):
+                    return a  # no singleton dims; nothing to squeeze
+            else:
+                norm_axis = int(axis) % len(a.shape)
+                if a.shape[norm_axis] != 1:
+                    raise ValueError(
+                        "cannot select an axis to squeeze out which has size not equal to one"
+                    )
+            # A genuine squeeze is needed; materialize and let NumPy handle it.
+            return np.squeeze(np.asarray(a))
 
         return NotImplemented
 
@@ -162,7 +169,7 @@ class VirtualConcatenatedDat:
 
     @property
     def T(self) -> "VirtualConcatenatedDatView":
-        """Lazy transpose view (n_channels, n_samples) that keeps data memmapped."""
+        """Lazy transpose view (n_channels, n_samples) that streams from disk via memmap slices without materializing the full recording."""
         return VirtualConcatenatedDatView(self)
 
     def __len__(self) -> int:
@@ -184,6 +191,13 @@ class VirtualConcatenatedDat:
                     f"Only step size 1 slices are supported for DAT fallback, got step={step}."
                 )
             return slice(start, stop, 1)
+        if isinstance(rows, (int, np.integer)):
+            idx = int(rows)
+            if idx < 0:
+                idx += self.total_samples
+            if idx < 0 or idx >= self.total_samples:
+                raise IndexError("Row index out of bounds for DAT fallback.")
+            return slice(idx, idx + 1, 1)
         arr = np.atleast_1d(np.asarray(rows))
         if arr.dtype == bool:
             arr = np.flatnonzero(arr)
@@ -203,6 +217,8 @@ class VirtualConcatenatedDat:
             return slice(None)
         if isinstance(cols, slice):
             return cols
+        if isinstance(cols, (int, np.integer)):
+            return int(cols)
         arr = np.asarray(cols)
         if arr.dtype == bool:
             arr = np.flatnonzero(arr)
@@ -261,6 +277,7 @@ class VirtualConcatenatedDat:
             row_idx, col_idx = idx
         else:
             row_idx, col_idx = idx, None
+        scalar_row = isinstance(row_idx, (int, np.integer))
         row_idx = self._normalize_rows(row_idx)
         col_idx = self._normalize_cols(col_idx)
 
@@ -275,8 +292,12 @@ class VirtualConcatenatedDat:
         if not blocks:
             return np.array([], dtype=self.dtype)
         if len(blocks) == 1:
-            return blocks[0]
-        return np.concatenate(blocks, axis=0)
+            result = blocks[0]
+        else:
+            result = np.concatenate(blocks, axis=0)
+        if scalar_row:
+            result = result[0]
+        return result
 
 
 class VirtualConcatenatedDatView:
@@ -317,12 +338,24 @@ class VirtualConcatenatedDatView:
         else:
             chan_idx, sample_idx = idx, slice(None)
 
+        scalar_chan = isinstance(chan_idx, (int, np.integer))
+        scalar_sample = isinstance(sample_idx, (int, np.integer))
+
         # In the underlying DAT, rows are samples and columns are channels.
         chan_idx = self._base.normalize_cols(chan_idx)
         sample_idx = self._base.normalize_rows(sample_idx)
 
         # Fetch requested samples/channels from base and transpose the result of that subset.
-        return self._base.__getitem__((sample_idx, chan_idx)).T
+        result = self._base.__getitem__((sample_idx, chan_idx)).T
+        # Restore NumPy scalar-index semantics: a scalar index should drop that dimension.
+        # scalar_chan: base's integer col index already drops the channel dim, so after .T
+        # the result is already 1-D (n_samples,) — no further action needed.
+        # scalar_sample: base returns (1, n_chans) → .T gives (n_chans, 1); drop last dim.
+        if scalar_sample and scalar_chan:
+            result = result[0]  # (1,) → scalar
+        elif scalar_sample:
+            result = result[..., 0]  # (n_chans, 1) → (n_chans,)
+        return result
 
     def __array__(self, dtype=None):
         """Materialize the full transposed array when NumPy requests a real ndarray."""
@@ -351,12 +384,19 @@ class VirtualConcatenatedDatView:
             return np.array(False)
 
         if func is np.squeeze:
+            a = args[0]
             axis = kwargs.get("axis", None)
             if axis is None:
-                return self
-            raise ValueError(
-                "cannot select an axis to squeeze out which has size not equal to one"
-            )
+                if not any(s == 1 for s in a.shape):
+                    return a  # no singleton dims; nothing to squeeze
+            else:
+                norm_axis = int(axis) % len(a.shape)
+                if a.shape[norm_axis] != 1:
+                    raise ValueError(
+                        "cannot select an axis to squeeze out which has size not equal to one"
+                    )
+            # A genuine squeeze is needed; materialize and let NumPy handle it.
+            return np.squeeze(np.asarray(a))
 
         return NotImplemented
 
