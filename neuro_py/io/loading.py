@@ -268,10 +268,7 @@ def _load_dat_from_epochs(
     if channel is None:
         return virtual_dat, timestamps
 
-    if isinstance(channel, list):
-        data = virtual_dat[:, channel]
-    else:
-        data = virtual_dat[:, channel]
+    data = virtual_dat[:, channel]
     return data, timestamps
 
 
