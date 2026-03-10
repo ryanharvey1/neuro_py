@@ -159,7 +159,7 @@ class VirtualConcatenatedDat:
 
     # Expose protected normalizers for related helper views.
     def normalize_rows(self, rows):
-        """Normalize sample indices for the underlying DAT (supports slices, arrays, bool masks)."""
+        """Public shim for sample-index normalization used by transpose helpers."""
         return self._normalize_rows(rows)
 
     def _normalize_cols(self, cols):
@@ -173,7 +173,7 @@ class VirtualConcatenatedDat:
         return arr
 
     def normalize_cols(self, cols):
-        """Normalize channel indices for the underlying DAT (supports slices, arrays, bool masks)."""
+        """Public shim for channel-index normalization used by transpose helpers."""
         return self._normalize_cols(cols)
 
     def _row_blocks(self, row_idx):
