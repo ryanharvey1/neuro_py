@@ -97,7 +97,7 @@ class VirtualConcatenatedDat:
     def shape(self) -> Tuple[int, int]:
         return self.total_samples, self.n_channels
 
-    def __len__(self) -> int:  # pragma: no cover - len delegates to total_samples
+    def __len__(self) -> int:  # pragma: no cover
         return self.total_samples
 
     @property
@@ -307,8 +307,6 @@ def loadLFP(
     If both .lfp and .eeg files are present, .lfp file is prioritized.
     If neither are present, returns None.
     """
-    dtype = np.dtype(precision)
-
     if filename is not None:
         path = os.path.join(basepath, filename)
     else:
@@ -319,6 +317,8 @@ def loadLFP(
                 path = os.path.join(basepath, os.path.basename(basepath) + ".eeg")
         if ext == "dat":
             path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
+
+    dtype = np.dtype(precision)
 
     # check if saved file exists
     if not os.path.exists(path):
