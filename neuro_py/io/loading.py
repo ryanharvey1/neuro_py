@@ -157,6 +157,10 @@ class VirtualConcatenatedDat:
             raise IndexError("Row indices out of bounds for DAT fallback.")
         return arr
 
+    # Expose protected normalizers for related helper views.
+    def normalize_rows(self, rows):
+        return self._normalize_rows(rows)
+
     def _normalize_cols(self, cols):
         if cols is None:
             return slice(None)
@@ -166,6 +170,9 @@ class VirtualConcatenatedDat:
         if arr.dtype == bool:
             arr = np.flatnonzero(arr)
         return arr
+
+    def normalize_cols(self, cols):
+        return self._normalize_cols(cols)
 
     def _row_blocks(self, row_idx):
         if isinstance(row_idx, slice):
@@ -254,15 +261,16 @@ class VirtualConcatenatedDatTranspose:
         if isinstance(idx, tuple):
             if len(idx) != 2:
                 raise IndexError(
-                    "VirtualConcatenatedDatTranspose expects (channels, samples) indexing."
+                    f"VirtualConcatenatedDatTranspose expects 2 indices "
+                    f"(channels, samples); received {len(idx)}."
                 )
             chan_idx, sample_idx = idx
         else:
             chan_idx, sample_idx = idx, slice(None)
 
         # In the underlying DAT, rows are samples and columns are channels.
-        chan_idx = self._base._normalize_cols(chan_idx)
-        sample_idx = self._base._normalize_rows(sample_idx)
+        chan_idx = self._base.normalize_cols(chan_idx)
+        sample_idx = self._base.normalize_rows(sample_idx)
 
         # Fetch requested samples/channels from base and transpose the result of that subset.
         return self._base.__getitem__((sample_idx, chan_idx)).T

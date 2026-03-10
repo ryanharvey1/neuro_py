@@ -2744,6 +2744,7 @@ def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
         def _mock_asarray(*args, **kwargs):
             nonlocal called
             called = True
+            raise AssertionError("Should not materialize via _asarray")
 
         monkeypatch.setattr(vdat, "_asarray", _mock_asarray)
 
