@@ -2987,7 +2987,7 @@ def test_loadLFP_dat_fallback_bad_file_size():
         os.makedirs(epoch_dir, exist_ok=True)
         amp_path = os.path.join(epoch_dir, "amplifier.dat")
         with open(amp_path, "wb") as f:
-            f.write(b"\x00\x01\x02")  # 3 bytes not divisible by 2*n_channels
+            f.write(b"\x00\x01\x02")  # 3 bytes not divisible by n_channels * bytes_per_sample
 
         with pytest.raises(ValueError, match="not divisible"):
             loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")

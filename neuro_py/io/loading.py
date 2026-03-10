@@ -97,7 +97,7 @@ class VirtualConcatenatedDat:
     def shape(self) -> Tuple[int, int]:
         return self.total_samples, self.n_channels
 
-    def __len__(self) -> int:  # pragma: no cover - len delegates to shape
+    def __len__(self) -> int:  # pragma: no cover - len delegates to total_samples
         return self.total_samples
 
     @property
@@ -235,8 +235,9 @@ def _resolve_epoch_segments(
     for idx, epoch in enumerate(epochs):
         if not isinstance(epoch, dict):
             raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
+        epoch_number = idx + 1
         epoch_name = epoch.get(
-            "name", f"epoch{idx+1}"
+            "name", f"epoch{epoch_number}"
         )  # default to 1-based epoch naming convention
         epoch_folder = os.path.join(basepath, str(epoch_name))
         amp_path = os.path.join(epoch_folder, "amplifier.dat")
