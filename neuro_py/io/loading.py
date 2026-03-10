@@ -112,7 +112,9 @@ class VirtualConcatenatedDat:
         if isinstance(rows, slice):
             start, stop, step = rows.indices(self.total_samples)
             if step not in (None, 1):
-                raise ValueError("Only step size 1 slices are supported for DAT fallback.")
+                raise ValueError(
+                    f"Only step size 1 slices are supported for DAT fallback, got step={step}."
+                )
             return slice(start, stop, 1)
         arr = np.atleast_1d(np.asarray(rows))
         if arr.dtype == bool:
@@ -208,7 +210,9 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
         epoch_list = [epochs]
     else:
         epoch_list = [
-            ep for ep in np.atleast_1d(epochs).tolist() if ep is not None
+            ep
+            for ep in np.atleast_1d(epochs).tolist()
+            if ep is not None  # some exports may pad epochs with empty entries
         ]
 
     if len(epoch_list) == 0:
@@ -239,7 +243,7 @@ def _resolve_epoch_segments(
         epoch_number = idx + 1
         epoch_name = epoch.get(
             "name", f"epoch{epoch_number}"
-        )  # default to 1-based epoch naming convention
+        )  # generate 1-based default epoch name when missing
         epoch_folder = os.path.join(basepath, str(epoch_name))
         amp_path = os.path.join(epoch_folder, "amplifier.dat")
         n_samples = _validate_amplifier_file(amp_path, n_channels, dtype)
