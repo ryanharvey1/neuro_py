@@ -159,7 +159,7 @@ class VirtualConcatenatedDat:
 
     # Expose protected normalizers for related helper views.
     def normalize_rows(self, rows):
-        """Public shim for sample-index normalization used by transpose helpers."""
+        """Internal helper for transpose views; normalizes sample indices (not a public API)."""
         return self._normalize_rows(rows)
 
     def _normalize_cols(self, cols):
@@ -173,7 +173,7 @@ class VirtualConcatenatedDat:
         return arr
 
     def normalize_cols(self, cols):
-        """Public shim for channel-index normalization used by transpose helpers."""
+        """Internal helper for transpose views; normalizes channel indices (not a public API)."""
         return self._normalize_cols(cols)
 
     def _row_blocks(self, row_idx):
@@ -263,8 +263,8 @@ class VirtualConcatenatedDatTranspose:
         if isinstance(idx, tuple):
             if len(idx) != 2:
                 raise IndexError(
-                    f"VirtualConcatenatedDatTranspose expects 2 indices "
-                    f"(channels, samples); received {len(idx)}."
+                    f"VirtualConcatenatedDatTranspose expects exactly 2 indices for "
+                    f"(channels, samples) indexing; received {len(idx)}."
                 )
             chan_idx, sample_idx = idx
         else:
