@@ -157,9 +157,9 @@ class VirtualConcatenatedDat:
             raise IndexError("Row indices out of bounds for DAT fallback.")
         return arr
 
-    # Expose protected normalizers for related helper views.
+    # Public wrappers for normalizers used by the transpose view.
     def normalize_rows(self, rows):
-        """Internal helper for transpose views; normalizes sample indices (not a public API)."""
+        """Normalize sample indices for use by the transpose view."""
         return self._normalize_rows(rows)
 
     def _normalize_cols(self, cols):
@@ -173,7 +173,7 @@ class VirtualConcatenatedDat:
         return arr
 
     def normalize_cols(self, cols):
-        """Internal helper for transpose views; normalizes channel indices (not a public API)."""
+        """Normalize channel indices for use by the transpose view."""
         return self._normalize_cols(cols)
 
     def _row_blocks(self, row_idx):
