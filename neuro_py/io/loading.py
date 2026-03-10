@@ -97,6 +97,11 @@ class VirtualConcatenatedDat:
     def shape(self) -> Tuple[int, int]:
         return self.total_samples, self.n_channels
 
+    @property
+    def ndim(self) -> int:
+        """Array dimensionality for numpy compatibility without materializing data."""
+        return 2
+
     def __len__(self) -> int:
         """Total number of samples across all segments."""
         return self.total_samples

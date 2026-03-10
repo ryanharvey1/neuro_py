@@ -2692,6 +2692,21 @@ def test_LFPLoader_lfp_alias_returns_self():
     assert isinstance(loader, nel.AnalogSignalArray)
 
 
+def test_VirtualConcatenatedDat_ndim_property():
+    """VirtualConcatenatedDat exposes ndim to avoid materializing data via np.ndim."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(3, 2))
+        mm[:] = np.array([[1, 2], [3, 4], [5, 6]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 3)], n_channels=2, dtype="int16")
+
+        assert vdat.ndim == 2
+        assert np.ndim(vdat) == 2
+
+
 def test_LFPLoader_load_lfp_raises_if_already_initialized():
     """Test LFPLoader.load_lfp refuses to reinitialize an already initialized object."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
