@@ -2708,7 +2708,7 @@ def test_VirtualConcatenatedDat_ndim_property():
 
 
 def test_VirtualConcatenatedDat_T_property():
-    """VirtualConcatenatedDat exposes transpose that materializes data when needed."""
+    """VirtualConcatenatedDat exposes transpose without eager materialization."""
     with tempfile.TemporaryDirectory() as temp_dir:
         path = os.path.join(temp_dir, "amplifier.dat")
         mm = np.memmap(path, dtype="int16", mode="w+", shape=(2, 3))
@@ -2718,9 +2718,41 @@ def test_VirtualConcatenatedDat_T_property():
 
         vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
 
-        transposed = vdat.T
+        transposed = vdat.T  # should be a lazy wrapper
+        assert hasattr(transposed, "__getitem__")
         assert transposed.shape == (3, 2)
-        np.testing.assert_array_equal(transposed, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16"))
+
+        transposed_array = np.asarray(transposed)
+        np.testing.assert_array_equal(transposed_array, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16"))
+
+        assert transposed.T is vdat
+
+
+def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
+    """Accessing .T should not materialize the entire DAT."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(1, 2))
+        mm[:] = np.array([[7, 8]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 1)], n_channels=2, dtype="int16")
+
+        called = False
+
+        def _raise():
+            nonlocal called
+            called = True
+            raise AssertionError("Should not be called")
+
+        monkeypatch.setattr(vdat, "_asarray", _raise)
+
+        t_view = vdat.T  # should not trigger _asarray
+        assert called is False
+        # basic metadata should work without materialization
+        assert t_view.shape == (2, 1)
+        assert t_view.ndim == 2
 
 
 def test_VirtualConcatenatedDat_T_property_multiple_segments():

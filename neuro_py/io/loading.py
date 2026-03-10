@@ -125,9 +125,9 @@ class VirtualConcatenatedDat:
         return arr
 
     @property
-    def T(self) -> np.ndarray:
-        """Transpose of the concatenated DAT (n_channels, n_samples); materializes data."""
-        return self._asarray().T
+    def T(self) -> "VirtualConcatenatedDatTranspose":
+        """Lazy transpose view (n_channels, n_samples) that keeps data memmapped."""
+        return VirtualConcatenatedDatTranspose(self)
 
     def __len__(self) -> int:
         """Total number of samples across all segments."""
@@ -226,6 +226,52 @@ class VirtualConcatenatedDat:
         if len(blocks) == 1:
             return blocks[0]
         return np.concatenate(blocks, axis=0)
+
+
+class VirtualConcatenatedDatTranspose:
+    """Lazy transpose wrapper that mirrors VirtualConcatenatedDat without loading all data."""
+
+    def __init__(self, base: VirtualConcatenatedDat) -> None:
+        self._base = base
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self._base.n_channels, self._base.total_samples
+
+    @property
+    def ndim(self) -> int:
+        return 2
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._base.dtype
+
+    def __len__(self) -> int:
+        return self._base.n_channels
+
+    def __getitem__(self, idx):
+        if isinstance(idx, tuple):
+            chan_idx, sample_idx = idx
+        else:
+            chan_idx, sample_idx = idx, slice(None)
+
+        sample_idx = self._base._normalize_rows(sample_idx)
+        chan_idx = self._base._normalize_cols(chan_idx)
+
+        # Fetch requested samples/channels from base and transpose the result of that subset.
+        return self._base.__getitem__((sample_idx, chan_idx)).T
+
+    def __array__(self, dtype=None):
+        arr = np.asarray(self._base)
+        arr = arr.T
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        return arr
+
+    @property
+    def T(self) -> VirtualConcatenatedDat:
+        """Double transpose returns the original base view."""
+        return self._base
 
 
 def _load_session_epochs_metadata(basepath: str) -> List[dict]:
