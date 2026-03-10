@@ -30,6 +30,7 @@ from neuro_py.io.loading import (
     load_trials,
     loadLFP,
     loadXML,
+    VirtualConcatenatedDat,
 )
 
 
@@ -2875,6 +2876,141 @@ def test_loadLFP_reads_selected_channel_list():
         assert np.array_equal(lfp[:, 0], np.array([1, 2, 3, 4]))
         assert np.array_equal(lfp[:, 1], np.array([100, 200, 300, 400]))
         assert timestep.shape[0] == 4
+
+
+def _write_epoch_dat_files(basepath, epochs_data):
+    basename = os.path.basename(basepath)
+    session_content = {
+        "session": {
+            "epochs": [
+                {"name": name, "startTime": 0.0, "stopTime": 1.0}
+                for name in epochs_data.keys()
+            ]
+        }
+    }
+    create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+    for epoch_name, data in epochs_data.items():
+        epoch_dir = os.path.join(basepath, epoch_name)
+        os.makedirs(epoch_dir, exist_ok=True)
+        amp_path = os.path.join(epoch_dir, "amplifier.dat")
+        np.asarray(data, dtype=np.int16).tofile(amp_path)
+    return session_content
+
+
+def test_loadLFP_dat_fallback_memmap_like():
+    """Fallback loads per-epoch amplifier.dat when session dat is missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_fallback")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20], [3, 30], [4, 40]], dtype=np.int16),
+            "epoch2": np.array([[5, 50], [6, 60]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == (6, 2)
+        assert np.allclose(ts, np.arange(6) / 2.0)
+        assert np.array_equal(data[1:3], epochs_data["epoch1"][1:3])
+
+
+def test_loadLFP_dat_fallback_cross_epoch_slice():
+    """Fallback supports slices crossing epoch boundaries."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_cross")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20], [3, 30], [4, 40]], dtype=np.int16),
+            "epoch2": np.array([[5, 50], [6, 60]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        data, _ = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+        stitched = data[3:5]
+
+        expected = np.vstack([epochs_data["epoch1"][3], epochs_data["epoch2"][0]])
+        assert np.array_equal(stitched, expected)
+
+
+def test_loadLFP_dat_fallback_channel_selection():
+    """Fallback returns selected channels for int or list channel arguments."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_channels")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20]], dtype=np.int16),
+            "epoch2": np.array([[3, 30], [4, 40]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        one_ch, ts = loadLFP(
+            basepath, n_channels=2, channel=1, frequency=1.0, ext="dat"
+        )
+        multi_ch, ts_multi = loadLFP(
+            basepath, n_channels=2, channel=[0], frequency=1.0, ext="dat"
+        )
+
+        assert ts.shape[0] == 4
+        assert np.array_equal(
+            one_ch, np.array([10, 20, 30, 40], dtype=np.int16)
+        )
+        assert multi_ch.shape == (4, 1)
+        assert np.array_equal(multi_ch[:, 0], np.array([1, 2, 3, 4], dtype=np.int16))
+        assert np.array_equal(ts, ts_multi)
+
+
+def test_loadLFP_dat_fallback_missing_epoch_file():
+    """Fallback raises informative error when an epoch amplifier.dat is missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_missing")
+        epochs_data = {
+            "epoch1": np.array([[1, 10]], dtype=np.int16),
+            "epoch2": np.array([[2, 20]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+        missing_path = os.path.join(basepath, "epoch2", "amplifier.dat")
+        os.remove(missing_path)
+
+        with pytest.raises(FileNotFoundError, match="amplifier.dat"):
+            loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+
+
+def test_loadLFP_dat_fallback_bad_file_size():
+    """Fallback raises informative error on invalid amplifier.dat byte length."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_badsize")
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {"epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]}
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+        epoch_dir = os.path.join(basepath, "epoch1")
+        os.makedirs(epoch_dir, exist_ok=True)
+        amp_path = os.path.join(epoch_dir, "amplifier.dat")
+        with open(amp_path, "wb") as f:
+            f.write(b"\x00\x01\x02")  # 3 bytes not divisible by 2*n_channels
+
+        with pytest.raises(ValueError, match="not divisible"):
+            loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+
+
+def test_loadLFP_dat_prefers_concatenated_file_when_present():
+    """Existing behavior preserved when basename.dat exists."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_present")
+        os.makedirs(basepath, exist_ok=True)
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {"epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]}
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+
+        data = np.array([[1, 2], [3, 4]], dtype=np.int16)
+        dat_path = os.path.join(basepath, f"{basename}.dat")
+        data.tofile(dat_path)
+
+        result, _ = loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+        assert isinstance(result, np.memmap)
+        assert result.shape == (2, 2)
 
 
 def test_loadXML_parses_basic_fields():

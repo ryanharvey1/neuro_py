@@ -1,5 +1,6 @@
 """Loading functions for cell explorer format"""
 
+import bisect
 import glob
 import multiprocessing
 import os
@@ -80,6 +81,190 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
     return int(nChannels), int(fs), int(fs_dat), shank_to_channel
 
 
+class VirtualConcatenatedDat:
+    """Lightweight view over sequential amplifier.dat files without materializing them."""
+
+    def __init__(
+        self, segments: List[Tuple[str, int]], n_channels: int, dtype: Union[str, np.dtype]
+    ) -> None:
+        self.segments = segments
+        self.n_channels = int(n_channels)
+        self.dtype = np.dtype(dtype)
+        lengths = [seg[1] for seg in segments]
+        self._offsets = np.concatenate(([0], np.cumsum(lengths, dtype=int)))
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self.total_samples, self.n_channels
+
+    def __len__(self) -> int:  # pragma: no cover - len delegates to shape
+        return self.total_samples
+
+    @property
+    def total_samples(self) -> int:
+        return int(self._offsets[-1])
+
+    def _file_for_index(self, idx: int) -> int:
+        return bisect.bisect_right(self._offsets, idx) - 1
+
+    def _normalize_rows(self, rows):
+        if isinstance(rows, slice):
+            start, stop, step = rows.indices(self.total_samples)
+            if step not in (None, 1):
+                raise ValueError("Only step size 1 slices are supported for DAT fallback.")
+            return slice(start, stop, 1)
+        arr = np.atleast_1d(np.asarray(rows))
+        if arr.dtype == bool:
+            arr = np.flatnonzero(arr)
+        arr = arr.astype(int, copy=False)
+        arr[arr < 0] += self.total_samples
+        if (arr < 0).any() or (arr >= self.total_samples).any():
+            raise IndexError("Row indices out of bounds for DAT fallback.")
+        return arr
+
+    def _normalize_cols(self, cols):
+        if cols is None:
+            return slice(None)
+        if isinstance(cols, slice):
+            return cols
+        arr = np.asarray(cols)
+        if arr.dtype == bool:
+            arr = np.flatnonzero(arr)
+        return arr
+
+    def _row_blocks(self, row_idx):
+        if isinstance(row_idx, slice):
+            start = row_idx.start
+            stop = row_idx.stop
+            if start >= stop:
+                return []
+            blocks = []
+            current = start
+            while current < stop:
+                file_idx = self._file_for_index(current)
+                file_end = self._offsets[file_idx + 1]
+                block_end = min(stop, file_end)
+                blocks.append((current, block_end))
+                current = block_end
+            return blocks
+        if row_idx.size == 0:
+            return []
+        blocks = []
+        start = row_idx[0]
+        prev = row_idx[0]
+        for val in row_idx[1:]:
+            if val == prev + 1 and self._file_for_index(val) == self._file_for_index(prev):
+                prev = val
+                continue
+            blocks.append((start, prev + 1))
+            start = prev = val
+        blocks.append((start, prev + 1))
+        return blocks
+
+    def _read_block(self, file_idx: int, start: int, stop: int, col_idx):
+        path, n_samples = self.segments[file_idx]
+        mm = np.memmap(path, self.dtype, mode="r", shape=(n_samples, self.n_channels))
+        return mm[start:stop, col_idx]
+
+    def __getitem__(self, idx):
+        if isinstance(idx, tuple):
+            row_idx, col_idx = idx
+        else:
+            row_idx, col_idx = idx, None
+        row_idx = self._normalize_rows(row_idx)
+        col_idx = self._normalize_cols(col_idx)
+
+        blocks = []
+        for start, stop in self._row_blocks(row_idx):
+            file_idx = self._file_for_index(start)
+            row_start = start - self._offsets[file_idx]
+            row_stop = stop - self._offsets[file_idx]
+            block = self._read_block(file_idx, row_start, row_stop, col_idx)
+            blocks.append(np.asarray(block))
+
+        if not blocks:
+            return np.array([], dtype=self.dtype)
+        if len(blocks) == 1:
+            return blocks[0]
+        return np.concatenate(blocks, axis=0)
+
+
+def _load_session_epochs_metadata(basepath: str) -> List[dict]:
+    session_path = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
+    if not os.path.exists(session_path):
+        raise FileNotFoundError("Session metadata is required to locate per-epoch DAT files.")
+
+    data = sio.loadmat(session_path, simplify_cells=True)
+    session = data.get("session")
+    if session is None or "epochs" not in session:
+        raise ValueError("Session epochs not found in session metadata.")
+
+    epochs = session["epochs"]
+    if epochs is None or (isinstance(epochs, float) and np.isnan(epochs)):
+        raise ValueError("Session epochs are empty; cannot resolve per-epoch DAT files.")
+
+    if isinstance(epochs, dict):
+        epoch_list = [epochs]
+    else:
+        epoch_list = [
+            ep for ep in np.atleast_1d(epochs).tolist() if ep is not None
+        ]
+
+    if len(epoch_list) == 0:
+        raise ValueError("No valid epochs found in session metadata.")
+    return epoch_list
+
+
+def _validate_amplifier_file(path: str, n_channels: int, dtype: np.dtype) -> int:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Per-epoch amplifier.dat not found at {path}")
+    file_size = os.path.getsize(path)
+    bytes_per_sample = dtype.itemsize
+    if file_size % (n_channels * bytes_per_sample) != 0:
+        raise ValueError(
+            f"File {path} size is not divisible by n_channels * bytes_per_sample."
+        )
+    return int(file_size // (n_channels * bytes_per_sample))
+
+
+def _resolve_epoch_segments(
+    basepath: str, n_channels: int, dtype: np.dtype
+) -> List[Tuple[str, int]]:
+    epochs = _load_session_epochs_metadata(basepath)
+    segments: List[Tuple[str, int]] = []
+    for idx, epoch in enumerate(epochs):
+        if not isinstance(epoch, dict):
+            raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
+        epoch_name = epoch.get("name", f"epoch{idx+1}")
+        epoch_folder = os.path.join(basepath, str(epoch_name))
+        amp_path = os.path.join(epoch_folder, "amplifier.dat")
+        n_samples = _validate_amplifier_file(amp_path, n_channels, dtype)
+        segments.append((amp_path, n_samples))
+    return segments
+
+
+def _load_dat_from_epochs(
+    basepath: str,
+    n_channels: int,
+    channel: Union[int, list, None],
+    frequency: float,
+    dtype: np.dtype,
+):
+    segments = _resolve_epoch_segments(basepath, n_channels=int(n_channels), dtype=dtype)
+    virtual_dat = VirtualConcatenatedDat(segments, n_channels=int(n_channels), dtype=dtype)
+    total_samples = virtual_dat.total_samples
+    timestamps = np.arange(0, total_samples) / frequency
+
+    if channel is None:
+        return virtual_dat, timestamps
+
+    if isinstance(channel, list):
+        data = virtual_dat[:, channel]
+    else:
+        data = virtual_dat[:, channel]
+    return data, timestamps
+
+
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
@@ -119,6 +304,8 @@ def loadLFP(
     If both .lfp and .eeg files are present, .lfp file is prioritized.
     If neither are present, returns None.
     """
+    dtype = np.dtype(precision)
+
     if filename is not None:
         path = os.path.join(basepath, filename)
     else:
@@ -132,6 +319,14 @@ def loadLFP(
 
     # check if saved file exists
     if not os.path.exists(path):
+        if ext == "dat" and filename is None:
+            return _load_dat_from_epochs(
+                basepath,
+                n_channels=n_channels,
+                channel=channel,
+                frequency=frequency,
+                dtype=dtype,
+            )
         warnings.warn("file does not exist")
         return
     if channel is None:
@@ -140,10 +335,9 @@ def loadLFP(
         f = open(path, "rb")
         startoffile = f.seek(0, 0)
         endoffile = f.seek(0, 2)
-        bytes_size = 2
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
+        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
         f.close()
-        data = np.memmap(path, np.int16, "r", shape=(n_samples, n_channels))
+        data = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
         timestep = np.arange(0, n_samples) / frequency
         return data, timestep
 
@@ -151,11 +345,10 @@ def loadLFP(
         f = open(path, "rb")
         startoffile = f.seek(0, 0)
         endoffile = f.seek(0, 2)
-        bytes_size = 2
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
+        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
         f.close()
         with open(path, "rb") as f:
-            data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
+            data = np.fromfile(f, dtype).reshape((n_samples, n_channels))[:, channel]
             timestep = np.arange(0, len(data)) / frequency
             # check if lfp time stamps exist
             lfp_ts_path = os.path.join(
@@ -170,12 +363,10 @@ def loadLFP(
         f = open(path, "rb")
         startoffile = f.seek(0, 0)
         endoffile = f.seek(0, 2)
-        bytes_size = 2
-
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
+        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
         f.close()
         with open(path, "rb") as f:
-            data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
+            data = np.fromfile(f, dtype).reshape((n_samples, n_channels))[:, channel]
             timestep = np.arange(0, len(data)) / frequency
             # check if lfp time stamps exist
             lfp_ts_path = os.path.join(
