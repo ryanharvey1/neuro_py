@@ -325,6 +325,7 @@ def loadLFP(
         if ext == "dat":
             path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
 
+    # dtype is required for both direct loads and DAT fallback validation
     dtype = np.dtype(precision)
 
     # check if saved file exists
