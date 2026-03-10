@@ -250,6 +250,7 @@ class VirtualConcatenatedDatTranspose:
         return self._base.n_channels
 
     def __getitem__(self, idx):
+        """Index into the transposed view; maps (channels, samples) -> base (samples, channels)."""
         if isinstance(idx, tuple):
             chan_idx, sample_idx = idx
         else:
@@ -263,6 +264,7 @@ class VirtualConcatenatedDatTranspose:
         return self._base.__getitem__((sample_idx, chan_idx)).T
 
     def __array__(self, dtype=None):
+        """Materialize the full transposed array when NumPy requests a real ndarray."""
         arr = np.asarray(self._base)
         arr = arr.T
         if dtype is not None:

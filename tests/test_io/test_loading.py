@@ -2741,11 +2741,11 @@ def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
 
         called = False
 
-        def _mock_asarray_should_not_be_called():
+        def _mock_asarray():
             nonlocal called
             called = True
 
-        monkeypatch.setattr(vdat, "_asarray", _mock_asarray_should_not_be_called)
+        monkeypatch.setattr(vdat, "_asarray", _mock_asarray)
 
         t_view = vdat.T  # should not trigger _asarray
         assert called is False
