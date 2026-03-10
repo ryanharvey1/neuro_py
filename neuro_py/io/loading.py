@@ -216,7 +216,7 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
         epoch_list = [
             ep
             for ep in np.atleast_1d(epochs).tolist()
-            if ep is not None  # some session exports pad epochs with None placeholders; drop them
+            if ep is not None  # some session exports pad epochs with None placeholders; drop them.
         ]
 
     if len(epoch_list) == 0:
@@ -244,7 +244,7 @@ def _resolve_epoch_segments(
     for idx, epoch in enumerate(epochs):
         if not isinstance(epoch, dict):
             raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
-        # generate 1-based default epoch name when metadata is missing
+        # If the session omits an epoch name, fall back to sequential 1-based labels.
         epoch_name = epoch.get("name", f"epoch{idx + 1}")
         epoch_folder = os.path.join(basepath, str(epoch_name))
         amp_path = os.path.join(epoch_folder, "amplifier.dat")
