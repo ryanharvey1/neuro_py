@@ -2741,7 +2741,7 @@ def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
 
         called = False
 
-        def _mock_asarray():
+        def _mock_asarray(*args, **kwargs):
             nonlocal called
             called = True
 

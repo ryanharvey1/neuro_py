@@ -252,6 +252,10 @@ class VirtualConcatenatedDatTranspose:
     def __getitem__(self, idx):
         """Index into the transposed view; maps (channels, samples) -> base (samples, channels)."""
         if isinstance(idx, tuple):
+            if len(idx) != 2:
+                raise IndexError(
+                    "VirtualConcatenatedDatTranspose expects (channels, samples) indexing."
+                )
             chan_idx, sample_idx = idx
         else:
             chan_idx, sample_idx = idx, slice(None)
