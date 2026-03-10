@@ -235,7 +235,9 @@ def _resolve_epoch_segments(
     for idx, epoch in enumerate(epochs):
         if not isinstance(epoch, dict):
             raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
-        epoch_name = epoch.get("name", f"epoch{idx+1}")
+        epoch_name = epoch.get(
+            "name", f"epoch{idx+1}"
+        )  # default to 1-based epoch naming convention
         epoch_folder = os.path.join(basepath, str(epoch_name))
         amp_path = os.path.join(epoch_folder, "amplifier.dat")
         n_samples = _validate_amplifier_file(amp_path, n_channels, dtype)

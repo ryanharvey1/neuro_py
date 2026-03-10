@@ -2942,20 +2942,20 @@ def test_loadLFP_dat_fallback_channel_selection():
         }
         _write_epoch_dat_files(basepath, epochs_data)
 
-        one_ch, ts = loadLFP(
+        one_ch, ts_one = loadLFP(
             basepath, n_channels=2, channel=1, frequency=1.0, ext="dat"
         )
         multi_ch, ts_multi = loadLFP(
             basepath, n_channels=2, channel=[0], frequency=1.0, ext="dat"
         )
 
-        assert ts.shape[0] == 4
+        assert ts_one.shape[0] == 4
         assert np.array_equal(
             one_ch, np.array([10, 20, 30, 40], dtype=np.int16)
         )
         assert multi_ch.shape == (4, 1)
         assert np.array_equal(multi_ch[:, 0], np.array([1, 2, 3, 4], dtype=np.int16))
-        assert np.array_equal(ts, ts_multi)
+        assert np.array_equal(ts_one, ts_multi)
 
 
 def test_loadLFP_dat_fallback_missing_epoch_file():
