@@ -97,7 +97,8 @@ class VirtualConcatenatedDat:
     def shape(self) -> Tuple[int, int]:
         return self.total_samples, self.n_channels
 
-    def __len__(self) -> int:  # pragma: no cover
+    def __len__(self) -> int:
+        """Total number of samples across all segments."""
         return self.total_samples
 
     @property
