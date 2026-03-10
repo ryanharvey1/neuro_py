@@ -2610,7 +2610,7 @@ def test_load_lfp_method():
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
     timestep = np.array([0.0, 1.0, 2.0, 3.0])
 
-    loader = object.__new__(LFPLoader)
+    loader = LFPLoader.__new__(LFPLoader)
     loader.basepath = "dummy"
     loader.nChannels = 2
     loader.channels = None
