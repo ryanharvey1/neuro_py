@@ -85,7 +85,10 @@ class VirtualConcatenatedDat:
     """Lightweight view over sequential amplifier.dat files without materializing them."""
 
     def __init__(
-        self, segments: List[Tuple[str, int]], n_channels: int, dtype: Union[str, np.dtype]
+        self,
+        segments: List[Tuple[str, int]],
+        n_channels: int,
+        dtype: Union[str, np.dtype],
     ) -> None:
         self.segments = segments
         self.n_channels = int(n_channels)
@@ -101,6 +104,39 @@ class VirtualConcatenatedDat:
     def ndim(self) -> int:
         """Array dimensionality for numpy compatibility without materializing data."""
         return 2
+
+    @property
+    def size(self) -> int:
+        """Total number of elements for NumPy compatibility."""
+        return int(self.total_samples * self.n_channels)
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Handle selected NumPy calls without forcing full materialization."""
+        if func is np.ndim:
+            return 2
+
+        if func is np.shape:
+            return self.shape
+
+        if func is np.size:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self.size
+            return self.shape[axis]
+
+        if func is np.iscomplex:
+            # DAT payload is real-valued int16; return scalar to avoid building a full mask.
+            return np.array(False)
+
+        if func is np.squeeze:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self
+            raise ValueError(
+                "cannot select an axis to squeeze out which has size not equal to one"
+            )
+
+        return NotImplemented
 
     def _asarray(self) -> np.ndarray:
         """Materialize the concatenated DAT as a NumPy array (loads all data into memory)."""
@@ -125,9 +161,9 @@ class VirtualConcatenatedDat:
         return arr
 
     @property
-    def T(self) -> "VirtualConcatenatedDatTranspose":
+    def T(self) -> "VirtualConcatenatedDatView":
         """Lazy transpose view (n_channels, n_samples) that keeps data memmapped."""
-        return VirtualConcatenatedDatTranspose(self)
+        return VirtualConcatenatedDatView(self)
 
     def __len__(self) -> int:
         """Total number of samples across all segments."""
@@ -212,7 +248,13 @@ class VirtualConcatenatedDat:
     def _read_block(self, file_idx: int, start: int, stop: int, col_idx):
         path, n_samples = self.segments[file_idx]
         mm = np.memmap(path, self.dtype, mode="r", shape=(n_samples, self.n_channels))
-        return mm[start:stop, col_idx]
+        try:
+            # Copy slice into RAM so Windows can release file locks immediately.
+            return np.array(mm[start:stop, col_idx], copy=True)
+        finally:
+            if hasattr(mm, "_mmap") and mm._mmap is not None:
+                mm._mmap.close()
+            del mm
 
     def __getitem__(self, idx):
         if isinstance(idx, tuple):
@@ -237,7 +279,7 @@ class VirtualConcatenatedDat:
         return np.concatenate(blocks, axis=0)
 
 
-class VirtualConcatenatedDatTranspose:
+class VirtualConcatenatedDatView:
     """Lazy transpose wrapper that mirrors VirtualConcatenatedDat without loading all data."""
 
     def __init__(self, base: VirtualConcatenatedDat) -> None:
@@ -255,6 +297,11 @@ class VirtualConcatenatedDatTranspose:
     def dtype(self) -> np.dtype:
         return self._base.dtype
 
+    @property
+    def size(self) -> int:
+        """Total number of elements for NumPy compatibility."""
+        return int(self._base.n_channels * self._base.total_samples)
+
     def __len__(self) -> int:
         return self._base.n_channels
 
@@ -263,7 +310,7 @@ class VirtualConcatenatedDatTranspose:
         if isinstance(idx, tuple):
             if len(idx) != 2:
                 raise IndexError(
-                    "VirtualConcatenatedDatTranspose requires 2D indexing with format "
+                    "VirtualConcatenatedDatView requires 2D indexing with format "
                     f"[channels, samples]; received {len(idx)} dimensions: {idx}."
                 )
             chan_idx, sample_idx = idx
@@ -285,16 +332,51 @@ class VirtualConcatenatedDatTranspose:
             arr = arr.astype(dtype, copy=False)
         return arr
 
+    def __array_function__(self, func, types, args, kwargs):
+        """Handle selected NumPy calls without forcing full materialization."""
+        if func is np.ndim:
+            return 2
+
+        if func is np.shape:
+            return self.shape
+
+        if func is np.size:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self.size
+            return self.shape[axis]
+
+        if func is np.iscomplex:
+            # DAT payload is real-valued int16; return scalar to avoid building a full mask.
+            return np.array(False)
+
+        if func is np.squeeze:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self
+            raise ValueError(
+                "cannot select an axis to squeeze out which has size not equal to one"
+            )
+
+        return NotImplemented
+
     @property
     def T(self) -> VirtualConcatenatedDat:
         """Double transpose returns the original base view."""
         return self._base
 
 
+# Backward-compatible aliases for previous public class names.
+DatTransposeView = VirtualConcatenatedDatView
+VirtualConcatenatedDatTranspose = VirtualConcatenatedDatView
+
+
 def _load_session_epochs_metadata(basepath: str) -> List[dict]:
     session_path = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
     if not os.path.exists(session_path):
-        raise FileNotFoundError("Session metadata is required to locate per-epoch DAT files.")
+        raise FileNotFoundError(
+            "Session metadata is required to locate per-epoch DAT files."
+        )
 
     data = sio.loadmat(session_path, simplify_cells=True)
     session = data.get("session")
@@ -303,7 +385,9 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
 
     epochs = session["epochs"]
     if epochs is None or (isinstance(epochs, float) and np.isnan(epochs)):
-        raise ValueError("Session epochs are empty; cannot resolve per-epoch DAT files.")
+        raise ValueError(
+            "Session epochs are empty; cannot resolve per-epoch DAT files."
+        )
 
     if isinstance(epochs, dict):
         epoch_list = [epochs]
@@ -311,7 +395,8 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
         epoch_list = [
             ep
             for ep in np.atleast_1d(epochs).tolist()
-            if ep is not None  # some session exports pad epochs with None placeholders; drop them.
+            if ep
+            is not None  # some session exports pad epochs with None placeholders; drop them.
         ]
 
     if len(epoch_list) == 0:
@@ -355,8 +440,12 @@ def _load_dat_from_epochs(
     frequency: float,
     dtype: np.dtype,
 ):
-    segments = _resolve_epoch_segments(basepath, n_channels=int(n_channels), dtype=dtype)
-    virtual_dat = VirtualConcatenatedDat(segments, n_channels=int(n_channels), dtype=dtype)
+    segments = _resolve_epoch_segments(
+        basepath, n_channels=int(n_channels), dtype=dtype
+    )
+    virtual_dat = VirtualConcatenatedDat(
+        segments, n_channels=int(n_channels), dtype=dtype
+    )
     total_samples = virtual_dat.total_samples
     timestamps = np.arange(0, total_samples) / frequency
 

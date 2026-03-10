@@ -2723,7 +2723,9 @@ def test_VirtualConcatenatedDat_T_property():
         assert transposed.shape == (3, 2)
 
         transposed_array = np.asarray(transposed)
-        np.testing.assert_array_equal(transposed_array, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16"))
+        np.testing.assert_array_equal(
+            transposed_array, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16")
+        )
 
         assert transposed.T is vdat
 
@@ -3075,7 +3077,9 @@ def test_loadLFP_dat_fallback_bad_file_size():
         basepath = os.path.join(temp_dir, "session_dat_badsize")
         basename = os.path.basename(basepath)
         session_content = {
-            "session": {"epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]}
+            "session": {
+                "epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]
+            }
         }
         create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
         epoch_dir = os.path.join(basepath, "epoch1")
@@ -3083,7 +3087,9 @@ def test_loadLFP_dat_fallback_bad_file_size():
         amp_path = os.path.join(epoch_dir, "amplifier.dat")
         invalid_size = (2 * np.dtype(np.int16).itemsize) - 1
         with open(amp_path, "wb") as f:
-            f.write(b"\x00" * invalid_size)  # size not divisible by n_channels * bytes_per_sample.
+            f.write(
+                b"\x00" * invalid_size
+            )  # size not divisible by n_channels * bytes_per_sample.
 
         with pytest.raises(ValueError, match="not divisible"):
             loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
@@ -3096,7 +3102,9 @@ def test_loadLFP_dat_prefers_concatenated_file_when_present():
         os.makedirs(basepath, exist_ok=True)
         basename = os.path.basename(basepath)
         session_content = {
-            "session": {"epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]}
+            "session": {
+                "epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]
+            }
         }
         create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
 
@@ -3107,6 +3115,10 @@ def test_loadLFP_dat_prefers_concatenated_file_when_present():
         result, _ = loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
         assert isinstance(result, np.memmap)
         assert result.shape == (2, 2)
+
+        # Explicitly release memmap-backed file handle before temp dir cleanup on Windows.
+        result._mmap.close()
+        del result
 
 
 def test_loadXML_parses_basic_fields():
