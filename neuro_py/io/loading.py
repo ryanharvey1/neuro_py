@@ -159,7 +159,7 @@ class VirtualConcatenatedDat:
 
     # Public wrappers for normalizers used by the transpose view.
     def normalize_rows(self, rows):
-        """Normalize sample indices for use by the transpose view."""
+        """Normalize sample indices (slices, bool masks, arrays) to integer indices for samples."""
         return self._normalize_rows(rows)
 
     def _normalize_cols(self, cols):
@@ -173,7 +173,7 @@ class VirtualConcatenatedDat:
         return arr
 
     def normalize_cols(self, cols):
-        """Normalize channel indices for use by the transpose view."""
+        """Normalize channel indices (slices, bool masks, arrays) to integer indices for channels."""
         return self._normalize_cols(cols)
 
     def _row_blocks(self, row_idx):
@@ -264,7 +264,7 @@ class VirtualConcatenatedDatTranspose:
             if len(idx) != 2:
                 raise IndexError(
                     f"VirtualConcatenatedDatTranspose expects exactly 2 indices for "
-                    f"(channels, samples) indexing; received {len(idx)}."
+                    f"(channels, samples) indexing; received {len(idx)}: {idx}."
                 )
             chan_idx, sample_idx = idx
         else:
