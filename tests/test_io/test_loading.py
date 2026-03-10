@@ -2950,11 +2950,15 @@ def test_loadLFP_dat_fallback_channel_selection():
         )
 
         assert ts_one.shape[0] == 4
-        assert np.array_equal(
-            one_ch, np.array([10, 20, 30, 40], dtype=np.int16)
+        expected_one = np.concatenate(
+            [epochs_data["epoch1"][:, 1], epochs_data["epoch2"][:, 1]]
         )
+        assert np.array_equal(one_ch, expected_one)
         assert multi_ch.shape == (4, 1)
-        assert np.array_equal(multi_ch[:, 0], np.array([1, 2, 3, 4], dtype=np.int16))
+        expected_multi = np.concatenate(
+            [epochs_data["epoch1"][:, 0], epochs_data["epoch2"][:, 0]]
+        )
+        assert np.array_equal(multi_ch[:, 0], expected_multi)
         assert np.array_equal(ts_one, ts_multi)
 
 

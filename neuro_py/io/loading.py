@@ -91,7 +91,7 @@ class VirtualConcatenatedDat:
         self.n_channels = int(n_channels)
         self.dtype = np.dtype(dtype)
         lengths = [seg[1] for seg in segments]
-        self._offsets = np.concatenate(([0], np.cumsum(lengths, dtype=int)))
+        self._offsets = np.concatenate(([0], np.cumsum(lengths, dtype=np.int64)))
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -155,12 +155,16 @@ class VirtualConcatenatedDat:
         blocks = []
         start = row_idx[0]
         prev = row_idx[0]
+        prev_file = self._file_for_index(prev)
         for val in row_idx[1:]:
-            if val == prev + 1 and self._file_for_index(val) == self._file_for_index(prev):
+            current_file = self._file_for_index(val)
+            if val == prev + 1 and current_file == prev_file:
                 prev = val
+                prev_file = current_file
                 continue
             blocks.append((start, prev + 1))
             start = prev = val
+            prev_file = current_file
         blocks.append((start, prev + 1))
         return blocks
 
@@ -212,7 +216,7 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
         epoch_list = [
             ep
             for ep in np.atleast_1d(epochs).tolist()
-            if ep is not None  # some exports may pad epochs with empty entries
+            if ep is not None  # some session exports pad epochs with None placeholders; drop them
         ]
 
     if len(epoch_list) == 0:
@@ -241,9 +245,8 @@ def _resolve_epoch_segments(
         if not isinstance(epoch, dict):
             raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
         epoch_number = idx + 1
-        epoch_name = epoch.get(
-            "name", f"epoch{epoch_number}"
-        )  # generate 1-based default epoch name when missing
+        # generate 1-based default epoch name when metadata is missing
+        epoch_name = epoch.get("name", f"epoch{epoch_number}")
         epoch_folder = os.path.join(basepath, str(epoch_name))
         amp_path = os.path.join(epoch_folder, "amplifier.dat")
         n_samples = _validate_amplifier_file(amp_path, n_channels, dtype)
