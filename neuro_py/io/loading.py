@@ -103,7 +103,7 @@ class VirtualConcatenatedDat:
         return 2
 
     def _asarray(self) -> np.ndarray:
-        """Materialize the concatenated DAT as a NumPy array when needed."""
+        """Materialize the concatenated DAT as a NumPy array (loads all data into memory)."""
         blocks = []
         for start, stop in self._row_blocks(slice(0, self.total_samples, 1)):
             file_idx = self._file_for_index(start)
@@ -126,7 +126,7 @@ class VirtualConcatenatedDat:
 
     @property
     def T(self) -> np.ndarray:
-        """Transpose of the concatenated DAT (n_channels, n_samples)."""
+        """Transpose of the concatenated DAT (n_channels, n_samples); materializes data."""
         return self._asarray().T
 
     def __len__(self) -> int:

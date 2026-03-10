@@ -2723,6 +2723,33 @@ def test_VirtualConcatenatedDat_T_property():
         np.testing.assert_array_equal(transposed, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16"))
 
 
+def test_VirtualConcatenatedDat_T_property_multiple_segments():
+    """Transpose handles multiple DAT segments correctly."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path1 = os.path.join(temp_dir, "amplifier1.dat")
+        path2 = os.path.join(temp_dir, "amplifier2.dat")
+
+        mm1 = np.memmap(path1, dtype="int16", mode="w+", shape=(2, 2))
+        mm1[:] = np.array([[1, 2], [3, 4]], dtype="int16")
+        mm1.flush()
+        del mm1
+
+        mm2 = np.memmap(path2, dtype="int16", mode="w+", shape=(1, 2))
+        mm2[:] = np.array([[5, 6]], dtype="int16")
+        mm2.flush()
+        del mm2
+
+        vdat = VirtualConcatenatedDat(
+            segments=[(path1, 2), (path2, 1)], n_channels=2, dtype="int16"
+        )
+
+        transposed = vdat.T
+        assert transposed.shape == (2, 3)
+        np.testing.assert_array_equal(
+            transposed, np.array([[1, 3, 5], [2, 4, 6]], dtype="int16")
+        )
+
+
 def test_LFPLoader_load_lfp_raises_if_already_initialized():
     """Test LFPLoader.load_lfp refuses to reinitialize an already initialized object."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
