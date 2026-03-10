@@ -2691,6 +2691,26 @@ def test_LFPLoader_lfp_alias_returns_self():
     assert isinstance(loader, nel.AnalogSignalArray)
 
 
+def test_LFPLoader_load_lfp_raises_if_already_initialized():
+    """Test LFPLoader.load_lfp refuses to reinitialize an already initialized object."""
+    lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+        with pytest.raises(RuntimeError, match="already initialized"):
+            loader.load_lfp()
+
+
 def test_LFPLoader_epoch_restricts_time_support():
     """Test LFPLoader applies epoch restriction to loaded timestamps."""
     lfp_data = np.array(
@@ -2708,7 +2728,9 @@ def test_LFPLoader_epoch_restricts_time_support():
             return_value=(lfp_data, timestep),
         ),
     ):
-        loader = LFPLoader("dummy", channels=None, ext="lfp", epoch=np.array([1.0, 3.0]))
+        loader = LFPLoader(
+            "dummy", channels=None, ext="lfp", epoch=np.array([1.0, 3.0])
+        )
 
     assert loader.abscissa_vals.min() >= 1.0
     assert loader.abscissa_vals.max() <= 3.0
@@ -2734,8 +2756,8 @@ def test_LFPLoader_get_freq_phase_amp_shapes():
     ):
         loader = LFPLoader("dummy", channels=None, ext="lfp")
 
-    filt_sig, phase, amplitude, amplitude_filtered, frequency = loader.get_freq_phase_amp(
-        band2filter=[6, 12], ford=3, kernel_size=5
+    filt_sig, phase, amplitude, amplitude_filtered, frequency = (
+        loader.get_freq_phase_amp(band2filter=[6, 12], ford=3, kernel_size=5)
     )
 
     expected_shape = loader.data.shape

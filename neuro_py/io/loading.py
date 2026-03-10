@@ -239,8 +239,14 @@ class LFPLoader(nel.AnalogSignalArray):
         # get xml data
         self.get_xml_data()
 
-        # load lfp
-        self.load_lfp()
+        # Build signal payload once and initialize parent class exactly once.
+        data, timestamps, fs, support = self._prepare_lfp_payload()
+        super().__init__(
+            data=data,
+            timestamps=timestamps,
+            fs=fs,
+            support=support,
+        )
 
     @property
     def lfp(self) -> "LFPLoader":
@@ -254,7 +260,9 @@ class LFPLoader(nel.AnalogSignalArray):
         self.fs_dat = fs_dat
         self.shank_to_channel = shank_to_channel
 
-    def load_lfp(self) -> None:
+    def _prepare_lfp_payload(
+        self,
+    ) -> Tuple[np.ndarray, np.ndarray, float, nel.EpochArray]:
         fs = self.fs_dat if self.ext == "dat" else self.fs_lfp
 
         lfp, timestep = loadLFP(
@@ -293,6 +301,21 @@ class LFPLoader(nel.AnalogSignalArray):
         if np.ndim(selected) == 1:
             selected = selected[:, np.newaxis]
         data = selected.T
+
+        return data, timestamps, fs, support
+
+    def load_lfp(self) -> None:
+        """Initialize loader from disk for uninitialized instances only.
+
+        This method exists for backward compatibility but intentionally refuses to
+        re-initialize an already constructed LFPLoader instance.
+        """
+        if hasattr(self, "_data") and self._data is not None:
+            raise RuntimeError(
+                "LFPLoader is already initialized. Create a new LFPLoader instance to reload data."
+            )
+
+        data, timestamps, fs, support = self._prepare_lfp_payload()
 
         super().__init__(
             data=data,
