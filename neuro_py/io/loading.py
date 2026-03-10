@@ -102,6 +102,33 @@ class VirtualConcatenatedDat:
         """Array dimensionality for numpy compatibility without materializing data."""
         return 2
 
+    def _asarray(self) -> np.ndarray:
+        """Materialize the concatenated DAT as a NumPy array when needed."""
+        blocks = []
+        for start, stop in self._row_blocks(slice(0, self.total_samples, 1)):
+            file_idx = self._file_for_index(start)
+            row_start = start - self._offsets[file_idx]
+            row_stop = stop - self._offsets[file_idx]
+            block = self._read_block(file_idx, row_start, row_stop, slice(None))
+            blocks.append(np.asarray(block))
+
+        if not blocks:
+            return np.empty((0, self.n_channels), dtype=self.dtype)
+        if len(blocks) == 1:
+            return blocks[0]
+        return np.concatenate(blocks, axis=0)
+
+    def __array__(self, dtype=None):
+        arr = self._asarray()
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        return arr
+
+    @property
+    def T(self) -> np.ndarray:
+        """Transpose of the concatenated DAT (n_channels, n_samples)."""
+        return self._asarray().T
+
     def __len__(self) -> int:
         """Total number of samples across all segments."""
         return self.total_samples

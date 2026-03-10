@@ -2707,6 +2707,22 @@ def test_VirtualConcatenatedDat_ndim_property():
         assert np.ndim(vdat) == 2
 
 
+def test_VirtualConcatenatedDat_T_property():
+    """VirtualConcatenatedDat exposes transpose that materializes data when needed."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(2, 3))
+        mm[:] = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        transposed = vdat.T
+        assert transposed.shape == (3, 2)
+        np.testing.assert_array_equal(transposed, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16"))
+
+
 def test_LFPLoader_load_lfp_raises_if_already_initialized():
     """Test LFPLoader.load_lfp refuses to reinitialize an already initialized object."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
