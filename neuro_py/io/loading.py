@@ -255,8 +255,9 @@ class VirtualConcatenatedDatTranspose:
         else:
             chan_idx, sample_idx = idx, slice(None)
 
-        sample_idx = self._base._normalize_rows(sample_idx)
+        # In the underlying DAT, rows are samples and columns are channels.
         chan_idx = self._base._normalize_cols(chan_idx)
+        sample_idx = self._base._normalize_rows(sample_idx)
 
         # Fetch requested samples/channels from base and transpose the result of that subset.
         return self._base.__getitem__((sample_idx, chan_idx)).T
