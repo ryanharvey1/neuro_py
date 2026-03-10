@@ -170,6 +170,7 @@ nav:
   - Bias Correlation: tutorials/bias_correlation.md
   - Decoding: tutorials/decoding.md
   - Explained Variance: tutorials/explained_variance.md
+  - LFP Loader: tutorials/lfp_loader_tutorial.md
   - Neural Geodynamics: tutorials/neural_geodynamics.md
   - PETH: tutorials/peth_tutorial.md
   - Reactivation: tutorials/reactivation.md
