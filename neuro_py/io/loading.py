@@ -499,7 +499,7 @@ def _load_dat_from_epochs(
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
-    channel: Union[int, None] = None,
+    channel: Union[int, list, None] = None,
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
@@ -549,6 +549,10 @@ def loadLFP(
     # dtype is required for both direct loads and DAT fallback validation
     dtype = np.dtype(precision)
 
+    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype) -> int:
+        file_size = os.path.getsize(file_path)
+        return int(file_size / int(channels) / sample_dtype.itemsize)
+
     # check if saved file exists
     if not os.path.exists(path):
         if ext == "dat" and filename is None:
@@ -561,52 +565,28 @@ def loadLFP(
             )
         warnings.warn("file does not exist")
         return
-    if channel is None:
-        n_channels = int(n_channels)
 
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
-        f.close()
+    n_channels = int(n_channels)
+    n_samples = _calc_n_samples(path, n_channels, dtype)
+
+    if channel is None:
         data = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
         timestep = np.arange(0, n_samples) / frequency
         return data, timestep
 
-    if type(channel) is not list:
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
-        f.close()
-        with open(path, "rb") as f:
-            data = np.fromfile(f, dtype).reshape((n_samples, n_channels))[:, channel]
-            timestep = np.arange(0, len(data)) / frequency
-            # check if lfp time stamps exist
-            lfp_ts_path = os.path.join(
-                os.path.dirname(os.path.abspath(path)), "lfp_ts.npy"
-            )
-            if os.path.exists(lfp_ts_path):
-                timestep = np.load(lfp_ts_path).reshape(-1)
+    mm = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
+    data = np.array(mm[:, channel], copy=True)
+    if hasattr(mm, "_mmap") and mm._mmap is not None:
+        mm._mmap.close()
+    del mm
 
-            return data, timestep
+    timestep = np.arange(0, len(data)) / frequency
+    # check if lfp time stamps exist
+    lfp_ts_path = os.path.join(os.path.dirname(os.path.abspath(path)), "lfp_ts.npy")
+    if os.path.exists(lfp_ts_path):
+        timestep = np.load(lfp_ts_path).reshape(-1)
 
-    elif type(channel) is list:
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        n_samples = int((endoffile - startoffile) / n_channels / dtype.itemsize)
-        f.close()
-        with open(path, "rb") as f:
-            data = np.fromfile(f, dtype).reshape((n_samples, n_channels))[:, channel]
-            timestep = np.arange(0, len(data)) / frequency
-            # check if lfp time stamps exist
-            lfp_ts_path = os.path.join(
-                os.path.dirname(os.path.abspath(path)), "lfp_ts.npy"
-            )
-            if os.path.exists(lfp_ts_path):
-                timestep = np.load(lfp_ts_path).reshape(-1)
-            return data, timestep
+    return data, timestep
 
 
 class LFPLoader(nel.AnalogSignalArray):
