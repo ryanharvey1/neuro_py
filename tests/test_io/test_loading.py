@@ -2741,18 +2741,19 @@ def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
 
         called = False
 
-        def _raise():
+        def _mock_asarray_should_not_be_called():
             nonlocal called
             called = True
             raise AssertionError("Should not be called")
 
-        monkeypatch.setattr(vdat, "_asarray", _raise)
+        monkeypatch.setattr(vdat, "_asarray", _mock_asarray_should_not_be_called)
 
         t_view = vdat.T  # should not trigger _asarray
         assert called is False
         # basic metadata should work without materialization
         assert t_view.shape == (2, 1)
         assert t_view.ndim == 2
+        assert called is False
 
 
 def test_VirtualConcatenatedDat_T_property_multiple_segments():
