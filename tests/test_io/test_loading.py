@@ -2671,6 +2671,101 @@ def test_LFPLoader_dat_uses_fs_dat():
     assert mock_load_lfp.call_args.kwargs["frequency"] == 20000.0
 
 
+def test_LFPLoader_uses_full_lazy_source_before_selection():
+    """LFPLoader should request the full source and apply channel/epoch selection internally."""
+    lfp_data = np.zeros((10, 4), dtype=np.int16)
+    timestep = np.arange(10, dtype=float)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(4, 1250.0, 20000.0, {0: [0, 1, 2, 3]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ) as mock_load_lfp,
+    ):
+        LFPLoader("dummy", channels=[0, 2], ext="lfp", epoch=np.array([2.0, 4.0]))
+
+    assert mock_load_lfp.call_args.kwargs["channel"] is None
+
+
+def test_LFPLoader_prefers_time_first_when_epoch_read_is_smaller():
+    """When both restrictions are present, LFPLoader should index time first if that reads fewer samples."""
+
+    class TrackingArray:
+        def __init__(self, data):
+            self._data = data
+            self.calls = []
+
+        def __getitem__(self, key):
+            self.calls.append(key)
+            return self._data[key]
+
+        def __array__(self, dtype=None):
+            arr = np.asarray(self._data)
+            if dtype is not None:
+                arr = arr.astype(dtype, copy=False)
+            return arr
+
+    n_samples = 1000
+    n_channels = 64
+    timestep = np.arange(n_samples, dtype=float) / 1000.0
+    tracked = TrackingArray(np.zeros((n_samples, n_channels), dtype=np.int16))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(n_channels, 1250.0, 20000.0, {0: list(range(n_channels))}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(tracked, timestep)),
+    ):
+        LFPLoader("dummy", channels=[0, 1], ext="lfp", epoch=np.array([0.0, 0.01]))
+
+    first_key = tracked.calls[0]
+    assert isinstance(first_key, np.ndarray)
+    assert first_key.dtype == np.bool_
+    assert first_key.shape[0] == n_samples
+
+
+def test_LFPLoader_prefers_channels_first_when_channel_read_is_smaller():
+    """When both restrictions are present, LFPLoader should index channels first if that reads fewer samples."""
+
+    class TrackingArray:
+        def __init__(self, data):
+            self._data = data
+            self.calls = []
+
+        def __getitem__(self, key):
+            self.calls.append(key)
+            return self._data[key]
+
+        def __array__(self, dtype=None):
+            arr = np.asarray(self._data)
+            if dtype is not None:
+                arr = arr.astype(dtype, copy=False)
+            return arr
+
+    n_samples = 1000
+    n_channels = 64
+    timestep = np.arange(n_samples, dtype=float) / 1000.0
+    tracked = TrackingArray(np.zeros((n_samples, n_channels), dtype=np.int16))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(n_channels, 1250.0, 20000.0, {0: list(range(n_channels))}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(tracked, timestep)),
+    ):
+        LFPLoader("dummy", channels=[0, 1], ext="lfp", epoch=np.array([0.0, 0.95]))
+
+    first_key = tracked.calls[0]
+    assert isinstance(first_key, tuple)
+    assert isinstance(first_key[0], slice)
+
+
 def test_LFPLoader_lfp_alias_returns_self():
     """Test LFPLoader.lfp remains a backward-compatible alias to self."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
@@ -2948,6 +3043,39 @@ def test_LFPLoader_epoch_restricts_time_support():
     assert loader.abscissa_vals.max() <= 3.0
 
 
+def test_LFPLoader_multi_epoch_support_matches_epoch_not_recording_span():
+    """Support duration should reflect the epochs requested, not the full recording span.
+
+    This guards against the bug where support was collapsed to a single interval
+    [min(timestamps), max(timestamps)], which spans the full recording when theta epochs
+    are spread across the session.
+    """
+    # 10 s recording at 4 Hz => 40 samples
+    fs = 4.0
+    timestep = np.arange(40, dtype=float) / fs  # 0.0 … 9.75 s
+    lfp_data = np.zeros((40, 2), dtype=np.int16)
+
+    # Two short theta epochs [1-2 s] and [7-8 s] — total 2 s, but their span is 7 s
+    epoch = nel.EpochArray(np.array([[1.0, 2.0], [7.0, 8.0]]))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, fs, fs, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp", epoch=epoch)
+
+    # The support should cover 2 epochs, not one flattened interval.
+    assert loader.support.n_intervals == 2
+    # Total supported duration should be ~2 s, not ~7 s.
+    assert loader.support.duration < 3.0
+
+
 def test_LFPLoader_get_freq_phase_amp_shapes():
     """Test LFPLoader.get_freq_phase_amp output shapes match input signal shape."""
     n_samples = 200
@@ -3120,6 +3248,44 @@ def test_LFPLoader_get_freq_phase_amp_nonuniform_timestamps_branch():
     assert np.all(np.isfinite(amplitude_filtered))
 
     # Frequency should now remain finite in the non-uniform branch as well.
+    assert np.all(np.isfinite(frequency))
+
+
+def test_LFPLoader_individual_feature_methods_shapes_and_finite_values():
+    """Individual feature methods should be callable independently and return valid shapes."""
+    n_samples = 500
+    t = np.arange(n_samples) / 1250.0
+    sig_a = np.sin(2 * np.pi * 8 * t)
+    sig_b = np.cos(2 * np.pi * 8 * t)
+    lfp_data = np.vstack([sig_a, sig_b]).T.astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, t)),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+
+    filt_sig = loader.get_filt_sig(band2filter=[6, 12], ford=3)
+    phase = loader.get_phase(filt_sig=filt_sig)
+    amplitude = loader.get_amplitude(filt_sig=filt_sig)
+    amplitude_filtered = loader.get_amplitude_filtered(
+        band2filter=[6, 12], ford=3, amplitude=amplitude
+    )
+    frequency = loader.get_frequency(phase=phase, kernel_size=5)
+
+    expected_shape = (2, n_samples)
+    assert filt_sig.shape == expected_shape
+    assert phase.shape == expected_shape
+    assert amplitude.shape == expected_shape
+    assert amplitude_filtered.shape == expected_shape
+    assert frequency.shape == expected_shape
+
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
     assert np.all(np.isfinite(frequency))
 
 

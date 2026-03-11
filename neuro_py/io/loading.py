@@ -749,7 +749,7 @@ class LFPLoader(nel.AnalogSignalArray):
         lfp, timestep = loadLFP(
             self.basepath,
             n_channels=self.nChannels,
-            channel=self.channels,
+            channel=None,
             frequency=fs,
             ext=self.ext,
         )
@@ -765,17 +765,60 @@ class LFPLoader(nel.AnalogSignalArray):
 
         idx = in_intervals(timestep, intervals)
 
+        # Normalize channel selector once, then choose the first-pass indexing
+        # order that reads fewer samples from disk.
+        if self.channels is None:
+            channel_sel = slice(None)
+            n_selected_channels = int(self.nChannels)
+        elif isinstance(self.channels, (int, np.integer)):
+            channel_sel = int(self.channels)
+            n_selected_channels = 1
+        else:
+            channel_arr = np.asarray(self.channels)
+            if np.issubdtype(channel_arr.dtype, np.bool_):
+                if channel_arr.size != int(self.nChannels):
+                    raise IndexError(
+                        "Boolean channel mask length does not match number of channels "
+                        f"(got {channel_arr.size}, expected {int(self.nChannels)})."
+                    )
+                channel_arr = np.flatnonzero(channel_arr)
+            channel_arr = np.atleast_1d(channel_arr).astype(int, copy=False)
+            channel_sel = channel_arr
+            n_selected_channels = int(channel_arr.size)
+
+        has_time_restriction = not idx.all()
+        has_channel_restriction = (not (self.channels is None)) and np.ndim(lfp) > 1
+        n_total_samples = int(len(timestep))
+        n_selected_samples = int(np.count_nonzero(idx))
+
         # if loading all, don't index as to preserve memmap
-        if idx.all():
+        if not has_time_restriction and not has_channel_restriction:
             selected = lfp
             timestamps = timestep
             support = nel.EpochArray(intervals)
         else:
-            selected = lfp[idx]
-            timestamps = timestep[idx]
-            support = nel.EpochArray(
-                np.array([[min(timestep[idx]), max(timestep[idx])]])
-            )
+            if has_time_restriction:
+                timestamps = timestep[idx]
+                support = nel.EpochArray(intervals)
+            else:
+                timestamps = timestep
+                support = nel.EpochArray(intervals)
+
+            if has_time_restriction and has_channel_restriction:
+                channels_first_cost = n_total_samples * n_selected_channels
+                time_first_cost = n_selected_samples * int(self.nChannels)
+                time_first = time_first_cost <= channels_first_cost
+            else:
+                time_first = has_time_restriction
+
+            if time_first:
+                selected = lfp[idx]
+                if has_channel_restriction:
+                    selected = selected[:, channel_sel]
+            else:
+                selected = lfp[:, channel_sel]
+                if has_time_restriction:
+                    selected = selected[idx]
 
         # Normalize to (n_samples, n_signals) so both 1-channel and multi-channel
         # selections initialize AnalogSignalArray consistently.
@@ -808,26 +851,114 @@ class LFPLoader(nel.AnalogSignalArray):
     def __repr__(self) -> str:
         return super().__repr__()
 
-    def get_phase(self, band2filter: list = [6, 12], ford: int = 3) -> np.ndarray:
-        """
-        Get the phase of the LFP signal using a bandpass filter and Hilbert transform.
-
-        Parameters
-        ----------
-        band2filter : list, optional
-            The frequency band to filter, by default [6, 12].
-        ford : int, optional
-            The order of the Butterworth filter, by default 3.
-
-        Returns
-        -------
-        np.ndarray
-            The phase of the LFP signal.
-        """
+    def _get_bandpass_sos(
+        self, band2filter: list = [6, 12], ford: int = 3
+    ) -> np.ndarray:
+        """Create SOS coefficients for the requested bandpass filter."""
         band2filter = np.array(band2filter, dtype=float)
-        b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
-        return np.angle(signal.hilbert(filt_sig))
+        return signal.butter(
+            ford, band2filter / (self.fs / 2), btype="bandpass", output="sos"
+        )
+
+    def get_filt_sig(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return bandpass-filtered signal."""
+        if sos is None:
+            sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        data = self.data.astype(np.float32, copy=False)
+        return signal.sosfiltfilt(sos, data).astype(np.float32, copy=False)
+
+    def _get_analytic_signal(self, filt_sig: np.ndarray) -> np.ndarray:
+        """Return analytic signal via Hilbert transform along time axis."""
+        return signal.hilbert(filt_sig, axis=-1).astype(np.complex64, copy=False)
+
+    def get_phase(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return instantaneous phase (radians)."""
+        if analytic_sig is not None:
+            return np.angle(analytic_sig).astype(np.float32, copy=False)
+        if filt_sig is None:
+            filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        return np.angle(self._get_analytic_signal(filt_sig)).astype(
+            np.float32, copy=False
+        )
+
+    def get_amplitude(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return instantaneous amplitude envelope."""
+        if analytic_sig is not None:
+            return np.abs(analytic_sig).astype(np.float32, copy=False)
+        if filt_sig is None:
+            filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        return np.abs(self._get_analytic_signal(filt_sig)).astype(
+            np.float32, copy=False
+        )
+
+    def get_amplitude_filtered(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        amplitude: Union[np.ndarray, None] = None,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return smoothed amplitude envelope."""
+        if sos is None:
+            sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        if amplitude is None:
+            amplitude = self.get_amplitude(
+                band2filter=band2filter,
+                ford=ford,
+                filt_sig=filt_sig,
+                analytic_sig=analytic_sig,
+                sos=sos,
+            )
+        return signal.sosfiltfilt(sos, amplitude).astype(np.float32, copy=False)
+
+    def get_frequency(
+        self,
+        phase: np.ndarray,
+        kernel_size: int = 13,
+    ) -> np.ndarray:
+        """Return instantaneous frequency (Hz) from phase."""
+        from scipy.ndimage import median_filter
+
+        filtered_signal = median_filter(
+            np.unwrap(phase), size=(1, kernel_size), mode="nearest"
+        ).astype(np.float32, copy=False)
+
+        tvals = np.asarray(self.abscissa_vals, dtype=np.float64)
+        dt = np.diff(tvals)
+
+        if np.allclose(dt, dt[0]):  # Check if sampling is uniform
+            dt0 = float(dt[0])
+            derivative = np.empty_like(filtered_signal, dtype=np.float32)
+            derivative[:, 1:-1] = (filtered_signal[:, 2:] - filtered_signal[:, :-2]) / (
+                2.0 * dt0
+            )
+            derivative[:, 0] = (filtered_signal[:, 1] - filtered_signal[:, 0]) / dt0
+            derivative[:, -1] = (filtered_signal[:, -1] - filtered_signal[:, -2]) / dt0
+        else:
+            derivative = np.gradient(filtered_signal, tvals, axis=-1)
+
+        return (derivative / (2 * np.pi)).astype(np.float32, copy=False)
 
     def get_freq_phase_amp(
         self, band2filter: list = [6, 12], ford: int = 3, kernel_size: int = 13
@@ -858,38 +989,18 @@ class LFPLoader(nel.AnalogSignalArray):
             The instantaneous frequency of the LFP signal.
         """
 
-        band2filter = np.array(band2filter, dtype=float)
-
-        # Bandpass filter
-        b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
-
-        # Analytic signal
-        analytic = signal.hilbert(filt_sig)
-        phase = np.angle(analytic)
-        amplitude = np.abs(analytic)
-
-        # Smooth amplitude envelope
-        amplitude_filtered = signal.filtfilt(b, a, amplitude, padtype="odd")
-
-        # calculate the frequency
-        # median filter to smooth the unwrapped phase (this is to avoid jumps in the frequency)
-        filtered_signal = signal.medfilt2d(
-            np.unwrap(phase), kernel_size=[1, kernel_size]
+        sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        analytic_sig = self._get_analytic_signal(filt_sig)
+        phase = self.get_phase(analytic_sig=analytic_sig)
+        amplitude = self.get_amplitude(analytic_sig=analytic_sig)
+        amplitude_filtered = self.get_amplitude_filtered(
+            band2filter=band2filter,
+            ford=ford,
+            amplitude=amplitude,
+            sos=sos,
         )
-
-        # Calculate the derivative of the unwrapped phase to get frequency
-        tvals = np.asarray(self.abscissa_vals, dtype=float)
-        dt = np.diff(tvals)
-
-        if np.allclose(dt, dt[0]):  # Check if sampling is uniform
-            derivative = np.gradient(filtered_signal, dt[0], axis=-1)
-        else:
-            # For non-uniform sampling, pass full coordinate values to np.gradient.
-            derivative = np.gradient(filtered_signal, tvals, axis=-1)
-
-        # Convert angular velocity -> Hz
-        frequency = derivative / (2 * np.pi)
+        frequency = self.get_frequency(phase=phase, kernel_size=kernel_size)
 
         return filt_sig, phase, amplitude, amplitude_filtered, frequency
 
