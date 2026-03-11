@@ -1,4 +1,6 @@
 __all__ = (
+    "VirtualConcatenatedDat",
+    "VirtualConcatenatedDatView",
     "loadXML",
     "loadLFP",
     "LFPLoader",
@@ -36,6 +38,8 @@ __all__ = (
 
 from .loading import (
     LFPLoader,
+    VirtualConcatenatedDat,
+    VirtualConcatenatedDatView,
     add_animal_id,
     add_manual_events,
     get_animal_id,

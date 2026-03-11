@@ -131,17 +131,13 @@ class VirtualConcatenatedDat:
         if func is np.squeeze:
             a = args[0]
             axis = kwargs.get("axis", None)
-            if axis is None:
-                if not any(s == 1 for s in a.shape):
-                    return a  # no singleton dims; nothing to squeeze
-            else:
-                norm_axis = int(axis) % len(a.shape)
-                if a.shape[norm_axis] != 1:
-                    raise ValueError(
-                        "cannot select an axis to squeeze out which has size not equal to one"
-                    )
-            # A genuine squeeze is needed; materialize and let NumPy handle it.
-            return np.squeeze(np.asarray(a))
+            # Fast-path no-op cases to preserve laziness.
+            if axis is None and not any(s == 1 for s in a.shape):
+                return a
+            if isinstance(axis, tuple) and len(axis) == 0:
+                return a
+            # Delegate to NumPy for int/tuple axis validation and behavior parity.
+            return np.squeeze(np.asarray(a), axis=axis)
 
         return NotImplemented
 
@@ -198,9 +194,20 @@ class VirtualConcatenatedDat:
             if idx < 0 or idx >= self.total_samples:
                 raise IndexError("Row index out of bounds for DAT fallback.")
             return slice(idx, idx + 1, 1)
-        arr = np.atleast_1d(np.asarray(rows))
-        if arr.dtype == bool:
+        arr = np.asarray(rows)
+        if np.issubdtype(arr.dtype, np.bool_):
+            if arr.size != self.total_samples:
+                raise IndexError(
+                    "Boolean row index mask length does not match number of samples "
+                    f"(got {arr.size}, expected {self.total_samples}) for DAT fallback."
+                )
             arr = np.flatnonzero(arr)
+        else:
+            if not np.issubdtype(arr.dtype, np.integer):
+                raise TypeError(
+                    "Row indices must be integers or a boolean mask for DAT fallback."
+                )
+            arr = np.atleast_1d(arr)
         arr = arr.astype(int, copy=False)
         arr[arr < 0] += self.total_samples
         if (arr < 0).any() or (arr >= self.total_samples).any():
@@ -216,12 +223,33 @@ class VirtualConcatenatedDat:
         if cols is None:
             return slice(None)
         if isinstance(cols, slice):
-            return cols
+            start, stop, step = cols.indices(self.n_channels)
+            return slice(start, stop, step)
         if isinstance(cols, (int, np.integer)):
-            return int(cols)
+            idx = int(cols)
+            if idx < 0:
+                idx += self.n_channels
+            if idx < 0 or idx >= self.n_channels:
+                raise IndexError("Channel index out of bounds for DAT fallback.")
+            return idx
         arr = np.asarray(cols)
-        if arr.dtype == bool:
+        if np.issubdtype(arr.dtype, np.bool_):
+            if arr.size != self.n_channels:
+                raise IndexError(
+                    "Boolean channel mask length does not match number of channels "
+                    f"(got {arr.size}, expected {self.n_channels}) for DAT fallback."
+                )
             arr = np.flatnonzero(arr)
+        else:
+            if not np.issubdtype(arr.dtype, np.integer):
+                raise TypeError(
+                    "Channel indices must be integers or a boolean mask for DAT fallback."
+                )
+            arr = np.atleast_1d(arr)
+            arr = arr.astype(int, copy=False)
+            arr[arr < 0] += self.n_channels
+            if (arr < 0).any() or (arr >= self.n_channels).any():
+                raise IndexError("Channel indices out of bounds for DAT fallback.")
         return arr
 
     def normalize_cols(self, cols):
@@ -290,7 +318,10 @@ class VirtualConcatenatedDat:
             blocks.append(np.asarray(block))
 
         if not blocks:
-            return np.array([], dtype=self.dtype)
+            base = np.empty((0, self.n_channels), dtype=self.dtype)
+            if isinstance(idx, tuple):
+                return base[row_idx, col_idx]
+            return base[row_idx]
         if len(blocks) == 1:
             result = blocks[0]
         else:
@@ -386,17 +417,13 @@ class VirtualConcatenatedDatView:
         if func is np.squeeze:
             a = args[0]
             axis = kwargs.get("axis", None)
-            if axis is None:
-                if not any(s == 1 for s in a.shape):
-                    return a  # no singleton dims; nothing to squeeze
-            else:
-                norm_axis = int(axis) % len(a.shape)
-                if a.shape[norm_axis] != 1:
-                    raise ValueError(
-                        "cannot select an axis to squeeze out which has size not equal to one"
-                    )
-            # A genuine squeeze is needed; materialize and let NumPy handle it.
-            return np.squeeze(np.asarray(a))
+            # Fast-path no-op cases to preserve laziness.
+            if axis is None and not any(s == 1 for s in a.shape):
+                return a
+            if isinstance(axis, tuple) and len(axis) == 0:
+                return a
+            # Delegate to NumPy for int/tuple axis validation and behavior parity.
+            return np.squeeze(np.asarray(a), axis=axis)
 
         return NotImplemented
 
@@ -582,7 +609,19 @@ def loadLFP(
 
     def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype) -> int:
         file_size = os.path.getsize(file_path)
-        return int(file_size / int(channels) / sample_dtype.itemsize)
+        bytes_per_sample = int(channels) * int(sample_dtype.itemsize)
+        if bytes_per_sample <= 0:
+            raise ValueError(
+                f"Invalid bytes_per_sample ({bytes_per_sample}) computed from "
+                f"channels={channels} and dtype={sample_dtype} for file '{file_path}'."
+            )
+        if file_size % bytes_per_sample != 0:
+            raise ValueError(
+                f"File size {file_size} of '{file_path}' is not divisible by "
+                f"bytes_per_sample={bytes_per_sample} (channels={channels}, "
+                f"dtype={sample_dtype}); the file may be corrupt or truncated."
+            )
+        return file_size // bytes_per_sample
 
     # check if saved file exists
     if not os.path.exists(path):
@@ -606,10 +645,12 @@ def loadLFP(
         return data, timestep
 
     mm = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
-    data = np.array(mm[:, channel], copy=True)
-    if hasattr(mm, "_mmap") and mm._mmap is not None:
-        mm._mmap.close()
-    del mm
+    try:
+        data = np.array(mm[:, channel], copy=True)
+    finally:
+        if hasattr(mm, "_mmap") and mm._mmap is not None:
+            mm._mmap.close()
+        del mm
 
     timestep = np.arange(0, len(data)) / frequency
     # check if lfp time stamps exist
