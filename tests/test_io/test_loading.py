@@ -2846,6 +2846,20 @@ def test_VirtualConcatenatedDat_squeeze_semantics_match_numpy():
             np.squeeze(vdat_singleton, axis=1)
 
 
+def test_VirtualConcatenatedDat_iscomplex_matches_numpy_shape_and_values():
+    """np.iscomplex should return an element-wise bool mask like NumPy arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        mask = np.iscomplex(vdat)
+        np.testing.assert_array_equal(mask, np.iscomplex(arr))
+        assert mask.shape == vdat.shape
+        assert mask.dtype == np.bool_
+
+
 def test_VirtualConcatenatedDatView_squeeze_semantics_match_numpy():
     """np.squeeze behavior for transpose view should align with NumPy semantics."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2873,6 +2887,20 @@ def test_VirtualConcatenatedDatView_squeeze_semantics_match_numpy():
         )
         with pytest.raises(ValueError, match="cannot select an axis"):
             np.squeeze(vt_singleton, axis=0)
+
+
+def test_VirtualConcatenatedDatView_iscomplex_matches_numpy_shape_and_values():
+    """np.iscomplex on transpose view should match NumPy element-wise mask semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        mask = np.iscomplex(vt)
+        np.testing.assert_array_equal(mask, np.iscomplex(arr.T))
+        assert mask.shape == vt.shape
+        assert mask.dtype == np.bool_
 
 
 def test_LFPLoader_load_lfp_raises_if_already_initialized():

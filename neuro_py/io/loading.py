@@ -125,8 +125,11 @@ class VirtualConcatenatedDat:
             return self.shape[axis]
 
         if func is np.iscomplex:
-            # DAT payload is real-valued int16; return scalar to avoid building a full mask.
-            return np.array(False)
+            # Preserve element-wise semantics without allocating a dense mask.
+            return np.broadcast_to(np.array(False, dtype=bool), self.shape)
+
+        if func is np.iscomplexobj:
+            return False
 
         if func is np.squeeze:
             a = args[0]
@@ -411,8 +414,11 @@ class VirtualConcatenatedDatView:
             return self.shape[axis]
 
         if func is np.iscomplex:
-            # DAT payload is real-valued int16; return scalar to avoid building a full mask.
-            return np.array(False)
+            # Preserve element-wise semantics without allocating a dense mask.
+            return np.broadcast_to(np.array(False, dtype=bool), self.shape)
+
+        if func is np.iscomplexobj:
+            return False
 
         if func is np.squeeze:
             a = args[0]
@@ -462,8 +468,8 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
         epoch_list = [
             ep
             for ep in np.atleast_1d(epochs).tolist()
-            if ep
-            is not None  # some session exports pad epochs with None placeholders; drop them.
+            if ep is not None
+            # Some session exports pad epochs with None placeholders; keep falsy dicts.
         ]
 
     if len(epoch_list) == 0:
@@ -847,18 +853,23 @@ class LFPLoader(nel.AnalogSignalArray):
         amplitude : np.ndarray
             The amplitude of the LFP signal.
         amplitude_filtered : np.ndarray
-            The filtered amplitude of the LFP signal.
+            Smoothed amplitude envelope.
         frequency : np.ndarray
             The instantaneous frequency of the LFP signal.
         """
 
         band2filter = np.array(band2filter, dtype=float)
 
+        # Bandpass filter
         b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-
         filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
-        phase = np.angle(signal.hilbert(filt_sig))
-        amplitude = np.abs(signal.hilbert(filt_sig))
+
+        # Analytic signal
+        analytic = signal.hilbert(filt_sig)
+        phase = np.angle(analytic)
+        amplitude = np.abs(analytic)
+
+        # Smooth amplitude envelope
         amplitude_filtered = signal.filtfilt(b, a, amplitude, padtype="odd")
 
         # calculate the frequency
@@ -870,11 +881,14 @@ class LFPLoader(nel.AnalogSignalArray):
         # Calculate the derivative of the unwrapped phase to get frequency
         tvals = np.asarray(self.abscissa_vals, dtype=float)
         dt = np.diff(tvals)
+
         if np.allclose(dt, dt[0]):  # Check if sampling is uniform
             derivative = np.gradient(filtered_signal, dt[0], axis=-1)
         else:
             # For non-uniform sampling, pass full coordinate values to np.gradient.
             derivative = np.gradient(filtered_signal, tvals, axis=-1)
+
+        # Convert angular velocity -> Hz
         frequency = derivative / (2 * np.pi)
 
         return filt_sig, phase, amplitude, amplitude_filtered, frequency
