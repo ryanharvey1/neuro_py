@@ -30,6 +30,7 @@ from neuro_py.io.loading import (
     load_trials,
     loadLFP,
     loadXML,
+    VirtualConcatenatedDat,
 )
 
 
@@ -2670,6 +2671,101 @@ def test_LFPLoader_dat_uses_fs_dat():
     assert mock_load_lfp.call_args.kwargs["frequency"] == 20000.0
 
 
+def test_LFPLoader_uses_full_lazy_source_before_selection():
+    """LFPLoader should request the full source and apply channel/epoch selection internally."""
+    lfp_data = np.zeros((10, 4), dtype=np.int16)
+    timestep = np.arange(10, dtype=float)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(4, 1250.0, 20000.0, {0: [0, 1, 2, 3]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ) as mock_load_lfp,
+    ):
+        LFPLoader("dummy", channels=[0, 2], ext="lfp", epoch=np.array([2.0, 4.0]))
+
+    assert mock_load_lfp.call_args.kwargs["channel"] is None
+
+
+def test_LFPLoader_prefers_time_first_when_epoch_read_is_smaller():
+    """When both restrictions are present, LFPLoader should index time first if that reads fewer samples."""
+
+    class TrackingArray:
+        def __init__(self, data):
+            self._data = data
+            self.calls = []
+
+        def __getitem__(self, key):
+            self.calls.append(key)
+            return self._data[key]
+
+        def __array__(self, dtype=None):
+            arr = np.asarray(self._data)
+            if dtype is not None:
+                arr = arr.astype(dtype, copy=False)
+            return arr
+
+    n_samples = 1000
+    n_channels = 64
+    timestep = np.arange(n_samples, dtype=float) / 1000.0
+    tracked = TrackingArray(np.zeros((n_samples, n_channels), dtype=np.int16))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(n_channels, 1250.0, 20000.0, {0: list(range(n_channels))}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(tracked, timestep)),
+    ):
+        LFPLoader("dummy", channels=[0, 1], ext="lfp", epoch=np.array([0.0, 0.01]))
+
+    first_key = tracked.calls[0]
+    assert isinstance(first_key, np.ndarray)
+    assert first_key.dtype == np.bool_
+    assert first_key.shape[0] == n_samples
+
+
+def test_LFPLoader_prefers_channels_first_when_channel_read_is_smaller():
+    """When both restrictions are present, LFPLoader should index channels first if that reads fewer samples."""
+
+    class TrackingArray:
+        def __init__(self, data):
+            self._data = data
+            self.calls = []
+
+        def __getitem__(self, key):
+            self.calls.append(key)
+            return self._data[key]
+
+        def __array__(self, dtype=None):
+            arr = np.asarray(self._data)
+            if dtype is not None:
+                arr = arr.astype(dtype, copy=False)
+            return arr
+
+    n_samples = 1000
+    n_channels = 64
+    timestep = np.arange(n_samples, dtype=float) / 1000.0
+    tracked = TrackingArray(np.zeros((n_samples, n_channels), dtype=np.int16))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(n_channels, 1250.0, 20000.0, {0: list(range(n_channels))}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(tracked, timestep)),
+    ):
+        LFPLoader("dummy", channels=[0, 1], ext="lfp", epoch=np.array([0.0, 0.95]))
+
+    first_key = tracked.calls[0]
+    assert isinstance(first_key, tuple)
+    assert isinstance(first_key[0], slice)
+
+
 def test_LFPLoader_lfp_alias_returns_self():
     """Test LFPLoader.lfp remains a backward-compatible alias to self."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
@@ -2689,6 +2785,287 @@ def test_LFPLoader_lfp_alias_returns_self():
 
     assert loader.lfp is loader
     assert isinstance(loader, nel.AnalogSignalArray)
+
+
+def test_VirtualConcatenatedDat_ndim_property():
+    """VirtualConcatenatedDat exposes ndim to avoid materializing data via np.ndim."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(3, 2))
+        mm[:] = np.array([[1, 2], [3, 4], [5, 6]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 3)], n_channels=2, dtype="int16")
+
+        assert vdat.ndim == 2
+        assert np.ndim(vdat) == 2
+
+
+def test_VirtualConcatenatedDat_T_property():
+    """VirtualConcatenatedDat exposes transpose without eager materialization."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(2, 3))
+        mm[:] = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        transposed = vdat.T  # should be a lazy wrapper
+        assert hasattr(transposed, "__getitem__")
+        assert transposed.shape == (3, 2)
+
+        transposed_array = np.asarray(transposed)
+        np.testing.assert_array_equal(
+            transposed_array, np.array([[1, 4], [2, 5], [3, 6]], dtype="int16")
+        )
+
+        assert transposed.T is vdat
+
+
+def test_VirtualConcatenatedDat_T_does_not_call_asarray(monkeypatch):
+    """Accessing .T should not materialize the entire DAT."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        mm = np.memmap(path, dtype="int16", mode="w+", shape=(1, 2))
+        mm[:] = np.array([[7, 8]], dtype="int16")
+        mm.flush()
+        del mm
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 1)], n_channels=2, dtype="int16")
+
+        called = False
+
+        def _mock_asarray(*args, **kwargs):
+            nonlocal called
+            called = True
+            raise AssertionError("Should not materialize via _asarray")
+
+        monkeypatch.setattr(vdat, "_asarray", _mock_asarray)
+
+        t_view = vdat.T  # should not trigger _asarray
+        assert called is False
+        # basic metadata should work without materialization
+        assert t_view.shape == (2, 1)
+        assert t_view.ndim == 2
+        assert called is False
+
+
+def test_VirtualConcatenatedDat_T_property_multiple_segments():
+    """Transpose handles multiple DAT segments correctly."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path1 = os.path.join(temp_dir, "amplifier1.dat")
+        path2 = os.path.join(temp_dir, "amplifier2.dat")
+
+        mm1 = np.memmap(path1, dtype="int16", mode="w+", shape=(2, 2))
+        mm1[:] = np.array([[1, 2], [3, 4]], dtype="int16")
+        mm1.flush()
+        del mm1
+
+        mm2 = np.memmap(path2, dtype="int16", mode="w+", shape=(1, 2))
+        mm2[:] = np.array([[5, 6]], dtype="int16")
+        mm2.flush()
+        del mm2
+
+        vdat = VirtualConcatenatedDat(
+            segments=[(path1, 2), (path2, 1)], n_channels=2, dtype="int16"
+        )
+
+        transposed = vdat.T
+        assert transposed.shape == (2, 3)
+        np.testing.assert_array_equal(
+            transposed, np.array([[1, 3, 5], [2, 4, 6]], dtype="int16")
+        )
+
+
+def test_VirtualConcatenatedDat_scalar_indexing_matches_numpy():
+    """Scalar indexing on VirtualConcatenatedDat should match NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 4)], n_channels=3, dtype="int16")
+
+        np.testing.assert_array_equal(vdat[1], arr[1])
+        np.testing.assert_array_equal(vdat[:, 1], arr[:, 1])
+        assert np.ndim(vdat[1, 2]) == 0
+        assert vdat[1, 2] == arr[1, 2]
+
+
+def test_VirtualConcatenatedDatView_scalar_indexing_matches_numpy():
+    """Scalar indexing on VirtualConcatenatedDatView should match NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype="int16")
+        arr.tofile(path)
+
+        vt = VirtualConcatenatedDat(segments=[(path, 4)], n_channels=3, dtype="int16").T
+        arr_t = arr.T
+
+        np.testing.assert_array_equal(vt[2], arr_t[2])
+        np.testing.assert_array_equal(vt[:, 1], arr_t[:, 1])
+        assert np.ndim(vt[2, 1]) == 0
+        assert vt[2, 1] == arr_t[2, 1]
+
+
+def test_VirtualConcatenatedDat_tuple_indexing_len_one_matches_numpy():
+    """Single-element tuple indexing (arr[:,]) should behave like NumPy."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+        np.testing.assert_array_equal(vdat[:,], arr[:,])
+
+
+def test_VirtualConcatenatedDat_tuple_indexing_too_many_axes_raises():
+    """More than 2 indices should raise IndexError with clear message."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+        with pytest.raises(IndexError, match="Too many indices"):
+            _ = vdat[:, :, :]
+
+
+def test_VirtualConcatenatedDatView_tuple_indexing_len_one_matches_numpy():
+    """Single-element tuple indexing on transpose view (vt[:,]) should match NumPy."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+        np.testing.assert_array_equal(vt[:,], arr.T[:,])
+
+
+def test_VirtualConcatenatedDat_squeeze_semantics_match_numpy():
+    """np.squeeze behavior should align with NumPy for no-op, valid-axis, and invalid-axis cases."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        # No singleton dims: squeeze is a no-op and should preserve laziness.
+        assert np.squeeze(vdat) is vdat
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat, axis=0)
+
+        path_singleton = os.path.join(temp_dir, "singleton_row.dat")
+        arr_singleton = np.array([[42, 43, 44]], dtype="int16")
+        arr_singleton.tofile(path_singleton)
+        vdat_singleton = VirtualConcatenatedDat(
+            segments=[(path_singleton, 1)], n_channels=3, dtype="int16"
+        )
+
+        np.testing.assert_array_equal(
+            np.squeeze(vdat_singleton), np.squeeze(arr_singleton)
+        )
+        np.testing.assert_array_equal(
+            np.squeeze(vdat_singleton, axis=0), np.squeeze(arr_singleton, axis=0)
+        )
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat_singleton, axis=1)
+
+
+def test_VirtualConcatenatedDat_squeeze_invalid_axis_does_not_materialize(monkeypatch):
+    """Invalid axis squeeze should raise without materializing lazy DAT."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        def _boom_asarray(*args, **kwargs):
+            raise AssertionError("Should not materialize for invalid squeeze axis")
+
+        monkeypatch.setattr(vdat, "_asarray", _boom_asarray)
+
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat, axis=0)
+
+
+def test_VirtualConcatenatedDat_iscomplex_matches_numpy_shape_and_values():
+    """np.iscomplex should return an element-wise bool mask like NumPy arrays."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        mask = np.iscomplex(vdat)
+        np.testing.assert_array_equal(mask, np.iscomplex(arr))
+        assert mask.shape == vdat.shape
+        assert mask.dtype == np.bool_
+
+
+def test_VirtualConcatenatedDatView_squeeze_semantics_match_numpy():
+    """np.squeeze behavior for transpose view should align with NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        # No singleton dims: squeeze is a no-op and should preserve laziness.
+        assert np.squeeze(vt) is vt
+
+        path_singleton = os.path.join(temp_dir, "singleton_row.dat")
+        arr_singleton = np.array([[42, 43, 44]], dtype="int16")
+        arr_singleton.tofile(path_singleton)
+        vt_singleton = VirtualConcatenatedDat(
+            segments=[(path_singleton, 1)], n_channels=3, dtype="int16"
+        ).T
+        arr_t_singleton = arr_singleton.T
+
+        np.testing.assert_array_equal(
+            np.squeeze(vt_singleton), np.squeeze(arr_t_singleton)
+        )
+        np.testing.assert_array_equal(
+            np.squeeze(vt_singleton, axis=1), np.squeeze(arr_t_singleton, axis=1)
+        )
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vt_singleton, axis=0)
+
+
+def test_VirtualConcatenatedDatView_squeeze_invalid_axis_does_not_materialize(
+    monkeypatch,
+):
+    """Invalid axis squeeze on transpose view should raise without materialization."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        def _boom_asarray(*args, **kwargs):
+            raise AssertionError("Should not materialize for invalid squeeze axis")
+
+        monkeypatch.setattr(vt._base, "_asarray", _boom_asarray)
+
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vt, axis=0)
+
+
+def test_VirtualConcatenatedDatView_iscomplex_matches_numpy_shape_and_values():
+    """np.iscomplex on transpose view should match NumPy element-wise mask semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        mask = np.iscomplex(vt)
+        np.testing.assert_array_equal(mask, np.iscomplex(arr.T))
+        assert mask.shape == vt.shape
+        assert mask.dtype == np.bool_
 
 
 def test_LFPLoader_load_lfp_raises_if_already_initialized():
@@ -2734,6 +3111,39 @@ def test_LFPLoader_epoch_restricts_time_support():
 
     assert loader.abscissa_vals.min() >= 1.0
     assert loader.abscissa_vals.max() <= 3.0
+
+
+def test_LFPLoader_multi_epoch_support_matches_epoch_not_recording_span():
+    """Support duration should reflect the epochs requested, not the full recording span.
+
+    This guards against the bug where support was collapsed to a single interval
+    [min(timestamps), max(timestamps)], which spans the full recording when theta epochs
+    are spread across the session.
+    """
+    # 10 s recording at 4 Hz => 40 samples
+    fs = 4.0
+    timestep = np.arange(40, dtype=float) / fs  # 0.0 … 9.75 s
+    lfp_data = np.zeros((40, 2), dtype=np.int16)
+
+    # Two short theta epochs [1-2 s] and [7-8 s] — total 2 s, but their span is 7 s
+    epoch = nel.EpochArray(np.array([[1.0, 2.0], [7.0, 8.0]]))
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, fs, fs, {0: [0, 1]}),
+        ),
+        patch(
+            "neuro_py.io.loading.loadLFP",
+            return_value=(lfp_data, timestep),
+        ),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp", epoch=epoch)
+
+    # The support should cover 2 epochs, not one flattened interval.
+    assert loader.support.n_intervals == 2
+    # Total supported duration should be ~2 s, not ~7 s.
+    assert loader.support.duration < 3.0
 
 
 def test_LFPLoader_get_freq_phase_amp_shapes():
@@ -2828,6 +3238,175 @@ def test_LFPLoader_get_phase_single_channel_shape():
     assert phase.shape == (1, n_samples)
 
 
+def test_LFPLoader_get_phase_values_are_finite_and_bounded():
+    """Phase output should be finite and wrapped to [-pi, pi]."""
+    n_samples = 400
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    phase = loader.get_phase(band2filter=[6, 12], ford=3)
+    assert np.all(np.isfinite(phase))
+    assert np.max(phase) <= np.pi + 1e-8
+    assert np.min(phase) >= -np.pi - 1e-8
+
+
+def test_LFPLoader_get_freq_phase_amp_values_are_finite_and_plausible():
+    """Frequency/phase/amplitude outputs should be finite with non-negative amplitudes."""
+    n_samples = 800
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    _, phase, amplitude, amplitude_filtered, frequency = loader.get_freq_phase_amp(
+        band2filter=[6, 12], ford=3, kernel_size=5
+    )
+
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
+    assert np.all(np.isfinite(frequency))
+    assert np.all(amplitude >= 0)
+    # Ignore edge artifacts and check central tendency near the injected 8 Hz tone.
+    central_freq = frequency[0, 100:-100]
+    assert np.abs(np.nanmedian(central_freq) - 8.0) < 2.0
+
+
+def test_LFPLoader_get_freq_phase_amp_nonuniform_timestamps_branch():
+    """Non-uniform abscissa values should execute the non-uniform dt branch safely."""
+    n_samples = 400
+    dt = np.linspace(1 / 1300.0, 1 / 1200.0, n_samples, dtype=np.float64)
+    t = np.cumsum(dt) - dt[0]
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    filt_sig, phase, amplitude, amplitude_filtered, frequency = (
+        loader.get_freq_phase_amp(band2filter=[6, 12], ford=3, kernel_size=5)
+    )
+
+    for arr in (filt_sig, phase, amplitude, amplitude_filtered, frequency):
+        assert arr.shape == (1, n_samples)
+
+    # Core signal outputs should remain finite.
+    assert np.all(np.isfinite(filt_sig))
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
+
+    # Frequency should now remain finite in the non-uniform branch as well.
+    assert np.all(np.isfinite(frequency))
+
+
+def test_LFPLoader_individual_feature_methods_shapes_and_finite_values():
+    """Individual feature methods should be callable independently and return valid shapes."""
+    n_samples = 500
+    t = np.arange(n_samples) / 1250.0
+    sig_a = np.sin(2 * np.pi * 8 * t)
+    sig_b = np.cos(2 * np.pi * 8 * t)
+    lfp_data = np.vstack([sig_a, sig_b]).T.astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, t)),
+    ):
+        loader = LFPLoader("dummy", channels=None, ext="lfp")
+
+    filt_sig = loader.get_filt_sig(band2filter=[6, 12], ford=3)
+    phase = loader.get_phase(filt_sig=filt_sig)
+    amplitude = loader.get_amplitude(filt_sig=filt_sig)
+    amplitude_filtered = loader.get_amplitude_filtered(
+        band2filter=[6, 12], ford=3, amplitude=amplitude
+    )
+    frequency = loader.get_frequency(phase=phase, kernel_size=5)
+
+    expected_shape = (2, n_samples)
+    assert filt_sig.shape == expected_shape
+    assert phase.shape == expected_shape
+    assert amplitude.shape == expected_shape
+    assert amplitude_filtered.shape == expected_shape
+    assert frequency.shape == expected_shape
+
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
+    assert np.all(np.isfinite(frequency))
+
+
+def test_LFPLoader_channels_reject_non_integer_values():
+    """Non-integer numeric channel selectors should raise instead of silently truncating."""
+    lfp_data = np.array(
+        [[1.0, 10.0], [2.0, 20.0], [3.0, 30.0], [4.0, 40.0]], dtype=np.float32
+    )
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, timestep)),
+    ):
+        with pytest.raises(IndexError, match="must be integers"):
+            LFPLoader("dummy", channels=[0.1, 1.0], ext="lfp")
+
+
+def test_LFPLoader_get_frequency_requires_at_least_two_timestamps():
+    """Frequency computation should fail gracefully for signals with <2 timestamps."""
+    loader = LFPLoader.__new__(LFPLoader)
+    loader._abscissa_vals = np.array([0.0], dtype=float)
+
+    with pytest.raises(ValueError, match="At least 2 timestamps"):
+        loader.get_frequency(phase=np.zeros((1, 1), dtype=np.float32))
+
+
+def test_LFPLoader_phase_methods_raise_on_invalid_band():
+    """Invalid band edges should raise from scipy.signal.butter in both methods."""
+    n_samples = 200
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    with pytest.raises(ValueError):
+        loader.get_phase(band2filter=[600, 700], ford=3)
+    with pytest.raises(ValueError):
+        loader.get_freq_phase_amp(band2filter=[600, 700], ford=3, kernel_size=5)
+
+
 def test_loadLFP_reads_binary_file():
     """Test loadLFP reads a binary lfp file and returns data and timestamps."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2875,6 +3454,254 @@ def test_loadLFP_reads_selected_channel_list():
         assert np.array_equal(lfp[:, 0], np.array([1, 2, 3, 4]))
         assert np.array_equal(lfp[:, 1], np.array([100, 200, 300, 400]))
         assert timestep.shape[0] == 4
+
+
+def _write_epoch_dat_files(basepath, epochs_data):
+    basename = os.path.basename(basepath)
+    session_content = {
+        "session": {
+            "epochs": [
+                {"name": name, "startTime": 0.0, "stopTime": 1.0}
+                for name in epochs_data.keys()
+            ]
+        }
+    }
+    create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+    for epoch_name, data in epochs_data.items():
+        epoch_dir = os.path.join(basepath, epoch_name)
+        os.makedirs(epoch_dir, exist_ok=True)
+        amp_path = os.path.join(epoch_dir, "amplifier.dat")
+        np.asarray(data, dtype=np.int16).tofile(amp_path)
+    return session_content
+
+
+def _write_epoch_open_ephys_dat_files(basepath, epochs_data):
+    """Create per-epoch nested Open Ephys continuous.dat files."""
+    basename = os.path.basename(basepath)
+    session_content = {
+        "session": {
+            "epochs": [
+                {"name": name, "startTime": 0.0, "stopTime": 1.0}
+                for name in epochs_data.keys()
+            ]
+        }
+    }
+    create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+    for epoch_name, data in epochs_data.items():
+        oe_dir = os.path.join(
+            basepath,
+            epoch_name,
+            "Record Node 101",
+            "experiment1",
+            "recording1",
+            "continuous",
+            "Acquisition_Board-100.Rhythm Data",
+        )
+        os.makedirs(oe_dir, exist_ok=True)
+        dat_path = os.path.join(oe_dir, "continuous.dat")
+        np.asarray(data, dtype=np.int16).tofile(dat_path)
+    return session_content
+
+
+def test_loadLFP_dat_fallback_memmap_like():
+    """Fallback loads per-epoch amplifier.dat when session dat is missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_fallback")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20], [3, 30], [4, 40]], dtype=np.int16),
+            "epoch2": np.array([[5, 50], [6, 60]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == (6, 2)
+        assert np.allclose(ts, np.arange(6) / 2.0)
+        assert np.array_equal(data[1:3], epochs_data["epoch1"][1:3])
+
+
+def test_loadLFP_dat_fallback_cross_epoch_slice():
+    """Fallback supports slices crossing epoch boundaries."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_cross")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20], [3, 30], [4, 40]], dtype=np.int16),
+            "epoch2": np.array([[5, 50], [6, 60]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        data, _ = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+        stitched = data[3:5]
+
+        expected = np.vstack([epochs_data["epoch1"][3], epochs_data["epoch2"][0]])
+        assert np.array_equal(stitched, expected)
+
+
+def test_loadLFP_dat_fallback_channel_selection():
+    """Fallback returns selected channels for int or list channel arguments."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_channels")
+        epochs_data = {
+            "epoch1": np.array([[1, 10], [2, 20]], dtype=np.int16),
+            "epoch2": np.array([[3, 30], [4, 40]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+
+        one_ch, ts_one = loadLFP(
+            basepath, n_channels=2, channel=1, frequency=1.0, ext="dat"
+        )
+        multi_ch, ts_multi = loadLFP(
+            basepath, n_channels=2, channel=[0], frequency=1.0, ext="dat"
+        )
+
+        assert ts_one.shape[0] == 4
+        expected_one = np.concatenate(
+            [epochs_data["epoch1"][:, 1], epochs_data["epoch2"][:, 1]]
+        )
+        assert np.array_equal(one_ch, expected_one)
+        assert multi_ch.shape == (4, 1)
+        expected_multi = np.concatenate(
+            [epochs_data["epoch1"][:, 0], epochs_data["epoch2"][:, 0]]
+        )
+        assert np.array_equal(multi_ch[:, 0], expected_multi)
+        assert np.array_equal(ts_one, ts_multi)
+
+
+def test_loadLFP_dat_fallback_open_ephys_nested_paths():
+    """Fallback supports per-epoch Open Ephys nested continuous.dat files."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_open_ephys")
+        epochs_data = {
+            "2025-07-28_09-17-02": np.array(
+                [[1, 10], [2, 20], [3, 30]], dtype=np.int16
+            ),
+            "2025-07-28_09-27-02": np.array([[4, 40], [5, 50]], dtype=np.int16),
+        }
+        _write_epoch_open_ephys_dat_files(basepath, epochs_data)
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == (5, 2)
+        assert np.allclose(ts, np.arange(5) / 2.0)
+
+        expected = np.vstack(
+            [epochs_data["2025-07-28_09-17-02"], epochs_data["2025-07-28_09-27-02"]]
+        )
+        np.testing.assert_array_equal(data[:], expected)
+
+
+def test_loadLFP_dat_fallback_mixed_intan_open_ephys_epochs():
+    """Fallback supports sessions that mix Intan and Open Ephys epoch layouts."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_mixed")
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {
+                "epochs": [
+                    {"name": "epoch_intan", "startTime": 0.0, "stopTime": 1.0},
+                    {
+                        "name": "2025-07-28_09-17-02",
+                        "startTime": 1.0,
+                        "stopTime": 2.0,
+                    },
+                ]
+            }
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+
+        intan_data = np.array([[1, 10], [2, 20]], dtype=np.int16)
+        intan_dir = os.path.join(basepath, "epoch_intan")
+        os.makedirs(intan_dir, exist_ok=True)
+        intan_data.tofile(os.path.join(intan_dir, "amplifier.dat"))
+
+        oe_data = np.array([[3, 30], [4, 40], [5, 50]], dtype=np.int16)
+        oe_dir = os.path.join(
+            basepath,
+            "2025-07-28_09-17-02",
+            "Record Node 101",
+            "experiment1",
+            "recording1",
+            "continuous",
+            "Acquisition_Board-100.Rhythm Data",
+        )
+        os.makedirs(oe_dir, exist_ok=True)
+        oe_data.tofile(os.path.join(oe_dir, "continuous.dat"))
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+        expected = np.vstack([intan_data, oe_data])
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == expected.shape
+        np.testing.assert_array_equal(data[:], expected)
+        assert np.allclose(ts, np.arange(expected.shape[0]))
+
+
+def test_loadLFP_dat_fallback_missing_epoch_file():
+    """Fallback raises informative error when an epoch amplifier.dat is missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_missing")
+        epochs_data = {
+            "epoch1": np.array([[1, 10]], dtype=np.int16),
+            "epoch2": np.array([[2, 20]], dtype=np.int16),
+        }
+        _write_epoch_dat_files(basepath, epochs_data)
+        missing_path = os.path.join(basepath, "epoch2", "amplifier.dat")
+        os.remove(missing_path)
+
+        with pytest.raises(FileNotFoundError, match="amplifier.dat"):
+            loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+
+
+def test_loadLFP_dat_fallback_bad_file_size():
+    """Fallback raises informative error on invalid amplifier.dat byte length."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_badsize")
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {
+                "epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]
+            }
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+        epoch_dir = os.path.join(basepath, "epoch1")
+        os.makedirs(epoch_dir, exist_ok=True)
+        amp_path = os.path.join(epoch_dir, "amplifier.dat")
+        invalid_size = (2 * np.dtype(np.int16).itemsize) - 1
+        with open(amp_path, "wb") as f:
+            f.write(
+                b"\x00" * invalid_size
+            )  # size not divisible by n_channels * bytes_per_sample.
+
+        with pytest.raises(ValueError, match="not divisible"):
+            loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+
+
+def test_loadLFP_dat_prefers_concatenated_file_when_present():
+    """Existing behavior preserved when basename.dat exists."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_present")
+        os.makedirs(basepath, exist_ok=True)
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {
+                "epochs": [{"name": "epoch1", "startTime": 0.0, "stopTime": 1.0}]
+            }
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+
+        data = np.array([[1, 2], [3, 4]], dtype=np.int16)
+        dat_path = os.path.join(basepath, f"{basename}.dat")
+        data.tofile(dat_path)
+
+        result, _ = loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+        assert isinstance(result, np.memmap)
+        assert result.shape == (2, 2)
+
+        # Explicitly release memmap-backed file handle before temp dir cleanup on Windows.
+        result._mmap.close()
+        del result
 
 
 def test_loadXML_parses_basic_fields():

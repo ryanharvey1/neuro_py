@@ -1,5 +1,6 @@
 """Loading functions for cell explorer format"""
 
+import bisect
 import glob
 import multiprocessing
 import os
@@ -21,6 +22,7 @@ from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 from neuro_py.util.array import is_nested
+from numpy.exceptions import AxisError
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -80,10 +82,555 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
     return int(nChannels), int(fs), int(fs_dat), shank_to_channel
 
 
+class VirtualConcatenatedDat:
+    """Lightweight view over sequential amplifier.dat files without materializing them."""
+
+    def __init__(
+        self,
+        segments: List[Tuple[str, int]],
+        n_channels: int,
+        dtype: Union[str, np.dtype],
+    ) -> None:
+        self.segments = segments
+        self.n_channels = int(n_channels)
+        self.dtype = np.dtype(dtype)
+        lengths = [seg[1] for seg in segments]
+        self._offsets = np.concatenate(([0], np.cumsum(lengths, dtype=np.int64)))
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self.total_samples, self.n_channels
+
+    @property
+    def ndim(self) -> int:
+        """Array dimensionality for numpy compatibility without materializing data."""
+        return 2
+
+    @property
+    def size(self) -> int:
+        """Total number of elements for NumPy compatibility."""
+        return int(self.total_samples * self.n_channels)
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Handle selected NumPy calls without forcing full materialization."""
+        if func is np.ndim:
+            return 2
+
+        if func is np.shape:
+            return self.shape
+
+        if func is np.size:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self.size
+            return self.shape[axis]
+
+        if func is np.iscomplex:
+            # Preserve element-wise semantics without allocating a dense mask.
+            return np.broadcast_to(np.array(False, dtype=bool), self.shape)
+
+        if func is np.iscomplexobj:
+            return False
+
+        if func is np.squeeze:
+            a = args[0]
+            axis = kwargs.get("axis", None)
+            # Fast-path no-op cases to preserve laziness.
+            if axis is None and not any(s == 1 for s in a.shape):
+                return a
+            if isinstance(axis, tuple) and len(axis) == 0:
+                return a
+
+            if axis is not None:
+                if isinstance(axis, (int, np.integer)):
+                    axes = (int(axis),)
+                elif isinstance(axis, tuple):
+                    axes = axis
+                else:
+                    return np.squeeze(np.asarray(a), axis=axis)
+
+                normalized_axes = []
+                for ax in axes:
+                    if not isinstance(ax, (int, np.integer)):
+                        return np.squeeze(np.asarray(a), axis=axis)
+                    ax = int(ax)
+                    if ax < 0:
+                        ax += a.ndim
+                    if ax < 0 or ax >= a.ndim:
+                        raise AxisError(ax, ndim=a.ndim)
+                    normalized_axes.append(ax)
+
+                for ax in normalized_axes:
+                    if a.shape[ax] != 1:
+                        raise ValueError(
+                            "cannot select an axis to squeeze out which has size not equal to one"
+                        )
+
+            # Delegate to NumPy for axis validation parity and actual squeezing.
+            return np.squeeze(np.asarray(a), axis=axis)
+
+        return NotImplemented
+
+    def _asarray(self) -> np.ndarray:
+        """Materialize the concatenated DAT as a NumPy array (loads all data into memory)."""
+        blocks = []
+        for start, stop in self._row_blocks(slice(0, self.total_samples, 1)):
+            file_idx = self._file_for_index(start)
+            row_start = start - self._offsets[file_idx]
+            row_stop = stop - self._offsets[file_idx]
+            block = self._read_block(file_idx, row_start, row_stop, slice(None))
+            blocks.append(np.asarray(block))
+
+        if not blocks:
+            return np.empty((0, self.n_channels), dtype=self.dtype)
+        if len(blocks) == 1:
+            return blocks[0]
+        return np.concatenate(blocks, axis=0)
+
+    def __array__(self, dtype=None):
+        arr = self._asarray()
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        return arr
+
+    @property
+    def T(self) -> "VirtualConcatenatedDatView":
+        """Lazy transpose view (n_channels, n_samples) that streams from disk via memmap slices without materializing the full recording."""
+        return VirtualConcatenatedDatView(self)
+
+    def __len__(self) -> int:
+        """Total number of samples across all segments."""
+        return self.total_samples
+
+    @property
+    def total_samples(self) -> int:
+        return int(self._offsets[-1])
+
+    def _file_for_index(self, idx: int) -> int:
+        return bisect.bisect_right(self._offsets, idx) - 1
+
+    def _normalize_rows(self, rows):
+        if isinstance(rows, slice):
+            start, stop, step = rows.indices(self.total_samples)
+            if step not in (None, 1):
+                raise ValueError(
+                    f"Only step size 1 slices are supported for DAT fallback, got step={step}."
+                )
+            return slice(start, stop, 1)
+        if isinstance(rows, (int, np.integer)):
+            idx = int(rows)
+            if idx < 0:
+                idx += self.total_samples
+            if idx < 0 or idx >= self.total_samples:
+                raise IndexError("Row index out of bounds for DAT fallback.")
+            return slice(idx, idx + 1, 1)
+        arr = np.asarray(rows)
+        if np.issubdtype(arr.dtype, np.bool_):
+            if arr.size != self.total_samples:
+                raise IndexError(
+                    "Boolean row index mask length does not match number of samples "
+                    f"(got {arr.size}, expected {self.total_samples}) for DAT fallback."
+                )
+            arr = np.flatnonzero(arr)
+        else:
+            if not np.issubdtype(arr.dtype, np.integer):
+                raise TypeError(
+                    "Row indices must be integers or a boolean mask for DAT fallback."
+                )
+            arr = np.atleast_1d(arr)
+        arr = arr.astype(int, copy=False)
+        arr[arr < 0] += self.total_samples
+        if (arr < 0).any() or (arr >= self.total_samples).any():
+            raise IndexError("Row indices out of bounds for DAT fallback.")
+        return arr
+
+    # Public wrappers for normalizers used by the transpose view.
+    def normalize_rows(self, rows):
+        """Normalize sample indices (slice, bool mask, or integer array) to integer row indices."""
+        return self._normalize_rows(rows)
+
+    def _normalize_cols(self, cols):
+        if cols is None:
+            return slice(None)
+        if isinstance(cols, slice):
+            start, stop, step = cols.indices(self.n_channels)
+            return slice(start, stop, step)
+        if isinstance(cols, (int, np.integer)):
+            idx = int(cols)
+            if idx < 0:
+                idx += self.n_channels
+            if idx < 0 or idx >= self.n_channels:
+                raise IndexError("Channel index out of bounds for DAT fallback.")
+            return idx
+        arr = np.asarray(cols)
+        if np.issubdtype(arr.dtype, np.bool_):
+            if arr.size != self.n_channels:
+                raise IndexError(
+                    "Boolean channel mask length does not match number of channels "
+                    f"(got {arr.size}, expected {self.n_channels}) for DAT fallback."
+                )
+            arr = np.flatnonzero(arr)
+        else:
+            if not np.issubdtype(arr.dtype, np.integer):
+                raise TypeError(
+                    "Channel indices must be integers or a boolean mask for DAT fallback."
+                )
+            arr = np.atleast_1d(arr)
+            arr = arr.astype(int, copy=False)
+            arr[arr < 0] += self.n_channels
+            if (arr < 0).any() or (arr >= self.n_channels).any():
+                raise IndexError("Channel indices out of bounds for DAT fallback.")
+        return arr
+
+    def normalize_cols(self, cols):
+        """Normalize channel indices (slice, bool mask, or integer array) to integer column indices."""
+        return self._normalize_cols(cols)
+
+    def _row_blocks(self, row_idx):
+        if isinstance(row_idx, slice):
+            start = row_idx.start
+            stop = row_idx.stop
+            if start >= stop:
+                return []
+            blocks = []
+            current = start
+            while current < stop:
+                file_idx = self._file_for_index(current)
+                file_end = self._offsets[file_idx + 1]
+                block_end = min(stop, file_end)
+                blocks.append((current, block_end))
+                current = block_end
+            return blocks
+        if row_idx.size == 0:
+            return []
+        blocks = []
+        start = row_idx[0]
+        prev = row_idx[0]
+        prev_file = self._file_for_index(prev)
+        for val in row_idx[1:]:
+            current_file = self._file_for_index(val)
+            if val == prev + 1 and current_file == prev_file:
+                prev = val
+                prev_file = current_file
+                continue
+            blocks.append((start, prev + 1))
+            start = prev = val
+            prev_file = current_file
+        blocks.append((start, prev + 1))
+        return blocks
+
+    def _read_block(self, file_idx: int, start: int, stop: int, col_idx):
+        path, n_samples = self.segments[file_idx]
+        mm = np.memmap(path, self.dtype, mode="r", shape=(n_samples, self.n_channels))
+        try:
+            # Copy slice into RAM so Windows can release file locks immediately.
+            return np.array(mm[start:stop, col_idx], copy=True)
+        finally:
+            if hasattr(mm, "_mmap") and mm._mmap is not None:
+                mm._mmap.close()
+            del mm
+
+    def __getitem__(self, idx):
+        if isinstance(idx, tuple):
+            n = len(idx)
+            if n == 0:
+                row_idx, col_idx = slice(None), None
+            elif n == 1:
+                row_idx, col_idx = idx[0], None
+            elif n == 2:
+                row_idx, col_idx = idx
+            else:
+                raise IndexError(
+                    "Too many indices for VirtualConcatenatedDat: "
+                    f"expected at most 2, got {n}."
+                )
+        else:
+            row_idx, col_idx = idx, None
+        scalar_row = isinstance(row_idx, (int, np.integer))
+        row_idx = self._normalize_rows(row_idx)
+        col_idx = self._normalize_cols(col_idx)
+
+        blocks = []
+        for start, stop in self._row_blocks(row_idx):
+            file_idx = self._file_for_index(start)
+            row_start = start - self._offsets[file_idx]
+            row_stop = stop - self._offsets[file_idx]
+            block = self._read_block(file_idx, row_start, row_stop, col_idx)
+            blocks.append(np.asarray(block))
+
+        if not blocks:
+            base = np.empty((0, self.n_channels), dtype=self.dtype)
+            if isinstance(idx, tuple):
+                return base[row_idx, col_idx]
+            return base[row_idx]
+        if len(blocks) == 1:
+            result = blocks[0]
+        else:
+            result = np.concatenate(blocks, axis=0)
+        if scalar_row:
+            result = result[0]
+        return result
+
+
+class VirtualConcatenatedDatView:
+    """Lazy transpose wrapper that mirrors VirtualConcatenatedDat without loading all data."""
+
+    def __init__(self, base: VirtualConcatenatedDat) -> None:
+        self._base = base
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self._base.n_channels, self._base.total_samples
+
+    @property
+    def ndim(self) -> int:
+        return 2
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._base.dtype
+
+    @property
+    def size(self) -> int:
+        """Total number of elements for NumPy compatibility."""
+        return int(self._base.n_channels * self._base.total_samples)
+
+    def __len__(self) -> int:
+        return self._base.n_channels
+
+    def __getitem__(self, idx):
+        """Index into the transposed view; maps (channels, samples) -> base (samples, channels)."""
+        if isinstance(idx, tuple):
+            if len(idx) == 1:
+                chan_idx, sample_idx = idx[0], slice(None)
+            elif len(idx) == 2:
+                chan_idx, sample_idx = idx
+            else:
+                raise IndexError(
+                    "VirtualConcatenatedDatView requires 2D indexing with format "
+                    f"[channels, samples]; received {len(idx)} dimensions: {idx}."
+                )
+        else:
+            chan_idx, sample_idx = idx, slice(None)
+
+        scalar_chan = isinstance(chan_idx, (int, np.integer))
+        scalar_sample = isinstance(sample_idx, (int, np.integer))
+
+        # In the underlying DAT, rows are samples and columns are channels.
+        chan_idx = self._base.normalize_cols(chan_idx)
+        sample_idx = self._base.normalize_rows(sample_idx)
+
+        # Fetch requested samples/channels from base and transpose the result of that subset.
+        result = self._base.__getitem__((sample_idx, chan_idx)).T
+        # Restore NumPy scalar-index semantics: a scalar index should drop that dimension.
+        # scalar_chan: base's integer col index already drops the channel dim, so after .T
+        # the result is already 1-D (n_samples,) — no further action needed.
+        # scalar_sample: base returns (1, n_chans) → .T gives (n_chans, 1); drop last dim.
+        if scalar_sample and scalar_chan:
+            result = result[0]  # (1,) → scalar
+        elif scalar_sample:
+            result = result[..., 0]  # (n_chans, 1) → (n_chans,)
+        return result
+
+    def __array__(self, dtype=None):
+        """Materialize the full transposed array when NumPy requests a real ndarray."""
+        arr = np.asarray(self._base)
+        arr = arr.T
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        return arr
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Handle selected NumPy calls without forcing full materialization."""
+        if func is np.ndim:
+            return 2
+
+        if func is np.shape:
+            return self.shape
+
+        if func is np.size:
+            axis = kwargs.get("axis", None)
+            if axis is None:
+                return self.size
+            return self.shape[axis]
+
+        if func is np.iscomplex:
+            # Preserve element-wise semantics without allocating a dense mask.
+            return np.broadcast_to(np.array(False, dtype=bool), self.shape)
+
+        if func is np.iscomplexobj:
+            return False
+
+        if func is np.squeeze:
+            a = args[0]
+            axis = kwargs.get("axis", None)
+            # Fast-path no-op cases to preserve laziness.
+            if axis is None and not any(s == 1 for s in a.shape):
+                return a
+            if isinstance(axis, tuple) and len(axis) == 0:
+                return a
+
+            if axis is not None:
+                if isinstance(axis, (int, np.integer)):
+                    axes = (int(axis),)
+                elif isinstance(axis, tuple):
+                    axes = axis
+                else:
+                    return np.squeeze(np.asarray(a), axis=axis)
+
+                normalized_axes = []
+                for ax in axes:
+                    if not isinstance(ax, (int, np.integer)):
+                        return np.squeeze(np.asarray(a), axis=axis)
+                    ax = int(ax)
+                    if ax < 0:
+                        ax += a.ndim
+                    if ax < 0 or ax >= a.ndim:
+                        raise AxisError(ax, ndim=a.ndim)
+                    normalized_axes.append(ax)
+
+                for ax in normalized_axes:
+                    if a.shape[ax] != 1:
+                        raise ValueError(
+                            "cannot select an axis to squeeze out which has size not equal to one"
+                        )
+
+            # Delegate to NumPy for axis validation parity and actual squeezing.
+            return np.squeeze(np.asarray(a), axis=axis)
+
+        return NotImplemented
+
+    @property
+    def T(self) -> VirtualConcatenatedDat:
+        """Double transpose returns the original base view."""
+        return self._base
+
+
+# Backward-compatible aliases for previous public class names.
+DatTransposeView = VirtualConcatenatedDatView
+VirtualConcatenatedDatTranspose = VirtualConcatenatedDatView
+
+
+def _load_session_epochs_metadata(basepath: str) -> List[dict]:
+    session_path = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
+    if not os.path.exists(session_path):
+        raise FileNotFoundError(
+            "Session metadata is required to locate per-epoch DAT files."
+        )
+
+    data = sio.loadmat(session_path, simplify_cells=True)
+    session = data.get("session")
+    if session is None or "epochs" not in session:
+        raise ValueError("Session epochs not found in session metadata.")
+
+    epochs = session["epochs"]
+    if epochs is None or (isinstance(epochs, float) and np.isnan(epochs)):
+        raise ValueError(
+            "Session epochs are empty; cannot resolve per-epoch DAT files."
+        )
+
+    if isinstance(epochs, dict):
+        epoch_list = [epochs]
+    else:
+        epoch_list = [
+            ep
+            for ep in np.atleast_1d(epochs).tolist()
+            if ep is not None
+            # Some session exports pad epochs with None placeholders; keep falsy dicts.
+        ]
+
+    if len(epoch_list) == 0:
+        raise ValueError("No valid epochs found in session metadata.")
+    return epoch_list
+
+
+def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype) -> int:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Per-epoch dat file not found at {path}")
+    file_size = os.path.getsize(path)
+    bytes_per_sample = dtype.itemsize
+    if file_size % (n_channels * bytes_per_sample) != 0:
+        raise ValueError(
+            f"File {path} size is not divisible by n_channels * bytes_per_sample."
+        )
+    return int(file_size // (n_channels * bytes_per_sample))
+
+
+def _resolve_epoch_dat_path(basepath: str, epoch_name: str) -> str:
+    """Resolve per-epoch DAT path for Intan (amplifier.dat) or Open Ephys (continuous.dat)."""
+    epoch_folder = os.path.join(basepath, str(epoch_name))
+
+    intan_path = os.path.join(epoch_folder, "amplifier.dat")
+    if os.path.exists(intan_path):
+        return intan_path
+
+    # Open Ephys exports can place continuous.dat in deeply nested subfolders.
+    oe_matches = sorted(
+        glob.glob(os.path.join(epoch_folder, "**", "continuous.dat"), recursive=True)
+    )
+    if len(oe_matches) == 1:
+        return oe_matches[0]
+
+    # Prefer Rhythm Data stream if multiple continuous.dat files are present.
+    rhythm_matches = [path for path in oe_matches if "Rhythm Data" in path]
+    if len(rhythm_matches) == 1:
+        return rhythm_matches[0]
+
+    if len(oe_matches) > 1:
+        raise ValueError(
+            f"Multiple Open Ephys continuous.dat files found for epoch '{epoch_name}'. "
+            "Please disambiguate by keeping only one stream under the epoch folder."
+        )
+
+    raise FileNotFoundError(
+        f"Per-epoch DAT file not found for epoch '{epoch_name}'. Expected either "
+        f"{intan_path} (Intan) or a nested continuous.dat (Open Ephys)."
+    )
+
+
+def _resolve_epoch_segments(
+    basepath: str, n_channels: int, dtype: np.dtype
+) -> List[Tuple[str, int]]:
+    epochs = _load_session_epochs_metadata(basepath)
+    segments: List[Tuple[str, int]] = []
+    for idx, epoch in enumerate(epochs):
+        if not isinstance(epoch, dict):
+            raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
+        # If the session omits an epoch name, fall back to sequential 1-based labels.
+        epoch_name = epoch.get("name", f"epoch{idx + 1}")
+        dat_path = _resolve_epoch_dat_path(basepath, str(epoch_name))
+        n_samples = _validate_dat_file(dat_path, n_channels, dtype)
+        segments.append((dat_path, n_samples))
+    return segments
+
+
+def _load_dat_from_epochs(
+    basepath: str,
+    n_channels: int,
+    channel: Union[int, list, None],
+    frequency: float,
+    dtype: np.dtype,
+):
+    segments = _resolve_epoch_segments(
+        basepath, n_channels=int(n_channels), dtype=dtype
+    )
+    virtual_dat = VirtualConcatenatedDat(
+        segments, n_channels=int(n_channels), dtype=dtype
+    )
+    total_samples = virtual_dat.total_samples
+    timestamps = np.arange(0, total_samples) / frequency
+
+    if channel is None:
+        return virtual_dat, timestamps
+
+    data = virtual_dat[:, channel]
+    return data, timestamps
+
+
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
-    channel: Union[int, None] = None,
+    channel: Union[int, list, None] = None,
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
@@ -130,60 +677,57 @@ def loadLFP(
         if ext == "dat":
             path = os.path.join(basepath, os.path.basename(basepath) + ".dat")
 
+    # dtype is required for both direct loads and DAT fallback validation
+    dtype = np.dtype(precision)
+
+    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype) -> int:
+        file_size = os.path.getsize(file_path)
+        bytes_per_sample = int(channels) * int(sample_dtype.itemsize)
+        if bytes_per_sample <= 0:
+            raise ValueError(
+                f"Invalid bytes_per_sample ({bytes_per_sample}) computed from "
+                f"channels={channels} and dtype={sample_dtype} for file '{file_path}'."
+            )
+        if file_size % bytes_per_sample != 0:
+            raise ValueError(
+                f"File size {file_size} of '{file_path}' is not divisible by "
+                f"bytes_per_sample={bytes_per_sample} (channels={channels}, "
+                f"dtype={sample_dtype}); the file may be corrupt or truncated."
+            )
+        return file_size // bytes_per_sample
+
     # check if saved file exists
     if not os.path.exists(path):
+        if ext == "dat" and filename is None:
+            return _load_dat_from_epochs(
+                basepath,
+                n_channels=n_channels,
+                channel=channel,
+                frequency=frequency,
+                dtype=dtype,
+            )
         warnings.warn("file does not exist")
         return
-    if channel is None:
-        n_channels = int(n_channels)
 
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        bytes_size = 2
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        f.close()
-        data = np.memmap(path, np.int16, "r", shape=(n_samples, n_channels))
+    n_channels = int(n_channels)
+    n_samples = _calc_n_samples(path, n_channels, dtype)
+
+    if channel is None:
+        data = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
         timestep = np.arange(0, n_samples) / frequency
         return data, timestep
 
-    if type(channel) is not list:
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        bytes_size = 2
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        f.close()
-        with open(path, "rb") as f:
-            data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
-            timestep = np.arange(0, len(data)) / frequency
-            # check if lfp time stamps exist
-            lfp_ts_path = os.path.join(
-                os.path.dirname(os.path.abspath(path)), "lfp_ts.npy"
-            )
-            if os.path.exists(lfp_ts_path):
-                timestep = np.load(lfp_ts_path).reshape(-1)
+    mm = np.memmap(path, dtype, "r", shape=(n_samples, n_channels))
+    try:
+        data = np.array(mm[:, channel], copy=True)
+    finally:
+        if hasattr(mm, "_mmap") and mm._mmap is not None:
+            mm._mmap.close()
+        del mm
 
-            return data, timestep
+    timestep = np.arange(0, len(data)) / frequency
 
-    elif type(channel) is list:
-        f = open(path, "rb")
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        bytes_size = 2
-
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
-        f.close()
-        with open(path, "rb") as f:
-            data = np.fromfile(f, np.int16).reshape((n_samples, n_channels))[:, channel]
-            timestep = np.arange(0, len(data)) / frequency
-            # check if lfp time stamps exist
-            lfp_ts_path = os.path.join(
-                os.path.dirname(os.path.abspath(path)), "lfp_ts.npy"
-            )
-            if os.path.exists(lfp_ts_path):
-                timestep = np.load(lfp_ts_path).reshape(-1)
-            return data, timestep
+    return data, timestep
 
 
 class LFPLoader(nel.AnalogSignalArray):
@@ -268,7 +812,7 @@ class LFPLoader(nel.AnalogSignalArray):
         lfp, timestep = loadLFP(
             self.basepath,
             n_channels=self.nChannels,
-            channel=self.channels,
+            channel=None,
             frequency=fs,
             ext=self.ext,
         )
@@ -284,17 +828,72 @@ class LFPLoader(nel.AnalogSignalArray):
 
         idx = in_intervals(timestep, intervals)
 
+        # Normalize channel selector once, then choose the first-pass indexing
+        # order that reads fewer samples from disk.
+        if self.channels is None:
+            channel_sel = slice(None)
+            n_selected_channels = int(self.nChannels)
+        elif isinstance(self.channels, (int, np.integer)):
+            channel_sel = int(self.channels)
+            n_selected_channels = 1
+        else:
+            channel_arr = np.asarray(self.channels)
+            if np.issubdtype(channel_arr.dtype, np.bool_):
+                if channel_arr.size != int(self.nChannels):
+                    raise IndexError(
+                        "Boolean channel mask length does not match number of channels "
+                        f"(got {channel_arr.size}, expected {int(self.nChannels)})."
+                    )
+                channel_arr = np.flatnonzero(channel_arr)
+            channel_arr = np.atleast_1d(channel_arr)
+            if not np.issubdtype(channel_arr.dtype, np.integer):
+                if not np.issubdtype(channel_arr.dtype, np.number):
+                    raise TypeError(
+                        "Channel indices must be integers or a boolean mask; "
+                        f"got non-numeric dtype {channel_arr.dtype!r}."
+                    )
+                if not np.all(np.equal(channel_arr, np.floor(channel_arr))):
+                    raise IndexError(
+                        "Channel indices must be integers; found non-integer values "
+                        "in channels specification."
+                    )
+            channel_arr = channel_arr.astype(int, copy=False)
+            channel_sel = channel_arr
+            n_selected_channels = int(channel_arr.size)
+
+        has_time_restriction = not idx.all()
+        has_channel_restriction = (not (self.channels is None)) and np.ndim(lfp) > 1
+        n_total_samples = int(len(timestep))
+        n_selected_samples = int(np.count_nonzero(idx))
+
         # if loading all, don't index as to preserve memmap
-        if idx.all():
+        if not has_time_restriction and not has_channel_restriction:
             selected = lfp
             timestamps = timestep
             support = nel.EpochArray(intervals)
         else:
-            selected = lfp[idx]
-            timestamps = timestep[idx]
-            support = nel.EpochArray(
-                np.array([[min(timestep[idx]), max(timestep[idx])]])
-            )
+            if has_time_restriction:
+                timestamps = timestep[idx]
+                support = nel.EpochArray(intervals)
+            else:
+                timestamps = timestep
+                support = nel.EpochArray(intervals)
+
+            if has_time_restriction and has_channel_restriction:
+                channels_first_cost = n_total_samples * n_selected_channels
+                time_first_cost = n_selected_samples * int(self.nChannels)
+                time_first = time_first_cost <= channels_first_cost
+            else:
+                time_first = has_time_restriction
+
+            if time_first:
+                selected = lfp[idx]
+                if has_channel_restriction:
+                    selected = selected[:, channel_sel]
+            else:
+                selected = lfp[:, channel_sel]
+                if has_time_restriction:
+                    selected = selected[idx]
 
         # Normalize to (n_samples, n_signals) so both 1-channel and multi-channel
         # selections initialize AnalogSignalArray consistently.
@@ -327,26 +926,118 @@ class LFPLoader(nel.AnalogSignalArray):
     def __repr__(self) -> str:
         return super().__repr__()
 
-    def get_phase(self, band2filter: list = [6, 12], ford: int = 3) -> np.ndarray:
-        """
-        Get the phase of the LFP signal using a bandpass filter and Hilbert transform.
-
-        Parameters
-        ----------
-        band2filter : list, optional
-            The frequency band to filter, by default [6, 12].
-        ford : int, optional
-            The order of the Butterworth filter, by default 3.
-
-        Returns
-        -------
-        np.ndarray
-            The phase of the LFP signal.
-        """
+    def _get_bandpass_sos(
+        self, band2filter: list = [6, 12], ford: int = 3
+    ) -> np.ndarray:
+        """Create SOS coefficients for the requested bandpass filter."""
         band2filter = np.array(band2filter, dtype=float)
-        b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
-        return np.angle(signal.hilbert(filt_sig))
+        return signal.butter(
+            ford, band2filter / (self.fs / 2), btype="bandpass", output="sos"
+        )
+
+    def get_filt_sig(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return bandpass-filtered signal."""
+        if sos is None:
+            sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        data = self.data.astype(np.float32, copy=False)
+        return signal.sosfiltfilt(sos, data).astype(np.float32, copy=False)
+
+    def _get_analytic_signal(self, filt_sig: np.ndarray) -> np.ndarray:
+        """Return analytic signal via Hilbert transform along time axis."""
+        return signal.hilbert(filt_sig, axis=-1).astype(np.complex64, copy=False)
+
+    def get_phase(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return instantaneous phase (radians)."""
+        if analytic_sig is not None:
+            return np.angle(analytic_sig).astype(np.float32, copy=False)
+        if filt_sig is None:
+            filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        return np.angle(self._get_analytic_signal(filt_sig)).astype(
+            np.float32, copy=False
+        )
+
+    def get_amplitude(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return instantaneous amplitude envelope."""
+        if analytic_sig is not None:
+            return np.abs(analytic_sig).astype(np.float32, copy=False)
+        if filt_sig is None:
+            filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        return np.abs(self._get_analytic_signal(filt_sig)).astype(
+            np.float32, copy=False
+        )
+
+    def get_amplitude_filtered(
+        self,
+        band2filter: list = [6, 12],
+        ford: int = 3,
+        amplitude: Union[np.ndarray, None] = None,
+        filt_sig: Union[np.ndarray, None] = None,
+        analytic_sig: Union[np.ndarray, None] = None,
+        sos: Union[np.ndarray, None] = None,
+    ) -> np.ndarray:
+        """Return smoothed amplitude envelope."""
+        if sos is None:
+            sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        if amplitude is None:
+            amplitude = self.get_amplitude(
+                band2filter=band2filter,
+                ford=ford,
+                filt_sig=filt_sig,
+                analytic_sig=analytic_sig,
+                sos=sos,
+            )
+        return signal.sosfiltfilt(sos, amplitude).astype(np.float32, copy=False)
+
+    def get_frequency(
+        self,
+        phase: np.ndarray,
+        kernel_size: int = 13,
+    ) -> np.ndarray:
+        """Return instantaneous frequency (Hz) from phase."""
+        from scipy.ndimage import median_filter
+
+        filtered_signal = median_filter(
+            np.unwrap(phase), size=(1, kernel_size), mode="nearest"
+        ).astype(np.float32, copy=False)
+
+        tvals = np.asarray(self.abscissa_vals, dtype=np.float64)
+        if tvals.size < 2:
+            raise ValueError(
+                "At least 2 timestamps are required to compute instantaneous frequency."
+            )
+        dt = np.diff(tvals)
+
+        if np.allclose(dt, dt[0]):  # Check if sampling is uniform
+            dt0 = float(dt[0])
+            derivative = np.empty_like(filtered_signal, dtype=np.float32)
+            derivative[:, 1:-1] = (filtered_signal[:, 2:] - filtered_signal[:, :-2]) / (
+                2.0 * dt0
+            )
+            derivative[:, 0] = (filtered_signal[:, 1] - filtered_signal[:, 0]) / dt0
+            derivative[:, -1] = (filtered_signal[:, -1] - filtered_signal[:, -2]) / dt0
+        else:
+            derivative = np.gradient(filtered_signal, tvals, axis=-1)
+
+        return (derivative / (2 * np.pi)).astype(np.float32, copy=False)
 
     def get_freq_phase_amp(
         self, band2filter: list = [6, 12], ford: int = 3, kernel_size: int = 13
@@ -372,34 +1063,23 @@ class LFPLoader(nel.AnalogSignalArray):
         amplitude : np.ndarray
             The amplitude of the LFP signal.
         amplitude_filtered : np.ndarray
-            The filtered amplitude of the LFP signal.
+            Smoothed amplitude envelope.
         frequency : np.ndarray
             The instantaneous frequency of the LFP signal.
         """
 
-        band2filter = np.array(band2filter, dtype=float)
-
-        b, a = signal.butter(ford, band2filter / (self.fs / 2), btype="bandpass")
-
-        filt_sig = signal.filtfilt(b, a, self.data, padtype="odd")
-        phase = np.angle(signal.hilbert(filt_sig))
-        amplitude = np.abs(signal.hilbert(filt_sig))
-        amplitude_filtered = signal.filtfilt(b, a, amplitude, padtype="odd")
-
-        # calculate the frequency
-        # median filter to smooth the unwrapped phase (this is to avoid jumps in the frequency)
-        filtered_signal = signal.medfilt2d(
-            np.unwrap(phase), kernel_size=[1, kernel_size]
+        sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
+        filt_sig = self.get_filt_sig(band2filter=band2filter, ford=ford, sos=sos)
+        analytic_sig = self._get_analytic_signal(filt_sig)
+        phase = self.get_phase(analytic_sig=analytic_sig)
+        amplitude = self.get_amplitude(analytic_sig=analytic_sig)
+        amplitude_filtered = self.get_amplitude_filtered(
+            band2filter=band2filter,
+            ford=ford,
+            amplitude=amplitude,
+            sos=sos,
         )
-
-        # Calculate the derivative of the unwrapped phase to get frequency
-        dt = np.diff(self.abscissa_vals)
-        if np.allclose(dt, dt[0]):  # Check if sampling is uniform
-            dt = dt[0]  # Use a single scalar for uniform sampling
-        else:
-            dt = np.hstack((dt[0], dt))  # Use an array for non-uniform sampling
-        derivative = np.gradient(filtered_signal, dt, axis=-1)
-        frequency = derivative / (2 * np.pi)
+        frequency = self.get_frequency(phase=phase, kernel_size=kernel_size)
 
         return filt_sig, phase, amplitude, amplitude_filtered, frequency
 
