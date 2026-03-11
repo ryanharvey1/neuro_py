@@ -2785,6 +2785,96 @@ def test_VirtualConcatenatedDat_T_property_multiple_segments():
         )
 
 
+def test_VirtualConcatenatedDat_scalar_indexing_matches_numpy():
+    """Scalar indexing on VirtualConcatenatedDat should match NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 4)], n_channels=3, dtype="int16")
+
+        np.testing.assert_array_equal(vdat[1], arr[1])
+        np.testing.assert_array_equal(vdat[:, 1], arr[:, 1])
+        assert np.ndim(vdat[1, 2]) == 0
+        assert vdat[1, 2] == arr[1, 2]
+
+
+def test_VirtualConcatenatedDatView_scalar_indexing_matches_numpy():
+    """Scalar indexing on VirtualConcatenatedDatView should match NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype="int16")
+        arr.tofile(path)
+
+        vt = VirtualConcatenatedDat(segments=[(path, 4)], n_channels=3, dtype="int16").T
+        arr_t = arr.T
+
+        np.testing.assert_array_equal(vt[2], arr_t[2])
+        np.testing.assert_array_equal(vt[:, 1], arr_t[:, 1])
+        assert np.ndim(vt[2, 1]) == 0
+        assert vt[2, 1] == arr_t[2, 1]
+
+
+def test_VirtualConcatenatedDat_squeeze_semantics_match_numpy():
+    """np.squeeze behavior should align with NumPy for no-op, valid-axis, and invalid-axis cases."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        # No singleton dims: squeeze is a no-op and should preserve laziness.
+        assert np.squeeze(vdat) is vdat
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat, axis=0)
+
+        path_singleton = os.path.join(temp_dir, "singleton_row.dat")
+        arr_singleton = np.array([[42, 43, 44]], dtype="int16")
+        arr_singleton.tofile(path_singleton)
+        vdat_singleton = VirtualConcatenatedDat(
+            segments=[(path_singleton, 1)], n_channels=3, dtype="int16"
+        )
+
+        np.testing.assert_array_equal(
+            np.squeeze(vdat_singleton), np.squeeze(arr_singleton)
+        )
+        np.testing.assert_array_equal(
+            np.squeeze(vdat_singleton, axis=0), np.squeeze(arr_singleton, axis=0)
+        )
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat_singleton, axis=1)
+
+
+def test_VirtualConcatenatedDatView_squeeze_semantics_match_numpy():
+    """np.squeeze behavior for transpose view should align with NumPy semantics."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        # No singleton dims: squeeze is a no-op and should preserve laziness.
+        assert np.squeeze(vt) is vt
+
+        path_singleton = os.path.join(temp_dir, "singleton_row.dat")
+        arr_singleton = np.array([[42, 43, 44]], dtype="int16")
+        arr_singleton.tofile(path_singleton)
+        vt_singleton = VirtualConcatenatedDat(
+            segments=[(path_singleton, 1)], n_channels=3, dtype="int16"
+        ).T
+        arr_t_singleton = arr_singleton.T
+
+        np.testing.assert_array_equal(
+            np.squeeze(vt_singleton), np.squeeze(arr_t_singleton)
+        )
+        np.testing.assert_array_equal(
+            np.squeeze(vt_singleton, axis=1), np.squeeze(arr_t_singleton, axis=1)
+        )
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vt_singleton, axis=0)
+
+
 def test_LFPLoader_load_lfp_raises_if_already_initialized():
     """Test LFPLoader.load_lfp refuses to reinitialize an already initialized object."""
     lfp_data = np.array([[1, 2], [3, 4], [5, 6], [7, 8]], dtype=np.int16)
