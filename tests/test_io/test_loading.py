@@ -3012,6 +3012,110 @@ def test_LFPLoader_get_phase_single_channel_shape():
     assert phase.shape == (1, n_samples)
 
 
+def test_LFPLoader_get_phase_values_are_finite_and_bounded():
+    """Phase output should be finite and wrapped to [-pi, pi]."""
+    n_samples = 400
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    phase = loader.get_phase(band2filter=[6, 12], ford=3)
+    assert np.all(np.isfinite(phase))
+    assert np.max(phase) <= np.pi + 1e-8
+    assert np.min(phase) >= -np.pi - 1e-8
+
+
+def test_LFPLoader_get_freq_phase_amp_values_are_finite_and_plausible():
+    """Frequency/phase/amplitude outputs should be finite with non-negative amplitudes."""
+    n_samples = 800
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    _, phase, amplitude, amplitude_filtered, frequency = loader.get_freq_phase_amp(
+        band2filter=[6, 12], ford=3, kernel_size=5
+    )
+
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
+    assert np.all(np.isfinite(frequency))
+    assert np.all(amplitude >= 0)
+    # Ignore edge artifacts and check central tendency near the injected 8 Hz tone.
+    central_freq = frequency[0, 100:-100]
+    assert np.abs(np.nanmedian(central_freq) - 8.0) < 2.0
+
+
+def test_LFPLoader_get_freq_phase_amp_nonuniform_timestamps_branch():
+    """Non-uniform abscissa values should execute the non-uniform dt branch safely."""
+    n_samples = 400
+    dt = np.linspace(1 / 1300.0, 1 / 1200.0, n_samples, dtype=np.float64)
+    t = np.cumsum(dt) - dt[0]
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    filt_sig, phase, amplitude, amplitude_filtered, frequency = (
+        loader.get_freq_phase_amp(band2filter=[6, 12], ford=3, kernel_size=5)
+    )
+
+    for arr in (filt_sig, phase, amplitude, amplitude_filtered, frequency):
+        assert arr.shape == (1, n_samples)
+
+    # Core signal outputs should remain finite.
+    assert np.all(np.isfinite(filt_sig))
+    assert np.all(np.isfinite(phase))
+    assert np.all(np.isfinite(amplitude))
+    assert np.all(np.isfinite(amplitude_filtered))
+
+    # Frequency should now remain finite in the non-uniform branch as well.
+    assert np.all(np.isfinite(frequency))
+
+
+def test_LFPLoader_phase_methods_raise_on_invalid_band():
+    """Invalid band edges should raise from scipy.signal.butter in both methods."""
+    n_samples = 200
+    t = np.arange(n_samples) / 1250.0
+    sig = np.sin(2 * np.pi * 8 * t).astype(np.float32)
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(1, 1250.0, 20000.0, {0: [0]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(sig, t)),
+    ):
+        loader = LFPLoader("dummy", channels=0, ext="lfp")
+
+    with pytest.raises(ValueError):
+        loader.get_phase(band2filter=[600, 700], ford=3)
+    with pytest.raises(ValueError):
+        loader.get_freq_phase_amp(band2filter=[600, 700], ford=3, kernel_size=5)
+
+
 def test_loadLFP_reads_binary_file():
     """Test loadLFP reads a binary lfp file and returns data and timestamps."""
     with tempfile.TemporaryDirectory() as temp_dir:

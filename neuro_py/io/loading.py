@@ -868,12 +868,13 @@ class LFPLoader(nel.AnalogSignalArray):
         )
 
         # Calculate the derivative of the unwrapped phase to get frequency
-        dt = np.diff(self.abscissa_vals)
+        tvals = np.asarray(self.abscissa_vals, dtype=float)
+        dt = np.diff(tvals)
         if np.allclose(dt, dt[0]):  # Check if sampling is uniform
-            dt = dt[0]  # Use a single scalar for uniform sampling
+            derivative = np.gradient(filtered_signal, dt[0], axis=-1)
         else:
-            dt = np.hstack((dt[0], dt))  # Use an array for non-uniform sampling
-        derivative = np.gradient(filtered_signal, dt, axis=-1)
+            # For non-uniform sampling, pass full coordinate values to np.gradient.
+            derivative = np.gradient(filtered_signal, tvals, axis=-1)
         frequency = derivative / (2 * np.pi)
 
         return filt_sig, phase, amplitude, amplitude_filtered, frequency
