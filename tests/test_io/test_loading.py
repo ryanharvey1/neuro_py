@@ -3080,6 +3080,34 @@ def _write_epoch_dat_files(basepath, epochs_data):
     return session_content
 
 
+def _write_epoch_open_ephys_dat_files(basepath, epochs_data):
+    """Create per-epoch nested Open Ephys continuous.dat files."""
+    basename = os.path.basename(basepath)
+    session_content = {
+        "session": {
+            "epochs": [
+                {"name": name, "startTime": 0.0, "stopTime": 1.0}
+                for name in epochs_data.keys()
+            ]
+        }
+    }
+    create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+    for epoch_name, data in epochs_data.items():
+        oe_dir = os.path.join(
+            basepath,
+            epoch_name,
+            "Record Node 101",
+            "experiment1",
+            "recording1",
+            "continuous",
+            "Acquisition_Board-100.Rhythm Data",
+        )
+        os.makedirs(oe_dir, exist_ok=True)
+        dat_path = os.path.join(oe_dir, "continuous.dat")
+        np.asarray(data, dtype=np.int16).tofile(dat_path)
+    return session_content
+
+
 def test_loadLFP_dat_fallback_memmap_like():
     """Fallback loads per-epoch amplifier.dat when session dat is missing."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -3143,6 +3171,76 @@ def test_loadLFP_dat_fallback_channel_selection():
         )
         assert np.array_equal(multi_ch[:, 0], expected_multi)
         assert np.array_equal(ts_one, ts_multi)
+
+
+def test_loadLFP_dat_fallback_open_ephys_nested_paths():
+    """Fallback supports per-epoch Open Ephys nested continuous.dat files."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_open_ephys")
+        epochs_data = {
+            "2025-07-28_09-17-02": np.array(
+                [[1, 10], [2, 20], [3, 30]], dtype=np.int16
+            ),
+            "2025-07-28_09-27-02": np.array([[4, 40], [5, 50]], dtype=np.int16),
+        }
+        _write_epoch_open_ephys_dat_files(basepath, epochs_data)
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=2.0, ext="dat")
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == (5, 2)
+        assert np.allclose(ts, np.arange(5) / 2.0)
+
+        expected = np.vstack(
+            [epochs_data["2025-07-28_09-17-02"], epochs_data["2025-07-28_09-27-02"]]
+        )
+        np.testing.assert_array_equal(data[:], expected)
+
+
+def test_loadLFP_dat_fallback_mixed_intan_open_ephys_epochs():
+    """Fallback supports sessions that mix Intan and Open Ephys epoch layouts."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_dat_mixed")
+        basename = os.path.basename(basepath)
+        session_content = {
+            "session": {
+                "epochs": [
+                    {"name": "epoch_intan", "startTime": 0.0, "stopTime": 1.0},
+                    {
+                        "name": "2025-07-28_09-17-02",
+                        "startTime": 1.0,
+                        "stopTime": 2.0,
+                    },
+                ]
+            }
+        }
+        create_temp_mat_file(basepath, {f"{basename}.session.mat": session_content})
+
+        intan_data = np.array([[1, 10], [2, 20]], dtype=np.int16)
+        intan_dir = os.path.join(basepath, "epoch_intan")
+        os.makedirs(intan_dir, exist_ok=True)
+        intan_data.tofile(os.path.join(intan_dir, "amplifier.dat"))
+
+        oe_data = np.array([[3, 30], [4, 40], [5, 50]], dtype=np.int16)
+        oe_dir = os.path.join(
+            basepath,
+            "2025-07-28_09-17-02",
+            "Record Node 101",
+            "experiment1",
+            "recording1",
+            "continuous",
+            "Acquisition_Board-100.Rhythm Data",
+        )
+        os.makedirs(oe_dir, exist_ok=True)
+        oe_data.tofile(os.path.join(oe_dir, "continuous.dat"))
+
+        data, ts = loadLFP(basepath, n_channels=2, frequency=1.0, ext="dat")
+        expected = np.vstack([intan_data, oe_data])
+
+        assert isinstance(data, VirtualConcatenatedDat)
+        assert data.shape == expected.shape
+        np.testing.assert_array_equal(data[:], expected)
+        assert np.allclose(ts, np.arange(expected.shape[0]))
 
 
 def test_loadLFP_dat_fallback_missing_epoch_file():

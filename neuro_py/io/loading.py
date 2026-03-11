@@ -444,9 +444,9 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
     return epoch_list
 
 
-def _validate_amplifier_file(path: str, n_channels: int, dtype: np.dtype) -> int:
+def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype) -> int:
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Per-epoch amplifier.dat not found at {path}")
+        raise FileNotFoundError(f"Per-epoch dat file not found at {path}")
     file_size = os.path.getsize(path)
     bytes_per_sample = dtype.itemsize
     if file_size % (n_channels * bytes_per_sample) != 0:
@@ -454,6 +454,38 @@ def _validate_amplifier_file(path: str, n_channels: int, dtype: np.dtype) -> int
             f"File {path} size is not divisible by n_channels * bytes_per_sample."
         )
     return int(file_size // (n_channels * bytes_per_sample))
+
+
+def _resolve_epoch_dat_path(basepath: str, epoch_name: str) -> str:
+    """Resolve per-epoch DAT path for Intan (amplifier.dat) or Open Ephys (continuous.dat)."""
+    epoch_folder = os.path.join(basepath, str(epoch_name))
+
+    intan_path = os.path.join(epoch_folder, "amplifier.dat")
+    if os.path.exists(intan_path):
+        return intan_path
+
+    # Open Ephys exports can place continuous.dat in deeply nested subfolders.
+    oe_matches = sorted(
+        glob.glob(os.path.join(epoch_folder, "**", "continuous.dat"), recursive=True)
+    )
+    if len(oe_matches) == 1:
+        return oe_matches[0]
+
+    # Prefer Rhythm Data stream if multiple continuous.dat files are present.
+    rhythm_matches = [path for path in oe_matches if "Rhythm Data" in path]
+    if len(rhythm_matches) == 1:
+        return rhythm_matches[0]
+
+    if len(oe_matches) > 1:
+        raise ValueError(
+            f"Multiple Open Ephys continuous.dat files found for epoch '{epoch_name}'. "
+            "Please disambiguate by keeping only one stream under the epoch folder."
+        )
+
+    raise FileNotFoundError(
+        f"Per-epoch DAT file not found for epoch '{epoch_name}'. Expected either "
+        f"{intan_path} (Intan) or a nested continuous.dat (Open Ephys)."
+    )
 
 
 def _resolve_epoch_segments(
@@ -466,10 +498,9 @@ def _resolve_epoch_segments(
             raise ValueError("Epoch entries must be dictionaries with a 'name' field.")
         # If the session omits an epoch name, fall back to sequential 1-based labels.
         epoch_name = epoch.get("name", f"epoch{idx + 1}")
-        epoch_folder = os.path.join(basepath, str(epoch_name))
-        amp_path = os.path.join(epoch_folder, "amplifier.dat")
-        n_samples = _validate_amplifier_file(amp_path, n_channels, dtype)
-        segments.append((amp_path, n_samples))
+        dat_path = _resolve_epoch_dat_path(basepath, str(epoch_name))
+        n_samples = _validate_dat_file(dat_path, n_channels, dtype)
+        segments.append((dat_path, n_samples))
     return segments
 
 
