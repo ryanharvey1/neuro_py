@@ -22,6 +22,7 @@ from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 from neuro_py.util.array import is_nested
+from numpy.exceptions import AxisError
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
@@ -139,7 +140,33 @@ class VirtualConcatenatedDat:
                 return a
             if isinstance(axis, tuple) and len(axis) == 0:
                 return a
-            # Delegate to NumPy for int/tuple axis validation and behavior parity.
+
+            if axis is not None:
+                if isinstance(axis, (int, np.integer)):
+                    axes = (int(axis),)
+                elif isinstance(axis, tuple):
+                    axes = axis
+                else:
+                    return np.squeeze(np.asarray(a), axis=axis)
+
+                normalized_axes = []
+                for ax in axes:
+                    if not isinstance(ax, (int, np.integer)):
+                        return np.squeeze(np.asarray(a), axis=axis)
+                    ax = int(ax)
+                    if ax < 0:
+                        ax += a.ndim
+                    if ax < 0 or ax >= a.ndim:
+                        raise AxisError(ax, ndim=a.ndim)
+                    normalized_axes.append(ax)
+
+                for ax in normalized_axes:
+                    if a.shape[ax] != 1:
+                        raise ValueError(
+                            "cannot select an axis to squeeze out which has size not equal to one"
+                        )
+
+            # Delegate to NumPy for axis validation parity and actual squeezing.
             return np.squeeze(np.asarray(a), axis=axis)
 
         return NotImplemented
@@ -305,7 +332,18 @@ class VirtualConcatenatedDat:
 
     def __getitem__(self, idx):
         if isinstance(idx, tuple):
-            row_idx, col_idx = idx
+            n = len(idx)
+            if n == 0:
+                row_idx, col_idx = slice(None), None
+            elif n == 1:
+                row_idx, col_idx = idx[0], None
+            elif n == 2:
+                row_idx, col_idx = idx
+            else:
+                raise IndexError(
+                    "Too many indices for VirtualConcatenatedDat: "
+                    f"expected at most 2, got {n}."
+                )
         else:
             row_idx, col_idx = idx, None
         scalar_row = isinstance(row_idx, (int, np.integer))
@@ -363,12 +401,15 @@ class VirtualConcatenatedDatView:
     def __getitem__(self, idx):
         """Index into the transposed view; maps (channels, samples) -> base (samples, channels)."""
         if isinstance(idx, tuple):
-            if len(idx) != 2:
+            if len(idx) == 1:
+                chan_idx, sample_idx = idx[0], slice(None)
+            elif len(idx) == 2:
+                chan_idx, sample_idx = idx
+            else:
                 raise IndexError(
                     "VirtualConcatenatedDatView requires 2D indexing with format "
                     f"[channels, samples]; received {len(idx)} dimensions: {idx}."
                 )
-            chan_idx, sample_idx = idx
         else:
             chan_idx, sample_idx = idx, slice(None)
 
@@ -428,7 +469,33 @@ class VirtualConcatenatedDatView:
                 return a
             if isinstance(axis, tuple) and len(axis) == 0:
                 return a
-            # Delegate to NumPy for int/tuple axis validation and behavior parity.
+
+            if axis is not None:
+                if isinstance(axis, (int, np.integer)):
+                    axes = (int(axis),)
+                elif isinstance(axis, tuple):
+                    axes = axis
+                else:
+                    return np.squeeze(np.asarray(a), axis=axis)
+
+                normalized_axes = []
+                for ax in axes:
+                    if not isinstance(ax, (int, np.integer)):
+                        return np.squeeze(np.asarray(a), axis=axis)
+                    ax = int(ax)
+                    if ax < 0:
+                        ax += a.ndim
+                    if ax < 0 or ax >= a.ndim:
+                        raise AxisError(ax, ndim=a.ndim)
+                    normalized_axes.append(ax)
+
+                for ax in normalized_axes:
+                    if a.shape[ax] != 1:
+                        raise ValueError(
+                            "cannot select an axis to squeeze out which has size not equal to one"
+                        )
+
+            # Delegate to NumPy for axis validation parity and actual squeezing.
             return np.squeeze(np.asarray(a), axis=axis)
 
         return NotImplemented
@@ -782,7 +849,19 @@ class LFPLoader(nel.AnalogSignalArray):
                         f"(got {channel_arr.size}, expected {int(self.nChannels)})."
                     )
                 channel_arr = np.flatnonzero(channel_arr)
-            channel_arr = np.atleast_1d(channel_arr).astype(int, copy=False)
+            channel_arr = np.atleast_1d(channel_arr)
+            if not np.issubdtype(channel_arr.dtype, np.integer):
+                if not np.issubdtype(channel_arr.dtype, np.number):
+                    raise TypeError(
+                        "Channel indices must be integers or a boolean mask; "
+                        f"got non-numeric dtype {channel_arr.dtype!r}."
+                    )
+                if not np.all(np.equal(channel_arr, np.floor(channel_arr))):
+                    raise IndexError(
+                        "Channel indices must be integers; found non-integer values "
+                        "in channels specification."
+                    )
+            channel_arr = channel_arr.astype(int, copy=False)
             channel_sel = channel_arr
             n_selected_channels = int(channel_arr.size)
 
@@ -945,6 +1024,10 @@ class LFPLoader(nel.AnalogSignalArray):
         ).astype(np.float32, copy=False)
 
         tvals = np.asarray(self.abscissa_vals, dtype=np.float64)
+        if tvals.size < 2:
+            raise ValueError(
+                "At least 2 timestamps are required to compute instantaneous frequency."
+            )
         dt = np.diff(tvals)
 
         if np.allclose(dt, dt[0]):  # Check if sampling is uniform

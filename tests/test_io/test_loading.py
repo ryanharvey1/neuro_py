@@ -2911,6 +2911,40 @@ def test_VirtualConcatenatedDatView_scalar_indexing_matches_numpy():
         assert vt[2, 1] == arr_t[2, 1]
 
 
+def test_VirtualConcatenatedDat_tuple_indexing_len_one_matches_numpy():
+    """Single-element tuple indexing (arr[:,]) should behave like NumPy."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+        np.testing.assert_array_equal(vdat[:,], arr[:,])
+
+
+def test_VirtualConcatenatedDat_tuple_indexing_too_many_axes_raises():
+    """More than 2 indices should raise IndexError with clear message."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+        with pytest.raises(IndexError, match="Too many indices"):
+            _ = vdat[:, :, :]
+
+
+def test_VirtualConcatenatedDatView_tuple_indexing_len_one_matches_numpy():
+    """Single-element tuple indexing on transpose view (vt[:,]) should match NumPy."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+        np.testing.assert_array_equal(vt[:,], arr.T[:,])
+
+
 def test_VirtualConcatenatedDat_squeeze_semantics_match_numpy():
     """np.squeeze behavior should align with NumPy for no-op, valid-axis, and invalid-axis cases."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2939,6 +2973,23 @@ def test_VirtualConcatenatedDat_squeeze_semantics_match_numpy():
         )
         with pytest.raises(ValueError, match="cannot select an axis"):
             np.squeeze(vdat_singleton, axis=1)
+
+
+def test_VirtualConcatenatedDat_squeeze_invalid_axis_does_not_materialize(monkeypatch):
+    """Invalid axis squeeze should raise without materializing lazy DAT."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vdat = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16")
+
+        def _boom_asarray(*args, **kwargs):
+            raise AssertionError("Should not materialize for invalid squeeze axis")
+
+        monkeypatch.setattr(vdat, "_asarray", _boom_asarray)
+
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vdat, axis=0)
 
 
 def test_VirtualConcatenatedDat_iscomplex_matches_numpy_shape_and_values():
@@ -2982,6 +3033,25 @@ def test_VirtualConcatenatedDatView_squeeze_semantics_match_numpy():
         )
         with pytest.raises(ValueError, match="cannot select an axis"):
             np.squeeze(vt_singleton, axis=0)
+
+
+def test_VirtualConcatenatedDatView_squeeze_invalid_axis_does_not_materialize(
+    monkeypatch,
+):
+    """Invalid axis squeeze on transpose view should raise without materialization."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = os.path.join(temp_dir, "amplifier.dat")
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype="int16")
+        arr.tofile(path)
+        vt = VirtualConcatenatedDat(segments=[(path, 2)], n_channels=3, dtype="int16").T
+
+        def _boom_asarray(*args, **kwargs):
+            raise AssertionError("Should not materialize for invalid squeeze axis")
+
+        monkeypatch.setattr(vt._base, "_asarray", _boom_asarray)
+
+        with pytest.raises(ValueError, match="cannot select an axis"):
+            np.squeeze(vt, axis=0)
 
 
 def test_VirtualConcatenatedDatView_iscomplex_matches_numpy_shape_and_values():
@@ -3287,6 +3357,33 @@ def test_LFPLoader_individual_feature_methods_shapes_and_finite_values():
     assert np.all(np.isfinite(amplitude))
     assert np.all(np.isfinite(amplitude_filtered))
     assert np.all(np.isfinite(frequency))
+
+
+def test_LFPLoader_channels_reject_non_integer_values():
+    """Non-integer numeric channel selectors should raise instead of silently truncating."""
+    lfp_data = np.array(
+        [[1.0, 10.0], [2.0, 20.0], [3.0, 30.0], [4.0, 40.0]], dtype=np.float32
+    )
+    timestep = np.array([0.0, 1.0, 2.0, 3.0])
+
+    with (
+        patch(
+            "neuro_py.io.loading.loadXML",
+            return_value=(2, 1250.0, 20000.0, {0: [0, 1]}),
+        ),
+        patch("neuro_py.io.loading.loadLFP", return_value=(lfp_data, timestep)),
+    ):
+        with pytest.raises(IndexError, match="must be integers"):
+            LFPLoader("dummy", channels=[0.1, 1.0], ext="lfp")
+
+
+def test_LFPLoader_get_frequency_requires_at_least_two_timestamps():
+    """Frequency computation should fail gracefully for signals with <2 timestamps."""
+    loader = LFPLoader.__new__(LFPLoader)
+    loader._abscissa_vals = np.array([0.0], dtype=float)
+
+    with pytest.raises(ValueError, match="At least 2 timestamps"):
+        loader.get_frequency(phase=np.zeros((1, 1), dtype=np.float32))
 
 
 def test_LFPLoader_phase_methods_raise_on_invalid_band():
