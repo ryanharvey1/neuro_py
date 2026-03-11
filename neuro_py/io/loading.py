@@ -726,10 +726,6 @@ def loadLFP(
         del mm
 
     timestep = np.arange(0, len(data)) / frequency
-    # check if lfp time stamps exist
-    lfp_ts_path = os.path.join(os.path.dirname(os.path.abspath(path)), "lfp_ts.npy")
-    if os.path.exists(lfp_ts_path):
-        timestep = np.load(lfp_ts_path).reshape(-1)
 
     return data, timestep
 
