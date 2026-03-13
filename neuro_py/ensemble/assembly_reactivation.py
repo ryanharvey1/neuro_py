@@ -47,9 +47,12 @@ class AssemblyReact:
         If true, uses Tracy-Widom distribution for mp null hypothesis.
     cross_structural : np.ndarray, optional
         A categorical vector indicating group membership for each neuron.
-        If provided, the function will strictly detect cross-structural assemblies
-        (correlations within the same group will be ignored). Should have the same
-        length as the number of neurons in the spike train.
+        If provided, assembly detection uses the cross-structural path in
+        :func:`neuro_py.ensemble.assembly.runPatterns`, including group-size
+        normalization, explicit cross-group block correlation structure, and
+        post-extraction filtering that retains only assemblies with membership
+        across at least two groups. Should have the same length as the number
+        of neurons in the spike train.
 
     Attributes
     ----------

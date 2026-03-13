@@ -109,7 +109,8 @@ def test_cross_structural_correlation_matrix():
 
     # Test matrix properties
     assert corr_matrix.shape == (5, 5)
-    assert np.allclose(np.diag(corr_matrix), 1.0)  # Diagonal should be 1
+    assert np.allclose(np.diag(corr_matrix), 0.0)  # Diagonal should be 0
+    assert np.allclose(corr_matrix, corr_matrix.T)  # Should be symmetric
 
     # Test within-group correlations are zero
     assert corr_matrix[0, 1] == 0  # Both in group 0
@@ -129,6 +130,33 @@ def test_cross_structural_correlation_matrix():
     ]
     # At least some cross-group correlations should be non-zero
     assert any(abs(c) > 0.01 for c in cross_group_corrs)
+
+
+def test_cross_structural_group_normalization():
+    """Test group-size normalization for cross-structural analysis."""
+    zactmat = np.ones((5, 4), dtype=float)
+    cross_structural = np.array(["A", "A", "B", "B", "B"])
+
+    normalized = assembly._normalize_by_group(zactmat, cross_structural)
+
+    assert np.allclose(normalized[:2], 1 / np.sqrt(2))
+    assert np.allclose(normalized[2:], 1 / np.sqrt(3))
+
+
+def test_filter_cross_group_patterns():
+    """Test filtering keeps only patterns active in at least two groups."""
+    patterns = np.array(
+        [
+            [1.0, 0.0, 0.5, 0.0],  # active in both groups
+            [1.0, 0.5, 0.0, 0.0],  # active only in first group
+            [0.0, 0.0, 0.4, 0.2],  # active only in second group
+        ]
+    )
+    cross_structural = np.array(["G1", "G1", "G2", "G2"])
+
+    filtered = assembly._filter_cross_group_patterns(patterns, cross_structural)
+    assert filtered.shape[0] == 1
+    assert np.allclose(filtered[0], patterns[0])
 
 
 def test_cross_structural_assemblies_synthetic():
@@ -219,12 +247,13 @@ def test_cross_structural_pca_vs_ica():
         actmat, method="ica", nullhyp="mp", cross_structural=cross_structural
     )
 
-    # Both should detect assemblies
-    assert patterns_pca is not None or patterns_ica is not None
-
     # If both detect assemblies, they should have the same number of patterns
     if patterns_pca is not None and patterns_ica is not None:
         assert patterns_pca.shape[0] == patterns_ica.shape[0]
+
+    # Otherwise, stricter cross-structural filtering may remove weak candidates
+    assert patterns_pca is None or patterns_pca.shape[1] == n_neurons
+    assert patterns_ica is None or patterns_ica.shape[1] == n_neurons
 
 
 def test_cross_structural_validation():
@@ -244,6 +273,20 @@ def test_cross_structural_validation():
         actmat, cross_structural=cross_structural_correct
     )
     # Should not raise an error
+
+
+def test_cross_structural_mp_fallbacks_to_bin():
+    """Cross-structural mode should replace MP null with bin shuffling."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (12, 120))
+    cross_structural = np.array(["A"] * 6 + ["B"] * 6)
+
+    _, significance, _ = assembly.runPatterns(
+        actmat, method="ica", nullhyp="mp", nshu=50, cross_structural=cross_structural
+    )
+
+    assert significance is not None
+    assert significance.nullhyp == "bin"
 
 
 def test_cross_structural_silent_neurons():
@@ -294,15 +337,5 @@ def test_cross_structural_no_cross_components():
         actmat, method="ica", nullhyp="mp", cross_structural=cross_structural
     )
 
-    # Assert: Either no patterns detected, or all detected patterns are not cross-structural
-    if patterns is None:
-        assert True  # No cross-structural assemblies detected, as expected
-    else:
-        # All detected patterns should be within-group only (not cross-structural)
-        for pattern in patterns:
-            group1_weights = np.abs(pattern[:5])
-            group2_weights = np.abs(pattern[5:])
-            group1_active = np.sum(group1_weights > NEURON_ACTIVITY_THRESHOLD)
-            group2_active = np.sum(group2_weights > NEURON_ACTIVITY_THRESHOLD)
-            # Assert that at least one group is inactive (not cross-structural)
-            assert group1_active == 0 or group2_active == 0
+    # No genuine cross-structural assemblies should be detected
+    assert patterns is None

@@ -111,7 +111,9 @@ def marcenkopastur(significance: object) -> float:
     return lambdaMax
 
 
-def getlambdacontrol(zactmat_: np.ndarray) -> float:
+def getlambdacontrol(
+    zactmat_: np.ndarray, cross_structural: Optional[np.ndarray] = None
+) -> float:
     """
     Get the maximum eigenvalue from PCA.
 
@@ -125,14 +127,25 @@ def getlambdacontrol(zactmat_: np.ndarray) -> float:
     float
         Maximum eigenvalue.
     """
-    significance_ = PCA()
-    significance_.fit(zactmat_.T)
-    lambdamax_ = np.max(significance_.explained_variance_)
+    if cross_structural is None:
+        significance_ = PCA()
+        significance_.fit(zactmat_.T)
+        lambdamax_ = np.max(significance_.explained_variance_)
+    else:
+        zactmat_norm = _normalize_by_group(zactmat_, cross_structural)
+        correlations = _compute_cross_structural_correlation(
+            zactmat_norm, cross_structural
+        )
+        lambdamax_ = np.max(np.linalg.eigvalsh(correlations))
 
     return lambdamax_
 
 
-def binshuffling(zactmat: np.ndarray, significance: object) -> float:
+def binshuffling(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+) -> float:
     """
     Perform bin shuffling to generate statistical threshold.
 
@@ -156,14 +169,18 @@ def binshuffling(zactmat: np.ndarray, significance: object) -> float:
         for neuroni, activity in enumerate(zactmat_):
             randomorder = np.argsort(np.random.rand(significance.nbins))
             zactmat_[neuroni, :] = activity[randomorder]
-        lambdamax_[shui] = getlambdacontrol(zactmat_)
+        lambdamax_[shui] = getlambdacontrol(zactmat_, cross_structural=cross_structural)
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
     return lambdaMax
 
 
-def circshuffling(zactmat: np.ndarray, significance: object) -> float:
+def circshuffling(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+) -> float:
     """
     Perform circular shuffling to generate statistical threshold.
 
@@ -187,14 +204,18 @@ def circshuffling(zactmat: np.ndarray, significance: object) -> float:
         for neuroni, activity in enumerate(zactmat_):
             cut = int(np.random.randint(significance.nbins * 2))
             zactmat_[neuroni, :] = np.roll(activity, cut)
-        lambdamax_[shui] = getlambdacontrol(zactmat_)
+        lambdamax_[shui] = getlambdacontrol(zactmat_, cross_structural=cross_structural)
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
     return lambdaMax
 
 
-def runSignificance(zactmat: np.ndarray, significance: object) -> object:
+def runSignificance(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+) -> object:
     """
     Run significance tests to estimate the number of assemblies.
 
@@ -213,9 +234,13 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
     if significance.nullhyp == "mp":
         lambdaMax = marcenkopastur(significance)
     elif significance.nullhyp == "bin":
-        lambdaMax = binshuffling(zactmat, significance)
+        lambdaMax = binshuffling(
+            zactmat, significance, cross_structural=cross_structural
+        )
     elif significance.nullhyp == "circ":
-        lambdaMax = circshuffling(zactmat, significance)
+        lambdaMax = circshuffling(
+            zactmat, significance, cross_structural=cross_structural
+        )
     else:
         raise ValueError(
             "nyll hypothesis method " + str(significance.nullhyp) + " not understood"
@@ -228,7 +253,7 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
 
 
 def extractPatterns(
-    actmat: np.ndarray,
+    zactmat: np.ndarray,
     significance: object,
     method: str,
     whiten: str = "unit-variance",
@@ -239,8 +264,8 @@ def extractPatterns(
 
     Parameters
     ----------
-    actmat : np.ndarray
-        Activity matrix.
+    zactmat : np.ndarray
+        Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
     method : str
@@ -264,9 +289,10 @@ def extractPatterns(
         patterns = significance.components_[idxs, :]
     elif method == "ica":
         if cross_structural is not None:
+            zactmat_norm = _normalize_by_group(zactmat, cross_structural)
             # For cross-structural ICA, modify the input data to reflect the cross-structural correlation structure
             correlations = _compute_cross_structural_correlation(
-                actmat, cross_structural
+                zactmat_norm, cross_structural
             )
 
             # Eigenvalue decomposition to get the cross-structural subspace
@@ -282,7 +308,7 @@ def extractPatterns(
             # Project the data onto the cross-structural subspace
             projected_data = (
                 eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))
-            ).T @ actmat
+            ).T @ zactmat_norm
 
             # Run ICA on the projected data
             ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
@@ -295,7 +321,7 @@ def extractPatterns(
         else:
             # Standard ICA
             ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
-            ica.fit(actmat.T)
+            ica.fit(zactmat.T)
             patterns = ica.components_
     else:
         raise ValueError(
@@ -312,15 +338,50 @@ def extractPatterns(
     return patterns
 
 
+def _normalize_by_group(
+    zactmat: np.ndarray, cross_structural: np.ndarray
+) -> np.ndarray:
+    """
+    Normalize activity within each group by the square root of group size.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Categorical group label for each neuron.
+
+    Returns
+    -------
+    np.ndarray
+        Group-normalized activity matrix where each group's rows are scaled by
+        :math:`1/\sqrt{n_g}`.
+    """
+    groups = np.asarray(cross_structural)
+    zactmat_norm = np.array(zactmat, copy=True, dtype=float)
+    for group in np.unique(groups):
+        group_mask = groups == group
+        group_size = np.sum(group_mask)
+        if group_size > 0:
+            zactmat_norm[group_mask, :] /= np.sqrt(group_size)
+    return zactmat_norm
+
+
 def _compute_cross_structural_correlation(
     zactmat: np.ndarray, cross_structural: np.ndarray
 ) -> np.ndarray:
     """
-    Compute correlation matrix with within-group correlations set to zero.
+    Compute a block-structured cross-group correlation matrix.
 
-    This implements the cross-structural assembly detection approach where
-    correlations within the same group are ignored to force detection of
-    assemblies that span across different groups.
+    The matrix is explicitly built with zero within-group blocks and empirical
+    cross-group blocks. For two groups A and B this corresponds to:
+
+    .. math::
+
+        C = \begin{bmatrix}0 & C_{AB} \\ C_{BA} & 0\end{bmatrix}
+
+    This preserves symmetry without in-place masking of a full correlation
+    matrix and generalizes to more than two groups.
 
     Parameters
     ----------
@@ -332,20 +393,50 @@ def _compute_cross_structural_correlation(
     Returns
     -------
     np.ndarray
-        Modified correlation matrix with within-group correlations set to zero.
+        Symmetric matrix with non-zero entries only for cross-group pairs.
     """
-    # Compute standard correlation matrix
-    correlations = np.corrcoef(zactmat)
+    groups = np.asarray(cross_structural)
+    n_neurons = zactmat.shape[0]
+    correlations = np.zeros((n_neurons, n_neurons), dtype=float)
 
-    # Create mask for same-group pairs
-    groups = np.array(cross_structural)
-    same_group_mask = groups[:, np.newaxis] == groups[np.newaxis, :]
+    unique_groups = np.unique(groups)
+    for group_a_idx, group_a in enumerate(unique_groups):
+        idx_a = np.where(groups == group_a)[0]
+        data_a = zactmat[idx_a, :]
+        for group_b in unique_groups[group_a_idx + 1 :]:
+            idx_b = np.where(groups == group_b)[0]
+            data_b = zactmat[idx_b, :]
 
-    # Set within-group correlations to zero, but keep diagonal as 1
-    correlations[same_group_mask] = 0
-    np.fill_diagonal(correlations, 1)
+            corr_ab_full = np.corrcoef(data_a, data_b)
+            n_a = data_a.shape[0]
+            corr_ab = corr_ab_full[:n_a, n_a:]
+
+            correlations[np.ix_(idx_a, idx_b)] = corr_ab
+            correlations[np.ix_(idx_b, idx_a)] = corr_ab.T
 
     return correlations
+
+
+def _filter_cross_group_patterns(
+    patterns: np.ndarray,
+    cross_structural: np.ndarray,
+    atol: float = 1e-12,
+) -> np.ndarray:
+    """Keep only patterns with non-zero weights in at least two groups."""
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    keep_pattern = []
+
+    for pattern in patterns:
+        active_groups = 0
+        for group in unique_groups:
+            group_mask = groups == group
+            if np.any(~np.isclose(pattern[group_mask], 0.0, atol=atol)):
+                active_groups += 1
+        keep_pattern.append(active_groups >= 2)
+
+    keep_pattern = np.array(keep_pattern, dtype=bool)
+    return patterns[keep_pattern]
 
 
 def runPatterns(
@@ -370,6 +461,9 @@ def runPatterns(
         Method to extract assembly patterns (ica, pca), by default "ica".
     nullhyp : str, optional
         Null hypothesis method (bin, circ, mp), by default "mp".
+        In cross-structural mode, ``"mp"`` is automatically replaced by
+        ``"bin"`` because Marčenko–Pastur assumptions do not hold for the
+        block-structured cross-group covariance matrix.
     nshu : int, optional
         Number of shuffling controls, by default 1000.
     percentile : int, optional
@@ -382,8 +476,17 @@ def runPatterns(
         Number of assemblies, by default None.
     cross_structural : Optional[np.ndarray], optional
         A categorical vector indicating group membership for each neuron.
-        If provided, the function will strictly detect cross-structural assemblies
-        (correlations within the same group will be ignored), by default None.
+        If provided, the function runs cross-structural detection by:
+
+        1. removing silent neurons,
+        2. z-scoring activity,
+        3. scaling each group by :math:`1/\sqrt{n_g}`,
+        4. building an explicit block cross-group correlation matrix,
+        5. estimating significance in the same cross-structural space,
+        6. filtering extracted patterns to keep only multi-group assemblies.
+
+        Should have the same length as the number of neurons in ``actmat``.
+        By default None.
 
     Returns
     -------
@@ -400,9 +503,14 @@ def runPatterns(
     cross_structural
         When provided, this vector should have the same length as the number of neurons
         in actmat. Each element indicates the group membership (e.g., brain region,
-        cell type) for the corresponding neuron. The algorithm will then only detect
-        assemblies that span across different groups by setting within-group
-        correlations to zero.
+        cell type) for the corresponding neuron.
+
+        The cross-structural path keeps only cross-group covariance terms and
+        requires each retained pattern to be active in at least two groups.
+
+    warnings
+        ``"no cross-structural assembly detected"`` can be emitted when candidate
+        patterns are removed by the multi-group membership filter.
     """
 
     nneurons = np.size(actmat, 0)
@@ -433,10 +541,15 @@ def runPatterns(
     # running significance (estimating number of assemblies)
     significance = PCA()
 
+    effective_nullhyp = nullhyp
+    if cross_structural_ is not None and nullhyp == "mp":
+        effective_nullhyp = "bin"
+
     if cross_structural_ is not None:
+        zactmat_cross = _normalize_by_group(zactmat_, cross_structural_)
         # Compute custom correlation matrix for cross-structural assemblies
         correlations = _compute_cross_structural_correlation(
-            zactmat_, cross_structural_
+            zactmat_cross, cross_structural_
         )
         # Perform eigenvalue decomposition on the custom correlation matrix
         eigenvalues, eigenvectors = np.linalg.eigh(correlations)
@@ -456,8 +569,10 @@ def runPatterns(
     significance.nshu = nshu
     significance.percentile = percentile
     significance.tracywidom = tracywidom
-    significance.nullhyp = nullhyp
-    significance = runSignificance(zactmat_, significance)
+    significance.nullhyp = effective_nullhyp
+    significance = runSignificance(
+        zactmat_, significance, cross_structural=cross_structural_
+    )
 
     if nassemblies is not None:
         significance.nassemblies = nassemblies
@@ -481,6 +596,13 @@ def runPatterns(
         )
         if patterns_ is np.nan:
             return None
+
+        if cross_structural_ is not None:
+            patterns_ = _filter_cross_group_patterns(patterns_, cross_structural_)
+            significance.nassemblies = patterns_.shape[0]
+            if significance.nassemblies < 1:
+                warnings.warn("no cross-structural assembly detected")
+                return None, significance, None
 
         # putting eventual silent neurons back (their assembly weights are defined as zero)
         patterns = np.zeros((np.size(patterns_, 0), nneurons))
