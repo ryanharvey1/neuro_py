@@ -339,3 +339,61 @@ def test_cross_structural_no_cross_components():
 
     # No genuine cross-structural assemblies should be detected
     assert patterns is None
+
+
+def test_cross_svd_detects_cross_area_assembly():
+    """cross_svd should detect strong cross-area coupling."""
+    np.random.seed(42)
+    n_group1 = 8
+    n_group2 = 8
+    n_bins = 800
+
+    actmat = np.random.poisson(1, (n_group1 + n_group2, n_bins))
+    assembly_times = np.sort(np.random.choice(n_bins, 220, replace=False))
+
+    for t in assembly_times:
+        actmat[2:5, t] += np.random.poisson(8, 3)
+        actmat[n_group1 + 3 : n_group1 + 6, t] += np.random.poisson(8, 3)
+
+    groups = np.array(["CA1"] * n_group1 + ["PFC"] * n_group2)
+    patterns, significance, zactmat = assembly.runPatterns(
+        actmat,
+        method="cross_svd",
+        cross_structural=groups,
+        nshu=100,
+        percentile=95,
+    )
+
+    assert significance is not None
+    assert significance.nullhyp == "bin"
+    assert patterns is not None
+    assert patterns.shape[0] >= 1
+    assert patterns.shape[1] == n_group1 + n_group2
+    assert zactmat.shape == actmat.shape
+
+
+def test_cross_svd_requires_two_groups():
+    """cross_svd should fail when cross_structural has more than two groups."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (9, 120))
+    groups = np.array(["A"] * 3 + ["B"] * 3 + ["C"] * 3)
+
+    with pytest.raises(ValueError, match="exactly two groups"):
+        assembly.runPatterns(actmat, method="cross_svd", cross_structural=groups)
+
+
+def test_compute_cross_area_activity_shape():
+    """computeCrossAreaActivity returns expected shape."""
+    np.random.seed(42)
+    patterns = np.array(
+        [
+            [0.7, 0.0, 0.7, 0.0],
+            [0.0, 0.7, 0.0, 0.7],
+        ]
+    )
+    zactmat = np.random.randn(4, 50)
+    groups = np.array(["CA1", "CA1", "PFC", "PFC"])
+
+    activity = assembly.computeCrossAreaActivity(patterns, zactmat, groups)
+    assert activity is not None
+    assert activity.shape == (2, 50)

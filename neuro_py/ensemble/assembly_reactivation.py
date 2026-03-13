@@ -36,7 +36,7 @@ class AssemblyReact:
     z_mat_dt : float
         Time resolution of the z matrix
     method : str
-        Defines how to extract assembly patterns (ica,pca).
+        Defines how to extract assembly patterns (ica,pca,cross_svd).
     nullhyp : str
         Defines how to generate statistical threshold for assembly detection (bin,circ,mp).
     nshu : int
@@ -122,6 +122,20 @@ class AssemblyReact:
     ...    )
     >>> assembly_react_cross.load_data()
     >>> assembly_react_cross.get_weights()  # Will only detect cross-regional assemblies
+
+    >>> # Example: Cross-area SVD assemblies (strictly bipartite, two groups)
+    >>> cross_groups = np.array(['CA1'] * 50 + ['PFC'] * 30)
+    >>> assembly_react_svd = assembly_reactivation.AssemblyReact(
+    ...    basepath=basepath,
+    ...    method='cross_svd',
+    ...    cross_structural=cross_groups,
+    ...    nullhyp='bin',
+    ...    nshu=500,
+    ...    percentile=95,
+    ... )
+    >>> assembly_react_svd.load_data()
+    >>> assembly_react_svd.get_weights()
+    >>> cross_area_activity = assembly_react_svd.get_assembly_act()
 
     """
 
@@ -337,8 +351,19 @@ class AssemblyReact:
         else:
             zactmat, ts = self.get_z_mat(self.st)
 
+        if self.method == "cross_svd" and self.cross_structural is not None:
+            assembly_activity_data = assembly.computeCrossAreaActivity(
+                self.patterns,
+                zactmat,
+                self.cross_structural,
+            )
+        else:
+            assembly_activity_data = assembly.computeAssemblyActivity(
+                self.patterns, zactmat
+            )
+
         assembly_act = nel.AnalogSignalArray(
-            data=assembly.computeAssemblyActivity(self.patterns, zactmat),
+            data=assembly_activity_data,
             timestamps=ts,
             fs=1 / self.z_mat_dt,
         )

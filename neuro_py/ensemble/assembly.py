@@ -439,6 +439,161 @@ def _filter_cross_group_patterns(
     return patterns[keep_pattern]
 
 
+def _compute_cross_svd(
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+    n_components: Optional[int] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute cross-area SVD on a two-group activity matrix.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+    n_components : Optional[int], optional
+        Number of singular vectors to retain, by default all.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Left vectors U, singular values S, right vectors Vt, and row indices for
+        group 1 and group 2 within ``zactmat``.
+    """
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    if len(unique_groups) != 2:
+        raise ValueError(
+            "cross_svd requires exactly two groups in cross_structural"
+        )
+
+    idx_group1 = np.where(groups == unique_groups[0])[0]
+    idx_group2 = np.where(groups == unique_groups[1])[0]
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    cross_cov = X1 @ X2.T / X1.shape[1]
+    U, S, Vt = np.linalg.svd(cross_cov, full_matrices=False)
+
+    if n_components is not None:
+        n_keep = min(n_components, len(S))
+        U = U[:, :n_keep]
+        S = S[:n_keep]
+        Vt = Vt[:n_keep, :]
+
+    return U, S, Vt, idx_group1, idx_group2
+
+
+def _cross_svd_significance(
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+    nshu: int,
+    percentile: int,
+    n_components: Optional[int] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Estimate significant cross-area SVD components by shuffling group-1 activity.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+    nshu : int
+        Number of shuffles.
+    percentile : int
+        Percentile threshold for singular values.
+    n_components : Optional[int], optional
+        Number of singular values/components to evaluate, by default all.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        U, S, Vt, significant-component mask, null thresholds, group-1 indices,
+        group-2 indices.
+    """
+    U, S, Vt, idx_group1, idx_group2 = _compute_cross_svd(
+        zactmat, cross_structural, n_components=n_components
+    )
+    n_components_eval = len(S)
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    null_singular_values = np.zeros((nshu, n_components_eval), dtype=float)
+    for shui in range(nshu):
+        X1_shuffled = np.copy(X1)
+        for row_i, activity in enumerate(X1_shuffled):
+            randomorder = np.argsort(np.random.rand(X1_shuffled.shape[1]))
+            X1_shuffled[row_i, :] = activity[randomorder]
+        cross_cov_shuffled = X1_shuffled @ X2.T / X1.shape[1]
+        _, singular_values_shuffled, _ = np.linalg.svd(
+            cross_cov_shuffled, full_matrices=False
+        )
+        null_singular_values[shui, :] = singular_values_shuffled[:n_components_eval]
+
+    null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
+    keep_components = S > null_thresholds
+
+    return (
+        U,
+        S,
+        Vt,
+        keep_components,
+        null_thresholds,
+        idx_group1,
+        idx_group2,
+    )
+
+
+def computeCrossAreaActivity(
+    patterns: np.ndarray,
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+) -> Optional[np.ndarray]:
+    """
+    Compute time-resolved cross-area coactivation for cross-SVD assemblies.
+
+    Parameters
+    ----------
+    patterns : np.ndarray
+        Assembly patterns (assemblies, neurons).
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+
+    Returns
+    -------
+    Optional[np.ndarray]
+        Coactivation matrix (assemblies, time bins), or None if no patterns.
+    """
+    if patterns is None or len(patterns) == 0:
+        return None
+
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    if len(unique_groups) != 2:
+        raise ValueError(
+            "computeCrossAreaActivity requires exactly two groups in cross_structural"
+        )
+
+    idx_group1 = groups == unique_groups[0]
+    idx_group2 = groups == unique_groups[1]
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    group1_proj = patterns[:, idx_group1] @ X1
+    group2_proj = patterns[:, idx_group2] @ X2
+
+    return group1_proj * group2_proj
+
+
 def runPatterns(
     actmat: np.ndarray,
     method: str = "ica",
@@ -458,7 +613,8 @@ def runPatterns(
     actmat : np.ndarray
         Activity matrix (neurons, time bins).
     method : str, optional
-        Method to extract assembly patterns (ica, pca), by default "ica".
+        Method to extract assembly patterns (ica, pca, cross_svd),
+        by default "ica".
     nullhyp : str, optional
         Null hypothesis method (bin, circ, mp), by default "mp".
         In cross-structural mode, ``"mp"`` is automatically replaced by
@@ -544,6 +700,61 @@ def runPatterns(
     effective_nullhyp = nullhyp
     if cross_structural_ is not None and nullhyp == "mp":
         effective_nullhyp = "bin"
+
+    if method == "cross_svd":
+        if cross_structural_ is None:
+            raise ValueError("cross_svd requires cross_structural labels")
+
+        (
+            U,
+            singular_values,
+            Vt,
+            keep_components,
+            null_thresholds,
+            idx_group1,
+            idx_group2,
+        ) = _cross_svd_significance(
+            zactmat_,
+            cross_structural_,
+            nshu=nshu,
+            percentile=percentile,
+            n_components=nassemblies,
+        )
+
+        selected_components = np.where(keep_components)[0]
+        significance.nneurons = nneurons
+        significance.nbins = nbins
+        significance.nshu = nshu
+        significance.percentile = percentile
+        significance.tracywidom = tracywidom
+        significance.nullhyp = "bin"
+        significance.explained_variance_ = singular_values
+        significance.cross_svd_null_thresholds_ = null_thresholds
+        significance.cross_svd_keep_mask_ = keep_components
+        significance.cross_svd_u_ = U
+        significance.cross_svd_vt_ = Vt
+        significance.nassemblies = len(selected_components)
+
+        if significance.nassemblies < 1:
+            warnings.warn("no cross-svd assembly detected")
+            return None, significance, None
+
+        patterns_active = np.zeros((significance.nassemblies, zactmat_.shape[0]))
+        for out_i, comp_i in enumerate(selected_components):
+            patterns_active[out_i, idx_group1] = U[:, comp_i]
+            patterns_active[out_i, idx_group2] = Vt[comp_i, :]
+
+        # sets norm of assembly vectors to 1
+        norms = np.linalg.norm(patterns_active, axis=1)
+        norms[norms == 0] = 1
+        patterns_active /= np.tile(norms, [np.size(patterns_active, 1), 1]).T
+
+        patterns = np.zeros((np.size(patterns_active, 0), nneurons))
+        patterns[:, ~silentneurons] = patterns_active
+        zactmat = np.copy(actmat)
+        zactmat[~silentneurons, :] = zactmat_
+
+        return patterns, significance, zactmat
 
     if cross_structural_ is not None:
         zactmat_cross = _normalize_by_group(zactmat_, cross_structural_)
