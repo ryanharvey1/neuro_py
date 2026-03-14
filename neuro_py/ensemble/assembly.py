@@ -600,7 +600,16 @@ def _cross_svd_significance(
     np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]:
     """
-    Estimate significant cross-area SVD components by shuffling group-1 activity.
+    Estimate significant cross-area SVD components via symmetric group-level shuffles.
+
+    For each shuffle a single independent time permutation is applied to all
+    neurons in group 1 and a *different* independent permutation is applied to
+    all neurons in group 2.  This preserves within-area population geometry
+    (neurons within each group stay aligned in time) while destroying only the
+    cross-area temporal coupling that SVD is designed to capture.  Using one
+    permutation per group rather than one per neuron also keeps the within-group
+    co-firing structure intact, making the null hypothesis specifically about
+    cross-area coordination.
 
     Parameters
     ----------
@@ -629,11 +638,17 @@ def _cross_svd_significance(
     X1 = zactmat[idx_group1, :]
     X2 = zactmat[idx_group2, :]
 
+    T = X1.shape[1]
+
     def _single_cross_svd_shuffle(seed: int) -> np.ndarray:
         rng = np.random.default_rng(seed)
-        randomorder = np.argsort(rng.random((X1.shape[0], X1.shape[1])), axis=1)
-        X1_shuffled = np.take_along_axis(X1, randomorder, axis=1)
-        cross_cov_shuffled = X1_shuffled @ X2.T / X1.shape[1]
+        # Apply one permutation to all neurons in group 1 and an independent
+        # permutation to all neurons in group 2.  This is symmetric across
+        # groups and preserves within-group population co-firing patterns while
+        # destroying only the cross-area temporal coupling.
+        pi1 = rng.permutation(T)
+        pi2 = rng.permutation(T)
+        cross_cov_shuffled = X1[:, pi1] @ X2[:, pi2].T / T
         _, singular_values_shuffled, _ = np.linalg.svd(
             cross_cov_shuffled, full_matrices=False
         )
@@ -676,6 +691,19 @@ def computeCrossAreaActivity(
     """
     Compute time-resolved cross-area coactivation for cross-SVD assemblies.
 
+    The coactivation score at each time bin is the product of the z-scored
+    projections of both groups onto their respective assembly weight vectors:
+
+    .. math::
+
+        A_k(t) = z(\\mathbf{u}_k^\\top X_1)(t) \\cdot z(\\mathbf{v}_k^\\top X_2)(t)
+
+    Z-scoring each projection centres it (removes the non-zero mean that a
+    raw dot product can have even with no real assembly activity) and
+    normalises scale across assemblies.  Positive values indicate synchronous
+    co-expression; negative values indicate anti-coactivation (one group
+    active above its mean while the other is below).
+
     Parameters
     ----------
     patterns : np.ndarray
@@ -709,7 +737,12 @@ def computeCrossAreaActivity(
     group1_proj = patterns[:, idx_group1] @ X1
     group2_proj = patterns[:, idx_group2] @ X2
 
-    return group1_proj * group2_proj
+    # Z-score each projection across time so that the product is centred and
+    # has a consistent scale regardless of pattern magnitude.
+    group1_proj_z = np.nan_to_num(stats.zscore(group1_proj, axis=1))
+    group2_proj_z = np.nan_to_num(stats.zscore(group2_proj, axis=1))
+
+    return group1_proj_z * group2_proj_z
 
 
 def runPatterns(
