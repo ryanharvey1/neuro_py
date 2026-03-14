@@ -45,6 +45,11 @@ class AssemblyReact:
         Percentile for mp null hypothesis.
     tracywidom : bool
         If true, uses Tracy-Widom distribution for mp null hypothesis.
+    n_jobs : int, optional
+        Number of workers for shuffle-based significance controls passed to
+        :func:`neuro_py.ensemble.assembly.runPatterns`.
+        Use ``1`` for serial execution, ``-1`` for all available cores,
+        or any positive integer. By default 1.
     cross_structural : np.ndarray, optional
         A categorical vector indicating group membership for each neuron.
         If provided, assembly detection uses the cross-structural path in
@@ -152,6 +157,7 @@ class AssemblyReact:
         percentile: int = 99,
         tracywidom: bool = False,
         whiten: str = "unit-variance",
+        n_jobs: int = 1,
         cross_structural: Optional[np.ndarray] = None,
     ):
         self.basepath = basepath
@@ -165,6 +171,7 @@ class AssemblyReact:
         self.percentile = percentile
         self.tracywidom = tracywidom
         self.whiten = whiten
+        self.n_jobs = n_jobs
         self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
@@ -307,6 +314,7 @@ class AssemblyReact:
                 percentile=self.percentile,
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
+                n_jobs=self.n_jobs,
                 cross_structural=self.cross_structural,
             )
 

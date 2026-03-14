@@ -435,3 +435,27 @@ def test_cross_svd_assembly_reactivation_activity():
         assert assembly_act.data.shape[0] == assembly_react.n_assemblies()
         assert assembly_act.data.shape[1] > 0
         assert not np.all(np.isnan(assembly_act.data))
+
+
+def test_assembly_reactivation_passes_n_jobs(monkeypatch):
+    """Test that AssemblyReact forwards n_jobs to assembly.runPatterns."""
+
+    spike_times = [
+        np.array([0.1, 0.2, 0.3, 0.4]),
+        np.array([0.1, 0.2, 0.3, 0.4]),
+    ]
+    st = nel.SpikeTrainArray(timestamps=spike_times)
+    captured = {}
+
+    def fake_run_patterns(actmat, **kwargs):
+        captured["n_jobs"] = kwargs["n_jobs"]
+        return np.array([[1.0, 0.0]]), object(), actmat
+
+    monkeypatch.setattr(assembly_reactivation.assembly, "runPatterns", fake_run_patterns)
+
+    assembly_react = assembly_reactivation.AssemblyReact(n_jobs=3)
+    assembly_react.add_st(st)
+    assembly_react.get_weights()
+
+    assert captured["n_jobs"] == 3
+    assert assembly_react.patterns is not None

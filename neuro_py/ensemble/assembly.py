@@ -6,6 +6,8 @@ Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor,
 """
 
 import warnings
+from concurrent.futures import ThreadPoolExecutor
+from os import cpu_count
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -141,10 +143,50 @@ def getlambdacontrol(
     return lambdamax_
 
 
+def _resolve_n_jobs(n_jobs: Optional[int]) -> int:
+    """Resolve n_jobs into a valid positive worker count."""
+    if n_jobs is None:
+        return 1
+    if n_jobs == -1:
+        return max(1, cpu_count() or 1)
+    if n_jobs < -1 or n_jobs == 0:
+        raise ValueError("n_jobs must be -1 or a positive integer")
+    return int(n_jobs)
+
+
+def _bin_shuffle_lambdamax(
+    zactmat: np.ndarray,
+    nbins: int,
+    cross_structural: Optional[np.ndarray],
+    seed: int,
+) -> float:
+    """Compute one bin-shuffle control lambda max."""
+    rng = np.random.default_rng(seed)
+    randomorder = np.argsort(rng.random((zactmat.shape[0], nbins)), axis=1)
+    zactmat_shuffled = np.take_along_axis(zactmat, randomorder, axis=1)
+    return getlambdacontrol(zactmat_shuffled, cross_structural=cross_structural)
+
+
+def _circ_shuffle_lambdamax(
+    zactmat: np.ndarray,
+    nbins: int,
+    cross_structural: Optional[np.ndarray],
+    seed: int,
+) -> float:
+    """Compute one circular-shuffle control lambda max."""
+    rng = np.random.default_rng(seed)
+    cuts = rng.integers(0, nbins * 2, size=zactmat.shape[0])
+    base_indices = np.arange(nbins)[None, :]
+    shift_indices = (base_indices - cuts[:, None]) % nbins
+    zactmat_shuffled = np.take_along_axis(zactmat, shift_indices, axis=1)
+    return getlambdacontrol(zactmat_shuffled, cross_structural=cross_structural)
+
+
 def binshuffling(
     zactmat: np.ndarray,
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
 ) -> float:
     """
     Perform bin shuffling to generate statistical threshold.
@@ -161,15 +203,38 @@ def binshuffling(
     float
         Statistical threshold.
     """
-    np.random.seed()
+    n_workers = _resolve_n_jobs(n_jobs)
+    seed_seq = np.random.SeedSequence()
+    child_seeds = seed_seq.spawn(significance.nshu)
+    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
 
-    lambdamax_ = np.zeros(significance.nshu)
-    for shui in range(significance.nshu):
-        zactmat_ = np.copy(zactmat)
-        for neuroni, activity in enumerate(zactmat_):
-            randomorder = np.argsort(np.random.rand(significance.nbins))
-            zactmat_[neuroni, :] = activity[randomorder]
-        lambdamax_[shui] = getlambdacontrol(zactmat_, cross_structural=cross_structural)
+    if n_workers == 1:
+        lambdamax_ = np.array(
+            [
+                _bin_shuffle_lambdamax(
+                    zactmat,
+                    significance.nbins,
+                    cross_structural,
+                    seed,
+                )
+                for seed in seeds
+            ]
+        )
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            lambdamax_ = np.array(
+                list(
+                    executor.map(
+                        lambda seed: _bin_shuffle_lambdamax(
+                            zactmat,
+                            significance.nbins,
+                            cross_structural,
+                            seed,
+                        ),
+                        seeds,
+                    )
+                )
+            )
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
@@ -180,6 +245,7 @@ def circshuffling(
     zactmat: np.ndarray,
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
 ) -> float:
     """
     Perform circular shuffling to generate statistical threshold.
@@ -196,15 +262,38 @@ def circshuffling(
     float
         Statistical threshold.
     """
-    np.random.seed()
+    n_workers = _resolve_n_jobs(n_jobs)
+    seed_seq = np.random.SeedSequence()
+    child_seeds = seed_seq.spawn(significance.nshu)
+    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
 
-    lambdamax_ = np.zeros(significance.nshu)
-    for shui in range(significance.nshu):
-        zactmat_ = np.copy(zactmat)
-        for neuroni, activity in enumerate(zactmat_):
-            cut = int(np.random.randint(significance.nbins * 2))
-            zactmat_[neuroni, :] = np.roll(activity, cut)
-        lambdamax_[shui] = getlambdacontrol(zactmat_, cross_structural=cross_structural)
+    if n_workers == 1:
+        lambdamax_ = np.array(
+            [
+                _circ_shuffle_lambdamax(
+                    zactmat,
+                    significance.nbins,
+                    cross_structural,
+                    seed,
+                )
+                for seed in seeds
+            ]
+        )
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            lambdamax_ = np.array(
+                list(
+                    executor.map(
+                        lambda seed: _circ_shuffle_lambdamax(
+                            zactmat,
+                            significance.nbins,
+                            cross_structural,
+                            seed,
+                        ),
+                        seeds,
+                    )
+                )
+            )
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
@@ -215,6 +304,7 @@ def runSignificance(
     zactmat: np.ndarray,
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
 ) -> object:
     """
     Run significance tests to estimate the number of assemblies.
@@ -235,11 +325,17 @@ def runSignificance(
         lambdaMax = marcenkopastur(significance)
     elif significance.nullhyp == "bin":
         lambdaMax = binshuffling(
-            zactmat, significance, cross_structural=cross_structural
+            zactmat,
+            significance,
+            cross_structural=cross_structural,
+            n_jobs=n_jobs,
         )
     elif significance.nullhyp == "circ":
         lambdaMax = circshuffling(
-            zactmat, significance, cross_structural=cross_structural
+            zactmat,
+            significance,
+            cross_structural=cross_structural,
+            n_jobs=n_jobs,
         )
     else:
         raise ValueError(
@@ -493,6 +589,7 @@ def _cross_svd_significance(
     nshu: int,
     percentile: int,
     n_components: Optional[int] = None,
+    n_jobs: Optional[int] = 1,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Estimate significant cross-area SVD components by shuffling group-1 activity.
@@ -524,17 +621,26 @@ def _cross_svd_significance(
     X1 = zactmat[idx_group1, :]
     X2 = zactmat[idx_group2, :]
 
-    null_singular_values = np.zeros((nshu, n_components_eval), dtype=float)
-    for shui in range(nshu):
-        X1_shuffled = np.copy(X1)
-        for row_i, activity in enumerate(X1_shuffled):
-            randomorder = np.argsort(np.random.rand(X1_shuffled.shape[1]))
-            X1_shuffled[row_i, :] = activity[randomorder]
+    def _single_cross_svd_shuffle(seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        randomorder = np.argsort(rng.random((X1.shape[0], X1.shape[1])), axis=1)
+        X1_shuffled = np.take_along_axis(X1, randomorder, axis=1)
         cross_cov_shuffled = X1_shuffled @ X2.T / X1.shape[1]
         _, singular_values_shuffled, _ = np.linalg.svd(
             cross_cov_shuffled, full_matrices=False
         )
-        null_singular_values[shui, :] = singular_values_shuffled[:n_components_eval]
+        return singular_values_shuffled[:n_components_eval]
+
+    n_workers = _resolve_n_jobs(n_jobs)
+    seed_seq = np.random.SeedSequence()
+    child_seeds = seed_seq.spawn(nshu)
+    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
+
+    if n_workers == 1:
+        null_singular_values = np.array([_single_cross_svd_shuffle(seed) for seed in seeds])
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            null_singular_values = np.array(list(executor.map(_single_cross_svd_shuffle, seeds)))
 
     null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
     keep_components = S > null_thresholds
@@ -604,6 +710,7 @@ def runPatterns(
     whiten: str = "unit-variance",
     nassemblies: int = None,
     cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -643,6 +750,10 @@ def runPatterns(
 
         Should have the same length as the number of neurons in ``actmat``.
         By default None.
+    n_jobs : Optional[int], optional
+        Number of workers for shuffle-based significance controls.
+        Use ``1`` for serial execution, ``-1`` for all available cores,
+        or any positive integer. By default 1.
 
     Returns
     -------
@@ -719,6 +830,7 @@ def runPatterns(
             nshu=nshu,
             percentile=percentile,
             n_components=nassemblies,
+            n_jobs=n_jobs,
         )
 
         selected_components = np.where(keep_components)[0]
@@ -782,7 +894,10 @@ def runPatterns(
     significance.tracywidom = tracywidom
     significance.nullhyp = effective_nullhyp
     significance = runSignificance(
-        zactmat_, significance, cross_structural=cross_structural_
+        zactmat_,
+        significance,
+        cross_structural=cross_structural_,
+        n_jobs=n_jobs,
     )
 
     if nassemblies is not None:
