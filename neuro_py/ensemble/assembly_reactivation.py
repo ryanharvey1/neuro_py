@@ -42,7 +42,8 @@ class AssemblyReact:
     nshu : int
         Number of shuffles for bin and circ null hypothesis.
     percentile : int
-        Percentile for mp null hypothesis.
+        Percentile threshold for shuffle-based null hypothesis
+        (used by bin, circ, and cross_svd methods; not used by mp).
     tracywidom : bool
         If true, uses Tracy-Widom distribution for mp null hypothesis.
     n_jobs : int, optional

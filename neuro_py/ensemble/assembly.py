@@ -147,11 +147,15 @@ def _resolve_n_jobs(n_jobs: Optional[int]) -> int:
     """Resolve n_jobs into a valid positive worker count."""
     if n_jobs is None:
         return 1
+    if isinstance(n_jobs, bool) or not isinstance(n_jobs, int):
+        raise TypeError(
+            f"n_jobs must be -1 or a positive integer, got {type(n_jobs).__name__!r}"
+        )
     if n_jobs == -1:
         return max(1, cpu_count() or 1)
     if n_jobs < -1 or n_jobs == 0:
         raise ValueError("n_jobs must be -1 or a positive integer")
-    return int(n_jobs)
+    return n_jobs
 
 
 def _bin_shuffle_lambdamax(
@@ -503,9 +507,13 @@ def _compute_cross_structural_correlation(
             idx_b = np.where(groups == group_b)[0]
             data_b = zactmat[idx_b, :]
 
-            corr_ab_full = np.corrcoef(data_a, data_b)
-            n_a = data_a.shape[0]
-            corr_ab = corr_ab_full[:n_a, n_a:]
+            # Compute cross-block covariance directly; avoids allocating the
+            # full (n_a + n_b) x (n_a + n_b) matrix that np.corrcoef would
+            # build and also preserves any group-size scaling already applied
+            # to the rows (which np.corrcoef would silently undo by
+            # re-standardising each row to unit variance).
+            nbins = data_a.shape[1]
+            corr_ab = data_a @ data_b.T / nbins
 
             correlations[np.ix_(idx_a, idx_b)] = corr_ab
             correlations[np.ix_(idx_b, idx_a)] = corr_ab.T
@@ -561,9 +569,7 @@ def _compute_cross_svd(
     groups = np.asarray(cross_structural)
     unique_groups = np.unique(groups)
     if len(unique_groups) != 2:
-        raise ValueError(
-            "cross_svd requires exactly two groups in cross_structural"
-        )
+        raise ValueError("cross_svd requires exactly two groups in cross_structural")
 
     idx_group1 = np.where(groups == unique_groups[0])[0]
     idx_group2 = np.where(groups == unique_groups[1])[0]
@@ -590,7 +596,9 @@ def _cross_svd_significance(
     percentile: int,
     n_components: Optional[int] = None,
     n_jobs: Optional[int] = 1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
     """
     Estimate significant cross-area SVD components by shuffling group-1 activity.
 
@@ -637,10 +645,14 @@ def _cross_svd_significance(
     seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
 
     if n_workers == 1:
-        null_singular_values = np.array([_single_cross_svd_shuffle(seed) for seed in seeds])
+        null_singular_values = np.array(
+            [_single_cross_svd_shuffle(seed) for seed in seeds]
+        )
     else:
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            null_singular_values = np.array(list(executor.map(_single_cross_svd_shuffle, seeds)))
+            null_singular_values = np.array(
+                list(executor.map(_single_cross_svd_shuffle, seeds))
+            )
 
     null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
     keep_components = S > null_thresholds
