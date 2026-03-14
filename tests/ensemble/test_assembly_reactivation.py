@@ -454,6 +454,7 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
         captured["cross_group_threshold_percentile"] = kwargs[
             "cross_group_threshold_percentile"
         ]
+        captured["cross_svd_threshold_mode"] = kwargs["cross_svd_threshold_mode"]
         return np.array([[1.0, 0.0]]), object(), actmat
 
     monkeypatch.setattr(assembly_reactivation.assembly, "runPatterns", fake_run_patterns)
@@ -463,6 +464,7 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
         cross_group_threshold=1e-3,
         cross_group_threshold_mode="relative",
         cross_group_threshold_percentile=90.0,
+        cross_svd_threshold_mode="max_stat",
     )
     assembly_react.add_st(st)
     assembly_react.get_weights()
@@ -471,4 +473,5 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
     assert captured["cross_group_threshold"] == 1e-3
     assert captured["cross_group_threshold_mode"] == "relative"
     assert captured["cross_group_threshold_percentile"] == 90.0
+    assert captured["cross_svd_threshold_mode"] == "max_stat"
     assert assembly_react.patterns is not None

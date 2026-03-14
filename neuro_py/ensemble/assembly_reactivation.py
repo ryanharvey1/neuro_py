@@ -63,6 +63,9 @@ class AssemblyReact:
     cross_group_threshold_percentile : float, optional
         Percentile used when ``cross_group_threshold_mode='percentile'``.
         By default ``95.0``.
+    cross_svd_threshold_mode : str, optional
+        Thresholding rule for cross-SVD significance. One of
+        ``"per_rank"`` (default) or ``"max_stat"``.
     cross_structural : np.ndarray, optional
         A categorical vector indicating group membership for each neuron.
         If provided, assembly detection uses the cross-structural path in
@@ -174,6 +177,7 @@ class AssemblyReact:
         cross_group_threshold: float = 1e-12,
         cross_group_threshold_mode: str = "absolute",
         cross_group_threshold_percentile: float = 95.0,
+        cross_svd_threshold_mode: str = "per_rank",
         cross_structural: Optional[np.ndarray] = None,
     ):
         self.basepath = basepath
@@ -191,6 +195,7 @@ class AssemblyReact:
         self.cross_group_threshold = cross_group_threshold
         self.cross_group_threshold_mode = cross_group_threshold_mode
         self.cross_group_threshold_percentile = cross_group_threshold_percentile
+        self.cross_svd_threshold_mode = cross_svd_threshold_mode
         self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
@@ -337,6 +342,7 @@ class AssemblyReact:
                 cross_group_threshold=self.cross_group_threshold,
                 cross_group_threshold_mode=self.cross_group_threshold_mode,
                 cross_group_threshold_percentile=self.cross_group_threshold_percentile,
+                cross_svd_threshold_mode=self.cross_svd_threshold_mode,
                 cross_structural=self.cross_structural,
             )
 

@@ -403,6 +403,44 @@ def test_cross_svd_requires_two_groups():
         assembly.runPatterns(actmat, method="cross_svd", cross_structural=groups)
 
 
+def test_cross_svd_threshold_mode_max_stat_sets_global_threshold():
+    """max_stat mode should use one global threshold across all ranks."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (16, 400))
+    groups = np.array(["CA1"] * 8 + ["PFC"] * 8)
+
+    _, significance, _ = assembly.runPatterns(
+        actmat,
+        method="cross_svd",
+        cross_structural=groups,
+        nshu=40,
+        percentile=95,
+        cross_svd_threshold_mode="max_stat",
+    )
+
+    assert significance is not None
+    assert significance.cross_svd_threshold_mode_ == "max_stat"
+    assert np.allclose(
+        significance.cross_svd_null_thresholds_,
+        significance.cross_svd_null_thresholds_[0],
+    )
+
+
+def test_cross_svd_threshold_mode_invalid_raises():
+    """Invalid cross-SVD threshold mode should raise ValueError."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (10, 120))
+    groups = np.array(["A"] * 5 + ["B"] * 5)
+
+    with pytest.raises(ValueError, match="threshold_mode"):
+        assembly.runPatterns(
+            actmat,
+            method="cross_svd",
+            cross_structural=groups,
+            cross_svd_threshold_mode="not_a_mode",
+        )
+
+
 def test_compute_cross_area_activity_shape():
     """computeCrossAreaActivity returns expected shape."""
     np.random.seed(42)

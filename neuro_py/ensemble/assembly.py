@@ -434,7 +434,7 @@ def extractPatterns(
 
         # sets norm of assembly vectors to 1
         norms = np.linalg.norm(patterns, axis=1)
-        patterns /= np.tile(norms, [np.size(patterns, 1), 1]).T
+        patterns /= norms[:, None]
 
     return patterns
 
@@ -656,6 +656,7 @@ def _cross_svd_significance(
     percentile: int,
     n_components: Optional[int] = None,
     n_jobs: Optional[int] = 1,
+    threshold_mode: str = "per_rank",
 ) -> Tuple[
     np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]:
@@ -683,6 +684,14 @@ def _cross_svd_significance(
         Percentile threshold for singular values.
     n_components : Optional[int], optional
         Number of singular values/components to evaluate, by default all.
+    threshold_mode : str, optional
+        Rule used to threshold singular values.
+
+        - ``"per_rank"``: compare each rank ``S[k]`` to its own null threshold.
+        - ``"max_stat"``: compare all ranks to a single global threshold
+          derived from the null distribution of the maximum singular value.
+
+        By default ``"per_rank"``.
 
     Returns
     -------
@@ -690,6 +699,13 @@ def _cross_svd_significance(
         U, S, Vt, significant-component mask, null thresholds, group-1 indices,
         group-2 indices.
     """
+    valid_threshold_modes = {"per_rank", "max_stat"}
+    if threshold_mode not in valid_threshold_modes:
+        raise ValueError(
+            "cross_svd threshold_mode must be one of "
+            f"{sorted(valid_threshold_modes)}, got {threshold_mode!r}"
+        )
+
     U, S, Vt, idx_group1, idx_group2 = _compute_cross_svd(
         zactmat, cross_structural, n_components=n_components
     )
@@ -729,8 +745,13 @@ def _cross_svd_significance(
                 list(executor.map(_single_cross_svd_shuffle, seeds))
             )
 
-    null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
-    keep_components = S > null_thresholds
+    if threshold_mode == "per_rank":
+        null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
+        keep_components = S > null_thresholds
+    else:  # threshold_mode == "max_stat"
+        global_threshold = np.percentile(np.max(null_singular_values, axis=1), percentile)
+        null_thresholds = np.full(n_components_eval, global_threshold)
+        keep_components = S > global_threshold
 
     return (
         U,
@@ -819,6 +840,7 @@ def runPatterns(
     cross_group_threshold: float = 1e-12,
     cross_group_threshold_mode: str = "absolute",
     cross_group_threshold_percentile: float = 95.0,
+    cross_svd_threshold_mode: str = "per_rank",
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -873,6 +895,12 @@ def runPatterns(
     cross_group_threshold_percentile : float, optional
         Percentile used by the cross-group filter when
         ``cross_group_threshold_mode='percentile'``. By default ``95.0``.
+    cross_svd_threshold_mode : str, optional
+        Thresholding rule for ``method='cross_svd'`` significance.
+        One of ``"per_rank"`` (default) or ``"max_stat"``.
+        ``"per_rank"`` compares each singular value to its own rank-matched
+        null threshold; ``"max_stat"`` uses a single global threshold from
+        the null distribution of maximum singular values.
 
     Returns
     -------
@@ -951,6 +979,7 @@ def runPatterns(
             percentile=percentile,
             n_components=nassemblies,
             n_jobs=n_jobs,
+            threshold_mode=cross_svd_threshold_mode,
         )
 
         selected_components = np.where(keep_components)[0]
@@ -965,6 +994,7 @@ def runPatterns(
         significance.cross_svd_keep_mask_ = keep_components
         significance.cross_svd_u_ = U
         significance.cross_svd_vt_ = Vt
+        significance.cross_svd_threshold_mode_ = cross_svd_threshold_mode
         significance.nassemblies = len(selected_components)
 
         if significance.nassemblies < 1:
@@ -979,7 +1009,7 @@ def runPatterns(
         # sets norm of assembly vectors to 1
         norms = np.linalg.norm(patterns_active, axis=1)
         norms[norms == 0] = 1
-        patterns_active /= np.tile(norms, [np.size(patterns_active, 1), 1]).T
+        patterns_active /= norms[:, None]
 
         patterns = np.zeros((np.size(patterns_active, 0), nneurons))
         patterns[:, ~silentneurons] = patterns_active
