@@ -95,41 +95,41 @@ def test_assembly():
     assert zactmat is None
 
 
-def test_cross_structural_correlation_matrix():
-    """Test the _compute_cross_structural_correlation function."""
+def test_cross_structural_covariance_matrix():
+    """Test the _compute_cross_structural_covariance function."""
     # Create simple test data
     np.random.seed(42)
     zactmat = np.random.randn(5, 100)  # 5 neurons, 100 time bins
     cross_structural = np.array([0, 0, 1, 1, 1])  # 2 neurons in group 0, 3 in group 1
 
-    # Compute cross-structural correlation matrix
-    corr_matrix = assembly._compute_cross_structural_correlation(
+    # Compute cross-structural covariance matrix
+    cov_matrix = assembly._compute_cross_structural_covariance(
         zactmat, cross_structural
     )
 
     # Test matrix properties
-    assert corr_matrix.shape == (5, 5)
-    assert np.allclose(np.diag(corr_matrix), 0.0)  # Diagonal should be 0
-    assert np.allclose(corr_matrix, corr_matrix.T)  # Should be symmetric
+    assert cov_matrix.shape == (5, 5)
+    assert np.allclose(np.diag(cov_matrix), 0.0)  # Diagonal should be 0
+    assert np.allclose(cov_matrix, cov_matrix.T)  # Should be symmetric
 
-    # Test within-group correlations are zero
-    assert corr_matrix[0, 1] == 0  # Both in group 0
-    assert corr_matrix[1, 0] == 0  # Both in group 0
-    assert corr_matrix[2, 3] == 0  # Both in group 1
-    assert corr_matrix[3, 4] == 0  # Both in group 1
-    assert corr_matrix[4, 2] == 0  # Both in group 1
+    # Test within-group covariances are zero
+    assert cov_matrix[0, 1] == 0  # Both in group 0
+    assert cov_matrix[1, 0] == 0  # Both in group 0
+    assert cov_matrix[2, 3] == 0  # Both in group 1
+    assert cov_matrix[3, 4] == 0  # Both in group 1
+    assert cov_matrix[4, 2] == 0  # Both in group 1
 
-    # Test cross-group correlations are preserved (not zero)
-    cross_group_corrs = [
-        corr_matrix[0, 2],
-        corr_matrix[0, 3],
-        corr_matrix[0, 4],
-        corr_matrix[1, 2],
-        corr_matrix[1, 3],
-        corr_matrix[1, 4],
+    # Test cross-group covariances are preserved (not zero)
+    cross_group_covs = [
+        cov_matrix[0, 2],
+        cov_matrix[0, 3],
+        cov_matrix[0, 4],
+        cov_matrix[1, 2],
+        cov_matrix[1, 3],
+        cov_matrix[1, 4],
     ]
-    # At least some cross-group correlations should be non-zero
-    assert any(abs(c) > 0.01 for c in cross_group_corrs)
+    # At least some cross-group covariances should be non-zero
+    assert any(abs(c) > 0.01 for c in cross_group_covs)
 
 
 def test_cross_structural_group_normalization():

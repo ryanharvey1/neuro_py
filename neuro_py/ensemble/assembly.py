@@ -135,10 +135,10 @@ def getlambdacontrol(
         lambdamax_ = np.max(significance_.explained_variance_)
     else:
         zactmat_norm = _normalize_by_group(zactmat_, cross_structural)
-        correlations = _compute_cross_structural_correlation(
+        cross_covariance = _compute_cross_structural_covariance(
             zactmat_norm, cross_structural
         )
-        lambdamax_ = np.max(np.linalg.eigvalsh(correlations))
+        lambdamax_ = np.max(np.linalg.eigvalsh(cross_covariance))
 
     return lambdamax_
 
@@ -375,7 +375,7 @@ def extractPatterns(
     cross_structural : Optional[np.ndarray], optional
         Categorical vector indicating group membership for each neuron.
         If provided and method is 'ica', will run ICA on data with modified
-        cross-structural correlation structure, by default None.
+        cross-structural covariance structure, by default None.
 
     Returns
     -------
@@ -390,13 +390,14 @@ def extractPatterns(
     elif method == "ica":
         if cross_structural is not None:
             zactmat_norm = _normalize_by_group(zactmat, cross_structural)
-            # For cross-structural ICA, modify the input data to reflect the cross-structural correlation structure
-            correlations = _compute_cross_structural_correlation(
+            # For cross-structural ICA, modify the input data to reflect the
+            # cross-structural covariance structure
+            cross_covariance = _compute_cross_structural_covariance(
                 zactmat_norm, cross_structural
             )
 
             # Eigenvalue decomposition to get the cross-structural subspace
-            eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+            eigenvalues, eigenvectors = np.linalg.eigh(cross_covariance)
             idx = np.argsort(eigenvalues)[::-1]
             eigenvalues = eigenvalues[idx]
             eigenvectors = eigenvectors[:, idx]
@@ -467,11 +468,11 @@ def _normalize_by_group(
     return zactmat_norm
 
 
-def _compute_cross_structural_correlation(
+def _compute_cross_structural_covariance(
     zactmat: np.ndarray, cross_structural: np.ndarray
 ) -> np.ndarray:
     """
-    Compute a block-structured cross-group correlation matrix.
+    Compute a block-structured cross-group covariance matrix.
 
     The matrix is explicitly built with zero within-group blocks and empirical
     cross-group blocks. For two groups A and B this corresponds to:
@@ -480,7 +481,7 @@ def _compute_cross_structural_correlation(
 
         C = \begin{bmatrix}0 & C_{AB} \\ C_{BA} & 0\end{bmatrix}
 
-    This preserves symmetry without in-place masking of a full correlation
+    This preserves symmetry without in-place masking of a full covariance
     matrix and generalizes to more than two groups.
 
     Parameters
@@ -493,11 +494,12 @@ def _compute_cross_structural_correlation(
     Returns
     -------
     np.ndarray
-        Symmetric matrix with non-zero entries only for cross-group pairs.
+        Symmetric cross-group covariance matrix with non-zero entries only for
+        cross-group pairs.
     """
     groups = np.asarray(cross_structural)
     n_neurons = zactmat.shape[0]
-    correlations = np.zeros((n_neurons, n_neurons), dtype=float)
+    cross_covariance = np.zeros((n_neurons, n_neurons), dtype=float)
 
     unique_groups = np.unique(groups)
     for group_a_idx, group_a in enumerate(unique_groups):
@@ -513,12 +515,19 @@ def _compute_cross_structural_correlation(
             # to the rows (which np.corrcoef would silently undo by
             # re-standardising each row to unit variance).
             nbins = data_a.shape[1]
-            corr_ab = data_a @ data_b.T / nbins
+            cov_ab = data_a @ data_b.T / nbins
 
-            correlations[np.ix_(idx_a, idx_b)] = corr_ab
-            correlations[np.ix_(idx_b, idx_a)] = corr_ab.T
+            cross_covariance[np.ix_(idx_a, idx_b)] = cov_ab
+            cross_covariance[np.ix_(idx_b, idx_a)] = cov_ab.T
 
-    return correlations
+    return cross_covariance
+
+
+def _compute_cross_structural_correlation(
+    zactmat: np.ndarray, cross_structural: np.ndarray
+) -> np.ndarray:
+    """Backward-compatible alias for :func:`_compute_cross_structural_covariance`."""
+    return _compute_cross_structural_covariance(zactmat, cross_structural)
 
 
 def _filter_cross_group_patterns(
@@ -789,7 +798,7 @@ def runPatterns(
         1. removing silent neurons,
         2. z-scoring activity,
         3. scaling each group by :math:`1/\sqrt{n_g}`,
-        4. building an explicit block cross-group correlation matrix,
+        4. building an explicit block cross-group covariance matrix,
         5. estimating significance in the same cross-structural space,
         6. filtering extracted patterns to keep only multi-group assemblies.
 
@@ -915,12 +924,12 @@ def runPatterns(
 
     if cross_structural_ is not None:
         zactmat_cross = _normalize_by_group(zactmat_, cross_structural_)
-        # Compute custom correlation matrix for cross-structural assemblies
-        correlations = _compute_cross_structural_correlation(
+        # Compute custom covariance matrix for cross-structural assemblies
+        cross_covariance = _compute_cross_structural_covariance(
             zactmat_cross, cross_structural_
         )
-        # Perform eigenvalue decomposition on the custom correlation matrix
-        eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+        # Perform eigenvalue decomposition on the custom covariance matrix
+        eigenvalues, eigenvectors = np.linalg.eigh(cross_covariance)
         # Sort in descending order
         idx = np.argsort(eigenvalues)[::-1]
         eigenvalues = eigenvalues[idx]
