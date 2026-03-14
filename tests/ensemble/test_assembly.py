@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from scipy import linalg
+from scipy import linalg, stats
 
 from neuro_py.ensemble import assembly
 
@@ -439,6 +439,59 @@ def test_cross_svd_threshold_mode_invalid_raises():
             cross_structural=groups,
             cross_svd_threshold_mode="not_a_mode",
         )
+
+
+def test_bin_shuffling_random_state_reproducible():
+    """binshuffling should be reproducible for a fixed random_state."""
+    rng = np.random.default_rng(42)
+    zactmat = rng.normal(size=(8, 120))
+    significance = type("Sig", (), {})()
+    significance.nshu = 50
+    significance.nbins = zactmat.shape[1]
+    significance.percentile = 95
+
+    lambda_1 = assembly.binshuffling(zactmat, significance, random_state=123)
+    lambda_2 = assembly.binshuffling(zactmat, significance, random_state=123)
+
+    assert lambda_1 == lambda_2
+
+
+def test_cross_svd_random_state_reproducible():
+    """cross_svd shuffle thresholds should be reproducible for fixed seed."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (12, 200))
+    groups = np.array(["A"] * 6 + ["B"] * 6)
+    zactmat = stats.zscore(actmat, axis=1)
+
+    result_1 = assembly._cross_svd_significance(
+        zactmat,
+        groups,
+        nshu=40,
+        percentile=95,
+        random_state=2026,
+    )
+    result_2 = assembly._cross_svd_significance(
+        zactmat,
+        groups,
+        nshu=40,
+        percentile=95,
+        random_state=2026,
+    )
+
+    _, _, _, keep_1, null_thr_1, _, _ = result_1
+    _, _, _, keep_2, null_thr_2, _, _ = result_2
+
+    assert np.array_equal(keep_1, keep_2)
+    assert np.allclose(null_thr_1, null_thr_2)
+
+
+def test_run_patterns_random_state_bool_raises_type_error():
+    """Boolean random_state should be rejected explicitly."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (10, 80))
+
+    with pytest.raises(TypeError, match="random_state"):
+        assembly.runPatterns(actmat, nullhyp="bin", random_state=True)
 
 
 def test_compute_cross_area_activity_shape():

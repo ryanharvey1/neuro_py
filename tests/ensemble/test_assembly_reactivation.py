@@ -449,6 +449,7 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
 
     def fake_run_patterns(actmat, **kwargs):
         captured["n_jobs"] = kwargs["n_jobs"]
+        captured["random_state"] = kwargs["random_state"]
         captured["cross_group_threshold"] = kwargs["cross_group_threshold"]
         captured["cross_group_threshold_mode"] = kwargs["cross_group_threshold_mode"]
         captured["cross_group_threshold_percentile"] = kwargs[
@@ -461,6 +462,7 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
 
     assembly_react = assembly_reactivation.AssemblyReact(
         n_jobs=3,
+        random_state=123,
         cross_group_threshold=1e-3,
         cross_group_threshold_mode="relative",
         cross_group_threshold_percentile=90.0,
@@ -470,6 +472,7 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
     assembly_react.get_weights()
 
     assert captured["n_jobs"] == 3
+    assert captured["random_state"] == 123
     assert captured["cross_group_threshold"] == 1e-3
     assert captured["cross_group_threshold_mode"] == "relative"
     assert captured["cross_group_threshold_percentile"] == 90.0

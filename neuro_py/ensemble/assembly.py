@@ -7,6 +7,7 @@ Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor,
 
 import warnings
 from concurrent.futures import ThreadPoolExecutor
+from numbers import Integral
 from os import cpu_count
 from typing import List, Optional, Tuple, Union
 
@@ -158,6 +159,30 @@ def _resolve_n_jobs(n_jobs: Optional[int]) -> int:
     return n_jobs
 
 
+def _resolve_random_state(random_state: Optional[int]) -> Optional[int]:
+    """Validate and normalize a random-state seed for shuffle controls."""
+    if random_state is None:
+        return None
+    if isinstance(random_state, bool) or not isinstance(random_state, Integral):
+        raise TypeError(
+            "random_state must be None or an integer seed, "
+            f"got {type(random_state).__name__!r}"
+        )
+    return int(random_state)
+
+
+def _spawn_shuffle_seeds(nshu: int, random_state: Optional[int] = None) -> List[int]:
+    """Spawn deterministic per-shuffle seeds from an optional base seed."""
+    random_state = _resolve_random_state(random_state)
+    seed_seq = (
+        np.random.SeedSequence()
+        if random_state is None
+        else np.random.SeedSequence(random_state)
+    )
+    child_seeds = seed_seq.spawn(nshu)
+    return [int(seed.generate_state(1)[0]) for seed in child_seeds]
+
+
 def _bin_shuffle_lambdamax(
     zactmat: np.ndarray,
     nbins: int,
@@ -191,6 +216,7 @@ def binshuffling(
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
     n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
 ) -> float:
     """
     Perform bin shuffling to generate statistical threshold.
@@ -201,6 +227,9 @@ def binshuffling(
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle seeding. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
@@ -208,9 +237,7 @@ def binshuffling(
         Statistical threshold.
     """
     n_workers = _resolve_n_jobs(n_jobs)
-    seed_seq = np.random.SeedSequence()
-    child_seeds = seed_seq.spawn(significance.nshu)
-    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
+    seeds = _spawn_shuffle_seeds(significance.nshu, random_state=random_state)
 
     if n_workers == 1:
         lambdamax_ = np.array(
@@ -250,6 +277,7 @@ def circshuffling(
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
     n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
 ) -> float:
     """
     Perform circular shuffling to generate statistical threshold.
@@ -260,6 +288,9 @@ def circshuffling(
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle seeding. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
@@ -267,9 +298,7 @@ def circshuffling(
         Statistical threshold.
     """
     n_workers = _resolve_n_jobs(n_jobs)
-    seed_seq = np.random.SeedSequence()
-    child_seeds = seed_seq.spawn(significance.nshu)
-    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
+    seeds = _spawn_shuffle_seeds(significance.nshu, random_state=random_state)
 
     if n_workers == 1:
         lambdamax_ = np.array(
@@ -309,6 +338,7 @@ def runSignificance(
     significance: object,
     cross_structural: Optional[np.ndarray] = None,
     n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
 ) -> object:
     """
     Run significance tests to estimate the number of assemblies.
@@ -319,6 +349,9 @@ def runSignificance(
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle controls. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
@@ -333,6 +366,7 @@ def runSignificance(
             significance,
             cross_structural=cross_structural,
             n_jobs=n_jobs,
+            random_state=random_state,
         )
     elif significance.nullhyp == "circ":
         lambdaMax = circshuffling(
@@ -340,6 +374,7 @@ def runSignificance(
             significance,
             cross_structural=cross_structural,
             n_jobs=n_jobs,
+            random_state=random_state,
         )
     else:
         raise ValueError(
@@ -657,6 +692,7 @@ def _cross_svd_significance(
     n_components: Optional[int] = None,
     n_jobs: Optional[int] = 1,
     threshold_mode: str = "per_rank",
+    random_state: Optional[int] = None,
 ) -> Tuple[
     np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]:
@@ -692,6 +728,9 @@ def _cross_svd_significance(
           derived from the null distribution of the maximum singular value.
 
         By default ``"per_rank"``.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle controls. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
@@ -731,9 +770,7 @@ def _cross_svd_significance(
         return singular_values_shuffled[:n_components_eval]
 
     n_workers = _resolve_n_jobs(n_jobs)
-    seed_seq = np.random.SeedSequence()
-    child_seeds = seed_seq.spawn(nshu)
-    seeds = [int(seed.generate_state(1)[0]) for seed in child_seeds]
+    seeds = _spawn_shuffle_seeds(nshu, random_state=random_state)
 
     if n_workers == 1:
         null_singular_values = np.array(
@@ -841,6 +878,7 @@ def runPatterns(
     cross_group_threshold_mode: str = "absolute",
     cross_group_threshold_percentile: float = 95.0,
     cross_svd_threshold_mode: str = "per_rank",
+    random_state: Optional[int] = None,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -901,6 +939,10 @@ def runPatterns(
         ``"per_rank"`` compares each singular value to its own rank-matched
         null threshold; ``"max_stat"`` uses a single global threshold from
         the null distribution of maximum singular values.
+    random_state : Optional[int], optional
+        Base seed used to make shuffle-based significance controls
+        deterministic (``nullhyp in {'bin', 'circ'}`` and ``method='cross_svd'``).
+        If None, OS entropy is used. By default None.
 
     Returns
     -------
@@ -930,6 +972,7 @@ def runPatterns(
 
     nneurons = np.size(actmat, 0)
     nbins = np.size(actmat, 1)
+    random_state = _resolve_random_state(random_state)
 
     # Validate cross_structural parameter if provided
     if cross_structural is not None:
@@ -980,6 +1023,7 @@ def runPatterns(
             n_components=nassemblies,
             n_jobs=n_jobs,
             threshold_mode=cross_svd_threshold_mode,
+            random_state=random_state,
         )
 
         selected_components = np.where(keep_components)[0]
@@ -1048,6 +1092,7 @@ def runPatterns(
         significance,
         cross_structural=cross_structural_,
         n_jobs=n_jobs,
+        random_state=random_state,
     )
 
     if nassemblies is not None:

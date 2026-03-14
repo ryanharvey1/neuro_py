@@ -51,6 +51,10 @@ class AssemblyReact:
         :func:`neuro_py.ensemble.assembly.runPatterns`.
         Use ``1`` for serial execution, ``-1`` for all available cores,
         or any positive integer. By default 1.
+    random_state : int, optional
+        Base seed for deterministic shuffle-based significance controls.
+        Passed to :func:`neuro_py.ensemble.assembly.runPatterns`.
+        If None, OS entropy is used. By default None.
     cross_group_threshold : float, optional
         Threshold used to decide whether a neuron is active when filtering
         cross-structural assemblies to keep only multi-group patterns.
@@ -174,6 +178,7 @@ class AssemblyReact:
         tracywidom: bool = False,
         whiten: str = "unit-variance",
         n_jobs: int = 1,
+        random_state: Optional[int] = None,
         cross_group_threshold: float = 1e-12,
         cross_group_threshold_mode: str = "absolute",
         cross_group_threshold_percentile: float = 95.0,
@@ -192,6 +197,7 @@ class AssemblyReact:
         self.tracywidom = tracywidom
         self.whiten = whiten
         self.n_jobs = n_jobs
+        self.random_state = random_state
         self.cross_group_threshold = cross_group_threshold
         self.cross_group_threshold_mode = cross_group_threshold_mode
         self.cross_group_threshold_percentile = cross_group_threshold_percentile
@@ -339,6 +345,7 @@ class AssemblyReact:
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
                 n_jobs=self.n_jobs,
+                random_state=self.random_state,
                 cross_group_threshold=self.cross_group_threshold,
                 cross_group_threshold_mode=self.cross_group_threshold_mode,
                 cross_group_threshold_percentile=self.cross_group_threshold_percentile,
