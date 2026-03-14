@@ -159,6 +159,27 @@ def test_filter_cross_group_patterns():
     assert np.allclose(filtered[0], patterns[0])
 
 
+def test_filter_cross_group_patterns_relative_threshold_removes_tiny_weights():
+    """Relative threshold should ignore tiny numerical weights in a group."""
+    patterns = np.array(
+        [
+            [1.0, 0.8, 1e-10, 0.0],  # tiny noise in second group
+            [1.0, 0.8, 0.2, 0.1],  # meaningful weights in both groups
+        ]
+    )
+    cross_structural = np.array(["G1", "G1", "G2", "G2"])
+
+    filtered = assembly._filter_cross_group_patterns(
+        patterns,
+        cross_structural,
+        threshold=1e-3,
+        threshold_mode="relative",
+    )
+
+    assert filtered.shape[0] == 1
+    assert np.allclose(filtered[0], patterns[1])
+
+
 def test_cross_structural_assemblies_synthetic():
     """Test cross-structural assembly detection with synthetic data."""
     np.random.seed(42)

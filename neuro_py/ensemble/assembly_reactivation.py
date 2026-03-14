@@ -51,11 +51,23 @@ class AssemblyReact:
         :func:`neuro_py.ensemble.assembly.runPatterns`.
         Use ``1`` for serial execution, ``-1`` for all available cores,
         or any positive integer. By default 1.
+    cross_group_threshold : float, optional
+        Threshold used to decide whether a neuron is active when filtering
+        cross-structural assemblies to keep only multi-group patterns.
+        Interpretation depends on ``cross_group_threshold_mode``.
+        By default ``1e-12``.
+    cross_group_threshold_mode : str, optional
+        Thresholding mode for cross-group filtering. One of
+        ``"absolute"``, ``"relative"``, or ``"percentile"``.
+        By default ``"absolute"``.
+    cross_group_threshold_percentile : float, optional
+        Percentile used when ``cross_group_threshold_mode='percentile'``.
+        By default ``95.0``.
     cross_structural : np.ndarray, optional
         A categorical vector indicating group membership for each neuron.
         If provided, assembly detection uses the cross-structural path in
         :func:`neuro_py.ensemble.assembly.runPatterns`, including group-size
-        normalization, explicit cross-group block correlation structure, and
+        normalization, explicit cross-group block covariance structure, and
         post-extraction filtering that retains only assemblies with membership
         across at least two groups. Should have the same length as the number
         of neurons in the spike train.
@@ -159,6 +171,9 @@ class AssemblyReact:
         tracywidom: bool = False,
         whiten: str = "unit-variance",
         n_jobs: int = 1,
+        cross_group_threshold: float = 1e-12,
+        cross_group_threshold_mode: str = "absolute",
+        cross_group_threshold_percentile: float = 95.0,
         cross_structural: Optional[np.ndarray] = None,
     ):
         self.basepath = basepath
@@ -173,6 +188,9 @@ class AssemblyReact:
         self.tracywidom = tracywidom
         self.whiten = whiten
         self.n_jobs = n_jobs
+        self.cross_group_threshold = cross_group_threshold
+        self.cross_group_threshold_mode = cross_group_threshold_mode
+        self.cross_group_threshold_percentile = cross_group_threshold_percentile
         self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
@@ -316,6 +334,9 @@ class AssemblyReact:
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
                 n_jobs=self.n_jobs,
+                cross_group_threshold=self.cross_group_threshold,
+                cross_group_threshold_mode=self.cross_group_threshold_mode,
+                cross_group_threshold_percentile=self.cross_group_threshold_percentile,
                 cross_structural=self.cross_structural,
             )
 

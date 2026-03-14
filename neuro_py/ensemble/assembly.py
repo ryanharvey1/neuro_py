@@ -533,18 +533,69 @@ def _compute_cross_structural_correlation(
 def _filter_cross_group_patterns(
     patterns: np.ndarray,
     cross_structural: np.ndarray,
-    atol: float = 1e-12,
+    threshold: float = 1e-12,
+    threshold_mode: str = "absolute",
+    threshold_percentile: float = 95.0,
 ) -> np.ndarray:
-    """Keep only patterns with non-zero weights in at least two groups."""
+    """Keep only patterns with above-threshold weights in at least two groups.
+
+    Parameters
+    ----------
+    patterns : np.ndarray
+        Assembly pattern matrix of shape ``(n_patterns, n_neurons)``.
+    cross_structural : np.ndarray
+        Categorical group label for each neuron.
+    threshold : float, optional
+        Weight threshold controlling when a neuron is considered active.
+        Interpretation depends on ``threshold_mode``. By default ``1e-12``.
+    threshold_mode : str, optional
+        Thresholding strategy:
+
+        - ``"absolute"``: active if ``abs(weight) > threshold``
+        - ``"relative"``: active if ``abs(weight) > threshold * max(abs(pattern))``
+        - ``"percentile"``: active if ``abs(weight)`` is above the
+          ``threshold_percentile`` percentile of ``abs(pattern)``
+
+        By default ``"absolute"``.
+    threshold_percentile : float, optional
+        Percentile used when ``threshold_mode='percentile'``. Must be in
+        ``[0, 100]``. By default ``95.0``.
+
+    Returns
+    -------
+    np.ndarray
+        Subset of input patterns that are active in at least two groups.
+    """
+    if threshold < 0:
+        raise ValueError("threshold must be non-negative")
+
+    valid_modes = {"absolute", "relative", "percentile"}
+    if threshold_mode not in valid_modes:
+        raise ValueError(
+            f"threshold_mode must be one of {sorted(valid_modes)}, got {threshold_mode!r}"
+        )
+    if not 0 <= threshold_percentile <= 100:
+        raise ValueError("threshold_percentile must be in [0, 100]")
+
     groups = np.asarray(cross_structural)
     unique_groups = np.unique(groups)
     keep_pattern = []
 
     for pattern in patterns:
+        abs_pattern = np.abs(pattern)
+        if threshold_mode == "absolute":
+            active_mask = abs_pattern > threshold
+        elif threshold_mode == "relative":
+            scale = np.max(abs_pattern)
+            active_mask = abs_pattern > (threshold * scale)
+        else:  # threshold_mode == "percentile"
+            pattern_threshold = np.percentile(abs_pattern, threshold_percentile)
+            active_mask = abs_pattern > pattern_threshold
+
         active_groups = 0
         for group in unique_groups:
             group_mask = groups == group
-            if np.any(~np.isclose(pattern[group_mask], 0.0, atol=atol)):
+            if np.any(active_mask[group_mask]):
                 active_groups += 1
         keep_pattern.append(active_groups >= 2)
 
@@ -765,6 +816,9 @@ def runPatterns(
     nassemblies: int = None,
     cross_structural: Optional[np.ndarray] = None,
     n_jobs: Optional[int] = 1,
+    cross_group_threshold: float = 1e-12,
+    cross_group_threshold_mode: str = "absolute",
+    cross_group_threshold_percentile: float = 95.0,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -808,6 +862,17 @@ def runPatterns(
         Number of workers for shuffle-based significance controls.
         Use ``1`` for serial execution, ``-1`` for all available cores,
         or any positive integer. By default 1.
+    cross_group_threshold : float, optional
+        Threshold used to decide whether a neuron is active when applying
+        cross-group pattern filtering. Interpretation depends on
+        ``cross_group_threshold_mode``. By default ``1e-12``.
+    cross_group_threshold_mode : str, optional
+        Thresholding mode for cross-group pattern filtering. One of
+        ``"absolute"``, ``"relative"``, or ``"percentile"``.
+        By default ``"absolute"``.
+    cross_group_threshold_percentile : float, optional
+        Percentile used by the cross-group filter when
+        ``cross_group_threshold_mode='percentile'``. By default ``95.0``.
 
     Returns
     -------
@@ -827,7 +892,8 @@ def runPatterns(
         cell type) for the corresponding neuron.
 
         The cross-structural path keeps only cross-group covariance terms and
-        requires each retained pattern to be active in at least two groups.
+        requires each retained pattern to be active in at least two groups,
+        where activity is defined by the cross-group threshold parameters.
 
     warnings
         ``"no cross-structural assembly detected"`` can be emitted when candidate
@@ -978,7 +1044,13 @@ def runPatterns(
             return None
 
         if cross_structural_ is not None:
-            patterns_ = _filter_cross_group_patterns(patterns_, cross_structural_)
+            patterns_ = _filter_cross_group_patterns(
+                patterns_,
+                cross_structural_,
+                threshold=cross_group_threshold,
+                threshold_mode=cross_group_threshold_mode,
+                threshold_percentile=cross_group_threshold_percentile,
+            )
             significance.nassemblies = patterns_.shape[0]
             if significance.nassemblies < 1:
                 warnings.warn("no cross-structural assembly detected")

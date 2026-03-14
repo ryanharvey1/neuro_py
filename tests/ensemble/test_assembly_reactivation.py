@@ -438,7 +438,7 @@ def test_cross_svd_assembly_reactivation_activity():
 
 
 def test_assembly_reactivation_passes_n_jobs(monkeypatch):
-    """Test that AssemblyReact forwards n_jobs to assembly.runPatterns."""
+    """Test that AssemblyReact forwards runPatterns control parameters."""
 
     spike_times = [
         np.array([0.1, 0.2, 0.3, 0.4]),
@@ -449,13 +449,26 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
 
     def fake_run_patterns(actmat, **kwargs):
         captured["n_jobs"] = kwargs["n_jobs"]
+        captured["cross_group_threshold"] = kwargs["cross_group_threshold"]
+        captured["cross_group_threshold_mode"] = kwargs["cross_group_threshold_mode"]
+        captured["cross_group_threshold_percentile"] = kwargs[
+            "cross_group_threshold_percentile"
+        ]
         return np.array([[1.0, 0.0]]), object(), actmat
 
     monkeypatch.setattr(assembly_reactivation.assembly, "runPatterns", fake_run_patterns)
 
-    assembly_react = assembly_reactivation.AssemblyReact(n_jobs=3)
+    assembly_react = assembly_reactivation.AssemblyReact(
+        n_jobs=3,
+        cross_group_threshold=1e-3,
+        cross_group_threshold_mode="relative",
+        cross_group_threshold_percentile=90.0,
+    )
     assembly_react.add_st(st)
     assembly_react.get_weights()
 
     assert captured["n_jobs"] == 3
+    assert captured["cross_group_threshold"] == 1e-3
+    assert captured["cross_group_threshold_mode"] == "relative"
+    assert captured["cross_group_threshold_percentile"] == 90.0
     assert assembly_react.patterns is not None
