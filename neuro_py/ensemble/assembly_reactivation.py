@@ -36,20 +36,48 @@ class AssemblyReact:
     z_mat_dt : float
         Time resolution of the z matrix
     method : str
-        Defines how to extract assembly patterns (ica,pca).
+        Defines how to extract assembly patterns (ica,pca,cross_svd).
     nullhyp : str
         Defines how to generate statistical threshold for assembly detection (bin,circ,mp).
     nshu : int
         Number of shuffles for bin and circ null hypothesis.
     percentile : int
-        Percentile for mp null hypothesis.
+        Percentile threshold for shuffle-based null hypothesis
+        (used by bin, circ, and cross_svd methods; not used by mp).
     tracywidom : bool
         If true, uses Tracy-Widom distribution for mp null hypothesis.
+    n_jobs : int, optional
+        Number of workers for shuffle-based significance controls passed to
+        :func:`neuro_py.ensemble.assembly.runPatterns`.
+        Use ``1`` for serial execution, ``-1`` for all available cores,
+        or any positive integer. By default 1.
+    random_state : int, optional
+        Base seed for deterministic shuffle-based significance controls.
+        Passed to :func:`neuro_py.ensemble.assembly.runPatterns`.
+        If None, OS entropy is used. By default None.
+    cross_group_threshold : float, optional
+        Threshold used to decide whether a neuron is active when filtering
+        cross-structural assemblies to keep only multi-group patterns.
+        Interpretation depends on ``cross_group_threshold_mode``.
+        By default ``1e-12``.
+    cross_group_threshold_mode : str, optional
+        Thresholding mode for cross-group filtering. One of
+        ``"absolute"``, ``"relative"``, or ``"percentile"``.
+        By default ``"absolute"``.
+    cross_group_threshold_percentile : float, optional
+        Percentile used when ``cross_group_threshold_mode='percentile'``.
+        By default ``95.0``.
+    cross_svd_threshold_mode : str, optional
+        Thresholding rule for cross-SVD significance. One of
+        ``"per_rank"`` (default) or ``"max_stat"``.
     cross_structural : np.ndarray, optional
         A categorical vector indicating group membership for each neuron.
-        If provided, the function will strictly detect cross-structural assemblies
-        (correlations within the same group will be ignored). Should have the same
-        length as the number of neurons in the spike train.
+        If provided, assembly detection uses the cross-structural path in
+        :func:`neuro_py.ensemble.assembly.runPatterns`, including group-size
+        normalization, explicit cross-group block covariance structure, and
+        post-extraction filtering that retains only assemblies with membership
+        across at least two groups. Should have the same length as the number
+        of neurons in the spike train.
 
     Attributes
     ----------
@@ -120,6 +148,20 @@ class AssemblyReact:
     >>> assembly_react_cross.load_data()
     >>> assembly_react_cross.get_weights()  # Will only detect cross-regional assemblies
 
+    >>> # Example: Cross-area SVD assemblies (strictly bipartite, two groups)
+    >>> cross_groups = np.array(['CA1'] * 50 + ['PFC'] * 30)
+    >>> assembly_react_svd = assembly_reactivation.AssemblyReact(
+    ...    basepath=basepath,
+    ...    method='cross_svd',
+    ...    cross_structural=cross_groups,
+    ...    nullhyp='bin',
+    ...    nshu=500,
+    ...    percentile=95,
+    ... )
+    >>> assembly_react_svd.load_data()
+    >>> assembly_react_svd.get_weights()
+    >>> cross_area_activity = assembly_react_svd.get_assembly_act()
+
     """
 
     def __init__(
@@ -135,6 +177,12 @@ class AssemblyReact:
         percentile: int = 99,
         tracywidom: bool = False,
         whiten: str = "unit-variance",
+        n_jobs: int = 1,
+        random_state: Optional[int] = None,
+        cross_group_threshold: float = 1e-12,
+        cross_group_threshold_mode: str = "absolute",
+        cross_group_threshold_percentile: float = 95.0,
+        cross_svd_threshold_mode: str = "per_rank",
         cross_structural: Optional[np.ndarray] = None,
     ):
         self.basepath = basepath
@@ -148,6 +196,12 @@ class AssemblyReact:
         self.percentile = percentile
         self.tracywidom = tracywidom
         self.whiten = whiten
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+        self.cross_group_threshold = cross_group_threshold
+        self.cross_group_threshold_mode = cross_group_threshold_mode
+        self.cross_group_threshold_percentile = cross_group_threshold_percentile
+        self.cross_svd_threshold_mode = cross_svd_threshold_mode
         self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
@@ -290,6 +344,12 @@ class AssemblyReact:
                 percentile=self.percentile,
                 tracywidom=self.tracywidom,
                 whiten=self.whiten,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+                cross_group_threshold=self.cross_group_threshold,
+                cross_group_threshold_mode=self.cross_group_threshold_mode,
+                cross_group_threshold_percentile=self.cross_group_threshold_percentile,
+                cross_svd_threshold_mode=self.cross_svd_threshold_mode,
                 cross_structural=self.cross_structural,
             )
 
@@ -334,8 +394,19 @@ class AssemblyReact:
         else:
             zactmat, ts = self.get_z_mat(self.st)
 
+        if self.method == "cross_svd" and self.cross_structural is not None:
+            assembly_activity_data = assembly.computeCrossAreaActivity(
+                self.patterns,
+                zactmat,
+                self.cross_structural,
+            )
+        else:
+            assembly_activity_data = assembly.computeAssemblyActivity(
+                self.patterns, zactmat
+            )
+
         assembly_act = nel.AnalogSignalArray(
-            data=assembly.computeAssemblyActivity(self.patterns, zactmat),
+            data=assembly_activity_data,
             timestamps=ts,
             fs=1 / self.z_mat_dt,
         )

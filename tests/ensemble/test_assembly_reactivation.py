@@ -391,3 +391,90 @@ def test_cross_structural_empty_spike_train():
 
     # Should not crash with minimal data
     assert assembly_react_minimal.n_assemblies() >= 0
+
+
+def test_cross_svd_assembly_reactivation_activity():
+    """Test AssemblyReact with cross_svd method and cross-area activity output."""
+    np.random.seed(42)
+
+    n_group1 = 5
+    n_group2 = 5
+    n_bins = 1200
+    bin_size = 0.01
+
+    actmat = np.random.poisson(0.5, (n_group1 + n_group2, n_bins))
+    coupling_times = np.sort(np.random.choice(n_bins, 220, replace=False))
+
+    for t in coupling_times:
+        actmat[1:4, t] += np.random.poisson(6, 3)
+        actmat[n_group1 + 1 : n_group1 + 4, t] += np.random.poisson(6, 3)
+
+    spike_times = []
+    for neuron_i in range(actmat.shape[0]):
+        spike_bins = np.where(actmat[neuron_i] > 0)[0]
+        timestamps = np.repeat(spike_bins * bin_size, actmat[neuron_i, spike_bins])
+        spike_times.append(timestamps.astype(float))
+
+    st = nel.SpikeTrainArray(timestamps=spike_times)
+    cross_structural = np.array(["CA1"] * n_group1 + ["PFC"] * n_group2)
+
+    assembly_react = assembly_reactivation.AssemblyReact(
+        method="cross_svd",
+        cross_structural=cross_structural,
+        weight_dt=bin_size,
+        z_mat_dt=bin_size,
+        nshu=80,
+        percentile=95,
+    )
+    assembly_react.add_st(st)
+    assembly_react.get_weights()
+
+    if assembly_react.n_assemblies() > 0:
+        assembly_act = assembly_react.get_assembly_act()
+        assert hasattr(assembly_act, "data")
+        assert assembly_act.data.shape[0] == assembly_react.n_assemblies()
+        assert assembly_act.data.shape[1] > 0
+        assert not np.all(np.isnan(assembly_act.data))
+
+
+def test_assembly_reactivation_passes_n_jobs(monkeypatch):
+    """Test that AssemblyReact forwards runPatterns control parameters."""
+
+    spike_times = [
+        np.array([0.1, 0.2, 0.3, 0.4]),
+        np.array([0.1, 0.2, 0.3, 0.4]),
+    ]
+    st = nel.SpikeTrainArray(timestamps=spike_times)
+    captured = {}
+
+    def fake_run_patterns(actmat, **kwargs):
+        captured["n_jobs"] = kwargs["n_jobs"]
+        captured["random_state"] = kwargs["random_state"]
+        captured["cross_group_threshold"] = kwargs["cross_group_threshold"]
+        captured["cross_group_threshold_mode"] = kwargs["cross_group_threshold_mode"]
+        captured["cross_group_threshold_percentile"] = kwargs[
+            "cross_group_threshold_percentile"
+        ]
+        captured["cross_svd_threshold_mode"] = kwargs["cross_svd_threshold_mode"]
+        return np.array([[1.0, 0.0]]), object(), actmat
+
+    monkeypatch.setattr(assembly_reactivation.assembly, "runPatterns", fake_run_patterns)
+
+    assembly_react = assembly_reactivation.AssemblyReact(
+        n_jobs=3,
+        random_state=123,
+        cross_group_threshold=1e-3,
+        cross_group_threshold_mode="relative",
+        cross_group_threshold_percentile=90.0,
+        cross_svd_threshold_mode="max_stat",
+    )
+    assembly_react.add_st(st)
+    assembly_react.get_weights()
+
+    assert captured["n_jobs"] == 3
+    assert captured["random_state"] == 123
+    assert captured["cross_group_threshold"] == 1e-3
+    assert captured["cross_group_threshold_mode"] == "relative"
+    assert captured["cross_group_threshold_percentile"] == 90.0
+    assert captured["cross_svd_threshold_mode"] == "max_stat"
+    assert assembly_react.patterns is not None
