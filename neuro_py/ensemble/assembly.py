@@ -6,6 +6,9 @@ Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor,
 """
 
 import warnings
+from concurrent.futures import ThreadPoolExecutor
+from numbers import Integral
+from os import cpu_count
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -111,7 +114,9 @@ def marcenkopastur(significance: object) -> float:
     return lambdaMax
 
 
-def getlambdacontrol(zactmat_: np.ndarray) -> float:
+def getlambdacontrol(
+    zactmat_: np.ndarray, cross_structural: Optional[np.ndarray] = None
+) -> float:
     """
     Get the maximum eigenvalue from PCA.
 
@@ -125,14 +130,94 @@ def getlambdacontrol(zactmat_: np.ndarray) -> float:
     float
         Maximum eigenvalue.
     """
-    significance_ = PCA()
-    significance_.fit(zactmat_.T)
-    lambdamax_ = np.max(significance_.explained_variance_)
+    if cross_structural is None:
+        significance_ = PCA()
+        significance_.fit(zactmat_.T)
+        lambdamax_ = np.max(significance_.explained_variance_)
+    else:
+        zactmat_norm = _normalize_by_group(zactmat_, cross_structural)
+        cross_covariance = _compute_cross_structural_covariance(
+            zactmat_norm, cross_structural
+        )
+        lambdamax_ = np.max(np.linalg.eigvalsh(cross_covariance))
 
     return lambdamax_
 
 
-def binshuffling(zactmat: np.ndarray, significance: object) -> float:
+def _resolve_n_jobs(n_jobs: Optional[int]) -> int:
+    """Resolve n_jobs into a valid positive worker count."""
+    if n_jobs is None:
+        return 1
+    if isinstance(n_jobs, bool) or not isinstance(n_jobs, int):
+        raise TypeError(
+            f"n_jobs must be -1 or a positive integer, got {type(n_jobs).__name__!r}"
+        )
+    if n_jobs == -1:
+        return max(1, cpu_count() or 1)
+    if n_jobs < -1 or n_jobs == 0:
+        raise ValueError("n_jobs must be -1 or a positive integer")
+    return n_jobs
+
+
+def _resolve_random_state(random_state: Optional[int]) -> Optional[int]:
+    """Validate and normalize a random-state seed for shuffle controls."""
+    if random_state is None:
+        return None
+    if isinstance(random_state, bool) or not isinstance(random_state, Integral):
+        raise TypeError(
+            "random_state must be None or an integer seed, "
+            f"got {type(random_state).__name__!r}"
+        )
+    return int(random_state)
+
+
+def _spawn_shuffle_seeds(nshu: int, random_state: Optional[int] = None) -> List[int]:
+    """Spawn deterministic per-shuffle seeds from an optional base seed."""
+    random_state = _resolve_random_state(random_state)
+    seed_seq = (
+        np.random.SeedSequence()
+        if random_state is None
+        else np.random.SeedSequence(random_state)
+    )
+    child_seeds = seed_seq.spawn(nshu)
+    return [int(seed.generate_state(1)[0]) for seed in child_seeds]
+
+
+def _bin_shuffle_lambdamax(
+    zactmat: np.ndarray,
+    nbins: int,
+    cross_structural: Optional[np.ndarray],
+    seed: int,
+) -> float:
+    """Compute one bin-shuffle control lambda max."""
+    rng = np.random.default_rng(seed)
+    randomorder = np.argsort(rng.random((zactmat.shape[0], nbins)), axis=1)
+    zactmat_shuffled = np.take_along_axis(zactmat, randomorder, axis=1)
+    return getlambdacontrol(zactmat_shuffled, cross_structural=cross_structural)
+
+
+def _circ_shuffle_lambdamax(
+    zactmat: np.ndarray,
+    nbins: int,
+    cross_structural: Optional[np.ndarray],
+    seed: int,
+) -> float:
+    """Compute one circular-shuffle control lambda max."""
+    rng = np.random.default_rng(seed)
+    cuts = rng.integers(0, nbins * 2, size=zactmat.shape[0])
+    base_indices = np.arange(nbins)[None, :]
+    shift_indices = (base_indices - cuts[:, None]) % nbins
+    zactmat_shuffled = np.take_along_axis(zactmat, shift_indices, axis=1)
+    return getlambdacontrol(zactmat_shuffled, cross_structural=cross_structural)
+
+
+def binshuffling(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
+) -> float:
     """
     Perform bin shuffling to generate statistical threshold.
 
@@ -142,28 +227,58 @@ def binshuffling(zactmat: np.ndarray, significance: object) -> float:
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle seeding. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
     float
         Statistical threshold.
     """
-    np.random.seed()
+    n_workers = _resolve_n_jobs(n_jobs)
+    seeds = _spawn_shuffle_seeds(significance.nshu, random_state=random_state)
 
-    lambdamax_ = np.zeros(significance.nshu)
-    for shui in range(significance.nshu):
-        zactmat_ = np.copy(zactmat)
-        for neuroni, activity in enumerate(zactmat_):
-            randomorder = np.argsort(np.random.rand(significance.nbins))
-            zactmat_[neuroni, :] = activity[randomorder]
-        lambdamax_[shui] = getlambdacontrol(zactmat_)
+    if n_workers == 1:
+        lambdamax_ = np.array(
+            [
+                _bin_shuffle_lambdamax(
+                    zactmat,
+                    significance.nbins,
+                    cross_structural,
+                    seed,
+                )
+                for seed in seeds
+            ]
+        )
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            lambdamax_ = np.array(
+                list(
+                    executor.map(
+                        lambda seed: _bin_shuffle_lambdamax(
+                            zactmat,
+                            significance.nbins,
+                            cross_structural,
+                            seed,
+                        ),
+                        seeds,
+                    )
+                )
+            )
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
     return lambdaMax
 
 
-def circshuffling(zactmat: np.ndarray, significance: object) -> float:
+def circshuffling(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
+) -> float:
     """
     Perform circular shuffling to generate statistical threshold.
 
@@ -173,28 +288,58 @@ def circshuffling(zactmat: np.ndarray, significance: object) -> float:
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle seeding. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
     float
         Statistical threshold.
     """
-    np.random.seed()
+    n_workers = _resolve_n_jobs(n_jobs)
+    seeds = _spawn_shuffle_seeds(significance.nshu, random_state=random_state)
 
-    lambdamax_ = np.zeros(significance.nshu)
-    for shui in range(significance.nshu):
-        zactmat_ = np.copy(zactmat)
-        for neuroni, activity in enumerate(zactmat_):
-            cut = int(np.random.randint(significance.nbins * 2))
-            zactmat_[neuroni, :] = np.roll(activity, cut)
-        lambdamax_[shui] = getlambdacontrol(zactmat_)
+    if n_workers == 1:
+        lambdamax_ = np.array(
+            [
+                _circ_shuffle_lambdamax(
+                    zactmat,
+                    significance.nbins,
+                    cross_structural,
+                    seed,
+                )
+                for seed in seeds
+            ]
+        )
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            lambdamax_ = np.array(
+                list(
+                    executor.map(
+                        lambda seed: _circ_shuffle_lambdamax(
+                            zactmat,
+                            significance.nbins,
+                            cross_structural,
+                            seed,
+                        ),
+                        seeds,
+                    )
+                )
+            )
 
     lambdaMax = np.percentile(lambdamax_, significance.percentile)
 
     return lambdaMax
 
 
-def runSignificance(zactmat: np.ndarray, significance: object) -> object:
+def runSignificance(
+    zactmat: np.ndarray,
+    significance: object,
+    cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
+    random_state: Optional[int] = None,
+) -> object:
     """
     Run significance tests to estimate the number of assemblies.
 
@@ -204,6 +349,9 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
         Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle controls. If None, OS entropy is
+        used. By default None.
 
     Returns
     -------
@@ -213,9 +361,21 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
     if significance.nullhyp == "mp":
         lambdaMax = marcenkopastur(significance)
     elif significance.nullhyp == "bin":
-        lambdaMax = binshuffling(zactmat, significance)
+        lambdaMax = binshuffling(
+            zactmat,
+            significance,
+            cross_structural=cross_structural,
+            n_jobs=n_jobs,
+            random_state=random_state,
+        )
     elif significance.nullhyp == "circ":
-        lambdaMax = circshuffling(zactmat, significance)
+        lambdaMax = circshuffling(
+            zactmat,
+            significance,
+            cross_structural=cross_structural,
+            n_jobs=n_jobs,
+            random_state=random_state,
+        )
     else:
         raise ValueError(
             "nyll hypothesis method " + str(significance.nullhyp) + " not understood"
@@ -228,7 +388,7 @@ def runSignificance(zactmat: np.ndarray, significance: object) -> object:
 
 
 def extractPatterns(
-    actmat: np.ndarray,
+    zactmat: np.ndarray,
     significance: object,
     method: str,
     whiten: str = "unit-variance",
@@ -239,8 +399,8 @@ def extractPatterns(
 
     Parameters
     ----------
-    actmat : np.ndarray
-        Activity matrix.
+    zactmat : np.ndarray
+        Z-scored activity matrix.
     significance : object
         Object containing significance parameters.
     method : str
@@ -250,7 +410,7 @@ def extractPatterns(
     cross_structural : Optional[np.ndarray], optional
         Categorical vector indicating group membership for each neuron.
         If provided and method is 'ica', will run ICA on data with modified
-        cross-structural correlation structure, by default None.
+        cross-structural covariance structure, by default None.
 
     Returns
     -------
@@ -264,13 +424,15 @@ def extractPatterns(
         patterns = significance.components_[idxs, :]
     elif method == "ica":
         if cross_structural is not None:
-            # For cross-structural ICA, modify the input data to reflect the cross-structural correlation structure
-            correlations = _compute_cross_structural_correlation(
-                actmat, cross_structural
+            zactmat_norm = _normalize_by_group(zactmat, cross_structural)
+            # For cross-structural ICA, modify the input data to reflect the
+            # cross-structural covariance structure
+            cross_covariance = _compute_cross_structural_covariance(
+                zactmat_norm, cross_structural
             )
 
             # Eigenvalue decomposition to get the cross-structural subspace
-            eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+            eigenvalues, eigenvectors = np.linalg.eigh(cross_covariance)
             idx = np.argsort(eigenvalues)[::-1]
             eigenvalues = eigenvalues[idx]
             eigenvectors = eigenvectors[:, idx]
@@ -282,7 +444,7 @@ def extractPatterns(
             # Project the data onto the cross-structural subspace
             projected_data = (
                 eigenvectors_sig * np.sqrt(np.maximum(eigenvalues_sig, 0))
-            ).T @ actmat
+            ).T @ zactmat_norm
 
             # Run ICA on the projected data
             ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
@@ -295,7 +457,7 @@ def extractPatterns(
         else:
             # Standard ICA
             ica = FastICA(n_components=nassemblies, random_state=0, whiten=whiten)
-            ica.fit(actmat.T)
+            ica.fit(zactmat.T)
             patterns = ica.components_
     else:
         raise ValueError(
@@ -307,20 +469,55 @@ def extractPatterns(
 
         # sets norm of assembly vectors to 1
         norms = np.linalg.norm(patterns, axis=1)
-        patterns /= np.tile(norms, [np.size(patterns, 1), 1]).T
+        patterns /= norms[:, None]
 
     return patterns
 
 
-def _compute_cross_structural_correlation(
+def _normalize_by_group(
     zactmat: np.ndarray, cross_structural: np.ndarray
 ) -> np.ndarray:
     """
-    Compute correlation matrix with within-group correlations set to zero.
+    Normalize activity within each group by the square root of group size.
 
-    This implements the cross-structural assembly detection approach where
-    correlations within the same group are ignored to force detection of
-    assemblies that span across different groups.
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Categorical group label for each neuron.
+
+    Returns
+    -------
+    np.ndarray
+        Group-normalized activity matrix where each group's rows are scaled by
+        :math:`1/\sqrt{n_g}`.
+    """
+    groups = np.asarray(cross_structural)
+    zactmat_norm = np.array(zactmat, copy=True, dtype=float)
+    for group in np.unique(groups):
+        group_mask = groups == group
+        group_size = np.sum(group_mask)
+        if group_size > 0:
+            zactmat_norm[group_mask, :] /= np.sqrt(group_size)
+    return zactmat_norm
+
+
+def _compute_cross_structural_covariance(
+    zactmat: np.ndarray, cross_structural: np.ndarray
+) -> np.ndarray:
+    """
+    Compute a block-structured cross-group covariance matrix.
+
+    The matrix is explicitly built with zero within-group blocks and empirical
+    cross-group blocks. For two groups A and B this corresponds to:
+
+    .. math::
+
+        C = \begin{bmatrix}0 & C_{AB} \\ C_{BA} & 0\end{bmatrix}
+
+    This preserves symmetry without in-place masking of a full covariance
+    matrix and generalizes to more than two groups.
 
     Parameters
     ----------
@@ -332,20 +529,338 @@ def _compute_cross_structural_correlation(
     Returns
     -------
     np.ndarray
-        Modified correlation matrix with within-group correlations set to zero.
+        Symmetric cross-group covariance matrix with non-zero entries only for
+        cross-group pairs.
     """
-    # Compute standard correlation matrix
-    correlations = np.corrcoef(zactmat)
+    groups = np.asarray(cross_structural)
+    n_neurons = zactmat.shape[0]
+    cross_covariance = np.zeros((n_neurons, n_neurons), dtype=float)
 
-    # Create mask for same-group pairs
-    groups = np.array(cross_structural)
-    same_group_mask = groups[:, np.newaxis] == groups[np.newaxis, :]
+    unique_groups = np.unique(groups)
+    for group_a_idx, group_a in enumerate(unique_groups):
+        idx_a = np.where(groups == group_a)[0]
+        data_a = zactmat[idx_a, :]
+        for group_b in unique_groups[group_a_idx + 1 :]:
+            idx_b = np.where(groups == group_b)[0]
+            data_b = zactmat[idx_b, :]
 
-    # Set within-group correlations to zero, but keep diagonal as 1
-    correlations[same_group_mask] = 0
-    np.fill_diagonal(correlations, 1)
+            # Compute cross-block covariance directly; avoids allocating the
+            # full (n_a + n_b) x (n_a + n_b) matrix that np.corrcoef would
+            # build and also preserves any group-size scaling already applied
+            # to the rows (which np.corrcoef would silently undo by
+            # re-standardising each row to unit variance).
+            nbins = data_a.shape[1]
+            cov_ab = data_a @ data_b.T / nbins
 
-    return correlations
+            cross_covariance[np.ix_(idx_a, idx_b)] = cov_ab
+            cross_covariance[np.ix_(idx_b, idx_a)] = cov_ab.T
+
+    return cross_covariance
+
+
+def _compute_cross_structural_correlation(
+    zactmat: np.ndarray, cross_structural: np.ndarray
+) -> np.ndarray:
+    """Backward-compatible alias for :func:`_compute_cross_structural_covariance`."""
+    return _compute_cross_structural_covariance(zactmat, cross_structural)
+
+
+def _filter_cross_group_patterns(
+    patterns: np.ndarray,
+    cross_structural: np.ndarray,
+    threshold: float = 1e-12,
+    threshold_mode: str = "absolute",
+    threshold_percentile: float = 95.0,
+) -> np.ndarray:
+    """Keep only patterns with above-threshold weights in at least two groups.
+
+    Parameters
+    ----------
+    patterns : np.ndarray
+        Assembly pattern matrix of shape ``(n_patterns, n_neurons)``.
+    cross_structural : np.ndarray
+        Categorical group label for each neuron.
+    threshold : float, optional
+        Weight threshold controlling when a neuron is considered active.
+        Interpretation depends on ``threshold_mode``. By default ``1e-12``.
+    threshold_mode : str, optional
+        Thresholding strategy:
+
+        - ``"absolute"``: active if ``abs(weight) > threshold``
+        - ``"relative"``: active if ``abs(weight) > threshold * max(abs(pattern))``
+        - ``"percentile"``: active if ``abs(weight)`` is above the
+          ``threshold_percentile`` percentile of ``abs(pattern)``
+
+        By default ``"absolute"``.
+    threshold_percentile : float, optional
+        Percentile used when ``threshold_mode='percentile'``. Must be in
+        ``[0, 100]``. By default ``95.0``.
+
+    Returns
+    -------
+    np.ndarray
+        Subset of input patterns that are active in at least two groups.
+    """
+    if threshold < 0:
+        raise ValueError("threshold must be non-negative")
+
+    valid_modes = {"absolute", "relative", "percentile"}
+    if threshold_mode not in valid_modes:
+        raise ValueError(
+            f"threshold_mode must be one of {sorted(valid_modes)}, got {threshold_mode!r}"
+        )
+    if not 0 <= threshold_percentile <= 100:
+        raise ValueError("threshold_percentile must be in [0, 100]")
+
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    keep_pattern = []
+
+    for pattern in patterns:
+        abs_pattern = np.abs(pattern)
+        if threshold_mode == "absolute":
+            active_mask = abs_pattern > threshold
+        elif threshold_mode == "relative":
+            scale = np.max(abs_pattern)
+            active_mask = abs_pattern > (threshold * scale)
+        else:  # threshold_mode == "percentile"
+            pattern_threshold = np.percentile(abs_pattern, threshold_percentile)
+            active_mask = abs_pattern > pattern_threshold
+
+        active_groups = 0
+        for group in unique_groups:
+            group_mask = groups == group
+            if np.any(active_mask[group_mask]):
+                active_groups += 1
+        keep_pattern.append(active_groups >= 2)
+
+    keep_pattern = np.array(keep_pattern, dtype=bool)
+    return patterns[keep_pattern]
+
+
+def _compute_cross_svd(
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+    n_components: Optional[int] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute cross-area SVD on a two-group activity matrix.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+    n_components : Optional[int], optional
+        Number of singular vectors to retain, by default all.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Left vectors U, singular values S, right vectors Vt, and row indices for
+        group 1 and group 2 within ``zactmat``.
+    """
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    if len(unique_groups) != 2:
+        raise ValueError("cross_svd requires exactly two groups in cross_structural")
+
+    idx_group1 = np.where(groups == unique_groups[0])[0]
+    idx_group2 = np.where(groups == unique_groups[1])[0]
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    cross_cov = X1 @ X2.T / X1.shape[1]
+    U, S, Vt = np.linalg.svd(cross_cov, full_matrices=False)
+
+    if n_components is not None:
+        n_keep = min(n_components, len(S))
+        U = U[:, :n_keep]
+        S = S[:n_keep]
+        Vt = Vt[:n_keep, :]
+
+    return U, S, Vt, idx_group1, idx_group2
+
+
+def _cross_svd_significance(
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+    nshu: int,
+    percentile: int,
+    n_components: Optional[int] = None,
+    n_jobs: Optional[int] = 1,
+    threshold_mode: str = "per_rank",
+    random_state: Optional[int] = None,
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
+    """
+    Estimate significant cross-area SVD components via symmetric group-level shuffles.
+
+    For each shuffle a single independent time permutation is applied to all
+    neurons in group 1 and a *different* independent permutation is applied to
+    all neurons in group 2.  This preserves within-area population geometry
+    (neurons within each group stay aligned in time) while destroying only the
+    cross-area temporal coupling that SVD is designed to capture.  Using one
+    permutation per group rather than one per neuron also keeps the within-group
+    co-firing structure intact, making the null hypothesis specifically about
+    cross-area coordination.
+
+    Parameters
+    ----------
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+    nshu : int
+        Number of shuffles.
+    percentile : int
+        Percentile threshold for singular values.
+    n_components : Optional[int], optional
+        Number of singular values/components to evaluate, by default all.
+    threshold_mode : str, optional
+        Rule used to threshold singular values.
+
+        - ``"per_rank"``: compare each rank ``S[k]`` to its own null threshold.
+        - ``"max_stat"``: compare all ranks to a single global threshold
+          derived from the null distribution of the maximum singular value.
+
+        By default ``"per_rank"``.
+    random_state : Optional[int], optional
+        Base seed for deterministic shuffle controls. If None, OS entropy is
+        used. By default None.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        U, S, Vt, significant-component mask, null thresholds, group-1 indices,
+        group-2 indices.
+    """
+    valid_threshold_modes = {"per_rank", "max_stat"}
+    if threshold_mode not in valid_threshold_modes:
+        raise ValueError(
+            "cross_svd threshold_mode must be one of "
+            f"{sorted(valid_threshold_modes)}, got {threshold_mode!r}"
+        )
+
+    U, S, Vt, idx_group1, idx_group2 = _compute_cross_svd(
+        zactmat, cross_structural, n_components=n_components
+    )
+    n_components_eval = len(S)
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    T = X1.shape[1]
+
+    def _single_cross_svd_shuffle(seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        # Apply one permutation to all neurons in group 1 and an independent
+        # permutation to all neurons in group 2.  This is symmetric across
+        # groups and preserves within-group population co-firing patterns while
+        # destroying only the cross-area temporal coupling.
+        pi1 = rng.permutation(T)
+        pi2 = rng.permutation(T)
+        cross_cov_shuffled = X1[:, pi1] @ X2[:, pi2].T / T
+        _, singular_values_shuffled, _ = np.linalg.svd(
+            cross_cov_shuffled, full_matrices=False
+        )
+        return singular_values_shuffled[:n_components_eval]
+
+    n_workers = _resolve_n_jobs(n_jobs)
+    seeds = _spawn_shuffle_seeds(nshu, random_state=random_state)
+
+    if n_workers == 1:
+        null_singular_values = np.array(
+            [_single_cross_svd_shuffle(seed) for seed in seeds]
+        )
+    else:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            null_singular_values = np.array(
+                list(executor.map(_single_cross_svd_shuffle, seeds))
+            )
+
+    if threshold_mode == "per_rank":
+        null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
+        keep_components = S > null_thresholds
+    else:  # threshold_mode == "max_stat"
+        global_threshold = np.percentile(np.max(null_singular_values, axis=1), percentile)
+        null_thresholds = np.full(n_components_eval, global_threshold)
+        keep_components = S > global_threshold
+
+    return (
+        U,
+        S,
+        Vt,
+        keep_components,
+        null_thresholds,
+        idx_group1,
+        idx_group2,
+    )
+
+
+def computeCrossAreaActivity(
+    patterns: np.ndarray,
+    zactmat: np.ndarray,
+    cross_structural: np.ndarray,
+) -> Optional[np.ndarray]:
+    """
+    Compute time-resolved cross-area coactivation for cross-SVD assemblies.
+
+    The coactivation score at each time bin is the product of the z-scored
+    projections of both groups onto their respective assembly weight vectors:
+
+    .. math::
+
+        A_k(t) = z(\\mathbf{u}_k^\\top X_1)(t) \\cdot z(\\mathbf{v}_k^\\top X_2)(t)
+
+    Z-scoring each projection centres it (removes the non-zero mean that a
+    raw dot product can have even with no real assembly activity) and
+    normalises scale across assemblies.  Positive values indicate synchronous
+    co-expression; negative values indicate anti-coactivation (one group
+    active above its mean while the other is below).
+
+    Parameters
+    ----------
+    patterns : np.ndarray
+        Assembly patterns (assemblies, neurons).
+    zactmat : np.ndarray
+        Z-scored activity matrix (neurons, time bins).
+    cross_structural : np.ndarray
+        Group labels (must contain exactly two groups).
+
+    Returns
+    -------
+    Optional[np.ndarray]
+        Coactivation matrix (assemblies, time bins), or None if no patterns.
+    """
+    if patterns is None or len(patterns) == 0:
+        return None
+
+    groups = np.asarray(cross_structural)
+    unique_groups = np.unique(groups)
+    if len(unique_groups) != 2:
+        raise ValueError(
+            "computeCrossAreaActivity requires exactly two groups in cross_structural"
+        )
+
+    idx_group1 = groups == unique_groups[0]
+    idx_group2 = groups == unique_groups[1]
+
+    X1 = zactmat[idx_group1, :]
+    X2 = zactmat[idx_group2, :]
+
+    group1_proj = patterns[:, idx_group1] @ X1
+    group2_proj = patterns[:, idx_group2] @ X2
+
+    # Z-score each projection across time so that the product is centred and
+    # has a consistent scale regardless of pattern magnitude.
+    group1_proj_z = np.nan_to_num(stats.zscore(group1_proj, axis=1))
+    group2_proj_z = np.nan_to_num(stats.zscore(group2_proj, axis=1))
+
+    return group1_proj_z * group2_proj_z
 
 
 def runPatterns(
@@ -358,6 +873,12 @@ def runPatterns(
     whiten: str = "unit-variance",
     nassemblies: int = None,
     cross_structural: Optional[np.ndarray] = None,
+    n_jobs: Optional[int] = 1,
+    cross_group_threshold: float = 1e-12,
+    cross_group_threshold_mode: str = "absolute",
+    cross_group_threshold_percentile: float = 95.0,
+    cross_svd_threshold_mode: str = "per_rank",
+    random_state: Optional[int] = None,
 ) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
     """
     Run pattern detection to identify cell assemblies.
@@ -367,9 +888,13 @@ def runPatterns(
     actmat : np.ndarray
         Activity matrix (neurons, time bins).
     method : str, optional
-        Method to extract assembly patterns (ica, pca), by default "ica".
+        Method to extract assembly patterns (ica, pca, cross_svd),
+        by default "ica".
     nullhyp : str, optional
         Null hypothesis method (bin, circ, mp), by default "mp".
+        In cross-structural mode, ``"mp"`` is automatically replaced by
+        ``"bin"`` because Marčenko–Pastur assumptions do not hold for the
+        block-structured cross-group covariance matrix.
     nshu : int, optional
         Number of shuffling controls, by default 1000.
     percentile : int, optional
@@ -382,8 +907,42 @@ def runPatterns(
         Number of assemblies, by default None.
     cross_structural : Optional[np.ndarray], optional
         A categorical vector indicating group membership for each neuron.
-        If provided, the function will strictly detect cross-structural assemblies
-        (correlations within the same group will be ignored), by default None.
+        If provided, the function runs cross-structural detection by:
+
+        1. removing silent neurons,
+        2. z-scoring activity,
+        3. scaling each group by :math:`1/\sqrt{n_g}`,
+        4. building an explicit block cross-group covariance matrix,
+        5. estimating significance in the same cross-structural space,
+        6. filtering extracted patterns to keep only multi-group assemblies.
+
+        Should have the same length as the number of neurons in ``actmat``.
+        By default None.
+    n_jobs : Optional[int], optional
+        Number of workers for shuffle-based significance controls.
+        Use ``1`` for serial execution, ``-1`` for all available cores,
+        or any positive integer. By default 1.
+    cross_group_threshold : float, optional
+        Threshold used to decide whether a neuron is active when applying
+        cross-group pattern filtering. Interpretation depends on
+        ``cross_group_threshold_mode``. By default ``1e-12``.
+    cross_group_threshold_mode : str, optional
+        Thresholding mode for cross-group pattern filtering. One of
+        ``"absolute"``, ``"relative"``, or ``"percentile"``.
+        By default ``"absolute"``.
+    cross_group_threshold_percentile : float, optional
+        Percentile used by the cross-group filter when
+        ``cross_group_threshold_mode='percentile'``. By default ``95.0``.
+    cross_svd_threshold_mode : str, optional
+        Thresholding rule for ``method='cross_svd'`` significance.
+        One of ``"per_rank"`` (default) or ``"max_stat"``.
+        ``"per_rank"`` compares each singular value to its own rank-matched
+        null threshold; ``"max_stat"`` uses a single global threshold from
+        the null distribution of maximum singular values.
+    random_state : Optional[int], optional
+        Base seed used to make shuffle-based significance controls
+        deterministic (``nullhyp in {'bin', 'circ'}`` and ``method='cross_svd'``).
+        If None, OS entropy is used. By default None.
 
     Returns
     -------
@@ -400,13 +959,20 @@ def runPatterns(
     cross_structural
         When provided, this vector should have the same length as the number of neurons
         in actmat. Each element indicates the group membership (e.g., brain region,
-        cell type) for the corresponding neuron. The algorithm will then only detect
-        assemblies that span across different groups by setting within-group
-        correlations to zero.
+        cell type) for the corresponding neuron.
+
+        The cross-structural path keeps only cross-group covariance terms and
+        requires each retained pattern to be active in at least two groups,
+        where activity is defined by the cross-group threshold parameters.
+
+    warnings
+        ``"no cross-structural assembly detected"`` can be emitted when candidate
+        patterns are removed by the multi-group membership filter.
     """
 
     nneurons = np.size(actmat, 0)
     nbins = np.size(actmat, 1)
+    random_state = _resolve_random_state(random_state)
 
     # Validate cross_structural parameter if provided
     if cross_structural is not None:
@@ -433,13 +999,77 @@ def runPatterns(
     # running significance (estimating number of assemblies)
     significance = PCA()
 
-    if cross_structural_ is not None:
-        # Compute custom correlation matrix for cross-structural assemblies
-        correlations = _compute_cross_structural_correlation(
-            zactmat_, cross_structural_
+    effective_nullhyp = nullhyp
+    if cross_structural_ is not None and nullhyp == "mp":
+        effective_nullhyp = "bin"
+
+    if method == "cross_svd":
+        if cross_structural_ is None:
+            raise ValueError("cross_svd requires cross_structural labels")
+
+        (
+            U,
+            singular_values,
+            Vt,
+            keep_components,
+            null_thresholds,
+            idx_group1,
+            idx_group2,
+        ) = _cross_svd_significance(
+            zactmat_,
+            cross_structural_,
+            nshu=nshu,
+            percentile=percentile,
+            n_components=nassemblies,
+            n_jobs=n_jobs,
+            threshold_mode=cross_svd_threshold_mode,
+            random_state=random_state,
         )
-        # Perform eigenvalue decomposition on the custom correlation matrix
-        eigenvalues, eigenvectors = np.linalg.eigh(correlations)
+
+        selected_components = np.where(keep_components)[0]
+        significance.nneurons = nneurons
+        significance.nbins = nbins
+        significance.nshu = nshu
+        significance.percentile = percentile
+        significance.tracywidom = tracywidom
+        significance.nullhyp = "bin"
+        significance.explained_variance_ = singular_values
+        significance.cross_svd_null_thresholds_ = null_thresholds
+        significance.cross_svd_keep_mask_ = keep_components
+        significance.cross_svd_u_ = U
+        significance.cross_svd_vt_ = Vt
+        significance.cross_svd_threshold_mode_ = cross_svd_threshold_mode
+        significance.nassemblies = len(selected_components)
+
+        if significance.nassemblies < 1:
+            warnings.warn("no cross-svd assembly detected")
+            return None, significance, None
+
+        patterns_active = np.zeros((significance.nassemblies, zactmat_.shape[0]))
+        for out_i, comp_i in enumerate(selected_components):
+            patterns_active[out_i, idx_group1] = U[:, comp_i]
+            patterns_active[out_i, idx_group2] = Vt[comp_i, :]
+
+        # sets norm of assembly vectors to 1
+        norms = np.linalg.norm(patterns_active, axis=1)
+        norms[norms == 0] = 1
+        patterns_active /= norms[:, None]
+
+        patterns = np.zeros((np.size(patterns_active, 0), nneurons))
+        patterns[:, ~silentneurons] = patterns_active
+        zactmat = np.copy(actmat)
+        zactmat[~silentneurons, :] = zactmat_
+
+        return patterns, significance, zactmat
+
+    if cross_structural_ is not None:
+        zactmat_cross = _normalize_by_group(zactmat_, cross_structural_)
+        # Compute custom covariance matrix for cross-structural assemblies
+        cross_covariance = _compute_cross_structural_covariance(
+            zactmat_cross, cross_structural_
+        )
+        # Perform eigenvalue decomposition on the custom covariance matrix
+        eigenvalues, eigenvectors = np.linalg.eigh(cross_covariance)
         # Sort in descending order
         idx = np.argsort(eigenvalues)[::-1]
         eigenvalues = eigenvalues[idx]
@@ -456,8 +1086,14 @@ def runPatterns(
     significance.nshu = nshu
     significance.percentile = percentile
     significance.tracywidom = tracywidom
-    significance.nullhyp = nullhyp
-    significance = runSignificance(zactmat_, significance)
+    significance.nullhyp = effective_nullhyp
+    significance = runSignificance(
+        zactmat_,
+        significance,
+        cross_structural=cross_structural_,
+        n_jobs=n_jobs,
+        random_state=random_state,
+    )
 
     if nassemblies is not None:
         significance.nassemblies = nassemblies
@@ -481,6 +1117,19 @@ def runPatterns(
         )
         if patterns_ is np.nan:
             return None
+
+        if cross_structural_ is not None:
+            patterns_ = _filter_cross_group_patterns(
+                patterns_,
+                cross_structural_,
+                threshold=cross_group_threshold,
+                threshold_mode=cross_group_threshold_mode,
+                threshold_percentile=cross_group_threshold_percentile,
+            )
+            significance.nassemblies = patterns_.shape[0]
+            if significance.nassemblies < 1:
+                warnings.warn("no cross-structural assembly detected")
+                return None, significance, None
 
         # putting eventual silent neurons back (their assembly weights are defined as zero)
         patterns = np.zeros((np.size(patterns_, 0), nneurons))

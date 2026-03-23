@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from scipy import linalg
+from scipy import linalg, stats
 
 from neuro_py.ensemble import assembly
 
@@ -95,40 +95,89 @@ def test_assembly():
     assert zactmat is None
 
 
-def test_cross_structural_correlation_matrix():
-    """Test the _compute_cross_structural_correlation function."""
+def test_cross_structural_covariance_matrix():
+    """Test the _compute_cross_structural_covariance function."""
     # Create simple test data
     np.random.seed(42)
     zactmat = np.random.randn(5, 100)  # 5 neurons, 100 time bins
     cross_structural = np.array([0, 0, 1, 1, 1])  # 2 neurons in group 0, 3 in group 1
 
-    # Compute cross-structural correlation matrix
-    corr_matrix = assembly._compute_cross_structural_correlation(
+    # Compute cross-structural covariance matrix
+    cov_matrix = assembly._compute_cross_structural_covariance(
         zactmat, cross_structural
     )
 
     # Test matrix properties
-    assert corr_matrix.shape == (5, 5)
-    assert np.allclose(np.diag(corr_matrix), 1.0)  # Diagonal should be 1
+    assert cov_matrix.shape == (5, 5)
+    assert np.allclose(np.diag(cov_matrix), 0.0)  # Diagonal should be 0
+    assert np.allclose(cov_matrix, cov_matrix.T)  # Should be symmetric
 
-    # Test within-group correlations are zero
-    assert corr_matrix[0, 1] == 0  # Both in group 0
-    assert corr_matrix[1, 0] == 0  # Both in group 0
-    assert corr_matrix[2, 3] == 0  # Both in group 1
-    assert corr_matrix[3, 4] == 0  # Both in group 1
-    assert corr_matrix[4, 2] == 0  # Both in group 1
+    # Test within-group covariances are zero
+    assert cov_matrix[0, 1] == 0  # Both in group 0
+    assert cov_matrix[1, 0] == 0  # Both in group 0
+    assert cov_matrix[2, 3] == 0  # Both in group 1
+    assert cov_matrix[3, 4] == 0  # Both in group 1
+    assert cov_matrix[4, 2] == 0  # Both in group 1
 
-    # Test cross-group correlations are preserved (not zero)
-    cross_group_corrs = [
-        corr_matrix[0, 2],
-        corr_matrix[0, 3],
-        corr_matrix[0, 4],
-        corr_matrix[1, 2],
-        corr_matrix[1, 3],
-        corr_matrix[1, 4],
+    # Test cross-group covariances are preserved (not zero)
+    cross_group_covs = [
+        cov_matrix[0, 2],
+        cov_matrix[0, 3],
+        cov_matrix[0, 4],
+        cov_matrix[1, 2],
+        cov_matrix[1, 3],
+        cov_matrix[1, 4],
     ]
-    # At least some cross-group correlations should be non-zero
-    assert any(abs(c) > 0.01 for c in cross_group_corrs)
+    # At least some cross-group covariances should be non-zero
+    assert any(abs(c) > 0.01 for c in cross_group_covs)
+
+
+def test_cross_structural_group_normalization():
+    """Test group-size normalization for cross-structural analysis."""
+    zactmat = np.ones((5, 4), dtype=float)
+    cross_structural = np.array(["A", "A", "B", "B", "B"])
+
+    normalized = assembly._normalize_by_group(zactmat, cross_structural)
+
+    assert np.allclose(normalized[:2], 1 / np.sqrt(2))
+    assert np.allclose(normalized[2:], 1 / np.sqrt(3))
+
+
+def test_filter_cross_group_patterns():
+    """Test filtering keeps only patterns active in at least two groups."""
+    patterns = np.array(
+        [
+            [1.0, 0.0, 0.5, 0.0],  # active in both groups
+            [1.0, 0.5, 0.0, 0.0],  # active only in first group
+            [0.0, 0.0, 0.4, 0.2],  # active only in second group
+        ]
+    )
+    cross_structural = np.array(["G1", "G1", "G2", "G2"])
+
+    filtered = assembly._filter_cross_group_patterns(patterns, cross_structural)
+    assert filtered.shape[0] == 1
+    assert np.allclose(filtered[0], patterns[0])
+
+
+def test_filter_cross_group_patterns_relative_threshold_removes_tiny_weights():
+    """Relative threshold should ignore tiny numerical weights in a group."""
+    patterns = np.array(
+        [
+            [1.0, 0.8, 1e-10, 0.0],  # tiny noise in second group
+            [1.0, 0.8, 0.2, 0.1],  # meaningful weights in both groups
+        ]
+    )
+    cross_structural = np.array(["G1", "G1", "G2", "G2"])
+
+    filtered = assembly._filter_cross_group_patterns(
+        patterns,
+        cross_structural,
+        threshold=1e-3,
+        threshold_mode="relative",
+    )
+
+    assert filtered.shape[0] == 1
+    assert np.allclose(filtered[0], patterns[1])
 
 
 def test_cross_structural_assemblies_synthetic():
@@ -219,12 +268,13 @@ def test_cross_structural_pca_vs_ica():
         actmat, method="ica", nullhyp="mp", cross_structural=cross_structural
     )
 
-    # Both should detect assemblies
-    assert patterns_pca is not None or patterns_ica is not None
-
     # If both detect assemblies, they should have the same number of patterns
     if patterns_pca is not None and patterns_ica is not None:
         assert patterns_pca.shape[0] == patterns_ica.shape[0]
+
+    # Otherwise, stricter cross-structural filtering may remove weak candidates
+    assert patterns_pca is None or patterns_pca.shape[1] == n_neurons
+    assert patterns_ica is None or patterns_ica.shape[1] == n_neurons
 
 
 def test_cross_structural_validation():
@@ -244,6 +294,20 @@ def test_cross_structural_validation():
         actmat, cross_structural=cross_structural_correct
     )
     # Should not raise an error
+
+
+def test_cross_structural_mp_fallbacks_to_bin():
+    """Cross-structural mode should replace MP null with bin shuffling."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (12, 120))
+    cross_structural = np.array(["A"] * 6 + ["B"] * 6)
+
+    _, significance, _ = assembly.runPatterns(
+        actmat, method="ica", nullhyp="mp", nshu=50, cross_structural=cross_structural
+    )
+
+    assert significance is not None
+    assert significance.nullhyp == "bin"
 
 
 def test_cross_structural_silent_neurons():
@@ -294,15 +358,154 @@ def test_cross_structural_no_cross_components():
         actmat, method="ica", nullhyp="mp", cross_structural=cross_structural
     )
 
-    # Assert: Either no patterns detected, or all detected patterns are not cross-structural
-    if patterns is None:
-        assert True  # No cross-structural assemblies detected, as expected
-    else:
-        # All detected patterns should be within-group only (not cross-structural)
-        for pattern in patterns:
-            group1_weights = np.abs(pattern[:5])
-            group2_weights = np.abs(pattern[5:])
-            group1_active = np.sum(group1_weights > NEURON_ACTIVITY_THRESHOLD)
-            group2_active = np.sum(group2_weights > NEURON_ACTIVITY_THRESHOLD)
-            # Assert that at least one group is inactive (not cross-structural)
-            assert group1_active == 0 or group2_active == 0
+    # No genuine cross-structural assemblies should be detected
+    assert patterns is None
+
+
+def test_cross_svd_detects_cross_area_assembly():
+    """cross_svd should detect strong cross-area coupling."""
+    np.random.seed(42)
+    n_group1 = 8
+    n_group2 = 8
+    n_bins = 800
+
+    actmat = np.random.poisson(1, (n_group1 + n_group2, n_bins))
+    assembly_times = np.sort(np.random.choice(n_bins, 220, replace=False))
+
+    for t in assembly_times:
+        actmat[2:5, t] += np.random.poisson(8, 3)
+        actmat[n_group1 + 3 : n_group1 + 6, t] += np.random.poisson(8, 3)
+
+    groups = np.array(["CA1"] * n_group1 + ["PFC"] * n_group2)
+    patterns, significance, zactmat = assembly.runPatterns(
+        actmat,
+        method="cross_svd",
+        cross_structural=groups,
+        nshu=100,
+        percentile=95,
+    )
+
+    assert significance is not None
+    assert significance.nullhyp == "bin"
+    assert patterns is not None
+    assert patterns.shape[0] >= 1
+    assert patterns.shape[1] == n_group1 + n_group2
+    assert zactmat.shape == actmat.shape
+
+
+def test_cross_svd_requires_two_groups():
+    """cross_svd should fail when cross_structural has more than two groups."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (9, 120))
+    groups = np.array(["A"] * 3 + ["B"] * 3 + ["C"] * 3)
+
+    with pytest.raises(ValueError, match="exactly two groups"):
+        assembly.runPatterns(actmat, method="cross_svd", cross_structural=groups)
+
+
+def test_cross_svd_threshold_mode_max_stat_sets_global_threshold():
+    """max_stat mode should use one global threshold across all ranks."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (16, 400))
+    groups = np.array(["CA1"] * 8 + ["PFC"] * 8)
+
+    _, significance, _ = assembly.runPatterns(
+        actmat,
+        method="cross_svd",
+        cross_structural=groups,
+        nshu=40,
+        percentile=95,
+        cross_svd_threshold_mode="max_stat",
+    )
+
+    assert significance is not None
+    assert significance.cross_svd_threshold_mode_ == "max_stat"
+    assert np.allclose(
+        significance.cross_svd_null_thresholds_,
+        significance.cross_svd_null_thresholds_[0],
+    )
+
+
+def test_cross_svd_threshold_mode_invalid_raises():
+    """Invalid cross-SVD threshold mode should raise ValueError."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (10, 120))
+    groups = np.array(["A"] * 5 + ["B"] * 5)
+
+    with pytest.raises(ValueError, match="threshold_mode"):
+        assembly.runPatterns(
+            actmat,
+            method="cross_svd",
+            cross_structural=groups,
+            cross_svd_threshold_mode="not_a_mode",
+        )
+
+
+def test_bin_shuffling_random_state_reproducible():
+    """binshuffling should be reproducible for a fixed random_state."""
+    rng = np.random.default_rng(42)
+    zactmat = rng.normal(size=(8, 120))
+    significance = type("Sig", (), {})()
+    significance.nshu = 50
+    significance.nbins = zactmat.shape[1]
+    significance.percentile = 95
+
+    lambda_1 = assembly.binshuffling(zactmat, significance, random_state=123)
+    lambda_2 = assembly.binshuffling(zactmat, significance, random_state=123)
+
+    assert lambda_1 == lambda_2
+
+
+def test_cross_svd_random_state_reproducible():
+    """cross_svd shuffle thresholds should be reproducible for fixed seed."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (12, 200))
+    groups = np.array(["A"] * 6 + ["B"] * 6)
+    zactmat = stats.zscore(actmat, axis=1)
+
+    result_1 = assembly._cross_svd_significance(
+        zactmat,
+        groups,
+        nshu=40,
+        percentile=95,
+        random_state=2026,
+    )
+    result_2 = assembly._cross_svd_significance(
+        zactmat,
+        groups,
+        nshu=40,
+        percentile=95,
+        random_state=2026,
+    )
+
+    _, _, _, keep_1, null_thr_1, _, _ = result_1
+    _, _, _, keep_2, null_thr_2, _, _ = result_2
+
+    assert np.array_equal(keep_1, keep_2)
+    assert np.allclose(null_thr_1, null_thr_2)
+
+
+def test_run_patterns_random_state_bool_raises_type_error():
+    """Boolean random_state should be rejected explicitly."""
+    np.random.seed(42)
+    actmat = np.random.poisson(1, (10, 80))
+
+    with pytest.raises(TypeError, match="random_state"):
+        assembly.runPatterns(actmat, nullhyp="bin", random_state=True)
+
+
+def test_compute_cross_area_activity_shape():
+    """computeCrossAreaActivity returns expected shape."""
+    np.random.seed(42)
+    patterns = np.array(
+        [
+            [0.7, 0.0, 0.7, 0.0],
+            [0.0, 0.7, 0.0, 0.7],
+        ]
+    )
+    zactmat = np.random.randn(4, 50)
+    groups = np.array(["CA1", "CA1", "PFC", "PFC"])
+
+    activity = assembly.computeCrossAreaActivity(patterns, zactmat, groups)
+    assert activity is not None
+    assert activity.shape == (2, 50)
