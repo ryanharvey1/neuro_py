@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.28">
+      <meta name="generator" content="zensical-0.0.29">
     
     
       
@@ -1835,6 +1835,8 @@
       
         
       
+        
+      
     
     
     
@@ -1958,6 +1960,34 @@
     
   
     figure_helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    replay
   
 
     
@@ -3531,6 +3561,56 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.plotting.plot_2d_replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plot_2d_replay
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="plot_2d_replay">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#neuro_py.plotting.plot_2d_replay--figure-1-three-replay-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Figure 1: three replay types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neuro_py.plotting.plot_2d_replay--figure-2-saturation-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Figure 2: saturation comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neuro_py.plotting.plot_2d_replay--figure-3-per-frame-vs-global-alpha-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Figure 3: per-frame vs global alpha normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5868,6 +5948,582 @@ not the desired behavior, aggregate or deduplicate the data for each
             <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ax</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.plotting.plot_2d_replay" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">plot_2d_replay</span><span class="p">(</span><span class="n">replay_matrix</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;cool&#39;</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">percentile_threshold</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span> <span class="n">abs_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">per_frame_alpha_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#neuro_py.plotting.plot_2d_replay" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Plot a single 2D replay event.</p>
+<p>Each time bin is drawn as a separate RGBA layer; matplotlib composites
+them naturally. Color encodes elapsed time within the replay (early→late
+following the chosen colormap). Alpha is power-scaled from frame
+probabilities using either per-frame normalization (default) or global
+normalization across all frames.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>replay_matrix</code>
+            </td>
+            <td>
+                  <code>(<span title="numpy.ndarray">ndarray</span>, <span title="shape">shape</span>(<span title="nx">nx</span>, <span title="ny">ny</span>, <span title="T">T</span>))</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Decoded probability distributions over space. Each [:, :, t] slice
+should be non-negative and ideally sum to ~1.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ax</code>
+            </td>
+            <td>
+                  <code><span title="matplotlib.axes.Axes">Axes</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axes to draw on. If None, a new figure is created.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cmap</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="Colormap">Colormap</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Colormap used to color time bins. Default "cool" gives cyan→magenta.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;cool&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>extent</code>
+            </td>
+            <td>
+                  <code><span title="array">array</span> - <span title="like">like</span>[<span title="xmin">xmin</span>, <span title="xmax">xmax</span>, <span title="ymin">ymin</span>, <span title="ymax">ymax</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spatial extent in data coordinates. Defaults to bin indices.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>saturation</code>
+            </td>
+            <td>
+                  <code>float, &gt; 0</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Controls how much of the probability distribution is visible via
+alpha = (p / norm_max) ** (1 / saturation), where norm_max is
+frame.max() when per_frame_alpha_normalization=True and global_max
+when per_frame_alpha_normalization=False.
+saturation=1  → exponent=1, alpha scales linearly with probability.
+saturation&lt;1  → exponent&gt;1, low-probability regions fade faster (sparse).
+saturation&gt;1  → exponent&lt;1, low-probability regions boosted (dense/flat).</p>
+              </div>
+            </td>
+            <td>
+                  <code>3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>percentile_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Per-frame values below this percentile are zeroed out.
+Combined with abs_threshold — both must pass.</p>
+              </div>
+            </td>
+            <td>
+                  <code>99</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>abs_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Absolute floor applied alongside percentile_threshold.
+Prevents near-zero values in sparse frames from leaking through.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>per_frame_alpha_normalization</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, alpha is normalized by each frame's max (default). If False,
+alpha is normalized by the global max across all frames.
+The latter preserves relative intensity across frames, but may cause low-probability frames to be very faint.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>(<span title="fig">fig</span>, <span title="ax">ax</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Matplotlib figure and axes containing the replay plot.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <h3 id="neuro_py.plotting.plot_2d_replay--figure-1-three-replay-types">Figure 1: three replay types<a class="headerlink" href="#neuro_py.plotting.plot_2d_replay--figure-1-three-replay-types" title="Permanent link">&para;</a></h3>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">axes</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;curved&quot;</span><span class="p">,</span> <span class="s2">&quot;diffuse&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">,</span> <span class="s2">&quot;Curved&quot;</span><span class="p">,</span> <span class="s2">&quot;Diffuse (wide)&quot;</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">plot_2d_replay</span><span class="p">(</span><span class="n">make_replay</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">),</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">... </span>   <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Replay types&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+    <h3 id="neuro_py.plotting.plot_2d_replay--figure-2-saturation-comparison">Figure 2: saturation comparison<a class="headerlink" href="#neuro_py.plotting.plot_2d_replay--figure-2-saturation-comparison" title="Permanent link">&para;</a></h3>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">mat</span> <span class="o">=</span> <span class="n">make_replay</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;curved&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sat_values</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">sat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">sat_values</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">plot_2d_replay</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="n">sat</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;saturation=</span><span class="si">{</span><span class="n">sat</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Saturation comparison&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+    <h3 id="neuro_py.plotting.plot_2d_replay--figure-3-per-frame-vs-global-alpha-normalization">Figure 3: per-frame vs global alpha normalization<a class="headerlink" href="#neuro_py.plotting.plot_2d_replay--figure-3-per-frame-vs-global-alpha-normalization" title="Permanent link">&para;</a></h3>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_2d_replay</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">per_frame_alpha_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Per-frame normalization&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_2d_replay</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">per_frame_alpha_normalization</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Global normalization&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/plotting/replay.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  6</span>
+<span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_2d_replay</span><span class="p">(</span>
+    <span class="n">replay_matrix</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;cool&quot;</span><span class="p">,</span>
+    <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">saturation</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">percentile_threshold</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span>
+    <span class="n">abs_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">per_frame_alpha_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot a single 2D replay event.</span>
+
+<span class="sd">    Each time bin is drawn as a separate RGBA layer; matplotlib composites</span>
+<span class="sd">    them naturally. Color encodes elapsed time within the replay (early→late</span>
+<span class="sd">    following the chosen colormap). Alpha is power-scaled from frame</span>
+<span class="sd">    probabilities using either per-frame normalization (default) or global</span>
+<span class="sd">    normalization across all frames.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    replay_matrix : np.ndarray, shape (nx, ny, T)</span>
+<span class="sd">        Decoded probability distributions over space. Each [:, :, t] slice</span>
+<span class="sd">        should be non-negative and ideally sum to ~1.</span>
+<span class="sd">    ax : matplotlib.axes.Axes, optional</span>
+<span class="sd">        Axes to draw on. If None, a new figure is created.</span>
+<span class="sd">    cmap : str or Colormap</span>
+<span class="sd">        Colormap used to color time bins. Default &quot;cool&quot; gives cyan→magenta.</span>
+<span class="sd">    extent : array-like [xmin, xmax, ymin, ymax], optional</span>
+<span class="sd">        Spatial extent in data coordinates. Defaults to bin indices.</span>
+<span class="sd">    saturation : float, &gt; 0</span>
+<span class="sd">        Controls how much of the probability distribution is visible via</span>
+<span class="sd">        alpha = (p / norm_max) ** (1 / saturation), where norm_max is</span>
+<span class="sd">        frame.max() when per_frame_alpha_normalization=True and global_max</span>
+<span class="sd">        when per_frame_alpha_normalization=False.</span>
+<span class="sd">        saturation=1  → exponent=1, alpha scales linearly with probability.</span>
+<span class="sd">        saturation&lt;1  → exponent&gt;1, low-probability regions fade faster (sparse).</span>
+<span class="sd">        saturation&gt;1  → exponent&lt;1, low-probability regions boosted (dense/flat).</span>
+<span class="sd">    percentile_threshold : float</span>
+<span class="sd">        Per-frame values below this percentile are zeroed out.</span>
+<span class="sd">        Combined with abs_threshold — both must pass.</span>
+<span class="sd">    abs_threshold : float</span>
+<span class="sd">        Absolute floor applied alongside percentile_threshold.</span>
+<span class="sd">        Prevents near-zero values in sparse frames from leaking through.</span>
+<span class="sd">    per_frame_alpha_normalization : bool</span>
+<span class="sd">        If True, alpha is normalized by each frame&#39;s max (default). If False,</span>
+<span class="sd">        alpha is normalized by the global max across all frames.</span>
+<span class="sd">        The latter preserves relative intensity across frames, but may cause low-probability frames to be very faint.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fig, ax</span>
+<span class="sd">        Matplotlib figure and axes containing the replay plot.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    # Figure 1: three replay types</span>
+<span class="sd">    &gt;&gt;&gt; fig, axes = plt.subplots(1, 3, figsize=(12, 4))</span>
+<span class="sd">    &gt;&gt;&gt; for ax, kind, title in zip(</span>
+<span class="sd">    ...    axes, [&quot;linear&quot;, &quot;curved&quot;, &quot;diffuse&quot;], [&quot;Linear&quot;, &quot;Curved&quot;, &quot;Diffuse (wide)&quot;]</span>
+<span class="sd">    ... ):</span>
+<span class="sd">    ...    plot_2d_replay(make_replay(kind=kind), ax=ax, saturation=0.5)</span>
+<span class="sd">    ...    ax.set_title(title)</span>
+<span class="sd">    &gt;&gt;&gt; fig.suptitle(&quot;Replay types&quot;, y=1.02)</span>
+<span class="sd">    &gt;&gt;&gt; fig.tight_layout()</span>
+<span class="sd">    &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    # Figure 2: saturation comparison</span>
+<span class="sd">    &gt;&gt;&gt; mat = make_replay(kind=&quot;curved&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; sat_values = [0.1, 0.5, 1.0, 2.0]</span>
+
+<span class="sd">    &gt;&gt;&gt; fig, axes = plt.subplots(1, 4, figsize=(14, 4))</span>
+<span class="sd">    &gt;&gt;&gt; for ax, sat in zip(axes, sat_values):</span>
+<span class="sd">    ...     plot_2d_replay(mat, ax=ax, saturation=sat)</span>
+<span class="sd">    ...     ax.set_title(f&quot;saturation={sat}&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; fig.suptitle(&quot;Saturation comparison&quot;, y=1.02)</span>
+<span class="sd">    &gt;&gt;&gt; fig.tight_layout()</span>
+<span class="sd">    &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    # Figure 3: per-frame vs global alpha normalization</span>
+<span class="sd">    &gt;&gt;&gt; fig, axes = plt.subplots(1, 2, figsize=(8, 4))</span>
+<span class="sd">    &gt;&gt;&gt; plot_2d_replay(mat, ax=axes[0], per_frame_alpha_normalization=True)</span>
+<span class="sd">    &gt;&gt;&gt; axes[0].set_title(&quot;Per-frame normalization&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; plot_2d_replay(mat, ax=axes[1], per_frame_alpha_normalization=False)</span>
+<span class="sd">    &gt;&gt;&gt; axes[1].set_title(&quot;Global normalization&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; fig.tight_layout()</span>
+<span class="sd">    &gt;&gt;&gt; plt.show()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">replay_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">replay_matrix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">replay_matrix</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;replay_matrix must be a 3D array with shape (nx, ny, T)&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">replay_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;replay_matrix must have at least one time bin (T &gt; 0)&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">replay_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;replay_matrix must contain only finite values&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">replay_matrix</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;replay_matrix must be non-negative&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">saturation</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;saturation must be &gt; 0&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+
+    <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmap</span><span class="p">,</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Colormap</span><span class="p">):</span>
+        <span class="n">colormap</span> <span class="o">=</span> <span class="n">cmap</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">colormap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colormaps</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">)</span>
+
+    <span class="c1"># convert each frame to a probability distribution (if not already), and find global max for consistent alpha scaling</span>
+    <span class="n">replay_matrix</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="n">frame_sum</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">frame_sum</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">replay_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">]</span> <span class="o">/</span> <span class="n">frame_sum</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">replay_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">global_max</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ny</span><span class="p">]</span>
+    <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">extent</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">replay_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># (ny, nx) — row=y for imshow</span>
+
+        <span class="c1"># Skip frames with no spatial structure</span>
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span> <span class="o">/</span> <span class="n">frame</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-3</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Combined threshold: percentile AND absolute floor</span>
+        <span class="n">thr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">percentile_threshold</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">abs_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">thr</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">thr</span><span class="p">,</span> <span class="n">abs_threshold</span><span class="p">)</span>
+
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">frame</span> <span class="o">&gt;=</span> <span class="n">thr</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">rgb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">colormap</span><span class="p">(</span><span class="n">t</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[:</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">per_frame_alpha_normalization</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">frame</span> <span class="o">/</span> <span class="n">frame</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">saturation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">global_max</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">frame</span> <span class="o">/</span> <span class="n">global_max</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">saturation</span><span class="p">)</span>
+
+        <span class="n">rgba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="o">*</span><span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">rgba</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">rgb</span>
+        <span class="n">rgba</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgba</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
