@@ -12,6 +12,7 @@ __all__ = (
     "clean_plot3d",
     "AngleAnnotation",
     "paired_lines",
+    "plot_2d_replay",
 )
 
 from .decorators import (
@@ -29,3 +30,4 @@ from .figure_helpers import (
     set_size,
     paired_lines,
 )
+from .replay import plot_2d_replay
