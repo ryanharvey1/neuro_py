@@ -1,0 +1,27 @@
+font.family: sans-serif
+font.sans-serif: Helvetica, Arial, DejaVu Sans
+
+# -------- Font sizes (Nature: 5-7pt) --------
+font.size: 7
+axes.labelsize: 7
+axes.titlesize: 7
+legend.fontsize: 6
+xtick.labelsize: 6
+ytick.labelsize: 6
+
+# -------- Lines (Nature: 0.25-1pt) --------
+lines.linewidth: 1.0
+axes.linewidth: 0.5
+xtick.major.width: 0.5
+ytick.major.width: 0.5
+xtick.minor.width: 0.4
+ytick.minor.width: 0.4
+
+# -------- Ticks (smaller for 7pt figures) --------
+xtick.major.size: 2.5
+ytick.major.size: 2.5
+xtick.minor.size: 1.5
+ytick.minor.size: 1.5
+
+# -------- Color cycle (Okabe-Ito, colorblind-safe per Nature guidelines) --------
+axes.prop_cycle: cycler('color', ['0072B2', 'D55E00', '009E73', 'CC79A7', 'F0E442', '56B4E9', 'E69F00', '000000'])

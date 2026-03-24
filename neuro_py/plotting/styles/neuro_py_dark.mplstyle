@@ -1,0 +1,32 @@
+# -------- Fonts --------
+font.family: sans-serif
+font.sans-serif: Helvetica, Arial, DejaVu Sans
+
+# -------- Font sizes --------
+font.size: 10
+axes.labelsize: 10
+axes.titlesize: 10
+legend.fontsize: 9
+xtick.labelsize: 9
+ytick.labelsize: 9
+
+# -------- Colors --------
+figure.facecolor: 1C1C1E
+axes.facecolor: 1C1C1E
+text.color: EFEFEF
+axes.labelcolor: EFEFEF
+xtick.color: EFEFEF
+ytick.color: EFEFEF
+axes.edgecolor: 555555
+
+# -------- Lines --------
+lines.linewidth: 1.5
+axes.linewidth: 0.6
+grid.color: 333333
+grid.linewidth: 0.5
+
+# -------- Color cycle (bright, high contrast on dark bg) --------
+axes.prop_cycle: cycler('color', ['60B4FF', 'FF6B6B', '51CF66', 'FFD43B', 'CC5DE8', 'FF922B', '20C997', 'FFFFFF'])
+
+# -------- Misc --------
+axes.unicode_minus: False

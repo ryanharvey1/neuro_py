@@ -1,8 +1,10 @@
 import warnings
 from itertools import cycle
+from pathlib import Path
 from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,31 +14,83 @@ from matplotlib.patches import PathPatch
 from neuro_py.process.peri_event import joint_peth
 from neuro_py.process.utils import average_diagonal
 
+WIDTHS = {
+    # Nature
+    "nature_single": 255,  # 90mm
+    "nature_double": 510,  # 180mm
+    # Science
+    "science_single": 162,  # 5.7cm
+    "science_double": 343,  # 12.1cm
+    "science_triple": 521,  # 18.4cm
+    # Cell/Neuron
+    "cell_single": 241,  # 8.5cm
+    "cell_1p5": 323,  # 11.4cm
+    "cell_double": 493,  # 17.4cm
+    # Generic aliases
+    "single_col": 255,
+    "double_col": 510,
+    "beamer": 307.28987,
+    "thesis": 426.79135,
+    "textwidth": 418,
+    "paper": 595.276,
+}
 
-def set_plotting_defaults() -> None:
+WORKFLOW_FONTS = {
+    "word": ["Times New Roman", "DejaVu Serif"],
+    "latex": ["Latin Modern Roman", "Times New Roman", "DejaVu Serif"],
+    "nature": ["Helvetica", "Arial", "DejaVu Sans"],
+    "dark": ["Helvetica", "Arial", "DejaVu Sans"],
+}
+
+
+def _check_fonts(requested_fonts: list[str]) -> None:
+    """Warn if any requested fonts are not found on the system."""
+    available = {f.name for f in fm.fontManager.ttflist}
+    missing = [f for f in requested_fonts if f not in available]
+    if missing:
+        warnings.warn(
+            f"The following fonts were not found on your system and will fall back "
+            f"to the next available font: {missing}. "
+            f"Install them for consistent figure rendering across machines.",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
+def set_plotting_defaults(workflow: str = "nature") -> None:
     """
-    Set default plotting parameters for matplotlib with LaTeX-style fonts.
+    Apply matplotlib style based on workflow.
 
-    This function updates matplotlib's plotting style to use serif fonts,
-    sets font sizes for various elements, and ensures that SVG output uses
-    non-embedded fonts for better compatibility.
+    Parameters
+    ----------
+    workflow : str
+        "latex", "word", "nature", or "dark"
     """
-    tex_fonts = {
-        "font.family": "serif",
-        "axes.labelsize": 10,
-        "font.size": 10,
-        "legend.fontsize": 8,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "svg.fonttype": "none",
-    }
 
-    plt.style.use("default")
-    plt.rcParams.update(tex_fonts)
+    base = Path(__file__).parent / "styles"
+    base_style = base / "base.mplstyle"
+
+    if workflow == "latex":
+        style_path = base / "neuro_py_latex.mplstyle"
+    elif workflow == "word":
+        style_path = base / "neuro_py_word.mplstyle"
+    elif workflow == "nature":
+        style_path = base / "neuro_py_nature.mplstyle"
+    elif workflow == "dark":
+        style_path = base / "neuro_py_dark.mplstyle"
+    else:
+        raise ValueError("workflow must be 'latex', 'word', 'nature', or 'dark'")
+
+    _check_fonts(WORKFLOW_FONTS[workflow])
+
+    plt.style.use(["default", base_style, style_path])
 
 
 def set_size(
-    width: Union[float, str], fraction: float = 1, subplots: Tuple[int, int] = (1, 1)
+    width: Union[float, str] = "double_col",
+    fraction: float = 1,
+    subplots: Tuple[int, int] = (1, 1),
+    ratio: Optional[float] = None,  # override golden ratio
 ) -> Tuple[float, float]:
     """
     Set figure dimensions to avoid scaling in LaTeX.
@@ -45,23 +99,29 @@ def set_size(
     ----------
     width : float or str
         Document width in points (float) or predefined document type (str).
-        Supported types: 'thesis', 'beamer', 'paper'.
+        Supported types: see WIDTHS dictionary for all presets (nature_single, nature_double,
+        science_single, science_double, science_triple, cell_single, cell_1p5, cell_double,
+        single_col, double_col, beamer, thesis, textwidth, paper).
     fraction : float, optional
         Fraction of the width which you wish the figure to occupy, by default 1.
     subplots : tuple of int, optional
-        Number of rows and columns of subplots, by default (1, 1).
+        Number of rows and columns of subplots, by default (1, 1). Used to adjust height accordingly.
+    ratio : float, optional
+        The aspect ratio of the figure (height/width), by default None (uses golden ratio).
 
     Returns
     -------
     tuple of float
         Dimensions of the figure in inches (width, height).
     """
-    if width == "thesis":
-        width_pt = 426.79135
-    elif width == "beamer":
-        width_pt = 307.28987
-    elif width == "paper":
-        width_pt = 595.276
+
+    if isinstance(width, str):
+        if width not in WIDTHS:
+            raise ValueError(
+                f"Unknown width preset '{width}'. Choose from: {list(WIDTHS)}"
+            )
+
+        width_pt = WIDTHS[width]
     else:
         width_pt = width
 
@@ -71,15 +131,14 @@ def set_size(
     inches_per_pt = 1 / 72.27
 
     # Golden ratio to set aesthetic figure height
-    # https://disq.us/p/2940ij3
-    golden_ratio = (5**0.5 - 1) / 2
+    aspect = ratio if ratio is not None else (5**0.5 - 1) / 2
 
     # Figure width in inches
     fig_width_in = fig_width_pt * inches_per_pt
     # Figure height in inches
-    fig_height_in = fig_width_in * golden_ratio * (subplots[0] / subplots[1])
+    fig_height_in = fig_width_in * aspect * (subplots[0] / subplots[1])
 
-    return (fig_width_in, fig_height_in)
+    return fig_width_in, fig_height_in
 
 
 def lighten_color(color: str, amount: float = 0.5) -> str:

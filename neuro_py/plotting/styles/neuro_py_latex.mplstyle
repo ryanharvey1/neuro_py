@@ -1,0 +1,30 @@
+# -------- Fonts --------
+font.family: serif
+font.serif: Latin Modern Roman, CMU Serif, Times New Roman, DejaVu Serif
+
+# -------- Font sizes --------
+# LaTeX article default is 10pt body text
+font.size: 10
+axes.labelsize: 10
+axes.titlesize: 10
+legend.fontsize: 8
+xtick.labelsize: 8
+ytick.labelsize: 8
+
+# -------- Lines --------
+# Heavier than nature to match serif body text weight
+lines.linewidth: 1.0
+axes.linewidth: 0.6
+xtick.major.width: 0.6
+ytick.major.width: 0.6
+xtick.minor.width: 0.4
+ytick.minor.width: 0.4
+
+# -------- Ticks --------
+xtick.major.size: 3.0
+ytick.major.size: 3.0
+xtick.minor.size: 1.5
+ytick.minor.size: 1.5
+
+# -------- Color cycle (Okabe-Ito, colorblind-safe) --------
+axes.prop_cycle: cycler('color', ['0072B2', 'D55E00', '009E73', 'CC79A7', 'F0E442', '56B4E9', 'E69F00', '000000'])
