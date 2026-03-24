@@ -39,6 +39,7 @@ WORKFLOW_FONTS = {
     "word": ["Times New Roman", "DejaVu Serif"],
     "latex": ["Latin Modern Roman", "Times New Roman", "DejaVu Serif"],
     "nature": ["Helvetica", "Arial", "DejaVu Sans"],
+    "dark": ["Helvetica", "Arial", "DejaVu Sans"],
 }
 
 
@@ -63,7 +64,7 @@ def set_plotting_defaults(workflow: str = "nature") -> None:
     Parameters
     ----------
     workflow : str
-        "latex", "word", or "nature"
+        "latex", "word", "nature", or "dark"
     """
 
     base = Path(__file__).parent / "styles"
@@ -75,8 +76,10 @@ def set_plotting_defaults(workflow: str = "nature") -> None:
         style_path = base / "neuro_py_word.mplstyle"
     elif workflow == "nature":
         style_path = base / "neuro_py_nature.mplstyle"
+    elif workflow == "dark":
+        style_path = base / "neuro_py_dark.mplstyle"
     else:
-        raise ValueError("workflow must be 'latex', 'word', or 'nature'")
+        raise ValueError("workflow must be 'latex', 'word', 'nature', or 'dark'")
 
     _check_fonts(WORKFLOW_FONTS[workflow])
 
