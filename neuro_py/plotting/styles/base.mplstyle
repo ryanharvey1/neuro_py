@@ -1,0 +1,44 @@
+# -------- Fonts --------
+svg.fonttype: none
+pdf.fonttype: 42
+ps.fonttype: 42
+
+# -------- Font sizes --------
+font.size: 11
+axes.labelsize: 11
+axes.titlesize: 11
+legend.fontsize: 9
+xtick.labelsize: 9
+ytick.labelsize: 9
+
+# -------- Lines --------
+lines.linewidth: 1.5
+axes.linewidth: 0.8
+
+# -------- Ticks --------
+xtick.major.size: 3.5
+ytick.major.size: 3.5
+xtick.major.width: 0.8
+ytick.major.width: 0.8
+xtick.minor.size: 2.0
+ytick.minor.size: 2.0
+xtick.minor.width: 0.6
+ytick.minor.width: 0.6
+xtick.direction: out
+ytick.direction: out
+
+# -------- Legend --------
+legend.frameon: False
+
+# -------- Saving --------
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.pad_inches: 0.05
+
+# -------- Axes --------
+axes.spines.top: False
+axes.spines.right: False
+
+# ------ facecolor ------
+figure.facecolor: white
+axes.facecolor: white
