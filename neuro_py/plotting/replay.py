@@ -18,9 +18,9 @@ def plot_2d_replay(
 
     Each time bin is drawn as a separate RGBA layer; matplotlib composites
     them naturally. Color encodes elapsed time within the replay (early→late
-    following the chosen colormap). Alpha is power-scaled by each frame's
-    probability relative to the global max, which preserves relative intensity
-    across bins and avoids shadows from low-probability tails.
+    following the chosen colormap). Alpha is power-scaled from frame
+    probabilities using either per-frame normalization (default) or global
+    normalization across all frames.
 
     Parameters
     ----------
@@ -35,7 +35,9 @@ def plot_2d_replay(
         Spatial extent in data coordinates. Defaults to bin indices.
     saturation : float, > 0
         Controls how much of the probability distribution is visible via
-        alpha = (p / frame.max()) ** (1 / saturation).
+        alpha = (p / norm_max) ** (1 / saturation), where norm_max is
+        frame.max() when per_frame_alpha_normalization=True and global_max
+        when per_frame_alpha_normalization=False.
         saturation=1  → exponent=1, alpha scales linearly with probability.
         saturation<1  → exponent>1, low-probability regions fade faster (sparse).
         saturation>1  → exponent<1, low-probability regions boosted (dense/flat).
@@ -46,7 +48,8 @@ def plot_2d_replay(
         Absolute floor applied alongside percentile_threshold.
         Prevents near-zero values in sparse frames from leaking through.
     per_frame_alpha_normalization : bool
-        If True, alpha is normalized by each frame's max. If False, alpha is normalized by the global max across all frames.
+        If True, alpha is normalized by each frame's max (default). If False,
+        alpha is normalized by the global max across all frames.
         The latter preserves relative intensity across frames, but may cause low-probability frames to be very faint.
 
     Returns
@@ -61,8 +64,8 @@ def plot_2d_replay(
     >>> for ax, kind, title in zip(
     ...    axes, ["linear", "curved", "diffuse"], ["Linear", "Curved", "Diffuse (wide)"]
     ... ):
-    >>>    plot_2d_replay(make_replay(kind=kind), ax=ax, saturation=0.5)
-    >>>    ax.set_title(title)
+    ...    plot_2d_replay(make_replay(kind=kind), ax=ax, saturation=0.5)
+    ...    ax.set_title(title)
     >>> fig.suptitle("Replay types", y=1.02)
     >>> fig.tight_layout()
     >>> plt.show()
@@ -73,8 +76,8 @@ def plot_2d_replay(
 
     >>> fig, axes = plt.subplots(1, 4, figsize=(14, 4))
     >>> for ax, sat in zip(axes, sat_values):
-    >>>     plot_2d_replay(mat, ax=ax, saturation=sat)
-    >>>     ax.set_title(f"saturation={sat}")
+    ...     plot_2d_replay(mat, ax=ax, saturation=sat)
+    ...     ax.set_title(f"saturation={sat}")
     >>> fig.suptitle("Saturation comparison", y=1.02)
     >>> fig.tight_layout()
     >>> plt.show()
@@ -87,10 +90,21 @@ def plot_2d_replay(
     >>> axes[1].set_title("Global normalization")
     >>> fig.tight_layout()
     >>> plt.show()
-
-
-
     """
+    replay_matrix = np.asarray(replay_matrix)
+
+    if replay_matrix.ndim != 3:
+        raise ValueError("replay_matrix must be a 3D array with shape (nx, ny, T)")
+
+    if replay_matrix.shape[2] == 0:
+        raise ValueError("replay_matrix must have at least one time bin (T > 0)")
+
+    if not np.isfinite(replay_matrix).all():
+        raise ValueError("replay_matrix must contain only finite values")
+
+    if (replay_matrix < 0).any():
+        raise ValueError("replay_matrix must be non-negative")
+
     if saturation <= 0:
         raise ValueError("saturation must be > 0")
 
@@ -100,12 +114,19 @@ def plot_2d_replay(
         fig = ax.get_figure()
 
     nx, ny, T = replay_matrix.shape
-    colormap = matplotlib.colormaps[cmap]
+    if isinstance(cmap, matplotlib.colors.Colormap):
+        colormap = cmap
+    else:
+        colormap = matplotlib.colormaps.get_cmap(cmap)
 
     # convert each frame to a probability distribution (if not already), and find global max for consistent alpha scaling
     replay_matrix = replay_matrix.copy()
     for t in range(T):
-        replay_matrix[:, :, t] = replay_matrix[:, :, t] / replay_matrix[:, :, t].sum()
+        frame_sum = replay_matrix[:, :, t].sum()
+        if frame_sum > 0:
+            replay_matrix[:, :, t] = replay_matrix[:, :, t] / frame_sum
+        else:
+            replay_matrix[:, :, t] = 0
 
     global_max = replay_matrix.max()
 
@@ -137,6 +158,8 @@ def plot_2d_replay(
         if per_frame_alpha_normalization:
             alpha = np.power(frame / frame.max(), 1.0 / saturation)
         else:
+            if global_max == 0:
+                continue
             alpha = np.power(frame / global_max, 1.0 / saturation)
 
         rgba = np.zeros((*frame.shape, 4))
@@ -177,6 +200,10 @@ def make_replay(nx=50, ny=50, T=15, kind="linear", seed=42):
         xs = np.linspace(8, 42, T) + rng.normal(0, 2, T)
         ys = np.linspace(42, 8, T) + rng.normal(0, 2, T)
         sigma = 8
+    else:
+        raise ValueError(
+            "Unknown kind. Expected one of {'linear', 'curved', 'diffuse'}."
+        )
 
     yi, xi = np.mgrid[0:ny, 0:nx]
     for t in range(T):
