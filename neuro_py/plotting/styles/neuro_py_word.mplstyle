@@ -1,3 +1,29 @@
 # -------- Fonts --------
 font.family: serif
 font.serif: Times New Roman, DejaVu Serif
+
+# -------- Font sizes (matches Word/Google Doc 11pt body) --------
+font.size: 11
+axes.labelsize: 11
+axes.titlesize: 11
+legend.fontsize: 9
+xtick.labelsize: 9
+ytick.labelsize: 9
+
+# -------- Lines --------
+# Slightly heavier than nature for screen/office viewing
+lines.linewidth: 1.5
+axes.linewidth: 0.8
+xtick.major.width: 0.8
+ytick.major.width: 0.8
+xtick.minor.width: 0.6
+ytick.minor.width: 0.6
+
+# -------- Ticks --------
+xtick.major.size: 3.5
+ytick.major.size: 3.5
+xtick.minor.size: 2.0
+ytick.minor.size: 2.0
+
+# -------- Color cycle (Okabe-Ito, colorblind-safe) --------
+axes.prop_cycle: cycler('color', ['0072B2', 'D55E00', '009E73', 'CC79A7', 'F0E442', '56B4E9', 'E69F00', '000000'])
