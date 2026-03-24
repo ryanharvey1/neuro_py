@@ -1,5 +1,6 @@
 import warnings
 from itertools import cycle
+from pathlib import Path
 from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
@@ -8,8 +9,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.patches import PathPatch
-from pathlib import Path
-import matplotlib.pyplot as plt
+
 from neuro_py.process.peri_event import joint_peth
 from neuro_py.process.utils import average_diagonal
 
@@ -21,6 +21,7 @@ WIDTHS = {
     "textwidth": 418,
     "paper": 595.276,
 }
+
 
 def set_plotting_defaults(workflow: str = "word") -> None:
     """
@@ -43,6 +44,7 @@ def set_plotting_defaults(workflow: str = "word") -> None:
         raise ValueError("workflow must be 'latex' or 'word'")
 
     plt.style.use(["default", base_style, style_path])
+
 
 def set_size(
     width: Union[float, str],
@@ -70,8 +72,6 @@ def set_size(
     tuple of float
         Dimensions of the figure in inches (width, height).
     """
-
-
 
     if isinstance(width, str):
         if width not in WIDTHS:
