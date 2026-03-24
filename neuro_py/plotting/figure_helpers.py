@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,6 +22,25 @@ WIDTHS = {
     "textwidth": 418,
     "paper": 595.276,
 }
+
+WORKFLOW_FONTS = {
+    "word": ["Times New Roman", "DejaVu Serif"],
+    "latex": ["Latin Modern Roman", "Times New Roman", "DejaVu Serif"],
+}
+
+
+def _check_fonts(requested_fonts: list[str]) -> None:
+    """Warn if any requested fonts are not found on the system."""
+    available = {f.name for f in fm.fontManager.ttflist}
+    missing = [f for f in requested_fonts if f not in available]
+    if missing:
+        warnings.warn(
+            f"The following fonts were not found on your system and will fall back "
+            f"to the next available font: {missing}. "
+            f"Install them for consistent figure rendering across machines.",
+            UserWarning,
+            stacklevel=3,
+        )
 
 
 def set_plotting_defaults(workflow: str = "word") -> None:
@@ -42,6 +62,8 @@ def set_plotting_defaults(workflow: str = "word") -> None:
         style_path = base / "neuro_py_word.mplstyle"
     else:
         raise ValueError("workflow must be 'latex' or 'word'")
+
+    _check_fonts(WORKFLOW_FONTS[workflow])
 
     plt.style.use(["default", base_style, style_path])
 
