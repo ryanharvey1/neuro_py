@@ -1,10 +1,3 @@
-"""
-plot_2d_replay.py
------------------
-Plot a 2D replay event from a (nx, ny, T) probability matrix.
-Colors encode elapsed time within the replay using a colormap.
-"""
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
