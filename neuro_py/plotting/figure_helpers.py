@@ -84,7 +84,7 @@ def set_plotting_defaults(workflow: str = "nature") -> None:
 
 
 def set_size(
-    width: Union[float, str],
+    width: Union[float, str] = "double_col",
     fraction: float = 1,
     subplots: Tuple[int, int] = (1, 1),
     ratio: Optional[float] = None,  # override golden ratio
@@ -96,7 +96,9 @@ def set_size(
     ----------
     width : float or str
         Document width in points (float) or predefined document type (str).
-        Supported types: 'thesis', 'beamer', 'paper', 'textwidth', 'single_col', 'double_col'.
+        Supported types: see WIDTHS dictionary for all presets (nature_single, nature_double,
+        science_single, science_double, science_triple, cell_single, cell_1p5, cell_double,
+        single_col, double_col, beamer, thesis, textwidth, paper).
     fraction : float, optional
         Fraction of the width which you wish the figure to occupy, by default 1.
     subplots : tuple of int, optional
