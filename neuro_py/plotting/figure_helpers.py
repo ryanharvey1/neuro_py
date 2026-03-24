@@ -15,8 +15,20 @@ from neuro_py.process.peri_event import joint_peth
 from neuro_py.process.utils import average_diagonal
 
 WIDTHS = {
-    "single_col": 252,  # ~3.5 in
-    "double_col": 516,  # ~7.2 in
+    # Nature
+    "nature_single": 255,  # 90mm
+    "nature_double": 510,  # 180mm
+    # Science
+    "science_single": 162,  # 5.7cm
+    "science_double": 343,  # 12.1cm
+    "science_triple": 521,  # 18.4cm
+    # Cell/Neuron
+    "cell_single": 241,  # 8.5cm
+    "cell_1p5": 323,  # 11.4cm
+    "cell_double": 493,  # 17.4cm
+    # Generic aliases
+    "single_col": 255,
+    "double_col": 510,
     "beamer": 307.28987,
     "thesis": 426.79135,
     "textwidth": 418,
@@ -26,6 +38,7 @@ WIDTHS = {
 WORKFLOW_FONTS = {
     "word": ["Times New Roman", "DejaVu Serif"],
     "latex": ["Latin Modern Roman", "Times New Roman", "DejaVu Serif"],
+    "nature": ["Helvetica", "Arial", "DejaVu Sans"],
 }
 
 
@@ -43,14 +56,14 @@ def _check_fonts(requested_fonts: list[str]) -> None:
         )
 
 
-def set_plotting_defaults(workflow: str = "word") -> None:
+def set_plotting_defaults(workflow: str = "nature") -> None:
     """
     Apply matplotlib style based on workflow.
 
     Parameters
     ----------
     workflow : str
-        "latex" or "word"
+        "latex", "word", or "nature"
     """
 
     base = Path(__file__).parent / "styles"
@@ -60,8 +73,10 @@ def set_plotting_defaults(workflow: str = "word") -> None:
         style_path = base / "neuro_py_latex.mplstyle"
     elif workflow == "word":
         style_path = base / "neuro_py_word.mplstyle"
+    elif workflow == "nature":
+        style_path = base / "neuro_py_nature.mplstyle"
     else:
-        raise ValueError("workflow must be 'latex' or 'word'")
+        raise ValueError("workflow must be 'latex', 'word', or 'nature'")
 
     _check_fonts(WORKFLOW_FONTS[workflow])
 
