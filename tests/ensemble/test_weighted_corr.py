@@ -244,6 +244,144 @@ class TestWeightedCorr2D:
         assert_allclose(result[1], expected_x_traj)
         assert_allclose(result[2], expected_y_traj)
 
+    def test_single_axis_fallback_x_degenerate_uses_y_only_positive(self):
+        """If X has zero variance, output should fall back to Y correlation only."""
+        n = 20
+        x_coords = np.zeros(n, dtype=np.float64)
+        y_coords = np.arange(n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+        weights = np.zeros((n, n, n), dtype=np.float64)
+        for t in range(n):
+            weights[:, t, t] = 1.0
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        # With uniform weights and y==time, corr_y should be +1 and corr_x undefined.
+        assert_allclose(result[0], 1.0, atol=1e-12)
+        assert np.isfinite(result[4])
+        assert not np.isinf(result[4])
+
+    def test_single_axis_fallback_y_degenerate_uses_x_only_positive(self):
+        """If Y has zero variance, output should fall back to X correlation only."""
+        n = 20
+        x_coords = np.arange(n, dtype=np.float64)
+        y_coords = np.zeros(n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+        weights = np.zeros((n, n, n), dtype=np.float64)
+        for t in range(n):
+            weights[t, :, t] = 1.0
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        # With uniform weights and x==time, corr_x should be +1 and corr_y undefined.
+        assert_allclose(result[0], 1.0, atol=1e-12)
+        assert np.isfinite(result[3])
+        assert not np.isinf(result[3])
+
+    def test_both_axes_degenerate_returns_nan(self):
+        """If both spatial axes are degenerate, spatiotemporal correlation should be NaN."""
+        n = 10
+        x_coords = np.zeros(n, dtype=np.float64)
+        y_coords = np.zeros(n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+        weights = np.ones((n, n, n), dtype=np.float64)
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+        assert np.isnan(result[0])
+
+    def test_near_zero_variance_axis_ignored_by_epsilon_logic(self):
+        """Axis with tiny variance should be ignored in favor of valid axis."""
+        n = 20
+        x_coords = np.arange(n, dtype=np.float64)
+        # Tiny spread intended to fall below internal degenerate-axis epsilon threshold.
+        y_coords = np.linspace(0.0, 1e-20, n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+        weights = np.zeros((n, n, n), dtype=np.float64)
+        for t in range(n):
+            weights[t, :, t] = 1.0
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        # Valid axis x is perfectly correlated with time.
+        assert_allclose(result[0], 1.0, atol=1e-10)
+        assert np.isfinite(result[3])
+        assert not np.isinf(result[3])
+
+    def test_normal_case_formula_regression(self):
+        """When both axes are valid, keep original combined-correlation formula."""
+        n = 10
+        x_coords = np.arange(n, dtype=np.float64)
+        y_coords = np.arange(n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+        weights = np.ones((n, n, n), dtype=np.float64)
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        x_grid, y_grid, t_grid = np.meshgrid(
+            x_coords, y_coords, time_coords, indexing="ij"
+        )
+        w = weights
+        w_sum = np.sum(w)
+
+        mean_x = np.sum(w * x_grid) / w_sum
+        mean_y = np.sum(w * y_grid) / w_sum
+        mean_t = np.sum(w * t_grid) / w_sum
+
+        cov_xt = np.sum(w * (x_grid - mean_x) * (t_grid - mean_t)) / w_sum
+        cov_yt = np.sum(w * (y_grid - mean_y) * (t_grid - mean_t)) / w_sum
+        cov_xx = np.sum(w * (x_grid - mean_x) ** 2) / w_sum
+        cov_yy = np.sum(w * (y_grid - mean_y) ** 2) / w_sum
+        cov_tt = np.sum(w * (t_grid - mean_t) ** 2) / w_sum
+
+        corr_x = cov_xt / np.sqrt(cov_xx * cov_tt)
+        corr_y = cov_yt / np.sqrt(cov_yy * cov_tt)
+        expected = np.sqrt((corr_x**2 + corr_y**2) / 2.0) * np.sign(corr_x + corr_y)
+
+        assert_allclose(result[0], expected, atol=1e-12)
+
+    def test_single_axis_fallback_preserves_negative_sign(self):
+        """If only one valid axis has negative correlation, output should be negative."""
+        n = 20
+        x_coords = np.arange(n, dtype=np.float64)
+        y_coords = np.zeros(n, dtype=np.float64)
+        time_coords = np.arange(n - 1, -1, -1, dtype=np.float64)
+        weights = np.zeros((n, n, n), dtype=np.float64)
+        for t in range(n):
+            weights[t, :, t] = 1.0
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        assert result[0] < 0
+        assert_allclose(result[0], -1.0, atol=1e-12)
+        assert np.isfinite(result[3])
+        assert not np.isinf(result[3])
+
+    def test_axis_fallback_matches_1d_weighted_correlation_with_random_weights(self):
+        """Fallback result should match 1D weighted correlation from flattened valid axis."""
+        rng = np.random.default_rng(123)
+        n = 10
+        weights = rng.random((n, n, n), dtype=np.float64)
+        x_coords = np.arange(n, dtype=np.float64)
+        y_coords = np.zeros(n, dtype=np.float64)
+        time_coords = np.arange(n, dtype=np.float64)
+
+        result = weighted_corr_2d(weights, x_coords, y_coords, time_coords)
+
+        x_grid, _, t_grid = np.meshgrid(x_coords, y_coords, time_coords, indexing="ij")
+        x_flat = x_grid.ravel()
+        t_flat = t_grid.ravel()
+        w_flat = weights.ravel()
+        w_sum = np.sum(w_flat)
+
+        mean_x = np.sum(w_flat * x_flat) / w_sum
+        mean_t = np.sum(w_flat * t_flat) / w_sum
+        cov_xt = np.sum(w_flat * (x_flat - mean_x) * (t_flat - mean_t)) / w_sum
+        var_x = np.sum(w_flat * (x_flat - mean_x) ** 2) / w_sum
+        var_t = np.sum(w_flat * (t_flat - mean_t) ** 2) / w_sum
+        corr_1d = cov_xt / np.sqrt(var_x * var_t)
+
+        assert np.isclose(result[0], corr_1d, rtol=1e-10, atol=1e-12)
+
 
 class TestWeightedCorrelation:
     """Test suite for weighted_correlation function."""
@@ -479,7 +617,14 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
+        (
+            correlation,
+            place_trajectory,
+            slope_place,
+            mean_time,
+            mean_place,
+            intercept_place,
+        ) = result
 
         # Check that means reflect the custom values
         assert 10 <= mean_time <= 30
@@ -501,7 +646,14 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
+        (
+            correlation,
+            place_trajectory,
+            slope_place,
+            mean_time,
+            mean_place,
+            intercept_place,
+        ) = result
         # Intercept should be approximately 0 for perfect diagonal
         assert_allclose(intercept_place, 0.0, rtol=1e-5, atol=1e-8)
 
@@ -543,9 +695,18 @@ class TestWeightedCorrelation:
             posterior, time, place_bin_centers, return_full_output=True
         )
 
-        correlation, place_trajectory, slope_place, mean_time, mean_place, intercept_place = result
+        (
+            correlation,
+            place_trajectory,
+            slope_place,
+            mean_time,
+            mean_place,
+            intercept_place,
+        ) = result
         # Intercept formula consistency
-        assert_allclose(intercept_place, mean_place - slope_place * mean_time, rtol=1e-5)
+        assert_allclose(
+            intercept_place, mean_place - slope_place * mean_time, rtol=1e-5
+        )
 
         # Manual calculation of weighted means
         # Weight at (place=10, time=0) = 1.0
