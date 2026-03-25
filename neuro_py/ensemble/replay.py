@@ -93,7 +93,7 @@ def __weighted_corr_2d_jit(
     denom_x = np.sqrt(cov_xx * cov_tt)
     denom_y = np.sqrt(cov_yy * cov_tt)
 
-    if denom_x == 0.0 or denom_y == 0.0 or cov_tt == 0.0:
+    if cov_tt == 0.0:
         nan_val = np.array(np.nan, dtype=dtype)
         return (
             np.nan,
@@ -106,8 +106,6 @@ def __weighted_corr_2d_jit(
         )
 
     # Compute correlations and slopes
-    corr_x = cov_xt / denom_x
-    corr_y = cov_yt / denom_y
     slope_x = cov_xt / cov_tt
     slope_y = cov_yt / cov_tt
 
@@ -119,10 +117,24 @@ def __weighted_corr_2d_jit(
         x_traj[k] = mean_x + slope_x * (time_coords[k] - mean_t)
         y_traj[k] = mean_y + slope_y * (time_coords[k] - mean_t)
 
-    # Compute spatiotemporal correlation
-    spatiotemporal_corr = np.sqrt((corr_x**2 + corr_y**2) / 2) * np.sign(
-        corr_x + corr_y
-    )
+    # Compute spatiotemporal correlation over valid axes only
+    # Use a small epsilon rather than exact zero to catch near-degenerate axes
+    eps = 1e-10
+    x_valid = denom_x > eps
+    y_valid = denom_y > eps
+
+    corr_x = cov_xt / denom_x if x_valid else np.nan
+    corr_y = cov_yt / denom_y if y_valid else np.nan
+
+    if x_valid and y_valid:
+        sum_corr = corr_x + corr_y
+        spatiotemporal_corr = np.sqrt((corr_x**2 + corr_y**2) / 2.0) * np.sign(sum_corr)
+    elif x_valid:
+        spatiotemporal_corr = corr_x
+    elif y_valid:
+        spatiotemporal_corr = corr_y
+    else:
+        spatiotemporal_corr = np.nan
 
     return (
         spatiotemporal_corr,
@@ -559,7 +571,7 @@ def weighted_correlation(
 
     # Compute weighted means
     total_weight = np.sum(weights)
-    
+
     # Handle degenerate case: no weights
     if total_weight == 0.0:
         return (
@@ -570,7 +582,7 @@ def weighted_correlation(
             np.nan,
             np.nan,
         )
-    
+
     mean_time = np.sum(weights * time_flat) / total_weight
     mean_place = np.sum(weights * place_flat) / total_weight
 
@@ -854,7 +866,7 @@ def compute_bias_matrix_optimized_(spike_times, neuron_ids, total_neurons):
             # Count how many times neuron i spikes before neuron j
             before_count = crosscorr[:50].sum()
             after_count = crosscorr[51:].sum()
-            
+
             # Only compute bias if we have any spikes between this neuron pair
             # Otherwise, keep the default neutral value of 0.5
             if before_count + after_count > 0:
