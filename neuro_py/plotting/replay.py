@@ -168,9 +168,6 @@ def plot_2d_replay(
 
         ax.imshow(rgba, origin="lower", extent=extent, aspect="equal")
 
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
-
     return fig, ax
 
 
