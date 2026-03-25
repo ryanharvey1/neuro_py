@@ -259,7 +259,6 @@ class TestWeightedCorr2D:
         # With uniform weights and y==time, corr_y should be +1 and corr_x undefined.
         assert_allclose(result[0], 1.0, atol=1e-12)
         assert np.isfinite(result[4])
-        assert not np.isinf(result[4])
 
     def test_single_axis_fallback_y_degenerate_uses_x_only_positive(self):
         """If Y has zero variance, output should fall back to X correlation only."""
@@ -276,7 +275,6 @@ class TestWeightedCorr2D:
         # With uniform weights and x==time, corr_x should be +1 and corr_y undefined.
         assert_allclose(result[0], 1.0, atol=1e-12)
         assert np.isfinite(result[3])
-        assert not np.isinf(result[3])
 
     def test_both_axes_degenerate_returns_nan(self):
         """If both spatial axes are degenerate, spatiotemporal correlation should be NaN."""
@@ -305,7 +303,6 @@ class TestWeightedCorr2D:
         # Valid axis x is perfectly correlated with time.
         assert_allclose(result[0], 1.0, atol=1e-10)
         assert np.isfinite(result[3])
-        assert not np.isinf(result[3])
 
     def test_normal_case_formula_regression(self):
         """When both axes are valid, keep original combined-correlation formula."""
@@ -354,7 +351,6 @@ class TestWeightedCorr2D:
         assert result[0] < 0
         assert_allclose(result[0], -1.0, atol=1e-12)
         assert np.isfinite(result[3])
-        assert not np.isinf(result[3])
 
     def test_axis_fallback_matches_1d_weighted_correlation_with_random_weights(self):
         """Fallback result should match 1D weighted correlation from flattened valid axis."""
