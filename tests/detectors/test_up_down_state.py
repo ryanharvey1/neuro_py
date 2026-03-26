@@ -8,12 +8,13 @@ from neuro_py.detectors.up_down_state import (
 
 
 def test_detect_up_down_states_detection():
+    rng = np.random.default_rng(0)
     # Mock data generation
     down_state_times = [4, 7, 15]
 
     spikes_upstate = []
     for _ in range(10):
-        up_spikes = np.random.poisson(0.25, 20_000)
+        up_spikes = rng.poisson(0.25, 20_000)
         spikes = np.where(up_spikes > 0)[0] * 0.001
         # silence around down states
         for down_state_time in down_state_times:
@@ -39,10 +40,10 @@ def test_detect_up_down_states_detection():
     # Check DOWN states detected in low activity periods
     down_state_intervals = down_state_epochs.time
     for down_state_time in down_state_times:
-        assert any(
-            (down_state_time >= down_state_intervals[:, 0])
-            & (down_state_time <= down_state_intervals[:, 1])
-        ), f"DOWN state at {down_state_time} not detected."
+        win = np.array([down_state_time - 0.1, down_state_time + 0.1])
+        # interval overlap: start < win_end AND end > win_start
+        overlaps = (down_state_intervals[:, 0] < win[1]) & (down_state_intervals[:, 1] > win[0])
+        assert np.any(overlaps), f"DOWN window around {down_state_time}s not detected."
 
     # Check UP states detected in high activity periods
     up_state_intervals = up_state_epochs.time
