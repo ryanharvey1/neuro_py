@@ -1588,3 +1588,103 @@ def bottom_up_replay_detection(
     }
 
     return replays, meta
+
+
+def _posterior_trajectory_nd(posterior: np.ndarray, method: str = "com") -> np.ndarray:
+    """Decode an N-dimensional posterior into a trajectory with time on the last axis."""
+    posterior = np.asarray(posterior)
+
+    if posterior.ndim < 2:
+        raise ValueError(
+            "posterior must have at least one spatial dimension and one time dimension"
+        )
+
+    spatial_shape = posterior.shape[:-1]
+    n_time = posterior.shape[-1]
+    n_spatial_dims = len(spatial_shape)
+
+    trajectory = np.full((n_time, n_spatial_dims), np.nan, dtype=float)
+    if n_time == 0:
+        return trajectory
+
+    coord_grids = np.indices(spatial_shape, dtype=float)
+
+    for t in range(n_time):
+        frame = np.nan_to_num(posterior[..., t], nan=0.0)
+        total_weight = float(np.sum(frame))
+        if total_weight <= 0.0:
+            continue
+
+        if method == "com":
+            normalized = frame / total_weight
+            for axis in range(n_spatial_dims):
+                trajectory[t, axis] = float(np.sum(coord_grids[axis] * normalized))
+        elif method == "max":
+            max_index = np.unravel_index(int(np.argmax(frame)), spatial_shape)
+            for axis, coord in enumerate(max_index):
+                trajectory[t, axis] = float(coord)
+        else:
+            raise ValueError(f"Method '{method}' not recognized. Use 'com' or 'max'.")
+
+    return trajectory
+
+
+def jump_distance(posterior, method="com"):
+    """Compute the maximum and mean step distance along a decoded posterior trajectory.
+
+    Parameters
+    ----------
+    posterior : np.ndarray
+        Posterior probability tensor with time on the last axis.
+        Examples include ``(n_space, n_time)`` for 1D, ``(ny, nx, n_time)`` for 2D,
+        and ``(d1, d2, ..., n_time)`` for higher-dimensional spatial posteriors.
+    method : str, optional
+        Decoding method used to extract the trajectory from each time slice.
+        ``"com"`` computes the center of mass, and ``"max"`` uses the maximum
+        a posteriori bin.
+
+    Returns
+    -------
+    tuple of float
+        ``(max_jump, jump)`` where ``max_jump`` is the largest Euclidean step
+        between consecutive valid trajectory points and ``jump`` is the mean step
+        size. Returns ``(nan, nan)`` if fewer than two valid time bins are available.
+
+    Notes
+    -----
+    The jump distance is computed as the Euclidean distance between consecutive valid trajectory points in bin units.
+    Output needs to be multiplied by the spatial bin size to get physical units (e.g. cm).
+
+    Examples
+    --------
+    1D posterior with time on the last axis:
+
+    >>> import numpy as np
+    >>> posterior = np.zeros((3, 3))
+    >>> posterior[0, 0] = 1.0
+    >>> posterior[1, 1] = 1.0
+    >>> posterior[2, 2] = 1.0
+    >>> jump_distance(posterior)
+    (1.0, 1.0)
+
+    2D posterior with three time bins:
+
+    >>> posterior = np.zeros((2, 2, 3))
+    >>> posterior[0, 0, 0] = 1.0
+    >>> posterior[1, 1, 1] = 1.0
+    >>> posterior[1, 0, 2] = 1.0
+    >>> jump_distance(posterior)
+    (1.4142135623730951, 1.2071067811865475)
+    """
+
+    trajectory = _posterior_trajectory_nd(posterior, method=method)
+    valid_trajectory = trajectory[~np.isnan(trajectory).any(axis=1)]
+
+    if valid_trajectory.shape[0] < 2:
+        return np.nan, np.nan
+
+    step_distances = np.linalg.norm(np.diff(valid_trajectory, axis=0), axis=1)
+    if step_distances.size == 0:
+        return np.nan, np.nan
+
+    return float(np.max(step_distances)), float(np.mean(step_distances))

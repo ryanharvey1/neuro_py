@@ -349,6 +349,72 @@ class TestBottomUpReplayDetection(unittest.TestCase):
         self.assertFalse(mask[0])
 
 
+class TestJumpDistance(unittest.TestCase):
+    def test_jump_distance_1d_ignores_zero_mass_bins(self):
+        from neuro_py.ensemble.replay import jump_distance
+
+        posterior = np.zeros((4, 4))
+        posterior[0, 0] = 1.0
+        posterior[2, 2] = 1.0
+        posterior[3, 3] = 1.0
+
+        max_jump, jump = jump_distance(posterior)
+
+        np.testing.assert_allclose(max_jump, 2.0)
+        np.testing.assert_allclose(jump, 1.5)
+
+    def test_jump_distance_2d_max_method(self):
+        from neuro_py.ensemble.replay import jump_distance
+
+        posterior = np.zeros((2, 3, 3))
+        posterior[0, 0, 0] = 1.0
+        posterior[1, 2, 1] = 1.0
+        posterior[0, 1, 2] = 1.0
+
+        max_jump, jump = jump_distance(posterior, method="max")
+
+        np.testing.assert_allclose(max_jump, np.sqrt(5.0))
+        np.testing.assert_allclose(jump, (np.sqrt(5.0) + np.sqrt(2.0)) / 2.0)
+
+    def test_jump_distance_3d_com_method(self):
+        from neuro_py.ensemble.replay import jump_distance
+
+        posterior = np.zeros((2, 2, 2, 3))
+        posterior[0, 0, 0, 0] = 1.0
+        posterior[1, 1, 1, 1] = 1.0
+        posterior[1, 1, 0, 2] = 1.0
+
+        max_jump, jump = jump_distance(posterior, method="com")
+
+        np.testing.assert_allclose(max_jump, np.sqrt(3.0))
+        np.testing.assert_allclose(jump, (np.sqrt(3.0) + 1.0) / 2.0)
+
+    def test_jump_distance_returns_nan_for_degenerate_inputs(self):
+        from neuro_py.ensemble.replay import jump_distance
+
+        single_time_bin = np.zeros((5, 1))
+        single_time_bin[2, 0] = 1.0
+        all_zero = np.zeros((4, 3))
+
+        max_jump, jump = jump_distance(single_time_bin)
+        self.assertTrue(np.isnan(max_jump))
+        self.assertTrue(np.isnan(jump))
+
+        max_jump, jump = jump_distance(all_zero)
+        self.assertTrue(np.isnan(max_jump))
+        self.assertTrue(np.isnan(jump))
+
+    def test_jump_distance_rejects_invalid_method(self):
+        from neuro_py.ensemble.replay import jump_distance
+
+        posterior = np.zeros((3, 3))
+        posterior[0, 0] = 1.0
+        posterior[1, 1] = 1.0
+
+        with self.assertRaisesRegex(ValueError, "Method 'invalid' not recognized"):
+            jump_distance(posterior, method="invalid")
+
+
 class TestComputeBiasMatrixOptimized(unittest.TestCase):
     """Test suite for compute_bias_matrix_optimized_ function."""
 
