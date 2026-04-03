@@ -32,6 +32,7 @@ __all__ = [
     "position_estimator",
     "bottom_up_replay_detection",
     "explained_variance",
+    "jump_distance",
 ]
 
 from . import decoding
@@ -65,6 +66,7 @@ from .replay import (
     WeightedCorr,
     WeightedCorrCirc,
     bottom_up_replay_detection,
+    jump_distance,
     position_estimator,
     shuffle_and_score,
     trajectory_score_bst,
