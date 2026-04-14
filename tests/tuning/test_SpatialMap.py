@@ -891,16 +891,21 @@ def test_spatial_map_shuffle_nd():
 
 
 def test_spatial_map_max_gap_changes_ratemap():
-    """Check that max_gap impacts the final ratemap (sums should differ).
+    """Check that max_gap impacts mapped output via spike retention.
 
     This test is a behavioral check — it will skip if the SpatialMap API doesn't
     accept `max_gap` or if `ratemap` is not available.
     """
-    time = np.concatenate([np.linspace(0, 10, 101), np.linspace(100, 110, 101)])
+    # Use continuous timestamps and introduce a NaN dropout in position.
+    # With strict max_gap this dropout is treated as a large gap; with loose
+    # max_gap it is bridged.
+    time = np.arange(0.0, 110.1, 0.1)
     x_pos = np.linspace(0, 1, len(time))
+    dropout_mask = (time >= 40.0) & (time <= 70.0)
+    x_pos[dropout_mask] = np.nan
 
-    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=50)
-    spike_times = np.linspace(0, 110, 200)
+    pos = nel.AnalogSignalArray(np.array([x_pos]), time=time, fs=10)
+    spike_times = np.linspace(0, 110, 220)
     st = nel.SpikeTrainArray([spike_times], fs=1000.0)
 
     try:
@@ -914,12 +919,17 @@ def test_spatial_map_max_gap_changes_ratemap():
             "SpatialMap does not expose ratemap attribute; cannot compare outputs"
         )
 
-    # Compare the total activity in the ratemaps
-    sum_strict = np.nansum(sm_strict.ratemap)
-    sum_loose = np.nansum(sm_loose.ratemap)
+    if not (hasattr(sm_strict, "st_run") and hasattr(sm_loose, "st_run")):
+        pytest.skip("SpatialMap does not expose st_run attribute; cannot compare outputs")
 
-    # They should differ when interpolation/extrapolation across the gap is handled differently
-    assert not np.isclose(sum_strict, sum_loose)
+    # Strict max_gap should exclude spikes in large timestamp gaps; loose should retain more.
+    n_spikes_strict = int(sum(len(unit_spikes) for unit_spikes in sm_strict.st_run.data))
+    n_spikes_loose = int(sum(len(unit_spikes) for unit_spikes in sm_loose.st_run.data))
+
+    assert n_spikes_loose > n_spikes_strict
+
+    # Ratemap values should not be exactly identical when retained spikes differ.
+    assert not np.array_equal(sm_strict.ratemap, sm_loose.ratemap)
 
 
 def test_max_gap_clamped_and_attribute_exposed():
