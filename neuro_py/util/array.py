@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.ndimage import gaussian_filter1d
 
 
 def find_terminal_masked_indices(
@@ -396,3 +397,125 @@ def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
             f"non-numeric columns found: {list(non_numeric)}"
         )
     return (df - df.mean(axis=0)) / df.std(axis=0, ddof=ddof)
+
+
+def smooth_peth(
+    peth,
+    smooth_window: float = 0.1,
+    smooth_std: float = 1.0,
+    dt: float | None = None,
+):
+    """
+    Fast Gaussian smoothing for PETH-like data.
+
+    Parameters
+    ----------
+    peth : np.ndarray or pandas.DataFrame
+        Shape (time, units) or (time,)
+    smooth_window : float
+        Window size in same units as time axis
+    smooth_std : float
+        Gaussian std in same units as time axis
+    dt : float, optional
+        Time step (required if peth is ndarray)
+
+    Returns
+    -------
+    same type as input
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+
+    >>> # --- Simulated PETH data ---
+    >>> # 1000 time bins (e.g., -0.5 to 0.5 seconds), 10 neurons
+    >>> n_time = 1000
+    >>> n_neurons = 10
+
+    >>> time = np.linspace(-0.5, 0.5, n_time)
+    >>> dt = time[1] - time[0]
+
+    >>> # Simulate noisy firing rates
+    >>> rng = np.random.default_rng(0)
+    >>> peth_array = rng.poisson(lam=5, size=(n_time, n_neurons)).astype(float)
+
+    >>> # --- Example 1: NumPy input ---
+    >>> smoothed_array = smooth_peth(
+    ...     peth_array,
+    >>>    smooth_window=0.05,   # 50 ms window
+    >>>    smooth_std=0.01,      # 10 ms std
+    >>>    dt=dt,
+    ... )
+
+    >>> print(smoothed_array.shape)
+    (1000, 10)
+
+
+    >>> # --- Example 2: pandas DataFrame input ---
+    >>> peth_df = pd.DataFrame(peth_array, index=time)
+
+    >>> smoothed_df = smooth_peth(
+    ...     peth_df,
+    ...     smooth_window=0.05,
+    ...     smooth_std=0.01,
+    ... )
+
+    >>> print(smoothed_df.shape)
+    (1000, 10)
+
+
+    >>> # --- Example 3: single neuron (1D input) ---
+    >>> single_unit = peth_array[:, 0]
+
+    >>> smoothed_single = smooth_peth(
+    ...    single_unit,
+    ...    smooth_window=0.05,
+    ...    smooth_std=0.01,
+    ...    dt=dt,
+    ... )
+
+    >>> print(smoothed_single.shape)
+    (1000,)
+    """
+    is_df = hasattr(peth, "index")
+
+    if is_df:
+        values = peth.values
+        dt_local = np.diff(peth.index.values)[0]
+    else:
+        if dt is None:
+            raise ValueError("dt must be provided when peth is a numpy array")
+        values = np.asarray(peth)
+        dt_local = dt
+
+    # Ensure at least 2D (time, units)
+    squeeze = False
+    if values.ndim == 1:
+        values = values[:, None]
+        squeeze = True
+
+    # Convert to samples
+    sigma = smooth_std / dt_local
+    window_samples = smooth_window / dt_local
+
+    # Match pandas rolling gaussian window
+    truncate = window_samples / (2 * sigma)
+
+    # Apply along time axis
+    smoothed = gaussian_filter1d(
+        values,
+        sigma=sigma,
+        axis=0,
+        mode="nearest",
+        truncate=truncate,
+    )
+
+    # Restore original shape
+    if squeeze:
+        smoothed = smoothed[:, 0]
+
+    if is_df:
+        return peth.__class__(smoothed, index=peth.index, columns=peth.columns)
+
+    return smoothed
