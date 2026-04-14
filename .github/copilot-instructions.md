@@ -58,6 +58,7 @@ neuro_py/
 - Ruff checks NumPy 2.0 compatibility.
 - Formatting should stay black-compatible.
 - Pytest is the test runner.
+- Write tests in pytest style; avoid `unittest.TestCase` and `unittest` assertion helpers.
 - Python support starts at 3.10.
 
 Before finishing a change, run the narrowest relevant test subset first, then broader tests if needed.

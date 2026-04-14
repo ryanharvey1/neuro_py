@@ -396,3 +396,166 @@ def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
             f"non-numeric columns found: {list(non_numeric)}"
         )
     return (df - df.mean(axis=0)) / df.std(axis=0, ddof=ddof)
+
+
+def smooth_peth(
+    peth: np.ndarray | pd.Series | pd.DataFrame,
+    smooth_window: float = 0.1,
+    smooth_std: float = 1.0,
+    dt: float | None = None,
+) -> np.ndarray | pd.Series | pd.DataFrame:
+    """
+    Fast Gaussian smoothing for PETH-like data.
+
+    Parameters
+    ----------
+    peth : np.ndarray, pandas.Series, or pandas.DataFrame
+        Shape (time, units), (time,), or Series with time index.
+    smooth_window : float
+        Window size in same units as time axis
+    smooth_std : float
+        Gaussian std in same units as time axis.
+        Internally converted to sample units for pandas Gaussian rolling.
+    dt : float, optional
+        Time step (required if peth is ndarray)
+
+    Returns
+    -------
+    same type as input
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+
+    >>> # --- Simulated PETH data ---
+    >>> # 1000 time bins (e.g., -0.5 to 0.5 seconds), 10 neurons
+    >>> n_time = 1000
+    >>> n_neurons = 10
+
+    >>> time = np.linspace(-0.5, 0.5, n_time)
+    >>> dt = time[1] - time[0]
+
+    >>> # Simulate noisy firing rates
+    >>> rng = np.random.default_rng(0)
+    >>> peth_array = rng.poisson(lam=5, size=(n_time, n_neurons)).astype(float)
+
+    >>> # --- Example 1: NumPy input ---
+    >>> smoothed_array = smooth_peth(
+    ...     peth_array,
+    ...     smooth_window=0.05,   # 50 ms window
+    ...     smooth_std=0.01,      # 10 ms std
+    ...     dt=dt,
+    ... )
+
+    >>> print(smoothed_array.shape)
+    (1000, 10)
+
+
+    >>> # --- Example 2: pandas DataFrame input ---
+    >>> peth_df = pd.DataFrame(peth_array, index=time)
+
+    >>> smoothed_df = smooth_peth(
+    ...     peth_df,
+    ...     smooth_window=0.05,
+    ...     smooth_std=0.01,
+    ... )
+
+    >>> print(smoothed_df.shape)
+    (1000, 10)
+
+
+    >>> # --- Example 3: single neuron (1D input) ---
+    >>> single_unit = peth_array[:, 0]
+
+    >>> smoothed_single = smooth_peth(
+    ...    single_unit,
+    ...    smooth_window=0.05,
+    ...    smooth_std=0.01,
+    ...    dt=dt,
+    ... )
+
+    >>> print(smoothed_single.shape)
+    (1000,)
+    """
+    if smooth_window <= 0:
+        raise ValueError("smooth_window must be positive")
+    if smooth_std <= 0:
+        raise ValueError("smooth_std must be positive")
+
+    # Determine input type and preserve metadata
+    is_series = isinstance(peth, pd.Series)
+    is_df = isinstance(peth, pd.DataFrame)
+    return_ndarray_1d = False
+
+    if is_series:
+        # Convert Series to DataFrame for rolling, preserve name and index
+        peth_df = peth.to_frame()
+        index = peth.index
+        series_name = peth.name
+    elif is_df:
+        peth_df = peth.copy()
+        index = peth.index
+        columns = peth.columns
+    else:
+        # ndarray input
+        if dt is None:
+            raise ValueError("dt must be provided for ndarray input")
+        if dt <= 0:
+            raise ValueError("dt must be positive for ndarray input")
+        values = np.asarray(peth, dtype=float)
+        if values.shape[0] < 2:
+            raise ValueError("peth must contain at least 2 time samples")
+        if values.ndim == 1:
+            dt_local = dt
+            time_index = np.arange(len(values)) * dt_local
+            peth_df = pd.Series(values, index=time_index).to_frame()
+            return_ndarray_1d = True
+        else:
+            dt_local = dt
+            time_index = np.arange(values.shape[0]) * dt_local
+            peth_df = pd.DataFrame(values, index=time_index)
+        index = peth_df.index
+
+    if len(peth_df.index) < 2:
+        raise ValueError("peth must contain at least 2 time samples")
+
+    # Get time step from index
+    time_vals = np.asarray(peth_df.index, dtype=float)
+    diffs = np.diff(time_vals)
+    if not np.all(diffs > 0):
+        raise ValueError("peth time/index must be strictly increasing")
+    dt_local = float(diffs[0])
+    if not np.allclose(diffs, dt_local, rtol=1e-6, atol=1e-12):
+        raise ValueError("peth time/index must be uniformly sampled")
+
+    # Convert smooth_window to samples
+    window_samples = max(1, int(round(smooth_window / dt_local)))
+
+    # pandas Gaussian window std is specified in sample units
+    smooth_std_samples = smooth_std / dt_local
+
+    # Use pandas rolling with Gaussian window
+    smoothed_df = (
+        peth_df.rolling(
+            window=window_samples,
+            win_type="gaussian",
+            center=True,
+            min_periods=1,
+        )
+        .mean(std=smooth_std_samples)
+        .copy()
+    )
+
+    # Convert back to original type
+    if is_series:
+        return pd.Series(smoothed_df.iloc[:, 0].values, index=index, name=series_name)
+    elif is_df:
+        return pd.DataFrame(smoothed_df.values, index=index, columns=columns)
+    else:
+        # ndarray: return as array
+        values = smoothed_df.values
+        if return_ndarray_1d:
+            return values[:, 0]
+        else:
+            return values
