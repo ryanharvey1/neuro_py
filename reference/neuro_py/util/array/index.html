@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.31">
+      <meta name="generator" content="zensical-0.0.33">
     
     
       
@@ -49,7 +49,7 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
         <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
       
     
@@ -3165,6 +3165,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.util.array.smooth_peth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        smooth_peth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.util.array.zscore_columns" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3755,6 +3766,17 @@
     <span class="md-ellipsis">
       
         shrink
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.util.array.smooth_peth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        smooth_peth
       
     </span>
   </a>
@@ -5207,6 +5229,508 @@ is not divisible by the bin sizes, NaNs are appended as evenly as possible.</p>
 <div class="doc doc-object doc-function">
 
 
+<h2 id="neuro_py.util.array.smooth_peth" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">smooth_peth</span><span class="p">(</span><span class="n">peth</span><span class="p">,</span> <span class="n">smooth_window</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">smooth_std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#neuro_py.util.array.smooth_peth" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Fast Gaussian smoothing for PETH-like data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>peth</code>
+            </td>
+            <td>
+                  <code>np.ndarray, pandas.Series, or pandas.DataFrame</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shape (time, units), (time,), or Series with time index.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>smooth_window</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Window size in same units as time axis</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>smooth_std</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Gaussian std in same units as time axis.
+Internally converted to sample units for pandas Gaussian rolling.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dt</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Time step (required if peth is ndarray)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>same type as input</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># --- Simulated PETH data ---</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># 1000 time bins (e.g., -0.5 to 0.5 seconds), 10 neurons</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_time</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_neurons</span> <span class="o">=</span> <span class="mi">10</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">n_time</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dt</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Simulate noisy firing rates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peth_array</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">lam</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_time</span><span class="p">,</span> <span class="n">n_neurons</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># --- Example 1: NumPy input ---</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smoothed_array</span> <span class="o">=</span> <span class="n">smooth_peth</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">peth_array</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">smooth_window</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>   <span class="c1"># 50 ms window</span>
+<span class="gp">... </span>    <span class="n">smooth_std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>      <span class="c1"># 10 ms std</span>
+<span class="gp">... </span>    <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">smoothed_array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">(1000, 10)</span>
+</code></pre></div>
+    
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># --- Example 2: pandas DataFrame input ---</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peth_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">peth_array</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">smoothed_df</span> <span class="o">=</span> <span class="n">smooth_peth</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">peth_df</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">smooth_window</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">smooth_std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">smoothed_df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">(1000, 10)</span>
+</code></pre></div>
+    
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># --- Example 3: single neuron (1D input) ---</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">single_unit</span> <span class="o">=</span> <span class="n">peth_array</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">smoothed_single</span> <span class="o">=</span> <span class="n">smooth_peth</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">single_unit</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">smooth_window</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">smooth_std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">smoothed_single</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">(1000,)</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/util/array.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">smooth_peth</span><span class="p">(</span>
+    <span class="n">peth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">smooth_window</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">smooth_std</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fast Gaussian smoothing for PETH-like data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    peth : np.ndarray, pandas.Series, or pandas.DataFrame</span>
+<span class="sd">        Shape (time, units), (time,), or Series with time index.</span>
+<span class="sd">    smooth_window : float</span>
+<span class="sd">        Window size in same units as time axis</span>
+<span class="sd">    smooth_std : float</span>
+<span class="sd">        Gaussian std in same units as time axis.</span>
+<span class="sd">        Internally converted to sample units for pandas Gaussian rolling.</span>
+<span class="sd">    dt : float, optional</span>
+<span class="sd">        Time step (required if peth is ndarray)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    same type as input</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
+
+<span class="sd">    &gt;&gt;&gt; # --- Simulated PETH data ---</span>
+<span class="sd">    &gt;&gt;&gt; # 1000 time bins (e.g., -0.5 to 0.5 seconds), 10 neurons</span>
+<span class="sd">    &gt;&gt;&gt; n_time = 1000</span>
+<span class="sd">    &gt;&gt;&gt; n_neurons = 10</span>
+
+<span class="sd">    &gt;&gt;&gt; time = np.linspace(-0.5, 0.5, n_time)</span>
+<span class="sd">    &gt;&gt;&gt; dt = time[1] - time[0]</span>
+
+<span class="sd">    &gt;&gt;&gt; # Simulate noisy firing rates</span>
+<span class="sd">    &gt;&gt;&gt; rng = np.random.default_rng(0)</span>
+<span class="sd">    &gt;&gt;&gt; peth_array = rng.poisson(lam=5, size=(n_time, n_neurons)).astype(float)</span>
+
+<span class="sd">    &gt;&gt;&gt; # --- Example 1: NumPy input ---</span>
+<span class="sd">    &gt;&gt;&gt; smoothed_array = smooth_peth(</span>
+<span class="sd">    ...     peth_array,</span>
+<span class="sd">    ...     smooth_window=0.05,   # 50 ms window</span>
+<span class="sd">    ...     smooth_std=0.01,      # 10 ms std</span>
+<span class="sd">    ...     dt=dt,</span>
+<span class="sd">    ... )</span>
+
+<span class="sd">    &gt;&gt;&gt; print(smoothed_array.shape)</span>
+<span class="sd">    (1000, 10)</span>
+
+
+<span class="sd">    &gt;&gt;&gt; # --- Example 2: pandas DataFrame input ---</span>
+<span class="sd">    &gt;&gt;&gt; peth_df = pd.DataFrame(peth_array, index=time)</span>
+
+<span class="sd">    &gt;&gt;&gt; smoothed_df = smooth_peth(</span>
+<span class="sd">    ...     peth_df,</span>
+<span class="sd">    ...     smooth_window=0.05,</span>
+<span class="sd">    ...     smooth_std=0.01,</span>
+<span class="sd">    ... )</span>
+
+<span class="sd">    &gt;&gt;&gt; print(smoothed_df.shape)</span>
+<span class="sd">    (1000, 10)</span>
+
+
+<span class="sd">    &gt;&gt;&gt; # --- Example 3: single neuron (1D input) ---</span>
+<span class="sd">    &gt;&gt;&gt; single_unit = peth_array[:, 0]</span>
+
+<span class="sd">    &gt;&gt;&gt; smoothed_single = smooth_peth(</span>
+<span class="sd">    ...    single_unit,</span>
+<span class="sd">    ...    smooth_window=0.05,</span>
+<span class="sd">    ...    smooth_std=0.01,</span>
+<span class="sd">    ...    dt=dt,</span>
+<span class="sd">    ... )</span>
+
+<span class="sd">    &gt;&gt;&gt; print(smoothed_single.shape)</span>
+<span class="sd">    (1000,)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">smooth_window</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;smooth_window must be positive&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">smooth_std</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;smooth_std must be positive&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Determine input type and preserve metadata</span>
+    <span class="n">is_series</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peth</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
+    <span class="n">is_df</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peth</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+    <span class="n">return_ndarray_1d</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">is_series</span><span class="p">:</span>
+        <span class="c1"># Convert Series to DataFrame for rolling, preserve name and index</span>
+        <span class="n">peth_df</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">series_name</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">elif</span> <span class="n">is_df</span><span class="p">:</span>
+        <span class="n">peth_df</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">index</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">peth</span><span class="o">.</span><span class="n">columns</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># ndarray input</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dt must be provided for ndarray input&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dt must be positive for ndarray input&quot;</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">peth</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;peth must contain at least 2 time samples&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">dt_local</span> <span class="o">=</span> <span class="n">dt</span>
+            <span class="n">time_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="o">*</span> <span class="n">dt_local</span>
+            <span class="n">peth_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_index</span><span class="p">)</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+            <span class="n">return_ndarray_1d</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dt_local</span> <span class="o">=</span> <span class="n">dt</span>
+            <span class="n">time_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">dt_local</span>
+            <span class="n">peth_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_index</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">peth_df</span><span class="o">.</span><span class="n">index</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peth_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;peth must contain at least 2 time samples&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Get time step from index</span>
+    <span class="n">time_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">peth_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">time_vals</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">diffs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;peth time/index must be strictly increasing&quot;</span><span class="p">)</span>
+    <span class="n">dt_local</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">diffs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="n">dt_local</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;peth time/index must be uniformly sampled&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Convert smooth_window to samples</span>
+    <span class="n">window_samples</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">smooth_window</span> <span class="o">/</span> <span class="n">dt_local</span><span class="p">)))</span>
+
+    <span class="c1"># pandas Gaussian window std is specified in sample units</span>
+    <span class="n">smooth_std_samples</span> <span class="o">=</span> <span class="n">smooth_std</span> <span class="o">/</span> <span class="n">dt_local</span>
+
+    <span class="c1"># Use pandas rolling with Gaussian window</span>
+    <span class="n">smoothed_df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">peth_df</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span>
+            <span class="n">window</span><span class="o">=</span><span class="n">window_samples</span><span class="p">,</span>
+            <span class="n">win_type</span><span class="o">=</span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+            <span class="n">center</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">min_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">std</span><span class="o">=</span><span class="n">smooth_std_samples</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Convert back to original type</span>
+    <span class="k">if</span> <span class="n">is_series</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">smoothed_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">series_name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">is_df</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">smoothed_df</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># ndarray: return as array</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">smoothed_df</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">if</span> <span class="n">return_ndarray_1d</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">values</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="neuro_py.util.array.zscore_columns" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">zscore_columns</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code>
 
@@ -5609,7 +6133,7 @@ are preserved.</p>
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.91a19a9e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.63456bd9.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       
