@@ -1,23 +1,24 @@
-import unittest
-
 import numpy as np
 import pandas as pd
+import pytest
+from scipy.ndimage import gaussian_filter1d
 
 from neuro_py.util.array import (
     circular_interp,
     find_terminal_masked_indices,
     replace_border_zeros_with_nan,
     shrink,
+    smooth_peth,
     zscore_columns,
 )
 
 
-class TestFindTerminalMaskedIndices(unittest.TestCase):
+class TestFindTerminalMaskedIndices:
     def test_1d_array(self):
         mask = np.array([0, 0, 1, 1, 0])
         first_idx, last_idx = find_terminal_masked_indices(mask, axis=0)
-        self.assertEqual(first_idx, 2)
-        self.assertEqual(last_idx, 3)
+        assert first_idx == 2
+        assert last_idx == 3
 
     def test_2d_array_axis_0(self):
         mask = np.array([[0, 0, 1], [1, 1, 0], [0, 0, 0]])
@@ -48,7 +49,7 @@ class TestFindTerminalMaskedIndices(unittest.TestCase):
         np.testing.assert_array_equal(last_idx, [2, 2])
 
 
-class TestReplaceBorderZerosWithNaN(unittest.TestCase):
+class TestReplaceBorderZerosWithNaN:
     def test_1d_array(self):
         arr = np.array([0, 1, 2, 0, 0])
         result = replace_border_zeros_with_nan(arr)
@@ -106,7 +107,7 @@ class TestReplaceBorderZerosWithNaN(unittest.TestCase):
         np.testing.assert_array_equal(result, expected)
 
 
-class TestCircularInterp(unittest.TestCase):
+class TestCircularInterp:
     def test_basic_interpolation_neg_pi_to_pi(self):
         """Test basic interpolation with data in [-π, π] range."""
         xp = np.array([0, 1, 2])
@@ -116,8 +117,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Should stay in [-π, π] range
-        self.assertTrue(np.all(result >= -np.pi))
-        self.assertTrue(np.all(result <= np.pi))
+        assert np.all(result >= -np.pi)
+        assert np.all(result <= np.pi)
 
         # Check approximate values
         np.testing.assert_allclose(result[0], -np.pi / 4, rtol=1e-2)
@@ -132,8 +133,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Should stay in [0, 2π] range
-        self.assertTrue(np.all(result >= 0))
-        self.assertTrue(np.all(result <= 2 * np.pi))
+        assert np.all(result >= 0)
+        assert np.all(result <= 2 * np.pi)
 
         # Check approximate values
         np.testing.assert_allclose(result[0], np.pi / 4, rtol=1e-2)
@@ -148,8 +149,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # All results should be in [0, 2π]
-        self.assertTrue(np.all(result >= 0))
-        self.assertTrue(np.all(result <= 2 * np.pi))
+        assert np.all(result >= 0)
+        assert np.all(result <= 2 * np.pi)
 
     def test_range_preservation_neg_pi_to_pi(self):
         """Test that [-π, π] range is preserved when fp contains negative values."""
@@ -162,8 +163,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Results should be in [-π, π]
-        self.assertTrue(np.all(result >= -np.pi))
-        self.assertTrue(np.all(result <= np.pi))
+        assert np.all(result >= -np.pi)
+        assert np.all(result <= np.pi)
 
     def test_circular_boundary_crossing(self):
         """Test interpolation across circular boundaries."""
@@ -175,8 +176,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Should handle circular interpolation correctly
-        self.assertTrue(np.all(result >= 0))
-        self.assertTrue(np.all(result <= 2 * np.pi))
+        assert np.all(result >= 0)
+        assert np.all(result <= 2 * np.pi)
 
         # Test near -π/π boundary for [-π, π] data
         xp = np.array([0, 1, 2])
@@ -185,8 +186,8 @@ class TestCircularInterp(unittest.TestCase):
 
         result = circular_interp(x, xp, fp)
 
-        self.assertTrue(np.all(result >= -np.pi))
-        self.assertTrue(np.all(result <= np.pi))
+        assert np.all(result >= -np.pi)
+        assert np.all(result <= np.pi)
 
     def test_input_validation(self):
         """Test input validation and error handling."""
@@ -194,15 +195,15 @@ class TestCircularInterp(unittest.TestCase):
         fp = np.array([0, np.pi / 2, np.pi])
 
         # Test mismatched lengths
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             circular_interp(np.array([0.5]), np.array([0, 1]), np.array([0]))
 
         # Test insufficient points
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             circular_interp(np.array([0.5]), np.array([0]), np.array([0]))
 
         # Test non-increasing xp
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             circular_interp(np.array([0.5]), np.array([1, 0, 2]), np.array([0, 1, 2]))
 
     def test_edge_cases(self):
@@ -213,8 +214,8 @@ class TestCircularInterp(unittest.TestCase):
         x = np.array([0.5])
 
         result = circular_interp(x, xp, fp)
-        self.assertEqual(len(result), 1)
-        self.assertTrue(0 <= result[0] <= 2 * np.pi)
+        assert len(result) == 1
+        assert 0 <= result[0] <= 2 * np.pi
 
         # Test interpolation at exact data points
         xp = np.array([0, 1, 2])
@@ -234,8 +235,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Since all fp >= 0, should be treated as [0, 2π] range
-        self.assertTrue(np.all(result >= 0))
-        self.assertTrue(np.all(result <= 2 * np.pi))
+        assert np.all(result >= 0)
+        assert np.all(result <= 2 * np.pi)
 
     def test_full_circle_interpolation(self):
         """Test interpolation over a full circle."""
@@ -247,8 +248,8 @@ class TestCircularInterp(unittest.TestCase):
         result = circular_interp(x, xp, fp)
 
         # Verify all results are in [0, 2π]
-        self.assertTrue(np.all(result >= 0))
-        self.assertTrue(np.all(result <= 2 * np.pi))
+        assert np.all(result >= 0)
+        assert np.all(result <= 2 * np.pi)
 
         # Check that interpolation is reasonable
         expected_approx = np.array(
@@ -257,7 +258,7 @@ class TestCircularInterp(unittest.TestCase):
         np.testing.assert_allclose(result, expected_approx, rtol=0.1)
 
 
-class TestInterpMaxGap(unittest.TestCase):
+class TestInterpMaxGap:
     def test_interp_max_gap_basic(self):
         """Basic behavior: values inside small gaps are interpolated, large gaps return fallback."""
         from neuro_py.util.array import interp_max_gap
@@ -269,12 +270,12 @@ class TestInterpMaxGap(unittest.TestCase):
         # with max_gap = 1.5, gap between 1.0 and 3.0 is too large -> x in (1,3) masked
         out = interp_max_gap(x, xp, fp, max_gap=1.5, fallback=np.nan)
         # 0.5 -> interpolated between 0 and 1 -> 5.0
-        self.assertAlmostEqual(out[0], 5.0)
+        assert np.isclose(out[0], 5.0)
         # 1.5 and 2.5 fall inside the large gap -> fallback
-        self.assertTrue(np.isnan(out[1]))
-        self.assertTrue(np.isnan(out[2]))
+        assert np.isnan(out[1])
+        assert np.isnan(out[2])
         # 3.5 -> interpolated between 3 and 4 -> 35.0
-        self.assertAlmostEqual(out[3], 35.0)
+        assert np.isclose(out[3], 35.0)
 
     def test_interp_max_gap_no_gaps(self):
         """If all gaps are within max_gap, behaves like numpy.interp."""
@@ -298,10 +299,10 @@ class TestInterpMaxGap(unittest.TestCase):
 
         out = interp_max_gap(x, xp, fp, max_gap=1.0, fallback=-999)
         # left and right should be fallback
-        self.assertEqual(out[0], -999)
-        self.assertEqual(out[2], -999)
+        assert out[0] == -999
+        assert out[2] == -999
         # middle is interpolated
-        self.assertAlmostEqual(out[1], 5.0)
+        assert np.isclose(out[1], 5.0)
 
 
 def test_shrink_basic_block_mean():
@@ -398,6 +399,73 @@ def test_zscore_zero_variance_column():
 
     # Constant column should be all NaN
     assert z["constant"].isna().all()
-
     # Varying column should have mean 0
     assert np.isclose(z["varying"].mean(), 0.0)
+
+
+class TestSmoothPeth:
+    def test_numpy_array_matches_gaussian_filter(self):
+        time = np.linspace(-0.5, 0.5, 11)
+        dt = time[1] - time[0]
+        peth = np.arange(22, dtype=float).reshape(11, 2)
+
+        result = smooth_peth(peth, smooth_window=0.2, smooth_std=0.1, dt=dt)
+
+        expected = gaussian_filter1d(
+            peth,
+            sigma=0.1 / dt,
+            axis=0,
+            mode="nearest",
+            truncate=(0.2 / dt) / (2 * (0.1 / dt)),
+        )
+
+        np.testing.assert_allclose(result, expected)
+        assert result.shape == peth.shape
+
+    def test_dataframe_preserves_structure(self):
+        time = np.linspace(-0.5, 0.5, 11)
+        dt = time[1] - time[0]
+        peth = pd.DataFrame(
+            np.arange(22, dtype=float).reshape(11, 2),
+            index=time,
+            columns=["unit1", "unit2"],
+        )
+
+        result = smooth_peth(peth, smooth_window=0.2, smooth_std=0.1)
+
+        expected = gaussian_filter1d(
+            peth.values,
+            sigma=0.1 / dt,
+            axis=0,
+            mode="nearest",
+            truncate=(0.2 / dt) / (2 * (0.1 / dt)),
+        )
+
+        assert isinstance(result, pd.DataFrame)
+        assert result.index.equals(peth.index)
+        assert result.columns.equals(peth.columns)
+        np.testing.assert_allclose(result.values, expected)
+
+    def test_one_dimensional_input_is_squeezed(self):
+        time = np.linspace(-0.5, 0.5, 11)
+        dt = time[1] - time[0]
+        peth = np.arange(11, dtype=float)
+
+        result = smooth_peth(peth, smooth_window=0.2, smooth_std=0.1, dt=dt)
+
+        expected = gaussian_filter1d(
+            peth[:, None],
+            sigma=0.1 / dt,
+            axis=0,
+            mode="nearest",
+            truncate=(0.2 / dt) / (2 * (0.1 / dt)),
+        )[:, 0]
+
+        assert result.shape == peth.shape
+        np.testing.assert_allclose(result, expected)
+
+    def test_numpy_array_requires_dt(self):
+        peth = np.arange(11, dtype=float)
+
+        with pytest.raises(ValueError, match="dt must be provided"):
+            smooth_peth(peth, smooth_window=0.2, smooth_std=0.1)
