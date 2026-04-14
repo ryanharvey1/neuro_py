@@ -404,20 +404,30 @@ def test_zscore_zero_variance_column():
 
 class TestSmoothPeth:
     def test_numpy_array_matches_gaussian_filter(self):
-        """Smoothing should produce reasonable results for 2D arrays."""
+        """NumPy path should match pandas Gaussian rolling reference."""
         time = np.linspace(-0.5, 0.5, 11)
         dt = time[1] - time[0]
         peth = np.arange(22, dtype=float).reshape(11, 2)
 
         result = smooth_peth(peth, smooth_window=0.2, smooth_std=0.1, dt=dt)
 
+        expected = (
+            pd.DataFrame(peth, index=np.arange(peth.shape[0]) * dt)
+            .rolling(
+                window=int(round(0.2 / dt)),
+                win_type="gaussian",
+                center=True,
+                min_periods=1,
+            )
+            .mean(std=0.1 / dt)
+            .to_numpy()
+        )
+
         # Check shape and type
         assert result.shape == peth.shape
         assert isinstance(result, np.ndarray)
 
-        # Check that smoothing reduces noise (lower std dev after smoothing)
-        # by checking that middle values are closer to linear trend
-        assert not np.isnan(result).any()
+        np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
     def test_dataframe_preserves_structure(self):
         """DataFrame input should return DataFrame with preserved structure."""
@@ -511,3 +521,72 @@ class TestSmoothPeth:
         assert isinstance(result, pd.Series)
         assert result.index.equals(peth_series.index)
         assert not np.all(np.isnan(result))
+
+    def test_dataframe_index_must_be_strictly_increasing(self):
+        """Non-monotonic index should raise with clear message."""
+        peth_df = pd.DataFrame(
+            np.arange(12, dtype=float).reshape(6, 2),
+            index=[0.0, 0.1, 0.2, 0.15, 0.3, 0.4],
+        )
+
+        with pytest.raises(ValueError, match="strictly increasing"):
+            smooth_peth(peth_df, smooth_window=0.2, smooth_std=0.1)
+
+    def test_dataframe_index_must_be_uniformly_sampled(self):
+        """Non-uniform index spacing should raise with clear message."""
+        peth_df = pd.DataFrame(
+            np.arange(12, dtype=float).reshape(6, 2),
+            index=[0.0, 0.1, 0.2, 0.31, 0.41, 0.51],
+        )
+
+        with pytest.raises(ValueError, match="uniformly sampled"):
+            smooth_peth(peth_df, smooth_window=0.2, smooth_std=0.1)
+
+    def test_input_must_have_at_least_two_time_samples(self):
+        """Single-sample inputs should raise a clear error."""
+        peth_df = pd.DataFrame([[1.0, 2.0]], index=[0.0])
+
+        with pytest.raises(ValueError, match="at least 2 time samples"):
+            smooth_peth(peth_df, smooth_window=0.2, smooth_std=0.1)
+
+    def test_smooth_window_must_be_positive(self):
+        """Non-positive smooth_window should raise a clear error."""
+        time = np.linspace(0.0, 1.0, 11)
+        peth = np.arange(11, dtype=float)
+
+        with pytest.raises(ValueError, match="smooth_window must be positive"):
+            smooth_peth(peth, smooth_window=0.0, smooth_std=0.1, dt=time[1] - time[0])
+
+    def test_smooth_std_must_be_positive(self):
+        """Non-positive smooth_std should raise a clear error."""
+        time = np.linspace(0.0, 1.0, 11)
+        peth = np.arange(11, dtype=float)
+
+        with pytest.raises(ValueError, match="smooth_std must be positive"):
+            smooth_peth(peth, smooth_window=0.2, smooth_std=0.0, dt=time[1] - time[0])
+
+    def test_smooth_std_is_interpreted_in_time_units(self):
+        """Equivalent signals at different dt should smooth similarly in physical units."""
+        t_fine = np.arange(0.0, 2.0, 0.01)
+        x_fine = np.sin(2 * np.pi * 2 * t_fine)
+
+        t_coarse = np.arange(0.0, 2.0, 0.02)
+        x_coarse = np.interp(t_coarse, t_fine, x_fine)
+
+        smooth_window = 0.2
+        smooth_std = 0.05
+
+        y_fine = smooth_peth(
+            x_fine, smooth_window=smooth_window, smooth_std=smooth_std, dt=0.01
+        )
+        y_coarse = smooth_peth(
+            x_coarse,
+            smooth_window=smooth_window,
+            smooth_std=smooth_std,
+            dt=0.02,
+        )
+
+        # Discrete sampling and edge effects introduce small differences,
+        # but physical-unit smoothing should remain close overall.
+        mean_abs_diff = np.mean(np.abs(y_fine[::2] - y_coarse))
+        assert mean_abs_diff < 4e-2
