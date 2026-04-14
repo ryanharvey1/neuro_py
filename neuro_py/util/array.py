@@ -2,7 +2,6 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from scipy.ndimage import gaussian_filter1d
 
 
 def find_terminal_masked_indices(
@@ -410,8 +409,8 @@ def smooth_peth(
 
     Parameters
     ----------
-    peth : np.ndarray or pandas.DataFrame
-        Shape (time, units) or (time,)
+    peth : np.ndarray, pandas.Series, or pandas.DataFrame
+        Shape (time, units), (time,), or Series with time index.
     smooth_window : float
         Window size in same units as time axis
     smooth_std : float
@@ -478,44 +477,64 @@ def smooth_peth(
     >>> print(smoothed_single.shape)
     (1000,)
     """
-    is_df = hasattr(peth, "index")
+    # Determine input type and preserve metadata
+    is_series = isinstance(peth, pd.Series)
+    is_df = isinstance(peth, pd.DataFrame)
+    return_ndarray_1d = False
 
-    if is_df:
-        values = peth.values
-        dt_local = np.diff(peth.index.values)[0]
+    if is_series:
+        # Convert Series to DataFrame for rolling, preserve name and index
+        peth_df = peth.to_frame()
+        index = peth.index
+        series_name = peth.name
+    elif is_df:
+        peth_df = peth.copy()
+        index = peth.index
+        columns = peth.columns
     else:
+        # ndarray input
         if dt is None:
-            raise ValueError("dt must be provided when peth is a numpy array")
-        values = np.asarray(peth)
-        dt_local = dt
+            raise ValueError("dt must be provided for ndarray input")
+        values = np.asarray(peth, dtype=float)
+        if values.ndim == 1:
+            dt_local = dt
+            time_index = np.arange(len(values)) * dt_local
+            peth_df = pd.Series(values, index=time_index).to_frame()
+            return_ndarray_1d = True
+        else:
+            dt_local = dt
+            time_index = np.arange(values.shape[0]) * dt_local
+            peth_df = pd.DataFrame(values, index=time_index)
+        return_ndarray = True
+        index = peth_df.index
 
-    # Ensure at least 2D (time, units)
-    squeeze = False
-    if values.ndim == 1:
-        values = values[:, None]
-        squeeze = True
+    # Get time step from index
+    dt_local = np.diff(peth_df.index)[0]
 
-    # Convert to samples
-    sigma = smooth_std / dt_local
-    window_samples = smooth_window / dt_local
+    # Convert smooth_window to samples
+    window_samples = int(round(smooth_window / dt_local))
 
-    # Match pandas rolling gaussian window
-    truncate = window_samples / (2 * sigma)
-
-    # Apply along time axis
-    smoothed = gaussian_filter1d(
-        values,
-        sigma=sigma,
-        axis=0,
-        mode="nearest",
-        truncate=truncate,
+    # Use pandas rolling with Gaussian window
+    smoothed_df = (
+        peth_df.rolling(
+            window=window_samples,
+            win_type="gaussian",
+            center=True,
+            min_periods=1,
+        )
+        .mean(std=smooth_std)
+        .copy()
     )
 
-    # Restore original shape
-    if squeeze:
-        smoothed = smoothed[:, 0]
-
-    if is_df:
-        return peth.__class__(smoothed, index=peth.index, columns=peth.columns)
-
-    return smoothed
+    # Convert back to original type
+    if is_series:
+        return pd.Series(smoothed_df.iloc[:, 0].values, index=index, name=series_name)
+    elif is_df:
+        return pd.DataFrame(smoothed_df.values, index=index, columns=columns)
+    else:
+        # ndarray: return as array
+        values = smoothed_df.values
+        if return_ndarray_1d:
+            return values[:, 0]
+        else:
+            return values
