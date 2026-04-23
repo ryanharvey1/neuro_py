@@ -15,3 +15,6 @@ Working rules for Codex:
 - Add or update a regression test in the matching `tests/` area when behavior changes.
 - Use type hints on function signatures and numpydoc docstrings for public functions.
 - Run the narrowest relevant pytest target you can before finishing, and clearly report if you could not run tests.
+- Preserve scientific behavior, units, shapes, and `nelpy` semantics unless the task explicitly requires a change.
+- For loader work, follow `.github/instructions/io-loading.instructions.md` and keep missing-data behavior aligned with nearby loaders.
+- Prefer vectorized changes and avoid unnecessarily materializing large arrays or lazy loader views.
