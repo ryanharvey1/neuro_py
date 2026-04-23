@@ -1,6 +1,8 @@
-# neuro_py Copilot Instructions
+# neuro_py Agent Instructions
 
 neuro_py is a Python package for analysis of freely moving neuroelectrophysiology data, built on top of nelpy for core data objects.
+
+These instructions are written to be useful for GitHub Copilot, Codex, and similar coding agents. Keep the guidance implementation-focused and repo-specific rather than tied to one tool's UI or workflow.
 
 Repo docs:
 - API: https://ryanharvey1.github.io/neuro_py/reference/
@@ -21,7 +23,7 @@ Repo docs:
 - Keep imports in the usual order: stdlib, third-party, then project imports.
 - Use `nelpy` objects for time series and ephys data when the API expects them.
 - Use `EpochArray` indexing instead of manual boolean masking when restricting to epochs.
-- Loader-specific rules live in `.github/instructions/io-loading.instructions.md`.
+- When editing `neuro_py/io/loading.py`, also follow the loader-specific rules in `.github/instructions/io-loading.instructions.md`.
 
 ## Standard Imports
 
@@ -61,7 +63,7 @@ neuro_py/
 - Write tests in pytest style; avoid `unittest.TestCase` and `unittest` assertion helpers.
 - Python support starts at 3.10.
 
-Before finishing a change, run the narrowest relevant test subset first, then broader tests if needed.
+Before finishing a change, run the narrowest relevant test subset first, then broader tests if needed. If you cannot run tests in the current environment, say so explicitly.
 
 ## Docstrings
 
