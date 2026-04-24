@@ -28,7 +28,9 @@ def _make_ripple_burst(
     if n_samples == 0:
         return burst
     window = np.hanning(n_samples)
-    burst[mask] = amplitude * np.sin(2 * np.pi * frequency * (timestamps[mask] - center)) * window
+    burst[mask] = (
+        amplitude * np.sin(2 * np.pi * frequency * (timestamps[mask] - center)) * window
+    )
     return burst
 
 
@@ -53,12 +55,16 @@ def _make_synthetic_ripple_session(
             duration=ripple_duration,
             amplitude=ripple_amplitude,
         )
-        sharp_wave_signal += -60.0 * np.exp(-((timestamps - center) ** 2) / (2 * 0.012**2))
+        sharp_wave_signal += -60.0 * np.exp(
+            -((timestamps - center) ** 2) / (2 * 0.012**2)
+        )
 
     return timestamps, ripple_signal, sharp_wave_signal
 
 
-def _write_xml(basepath: str, n_channels: int = 3, fs_lfp: int = 1250, fs_dat: int = 20000) -> None:
+def _write_xml(
+    basepath: str, n_channels: int = 3, fs_lfp: int = 1250, fs_dat: int = 20000
+) -> None:
     basename = os.path.basename(basepath)
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <parameters>
@@ -108,7 +114,9 @@ def test_channel_tag_helpers_detect_sharp_wave_and_noise_channels() -> None:
 
 def test_detect_sharp_wave_ripples_finds_synthetic_events() -> None:
     centers = [1.5, 3.5, 5.5]
-    timestamps, ripple_signal, sharp_wave_signal = _make_synthetic_ripple_session(centers)
+    timestamps, ripple_signal, sharp_wave_signal = _make_synthetic_ripple_session(
+        centers
+    )
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -127,12 +135,19 @@ def test_detect_sharp_wave_ripples_finds_synthetic_events() -> None:
     )
 
     assert len(events) == 3
-    assert {"start", "stop", "peaks", "amplitude", "frequency", "peakNormedPower"}.issubset(
-        events.columns
-    )
+    assert {
+        "start",
+        "stop",
+        "peaks",
+        "amplitude",
+        "frequency",
+        "peakNormedPower",
+    }.issubset(events.columns)
     assert "sharp_wave_amplitude" in events.columns
     assert "sharp_wave_peakNormedPower" in events.columns
-    np.testing.assert_allclose(events["peaks"].to_numpy(), np.asarray(centers), atol=0.015)
+    np.testing.assert_allclose(
+        events["peaks"].to_numpy(), np.asarray(centers), atol=0.015
+    )
     assert np.all(events["duration"].between(0.02, 0.10))
     assert np.all(events["ripple_channel"] == 4)
 
@@ -156,7 +171,9 @@ def test_detect_sharp_wave_ripples_requires_joint_sharp_wave_signal() -> None:
         )
 
     for center in sharp_wave_centers:
-        sharp_wave_signal += -60.0 * np.exp(-((timestamps - center) ** 2) / (2 * 0.012**2))
+        sharp_wave_signal += -60.0 * np.exp(
+            -((timestamps - center) ** 2) / (2 * 0.012**2)
+        )
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -174,7 +191,9 @@ def test_detect_sharp_wave_ripples_requires_joint_sharp_wave_signal() -> None:
     )
 
     assert len(events) == 2
-    np.testing.assert_allclose(events["peaks"].to_numpy(), np.asarray(sharp_wave_centers), atol=0.02)
+    np.testing.assert_allclose(
+        events["peaks"].to_numpy(), np.asarray(sharp_wave_centers), atol=0.02
+    )
 
 
 def test_detect_sharp_wave_ripples_merges_restricts_and_rejects_noise() -> None:
@@ -234,7 +253,9 @@ def test_detect_sharp_wave_ripples_returns_empty_outputs_when_no_events() -> Non
     assert epochs.isempty
 
 
-def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_file() -> None:
+def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_file() -> (
+    None
+):
     with tempfile.TemporaryDirectory() as temp_dir:
         basepath = os.path.join(temp_dir, "session_ripples")
         os.makedirs(basepath, exist_ok=True)
@@ -243,9 +264,13 @@ def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_fil
         _write_xml(basepath)
         _write_session_mat(basepath)
 
-        timestamps, ripple_signal, sharp_wave_signal = _make_synthetic_ripple_session([1.25, 2.75, 4.25], duration=6.0)
+        timestamps, ripple_signal, sharp_wave_signal = _make_synthetic_ripple_session(
+            [1.25, 2.75, 4.25], duration=6.0
+        )
         noise_signal = np.random.default_rng(3).normal(scale=2.0, size=timestamps.size)
-        lfp = np.column_stack([noise_signal, ripple_signal, sharp_wave_signal]).astype(np.int16)
+        lfp = np.column_stack([noise_signal, ripple_signal, sharp_wave_signal]).astype(
+            np.int16
+        )
         lfp.tofile(os.path.join(basepath, f"{basename}.lfp"))
 
         events = detect_sharp_wave_ripples(
@@ -270,8 +295,56 @@ def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_fil
         assert len(loaded) == 3
         assert np.all(loaded["ripple_channel"] == 1)
 
-        reused = detect_sharp_wave_ripples(basepath=basepath, save_mat=True, overwrite=False)
+        reused = detect_sharp_wave_ripples(
+            basepath=basepath, save_mat=True, overwrite=False
+        )
         assert len(reused) == len(loaded)
+
+
+def test_load_ripples_events_reads_file_saved_by_detect_sharp_wave_ripples() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_saved_events")
+        os.makedirs(basepath, exist_ok=True)
+
+        centers = [1.2, 2.8, 4.4]
+        timestamps, ripple_signal, sharp_wave_signal = _make_synthetic_ripple_session(
+            centers,
+            duration=6.0,
+        )
+
+        detected = detect_sharp_wave_ripples(
+            basepath=basepath,
+            ripple_signal=ripple_signal,
+            sharp_wave_signal=sharp_wave_signal,
+            fs=1250.0,
+            timestamps=timestamps,
+            ripple_channel=4,
+            low_threshold=1.0,
+            high_threshold=3.0,
+            sharp_wave_low_threshold=0.25,
+            sharp_wave_high_threshold=1.5,
+            smooth_sigma=0.002,
+            min_duration=0.02,
+            max_duration=0.10,
+            merge_gap=0.01,
+            save_mat=True,
+            overwrite=True,
+        )
+
+        loaded = load_ripples_events(basepath)
+
+        assert len(loaded) == len(detected)
+        np.testing.assert_allclose(
+            loaded["peaks"].to_numpy(dtype=float),
+            detected["peaks"].to_numpy(dtype=float),
+            atol=1e-6,
+        )
+        assert np.all(loaded["detectorName"] == "detect_sharp_wave_ripples")
+        assert np.all(loaded["ripple_channel"] == 4)
+        assert np.all(loaded["event_spk_thres"] == 0)
+        assert os.path.normpath(loaded["basepath"].iloc[0]) == os.path.normpath(
+            basepath
+        )
 
 
 def test_save_ripple_events_writes_empty_event_file() -> None:
