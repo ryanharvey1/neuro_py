@@ -640,7 +640,9 @@ def detect_sharp_wave_ripples(
     filter_order : int, optional
         Butterworth filter order for ripple-band filtering.
     save_mat : bool, optional
-        If True, save a CellExplorer event file to ``basepath``.
+        If True and ``basepath`` is provided, save a CellExplorer event file.
+        In-memory detections without a ``basepath`` still run normally but do
+        not write an event file.
     overwrite : bool, optional
         If False and the target event file already exists, load and return the
         existing file instead of redetecting.
@@ -657,10 +659,9 @@ def detect_sharp_wave_ripples(
     if basepath is None and ripple_signal is None:
         raise ValueError("Provide either `basepath` or `ripple_signal` for detection.")
 
-    if save_mat and basepath is None:
-        raise ValueError("`basepath` is required when `save_mat=True`.")
+    should_save_mat = bool(save_mat and basepath is not None)
 
-    if save_mat and basepath is not None and not overwrite:
+    if should_save_mat and not overwrite:
         event_path = os.path.join(
             basepath,
             os.path.basename(basepath) + f".{event_name}.events.mat",
@@ -786,7 +787,7 @@ def detect_sharp_wave_ripples(
         ) & in_intervals(events["stop"].to_numpy(dtype=float), intervals)
         events = events.loc[keep].reset_index(drop=True)
 
-    if save_mat:
+    if should_save_mat:
         detection_params = {
             "ripple_band": np.asarray(ripple_band, dtype=float),
             "sharp_wave_band": np.asarray(sharp_wave_band, dtype=float),
