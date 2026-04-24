@@ -222,7 +222,9 @@ def _compute_sharp_wave_difference(
     return sharp_wave_diff, _zscore(sharp_wave_diff)
 
 
-def _merge_bounds(bounds: list[tuple[int, int]], gap_samples: int) -> list[tuple[int, int]]:
+def _merge_bounds(
+    bounds: list[tuple[int, int]], gap_samples: int
+) -> list[tuple[int, int]]:
     """Merge intervals separated by fewer than ``gap_samples`` samples."""
     if not bounds:
         return []
@@ -302,7 +304,10 @@ def _events_to_dataframe(
         ripple_start_time = float(timestamps[ripple_start])
         ripple_stop_time = float(timestamps[ripple_stop] + dt)
         ripple_duration = ripple_stop_time - ripple_start_time
-        if ripple_duration < ripple_min_duration or ripple_duration > ripple_max_duration:
+        if (
+            ripple_duration < ripple_min_duration
+            or ripple_duration > ripple_max_duration
+        ):
             continue
 
         sharp_wave_peak_idx = None
@@ -315,7 +320,9 @@ def _events_to_dataframe(
                 continue
 
             window_start = max(0, ripple_peak_idx - search_radius)
-            window_stop = min(sharp_wave_power.size, ripple_peak_idx + search_radius + 1)
+            window_stop = min(
+                sharp_wave_power.size, ripple_peak_idx + search_radius + 1
+            )
             local_sharp_wave = sharp_wave_power[window_start:window_stop]
             if local_sharp_wave.size == 0:
                 continue
@@ -328,7 +335,9 @@ def _events_to_dataframe(
             ):
                 continue
 
-            sharp_wave_interval = _bound_containing_index(sharp_wave_bounds, sharp_wave_peak_idx)
+            sharp_wave_interval = _bound_containing_index(
+                sharp_wave_bounds, sharp_wave_peak_idx
+            )
             if sharp_wave_interval is None:
                 continue
 
@@ -353,7 +362,9 @@ def _events_to_dataframe(
                 event_start_idx = min(ripple_start, sharp_wave_start)
                 event_stop_idx = max(ripple_stop, sharp_wave_stop)
             else:
-                raise ValueError("`boundary_mode` must be either 'sharp_wave' or 'union'.")
+                raise ValueError(
+                    "`boundary_mode` must be either 'sharp_wave' or 'union'."
+                )
 
         event_peak_idx = _nearest_trough(
             filtered_signal=ripple_filtered,
@@ -362,7 +373,9 @@ def _events_to_dataframe(
         )
 
         if noise_power is not None and noise_threshold is not None:
-            noise_peak = float(np.nanmax(noise_power[event_start_idx : event_stop_idx + 1]))
+            noise_peak = float(
+                np.nanmax(noise_power[event_start_idx : event_stop_idx + 1])
+            )
             if noise_peak >= noise_threshold:
                 continue
         else:
@@ -379,7 +392,9 @@ def _events_to_dataframe(
             "center": float(start + (duration / 2.0)),
             "duration": float(duration),
             "amplitude": float(ripple_envelope[event_peak_idx]),
-            "frequency": float(np.nanmedian(inst_freq[event_start_idx : event_stop_idx + 1])),
+            "frequency": float(
+                np.nanmedian(inst_freq[event_start_idx : event_stop_idx + 1])
+            ),
             "peakNormedPower": ripple_peak_power,
             "ripple_channel": np.nan if ripple_channel is None else int(ripple_channel),
             "noise_peakNormedPower": noise_peak,
@@ -387,7 +402,11 @@ def _events_to_dataframe(
             "sharp_wave_peakNormedPower": sharp_wave_peak_power,
         }
         if sharp_wave_trace is not None:
-            peak_index = sharp_wave_peak_idx if sharp_wave_peak_idx is not None else event_peak_idx
+            peak_index = (
+                sharp_wave_peak_idx
+                if sharp_wave_peak_idx is not None
+                else event_peak_idx
+            )
             record["sharp_wave_amplitude"] = float(sharp_wave_trace[peak_index])
             record["sharp_wave_duration"] = sharp_wave_duration
         records.append(record)
@@ -520,24 +539,24 @@ def detect_sharp_wave_ripples(
     noise_signal: Optional[np.ndarray] = None,
     noise_channel: Optional[int] = None,
     detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]] = None,
-    ripple_band: tuple[float, float] = (120.0, 250.0),
+    ripple_band: tuple[float, float] = (80.0, 250.0),
     sharp_wave_band: tuple[float, float] = (2.0, 50.0),
     smooth_sigma: float = 0.004,
     sharp_wave_smooth_sigma: float = 0.0,
-    low_threshold: float = 2.0,
-    high_threshold: float = 5.0,
-    sharp_wave_low_threshold: float = 0.5,
+    low_threshold: float = 0.75,
+    high_threshold: float = 2.5,
+    sharp_wave_low_threshold: float = 0.4,
     sharp_wave_high_threshold: float = 2.5,
     noise_threshold: Optional[float] = None,
     min_duration: float = 0.015,
-    max_duration: float = 0.150,
+    max_duration: float = 0.200,
     sharp_wave_min_duration: float = 0.020,
     sharp_wave_max_duration: float = 0.500,
     merge_gap: float = 0.020,
     peak_window: float = 0.050,
     boundary_mode: str = "sharp_wave",
     filter_order: int = 4,
-    save_mat: bool = False,
+    save_mat: bool = True,
     overwrite: bool = False,
     return_epoch_array: bool = False,
     event_name: str = "ripples",
@@ -654,7 +673,9 @@ def detect_sharp_wave_ripples(
                 if existing is None:
                     existing = pd.DataFrame()
                 else:
-                    existing = existing.rename(columns={"starts": "start", "stops": "stop"})
+                    existing = existing.rename(
+                        columns={"starts": "start", "stops": "stop"}
+                    )
             if return_epoch_array:
                 if existing.empty:
                     return nel.EpochArray(np.empty((0, 2), dtype=float))
@@ -682,7 +703,9 @@ def detect_sharp_wave_ripples(
         else:
             timestamps = np.asarray(timestamps, dtype=float)
         if timestamps.shape[0] != ripple_signal.shape[0]:
-            raise ValueError("`timestamps` must have the same length as `ripple_signal`.")
+            raise ValueError(
+                "`timestamps` must have the same length as `ripple_signal`."
+            )
         if sharp_wave_signal is not None:
             sharp_wave_signal = np.asarray(sharp_wave_signal, dtype=float)
         if noise_signal is not None:
@@ -758,10 +781,9 @@ def detect_sharp_wave_ripples(
 
     intervals = _coerce_interval_array(detection_epochs)
     if intervals.size > 0 and not events.empty:
-        keep = (
-            in_intervals(events["start"].to_numpy(dtype=float), intervals)
-            & in_intervals(events["stop"].to_numpy(dtype=float), intervals)
-        )
+        keep = in_intervals(
+            events["start"].to_numpy(dtype=float), intervals
+        ) & in_intervals(events["stop"].to_numpy(dtype=float), intervals)
         events = events.loc[keep].reset_index(drop=True)
 
     if save_mat:
