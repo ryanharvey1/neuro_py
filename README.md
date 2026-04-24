@@ -47,8 +47,20 @@ For ease of use, this package uses `nelpy` core data objects. See [nelpy](https:
 ## Testing
 
 ```bash
-pytest
+python tools/run_pytest.py
 ```
+
+To run a narrow target, pass the usual `pytest` arguments through:
+
+```bash
+python tools/run_pytest.py tests/detectors/test_sharp_wave_ripple.py -q
+```
+
+This wrapper sets a few local defaults that make editable `nelpy` installs more reliable in development environments:
+
+- `NUMBA_DISABLE_JIT=1`
+- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
+- `MPLBACKEND=Agg`
 
 ## Contributing
 
