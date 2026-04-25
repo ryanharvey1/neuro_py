@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 SRC_DIR = ROOT / "neuro_py"
 TUTORIALS_DIR = ROOT / "tutorials"
+MARIMO_TUTORIALS_DIR = TUTORIALS_DIR / "marimo"
 
 
 def generate_reference() -> list:
@@ -76,7 +77,8 @@ def generate_reference() -> list:
 
         identifier = ".".join(module_parts)
         doc_path.write_text(
-            f"---\ntitle: {identifier}\n---\n\n::: {identifier}\n"
+            f"---\ntitle: {identifier}\n---\n\n::: {identifier}\n",
+            encoding="utf-8",
         )
 
         # Build nav entry (path relative to docs/)
@@ -102,7 +104,9 @@ def generate_reference() -> list:
 
     # Create top-level reference index
     index_md = ref_dir / "index.md"
-    index_md.write_text("---\ntitle: API Reference\n---\n\n# API Reference\n")
+    index_md.write_text(
+        "---\ntitle: API Reference\n---\n\n# API Reference\n", encoding="utf-8"
+    )
 
     # Build the nav list for reference section
     ref_nav: list = [{"Overview": "reference/index.md"}]
@@ -129,7 +133,14 @@ def copy_and_convert_tutorials() -> None:
         print("  No tutorials/ directory found, skipping")
         return
 
-    banned_dirs = {"cache", "files", "example_files", "__pycache__", "lightning_logs"}
+    banned_dirs = {
+        "cache",
+        "files",
+        "example_files",
+        "__pycache__",
+        "lightning_logs",
+        "marimo",
+    }
     banned_exts = {".pbf", ".parquet", ".json", ".geojson", ".pt"}
 
     for src_path in sorted(TUTORIALS_DIR.glob("**/*")):
@@ -168,10 +179,57 @@ def copy_and_convert_tutorials() -> None:
     print(f"  {total} tutorial pages ready")
 
 
+def export_marimo_tutorials() -> None:
+    """Export browser-runnable Marimo tutorial apps into the docs tree."""
+    if not MARIMO_TUTORIALS_DIR.exists():
+        print("  No tutorials/marimo/ directory found, skipping")
+        return
+
+    apps = [
+        (
+            MARIMO_TUTORIALS_DIR / "sharp_wave_ripple_detection.py",
+            DOCS_DIR / "tutorials" / "marimo" / "sharp_wave_ripple_detection",
+        )
+    ]
+
+    exported = 0
+    for app_path, output_dir in apps:
+        if not app_path.exists():
+            continue
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
+        output_dir.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "marimo",
+                "export",
+                "html-wasm",
+                str(app_path),
+                "-o",
+                str(output_dir),
+                "--mode",
+                "run",
+            ],
+            check=True,
+        )
+        exported += 1
+        print(
+            "  Exported "
+            f"{app_path.relative_to(ROOT)} -> {output_dir.relative_to(DOCS_DIR)}"
+        )
+    print(f"  {exported} Marimo tutorial app(s) exported")
+
+
 def _load_homepage_meta() -> dict:
     """Load docs/homepage.yml with module/tutorial/dep metadata."""
     meta_path = DOCS_DIR / "homepage.yml"
-    return yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
+    return (
+        yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+        if meta_path.exists()
+        else {}
+    )
 
 
 def _load_pyproject() -> dict:
@@ -184,7 +242,7 @@ def _load_pyproject() -> dict:
             import tomllib  # type: ignore[import]
         except ModuleNotFoundError:
             import tomli as tomllib  # type: ignore[import,no-redef]
-    return tomllib.loads(toml_path.read_text())["project"]
+    return tomllib.loads(toml_path.read_text(encoding="utf-8"))["project"]
 
 
 def _discover_subpackages() -> list[str]:
@@ -249,7 +307,7 @@ def _parse_readme_sections() -> dict[str, str]:
     readme = ROOT / "README.md"
     if not readme.exists():
         return {}
-    text = readme.read_text()
+    text = readme.read_text(encoding="utf-8")
     # Split on ## headings, keeping the heading text
     parts = _re.split(r"^## +(.+)$", text, flags=_re.MULTILINE)
     # parts = [preamble, heading1, body1, heading2, body2, ...]
@@ -577,7 +635,7 @@ def generate_index() -> None:
         lines.append("")
 
     index = DOCS_DIR / "index.md"
-    index.write_text("\n".join(lines))
+    index.write_text("\n".join(lines), encoding="utf-8")
     n_mods = len(ordered_mods)
     n_tuts = len(tutorials)
     n_deps = sum(1 for d in deps if d.strip() in dep_icons)
@@ -598,7 +656,7 @@ def update_nav(ref_nav: list) -> None:
         Nav structure for the API Reference section.
     """
     config_path = ROOT / "mkdocs.yml"
-    text = config_path.read_text()
+    text = config_path.read_text(encoding="utf-8")
 
     # Build tutorial nav entries
     tutorial_nav = []
@@ -634,7 +692,7 @@ def update_nav(ref_nav: list) -> None:
         # Append if no nav section exists
         text += "\n" + nav_yaml
 
-    config_path.write_text(text)
+    config_path.write_text(text, encoding="utf-8")
     print(f"  Updated nav: {len(ref_nav)} reference entries, {len(tutorial_nav)} tutorials")
 
 
@@ -644,6 +702,8 @@ def main() -> None:
     ref_nav = generate_reference()
     print("Converting tutorials...")
     copy_and_convert_tutorials()
+    print("Exporting Marimo tutorial apps...")
+    export_marimo_tutorials()
     print("Generating index page...")
     generate_index()
     print("Updating mkdocs.yml nav...")
