@@ -1,0 +1,5020 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../reactivation/">
+      
+      
+        <link rel="next" href="../spatial_map/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.37">
+    
+    
+      
+        <title>Joint Sharp Wave Ripple Detection - neuro_py</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.1e981d71.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#joint-sharp-wave-ripple-detection" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="neuro_py" class="md-header__button md-logo" aria-label="neuro_py" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            neuro_py
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Joint Sharp Wave Ripple Detection
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="light-blue"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ryanharvey1/neuro_py" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ryanharvey1/neuro_py
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../attractor_landscape/" class="md-tabs__link">
+          
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="neuro_py" class="md-nav__button md-logo" aria-label="neuro_py" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    neuro_py
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ryanharvey1/neuro_py" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ryanharvey1/neuro_py
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/behavior/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    behavior
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    behavior
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/cheeseboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cheeseboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/circle_maze/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    circle_maze
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/get_trials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    get_trials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kinematics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/linear_positions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    linear_positions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/linearization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    linearization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/linearization_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    linearization_pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/behavior/well_traversal_classification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    well_traversal_classification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/detectors/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    detectors
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    detectors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/detectors/dentate_spike/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dentate_spike
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/detectors/sharp_wave_ripple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sharp_wave_ripple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/detectors/up_down_state/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    up_down_state
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/ensemble/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ensemble
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ensemble
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    assembly
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/assembly_reactivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    assembly_reactivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    decoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/bayesian/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    bayesian
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/lstm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lstm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/m2mlstm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    m2mlstm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/mlp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mlp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/preprocess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    preprocess
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/decoding/transformer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    transformer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/dynamics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/explained_variance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    explained_variance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    geometry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/pairwise_bias_correlation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pairwise_bias_correlation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/similarity_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    similarity_index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/ensemble/similaritymat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    similaritymat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/io/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    io
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/io/loading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/io/saving/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    saving
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/lfp/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lfp
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    lfp
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/lfp/CSD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/lfp/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/lfp/spectral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/lfp/theta_cycles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    theta_cycles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/plotting/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    plotting
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    plotting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/plotting/decorators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    decorators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/plotting/events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/plotting/figure_helpers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    figure_helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/plotting/replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/process/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    process
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    process
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/batch_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    batch_analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/correlations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    correlations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/intervals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    intervals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/peri_event/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    peri_event
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/precession_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    precession_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/pychronux/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pychronux
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/process/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/raw/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    raw
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    raw
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/raw/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/raw/spike_sorting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    spike_sorting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/session/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    session
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    session
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/session/locate_epochs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    locate_epochs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/spikes/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    spikes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    spikes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/spikes/spike_tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    spike_tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_12" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/stats/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stats
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_12" id="__nav_2_12_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    stats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/stats/circ_stats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    circ_stats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/stats/regression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    regression
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/stats/stats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/stats/system_identifier/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    system_identifier
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/tuning/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tuning
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tuning
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/tuning/fields/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fields
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/tuning/maps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    maps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_14" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/neuro_py/util/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    util
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_14" id="__nav_2_14_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    util
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/neuro_py/util/array/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    array
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../attractor_landscape/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attractor Landscape
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batch_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bias_correlation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bias Correlation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explained_variance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explained Variance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lfp_loader_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lfp Loader Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neural_geodynamics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Neural Geodynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../peth_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PETH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plotting_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotting Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reactivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reactivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharp Wave Ripple Detection
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharp Wave Ripple Detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-simulated-sharp-wave-ripples" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1) Simulated sharp wave ripples
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1) Simulated sharp wave ripples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compare-detections-with-known-event-times" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Compare detections with known event times
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plot-the-simulated-detector-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Plot the simulated detector result
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interactive-browser-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Interactive browser demo
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-detect-joint-swrs-from-a-real-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2) Detect joint SWRs from a real session
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2) Detect joint SWRs from a real session">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameter-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parameter guide
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-inspect-the-real-data-detection-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3) Inspect the real-data detection output
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-load-only-the-real-data-lfp-segment-needed-for-plotting" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4) Load only the real-data LFP segment needed for plotting
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-plot-raw-channels-and-feature-traces" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5) Plot raw channels and feature traces
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-save-the-final-joint-detections-to-a-cellexplorer-event-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6) Save the final joint detections to a CellExplorer event file
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../weighted_corr_2d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Weighted Corr 2D
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../weighted_corr_2d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Weighted Correlation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-simulated-sharp-wave-ripples" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1) Simulated sharp wave ripples
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1) Simulated sharp wave ripples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compare-detections-with-known-event-times" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Compare detections with known event times
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plot-the-simulated-detector-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Plot the simulated detector result
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interactive-browser-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Interactive browser demo
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-detect-joint-swrs-from-a-real-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2) Detect joint SWRs from a real session
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2) Detect joint SWRs from a real session">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameter-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parameter guide
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-inspect-the-real-data-detection-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3) Inspect the real-data detection output
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-load-only-the-real-data-lfp-segment-needed-for-plotting" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4) Load only the real-data LFP segment needed for plotting
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-plot-raw-channels-and-feature-traces" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5) Plot raw channels and feature traces
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-save-the-final-joint-detections-to-a-cellexplorer-event-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6) Save the final joint detections to a CellExplorer event file
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../attractor_landscape/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+    <a href="https://github.com/ryanharvey1/neuro_py/edit/main/docs/tutorials/sharp_wave_ripple_detection.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-pen" viewBox="0 0 24 24"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/ryanharvey1/neuro_py/raw/main/docs/tutorials/sharp_wave_ripple_detection.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
+    </a>
+  
+
+
+<h1 id="joint-sharp-wave-ripple-detection">Joint Sharp Wave Ripple Detection<a class="headerlink" href="#joint-sharp-wave-ripple-detection" title="Permanent link">&para;</a></h1>
+<p>This tutorial walks through a compact joint SWR workflow in <code>neuro_py</code>. We start with a short simulated LFP segment where the expected SWR times are known, then run the same detector on the real session <code>S:\data\HMC\HMC1\day8</code>.</p>
+<p>We will:</p>
+<ol>
+<li>simulate ripple-channel and sharp-wave-channel LFP with visible SWRs,</li>
+<li>detect the simulated SWRs and compare them with the known event times,</li>
+<li>run the detector on a real session and inspect the CellExplorer-style event table,</li>
+<li>load only the short real-data LFP segment needed for plotting, and</li>
+<li>visualize raw channels and feature traces in stacked panels so the joint decision is easy to read.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="o">%</span><span class="n">reload_ext</span> <span class="n">autoreload</span>
+<span class="o">%</span><span class="n">autoreload</span> <span class="mi">2</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndimage</span><span class="p">,</span> <span class="n">signal</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">neuro_py</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.detectors.sharp_wave_ripple</span><span class="w"> </span><span class="kn">import</span> <span class="n">detect_sharp_wave_ripples</span>
+
+<span class="n">npy</span><span class="o">.</span><span class="n">plotting</span><span class="o">.</span><span class="n">set_plotting_defaults</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="1-simulated-sharp-wave-ripples">1) Simulated sharp wave ripples<a class="headerlink" href="#1-simulated-sharp-wave-ripples" title="Permanent link">&para;</a></h2>
+<p>Before looking at a real recording, it helps to use data where we know the answer. Here we simulate a short 1.5 second two-channel LFP segment with brown noise, visible 165 Hz ripple bursts, and paired slow sharp-wave deflections.</p>
+<p>In real hippocampal data, the sharp-wave feature is useful because it helps reject noise or non-SWR high-frequency events that can otherwise have ripple-band power.</p>
+<p>This section is also designed to be easy to tune locally. Edit the simulation amplitudes or detector thresholds below and rerun the cells to see how the joint detector responds. A future Marimo version could expose these same values as reactive sliders, but this static tutorial keeps the current Zensical build path simple.</p>
+<div class="highlight"><pre><span></span><code><span class="n">RIPPLE_FREQUENCY</span> <span class="o">=</span> <span class="mf">165.0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">signal_in</span><span class="p">):</span>
+    <span class="n">signal_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">signal_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">signal_in</span> <span class="o">-</span> <span class="n">signal_in</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="n">signal_in</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">brown_noise</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate normalized brown noise with power decreasing at low frequencies.&quot;&quot;&quot;</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">uneven</span> <span class="o">=</span> <span class="n">n_samples</span> <span class="o">%</span> <span class="mi">2</span>
+    <span class="n">spectrum</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">uneven</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">uneven</span>
+    <span class="p">)</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft</span><span class="p">(</span><span class="n">spectrum</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+    <span class="k">if</span> <span class="n">uneven</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">normalize</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">simulate_swr_session</span><span class="p">(</span>
+    <span class="n">fs</span><span class="o">=</span><span class="mf">1250.0</span><span class="p">,</span>
+    <span class="n">duration</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">swr_times</span><span class="o">=</span><span class="p">(</span><span class="mf">0.45</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">),</span>
+    <span class="n">ripple_amplitude</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">ripple_duration</span><span class="o">=</span><span class="mf">0.100</span><span class="p">,</span>
+    <span class="n">sharp_wave_amplitude</span><span class="o">=-</span><span class="mf">2.8</span><span class="p">,</span>
+    <span class="n">sharp_wave_duration</span><span class="o">=</span><span class="mf">0.140</span><span class="p">,</span>
+    <span class="n">ripple_noise_amplitude</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span>
+    <span class="n">sharp_wave_noise_amplitude</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">fs</span><span class="p">)</span>
+    <span class="n">ripple_channel</span> <span class="o">=</span> <span class="n">ripple_noise_amplitude</span> <span class="o">*</span> <span class="n">brown_noise</span><span class="p">(</span><span class="n">timestamps</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">sharp_wave_channel</span> <span class="o">=</span> <span class="n">sharp_wave_noise_amplitude</span> <span class="o">*</span> <span class="n">brown_noise</span><span class="p">(</span>
+        <span class="n">timestamps</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="p">)</span>
+
+    <span class="n">ripple_carrier</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">RIPPLE_FREQUENCY</span> <span class="o">*</span> <span class="n">timestamps</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="n">swr_times</span><span class="p">:</span>
+        <span class="n">ripple_envelope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="p">((</span><span class="n">timestamps</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">ripple_duration</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">sharp_wave_envelope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="p">((</span><span class="n">timestamps</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">sharp_wave_duration</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">ripple_channel</span> <span class="o">+=</span> <span class="n">ripple_amplitude</span> <span class="o">*</span> <span class="n">ripple_carrier</span> <span class="o">*</span> <span class="n">ripple_envelope</span>
+        <span class="n">sharp_wave_channel</span> <span class="o">+=</span> <span class="n">sharp_wave_amplitude</span> <span class="o">*</span> <span class="n">sharp_wave_envelope</span>
+
+    <span class="n">truth</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;event_type&quot;</span><span class="p">:</span> <span class="s2">&quot;swr&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;true_time&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">swr_times</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">&quot;true_start&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">swr_times</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="n">ripple_duration</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+            <span class="s2">&quot;true_stop&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">swr_times</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">ripple_duration</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">timestamps</span><span class="p">,</span> <span class="n">ripple_channel</span><span class="p">,</span> <span class="n">sharp_wave_channel</span><span class="p">,</span> <span class="n">truth</span>
+
+
+<span class="n">sim_timestamps</span><span class="p">,</span> <span class="n">sim_ripple</span><span class="p">,</span> <span class="n">sim_sharp_wave</span><span class="p">,</span> <span class="n">sim_truth</span> <span class="o">=</span> <span class="n">simulate_swr_session</span><span class="p">()</span>
+
+<span class="n">sim_events</span> <span class="o">=</span> <span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
+    <span class="n">ripple_signal</span><span class="o">=</span><span class="n">sim_ripple</span><span class="p">,</span>
+    <span class="n">sharp_wave_signal</span><span class="o">=</span><span class="n">sim_sharp_wave</span><span class="p">,</span>
+    <span class="n">fs</span><span class="o">=</span><span class="mf">1250.0</span><span class="p">,</span>
+    <span class="n">timestamps</span><span class="o">=</span><span class="n">sim_timestamps</span><span class="p">,</span>
+    <span class="n">ripple_channel</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">high_threshold</span><span class="o">=</span><span class="mf">1.8</span><span class="p">,</span>
+    <span class="n">sharp_wave_low_threshold</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+    <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>
+    <span class="n">smooth_sigma</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
+    <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.120</span><span class="p">,</span>
+    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.220</span><span class="p">,</span>
+    <span class="n">peak_window</span><span class="o">=</span><span class="mf">0.060</span><span class="p">,</span>
+    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.010</span><span class="p">,</span>
+    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;union&quot;</span><span class="p">,</span>
+    <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">sim_events</span><span class="p">[[</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="s2">&quot;peaks&quot;</span><span class="p">,</span> <span class="s2">&quot;peakNormedPower&quot;</span><span class="p">,</span> <span class="s2">&quot;sharp_wave_peakNormedPower&quot;</span><span class="p">]]</span>
+</code></pre></div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>start</th>
+      <th>stop</th>
+      <th>peaks</th>
+      <th>peakNormedPower</th>
+      <th>sharp_wave_peakNormedPower</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.4168</td>
+      <td>0.4920</td>
+      <td>0.4528</td>
+      <td>5.148345</td>
+      <td>2.035222</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.9880</td>
+      <td>1.1152</td>
+      <td>1.0288</td>
+      <td>5.136576</td>
+      <td>2.681947</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="compare-detections-with-known-event-times">Compare detections with known event times<a class="headerlink" href="#compare-detections-with-known-event-times" title="Permanent link">&para;</a></h3>
+<p>Because the simulated SWR times are known, we can make a quick sanity table. Each simulated SWR should have a detected ripple trough nearby.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">nearest_detection_time</span><span class="p">(</span><span class="n">event_time</span><span class="p">,</span> <span class="n">detected_peaks</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detected_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">detected_peaks</span> <span class="o">-</span> <span class="n">event_time</span><span class="p">)</span>
+    <span class="n">nearest</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">distances</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">detected_peaks</span><span class="p">[</span><span class="n">nearest</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="n">nearest</span><span class="p">])</span>
+
+
+<span class="n">detected_peaks</span> <span class="o">=</span> <span class="n">sim_events</span><span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">sim_truth</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">nearest_peak</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">nearest_detection_time</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">true_time</span><span class="p">,</span> <span class="n">detected_peaks</span><span class="p">)</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;event_type&quot;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="s2">&quot;true_time&quot;</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">true_time</span><span class="p">,</span>
+            <span class="s2">&quot;nearest_detected_peak&quot;</span><span class="p">:</span> <span class="n">nearest_peak</span><span class="p">,</span>
+            <span class="s2">&quot;error_ms&quot;</span><span class="p">:</span> <span class="n">error</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span>
+            <span class="s2">&quot;detected&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">error</span> <span class="o">&lt;=</span> <span class="mf">0.025</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+<span class="n">sim_comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">sim_comparison</span><span class="p">)</span>
+</code></pre></div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>event_type</th>
+      <th>true_time</th>
+      <th>nearest_detected_peak</th>
+      <th>error_ms</th>
+      <th>detected</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>swr</td>
+      <td>0.45</td>
+      <td>0.4528</td>
+      <td>2.8</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>swr</td>
+      <td>1.02</td>
+      <td>1.0288</td>
+      <td>8.8</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="plot-the-simulated-detector-result">Plot the simulated detector result<a class="headerlink" href="#plot-the-simulated-detector-result" title="Permanent link">&para;</a></h3>
+<p>The short simulation window lets the ripple oscillations remain visible in the raw LFP trace. Gray spans mark the known simulated SWR windows, and orange spans mark the detector output. The paired sharp-wave channel is plotted underneath the ripple channel so the joint event structure is visible without crowding the figure.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_simulated_swr_result</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">,</span> <span class="n">ripple_raw</span><span class="p">,</span> <span class="n">sharp_wave_raw</span><span class="p">):</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+        <span class="mi">2</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="o">=</span><span class="n">npy</span><span class="o">.</span><span class="n">plotting</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="s2">&quot;nature_double&quot;</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">1.3</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="mf">0.3</span><span class="p">),</span>
+        <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ripple_ax</span><span class="p">,</span> <span class="n">sharp_wave_ax</span> <span class="o">=</span> <span class="n">axes</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">truth</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">true_start</span><span class="p">,</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">true_stop</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#16a34a&quot;</span><span class="p">,</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="mf">0.16</span><span class="p">,</span>
+                <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">zorder</span><span class="o">=-</span><span class="mi">1000</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="n">events</span><span class="p">[[</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#f59e0b&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.30</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=-</span><span class="mi">900</span><span class="p">)</span>
+
+    <span class="n">ripple_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">ripple_raw</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#111827&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.1</span><span class="p">)</span>
+    <span class="n">ripple_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Ripple</span><span class="se">\n</span><span class="s2">channel&quot;</span><span class="p">)</span>
+
+    <span class="n">sharp_wave_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">sharp_wave_raw</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#047857&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span>
+    <span class="n">sharp_wave_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Sharp-wave</span><span class="se">\n</span><span class="s2">channel&quot;</span><span class="p">)</span>
+    <span class="n">sharp_wave_ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time (s)&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">margins</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">ripple_ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mf">0.01</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;green = simulated SWR, orange = detected SWR&quot;</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">ripple_ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+        <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="n">va</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">bbox</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;boxstyle&quot;</span><span class="p">:</span> <span class="s2">&quot;round,pad=0.3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;facecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span>
+
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plot_simulated_swr_result</span><span class="p">(</span>
+    <span class="n">sim_events</span><span class="p">,</span>
+    <span class="n">sim_truth</span><span class="p">,</span>
+    <span class="n">sim_timestamps</span><span class="p">,</span>
+    <span class="n">sim_ripple</span><span class="p">,</span>
+    <span class="n">sim_sharp_wave</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Simulated joint sharp wave ripple detection&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.04</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
+</code></pre></div>
+<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_7_0.png" /></p>
+<h3 id="interactive-browser-demo">Interactive browser demo<a class="headerlink" href="#interactive-browser-demo" title="Permanent link">&para;</a></h3>
+<p>The embedded Marimo app below runs entirely in your browser with WebAssembly. It intentionally uses simulated data and a small NumPy/SciPy detector rather than importing the full <code>neuro_py</code> package, which keeps the demo fast and avoids browser dependency limits. Try changing the amplitudes, noise level, and thresholds to see how the joint detector responds.</p>
+<p><iframe
+  src="../marimo/sharp_wave_ripple_detection/index.html"
+  width="100%"
+  height="700"
+  frameborder="0"
+  sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"
+  loading="lazy"
+  style="border: 1px solid var(--md-default-fg-color--lightest); border-radius: 0.5rem; width: 100%;"
+></iframe>
+</p>
+<h2 id="2-detect-joint-swrs-from-a-real-session">2) Detect joint SWRs from a real session<a class="headerlink" href="#2-detect-joint-swrs-from-a-real-session" title="Permanent link">&para;</a></h2>
+<p>With the simulated example in mind, we can run the same detector on real data. The detector can infer channels from CellExplorer <code>channelTags</code>:</p>
+<ul>
+<li><code>ripple</code>, <code>Ripple</code>, <code>CA1sp</code>, or <code>ca1sp</code> for the ripple channel,</li>
+<li><code>SharpWave</code>, <code>sharpwave</code>, <code>sharp_wave</code>, <code>CA1sr</code>, or <code>ca1sr</code> for the sharp-wave channel, and</li>
+<li><code>Bad</code> or <code>bad</code> for an optional noise channel.</li>
+</ul>
+<p>The important behavior is still joint detection by default: a candidate event must pass separate ripple and sharp-wave criteria. If a session does not have a usable sharp-wave channel, you can explicitly run ripple-only detection with <code>require_sharp_wave=False</code>, but those events should be interpreted more cautiously because the sharp-wave criterion helps reject ripple-band noise.</p>
+<div class="highlight"><pre><span></span><code><span class="n">basepath</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;S:\data\HMC\HMC1\day8&quot;</span>
+
+<span class="n">ripples</span> <span class="o">=</span> <span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
+    <span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span>
+    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+    <span class="n">high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">sharp_wave_low_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.100</span><span class="p">,</span>
+    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
+    <span class="n">noise_threshold</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.010</span><span class="p">,</span>
+    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span>
+    <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">ripples</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</code></pre></div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>start</th>
+      <th>stop</th>
+      <th>peaks</th>
+      <th>center</th>
+      <th>duration</th>
+      <th>amplitude</th>
+      <th>frequency</th>
+      <th>peakNormedPower</th>
+      <th>ripple_channel</th>
+      <th>noise_peakNormedPower</th>
+      <th>ripple_duration</th>
+      <th>sharp_wave_peakNormedPower</th>
+      <th>sharp_wave_amplitude</th>
+      <th>sharp_wave_duration</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1.0104</td>
+      <td>1.1384</td>
+      <td>1.1032</td>
+      <td>1.0744</td>
+      <td>0.1280</td>
+      <td>760.759106</td>
+      <td>134.276792</td>
+      <td>4.782693</td>
+      <td>261</td>
+      <td>2.197593</td>
+      <td>0.0776</td>
+      <td>2.963279</td>
+      <td>3597.090011</td>
+      <td>0.1280</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>3.9912</td>
+      <td>4.0528</td>
+      <td>3.9992</td>
+      <td>4.0220</td>
+      <td>0.0616</td>
+      <td>512.311494</td>
+      <td>115.437931</td>
+      <td>3.278953</td>
+      <td>261</td>
+      <td>1.056192</td>
+      <td>0.0344</td>
+      <td>1.627667</td>
+      <td>1975.807248</td>
+      <td>0.0616</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>7.1056</td>
+      <td>7.1648</td>
+      <td>7.1368</td>
+      <td>7.1352</td>
+      <td>0.0592</td>
+      <td>1086.031154</td>
+      <td>169.068432</td>
+      <td>8.196290</td>
+      <td>261</td>
+      <td>1.212196</td>
+      <td>0.0696</td>
+      <td>5.626167</td>
+      <td>6829.537229</td>
+      <td>0.0592</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>7.1744</td>
+      <td>7.2384</td>
+      <td>7.2144</td>
+      <td>7.2064</td>
+      <td>0.0640</td>
+      <td>1304.984970</td>
+      <td>149.256807</td>
+      <td>9.573347</td>
+      <td>261</td>
+      <td>2.108075</td>
+      <td>0.0648</td>
+      <td>7.564478</td>
+      <td>9182.428640</td>
+      <td>0.0640</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>7.4288</td>
+      <td>7.5176</td>
+      <td>7.4720</td>
+      <td>7.4732</td>
+      <td>0.0888</td>
+      <td>1218.558875</td>
+      <td>140.469821</td>
+      <td>8.721061</td>
+      <td>261</td>
+      <td>0.664760</td>
+      <td>0.0816</td>
+      <td>7.635724</td>
+      <td>9268.913910</td>
+      <td>0.0888</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="parameter-guide">Parameter guide<a class="headerlink" href="#parameter-guide" title="Permanent link">&para;</a></h3>
+<p>The defaults are intentionally conservative, but these are the parameters you will most often tune while looking at example events:</p>
+<ul>
+<li><code>low_threshold</code>: lower z-scored ripple-envelope threshold used to set ripple candidate boundaries.</li>
+<li><code>high_threshold</code>: peak z-scored ripple-envelope threshold required to accept the ripple component.</li>
+<li><code>sharp_wave_low_threshold</code>: lower z-scored sharp-wave threshold used to set sharp-wave candidate boundaries.</li>
+<li><code>sharp_wave_high_threshold</code>: peak z-scored sharp-wave threshold required near the ripple peak.</li>
+<li><code>min_duration</code> and <code>max_duration</code>: allowed ripple-component duration in seconds.</li>
+<li><code>sharp_wave_min_duration</code> and <code>sharp_wave_max_duration</code>: allowed sharp-wave-component duration in seconds.</li>
+<li><code>noise_threshold</code>: optional rejection threshold on the noise-channel ripple-band feature.</li>
+<li><code>merge_gap</code>: merge nearby candidate intervals separated by less than this gap in seconds.</li>
+<li><code>boundary_mode</code>: use <code>"sharp_wave"</code> for sharp-wave event boundaries or <code>"union"</code> for the combined ripple/sharp-wave interval.</li>
+<li><code>require_sharp_wave</code>: keep the default <code>True</code> for joint SWR detection, or set <code>False</code> only when you intentionally want ripple-only detection because no sharp-wave channel is available.</li>
+</ul>
+<p>See <code>detect_sharp_wave_ripples</code> for the full docstring and less commonly changed options such as passbands and smoothing widths.</p>
+<h2 id="3-inspect-the-real-data-detection-output">3) Inspect the real-data detection output<a class="headerlink" href="#3-inspect-the-real-data-detection-output" title="Permanent link">&para;</a></h2>
+<p>The returned table follows the CellExplorer event convention and includes a few extra columns that are useful for QC:</p>
+<ul>
+<li><code>peakNormedPower</code> reports the ripple feature strength,</li>
+<li><code>sharp_wave_peakNormedPower</code> reports the sharp-wave feature strength, and</li>
+<li><code>sharp_wave_duration</code> reports the duration of the sharp-wave component used for the final event boundary.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">summary_columns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;start&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;stop&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;peaks&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;duration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ripple_duration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sharp_wave_duration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;frequency&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;peakNormedPower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sharp_wave_peakNormedPower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;noise_peakNormedPower&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ripples</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> joint SWR events&quot;</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">ripples</span><span class="p">[</span><span class="n">summary_columns</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Detected 11,493 joint SWR events
+</code></pre></div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>start</th>
+      <th>stop</th>
+      <th>peaks</th>
+      <th>duration</th>
+      <th>ripple_duration</th>
+      <th>sharp_wave_duration</th>
+      <th>frequency</th>
+      <th>peakNormedPower</th>
+      <th>sharp_wave_peakNormedPower</th>
+      <th>noise_peakNormedPower</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1.0104</td>
+      <td>1.1384</td>
+      <td>1.1032</td>
+      <td>0.1280</td>
+      <td>0.0776</td>
+      <td>0.1280</td>
+      <td>134.276792</td>
+      <td>4.782693</td>
+      <td>2.963279</td>
+      <td>2.197593</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>3.9912</td>
+      <td>4.0528</td>
+      <td>3.9992</td>
+      <td>0.0616</td>
+      <td>0.0344</td>
+      <td>0.0616</td>
+      <td>115.437931</td>
+      <td>3.278953</td>
+      <td>1.627667</td>
+      <td>1.056192</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>7.1056</td>
+      <td>7.1648</td>
+      <td>7.1368</td>
+      <td>0.0592</td>
+      <td>0.0696</td>
+      <td>0.0592</td>
+      <td>169.068432</td>
+      <td>8.196290</td>
+      <td>5.626167</td>
+      <td>1.212196</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>7.1744</td>
+      <td>7.2384</td>
+      <td>7.2144</td>
+      <td>0.0640</td>
+      <td>0.0648</td>
+      <td>0.0640</td>
+      <td>149.256807</td>
+      <td>9.573347</td>
+      <td>7.564478</td>
+      <td>2.108075</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>7.4288</td>
+      <td>7.5176</td>
+      <td>7.4720</td>
+      <td>0.0888</td>
+      <td>0.0816</td>
+      <td>0.0888</td>
+      <td>140.469821</td>
+      <td>8.721061</td>
+      <td>7.635724</td>
+      <td>0.664760</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>14.0992</td>
+      <td>14.1952</td>
+      <td>14.1640</td>
+      <td>0.0960</td>
+      <td>0.0632</td>
+      <td>0.0960</td>
+      <td>167.111533</td>
+      <td>3.518855</td>
+      <td>7.625344</td>
+      <td>1.878792</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>14.6080</td>
+      <td>14.6736</td>
+      <td>14.6472</td>
+      <td>0.0656</td>
+      <td>0.0752</td>
+      <td>0.0656</td>
+      <td>165.331762</td>
+      <td>12.713671</td>
+      <td>6.487357</td>
+      <td>3.301809</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>17.5416</td>
+      <td>17.6168</td>
+      <td>17.5880</td>
+      <td>0.0752</td>
+      <td>0.0344</td>
+      <td>0.0752</td>
+      <td>133.228881</td>
+      <td>2.533836</td>
+      <td>2.632161</td>
+      <td>1.133834</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>22.3400</td>
+      <td>22.4008</td>
+      <td>22.3840</td>
+      <td>0.0608</td>
+      <td>0.0336</td>
+      <td>0.0608</td>
+      <td>170.302184</td>
+      <td>5.733974</td>
+      <td>7.285906</td>
+      <td>0.764961</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>26.8832</td>
+      <td>26.9288</td>
+      <td>26.9200</td>
+      <td>0.0456</td>
+      <td>0.0448</td>
+      <td>0.0456</td>
+      <td>134.940743</td>
+      <td>3.218880</td>
+      <td>8.845681</td>
+      <td>1.957444</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="4-load-only-the-real-data-lfp-segment-needed-for-plotting">4) Load only the real-data LFP segment needed for plotting<a class="headerlink" href="#4-load-only-the-real-data-lfp-segment-needed-for-plotting" title="Permanent link">&para;</a></h2>
+<p>The full session can be large, so the tutorial does not materialize all plotted channels. Instead, we choose a short window from the first 20 minutes and pass that interval to <code>LFPLoader</code>. Internally this lets the loader use the file memmap and read just the requested time segment.</p>
+<p>We then rebuild two lightweight feature traces inside that window: ripple-band power from the ripple channel and a low-frequency sharp-wave difference between the ripple and sharp-wave channels.</p>
+<div class="highlight"><pre><span></span><code><span class="n">n_max_time</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">*</span> <span class="mi">60</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Number of detected events in first </span><span class="si">{</span><span class="n">n_max_time</span><span class="si">}</span><span class="s2"> seconds: </span><span class="si">{</span><span class="p">(</span><span class="n">ripples</span><span class="o">.</span><span class="n">stop</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_max_time</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+<span class="n">channel_tags</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">first_tagged_channel</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="o">*</span><span class="n">keys</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">tags</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;channels&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">zscore</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scale</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">scale</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">values</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="o">/</span> <span class="n">scale</span>
+
+
+<span class="n">ripple_channel</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="nb">int</span><span class="p">(</span><span class="n">ripples</span><span class="p">[</span><span class="s2">&quot;ripple_channel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">ripples</span><span class="o">.</span><span class="n">empty</span>
+        <span class="ow">and</span> <span class="s2">&quot;ripple_channel&quot;</span> <span class="ow">in</span> <span class="n">ripples</span><span class="o">.</span><span class="n">columns</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">ripples</span><span class="p">[</span><span class="s2">&quot;ripple_channel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="k">else</span> <span class="n">first_tagged_channel</span><span class="p">(</span><span class="n">channel_tags</span><span class="p">,</span> <span class="s2">&quot;ripple&quot;</span><span class="p">,</span> <span class="s2">&quot;Ripple&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sp&quot;</span><span class="p">,</span> <span class="s2">&quot;ca1sp&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">sharp_wave_channel</span> <span class="o">=</span> <span class="n">first_tagged_channel</span><span class="p">(</span>
+    <span class="n">channel_tags</span><span class="p">,</span> <span class="s2">&quot;SharpWave&quot;</span><span class="p">,</span> <span class="s2">&quot;sharpwave&quot;</span><span class="p">,</span> <span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sr&quot;</span><span class="p">,</span> <span class="s2">&quot;ca1sr&quot;</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="n">ripple_channel</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">sharp_wave_channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;This tutorial plot needs both ripple and sharp-wave channel tags.&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">events_for_plot</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ripples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ripples</span><span class="o">.</span><span class="n">stop</span><span class="o">.</span><span class="n">values</span> <span class="o">&lt;</span> <span class="n">n_max_time</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;peakNormedPower&quot;</span><span class="p">,</span> <span class="s2">&quot;sharp_wave_peakNormedPower&quot;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">plot_margin</span> <span class="o">=</span> <span class="mf">0.25</span>
+<span class="n">plot_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">events_for_plot</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="n">plot_margin</span><span class="p">))</span>
+<span class="n">plot_stop</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">events_for_plot</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="n">plot_margin</span><span class="p">)</span>
+<span class="n">plot_epoch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">plot_start</span><span class="p">,</span> <span class="n">plot_stop</span><span class="p">]])</span>
+
+<span class="n">lfp</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">LFPLoader</span><span class="p">(</span>
+    <span class="n">basepath</span><span class="p">,</span>
+    <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="n">ripple_channel</span><span class="p">,</span> <span class="n">sharp_wave_channel</span><span class="p">],</span>
+    <span class="n">ext</span><span class="o">=</span><span class="s2">&quot;lfp&quot;</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="o">=</span><span class="n">plot_epoch</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
+<span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">)</span>
+<span class="n">lfp_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+<span class="n">raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lfp_data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+<span class="n">sharp_wave_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lfp_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+<span class="n">ripple_sos</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">butter</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mf">120.0</span><span class="p">,</span> <span class="mf">250.0</span><span class="p">),</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">&quot;sos&quot;</span><span class="p">)</span>
+<span class="n">ripple_filtered</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sosfiltfilt</span><span class="p">(</span><span class="n">ripple_sos</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span>
+<span class="n">ripple_envelope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">hilbert</span><span class="p">(</span><span class="n">ripple_filtered</span><span class="p">))</span>
+<span class="n">ripple_envelope</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">gaussian_filter1d</span><span class="p">(</span>
+    <span class="n">ripple_envelope</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.004</span> <span class="o">*</span> <span class="n">fs</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span>
+<span class="p">)</span>
+<span class="n">ripple_power</span> <span class="o">=</span> <span class="n">zscore</span><span class="p">(</span><span class="n">ripple_envelope</span><span class="p">)</span>
+
+<span class="n">sharp_sos</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">butter</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">),</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">&quot;sos&quot;</span><span class="p">)</span>
+<span class="n">ripple_low</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sosfiltfilt</span><span class="p">(</span><span class="n">sharp_sos</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span>
+<span class="n">sharp_low</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sosfiltfilt</span><span class="p">(</span><span class="n">sharp_sos</span><span class="p">,</span> <span class="n">sharp_wave_raw</span><span class="p">)</span>
+<span class="n">sharp_wave_diff</span> <span class="o">=</span> <span class="n">ripple_low</span> <span class="o">-</span> <span class="n">sharp_low</span>
+<span class="n">sharp_wave_power</span> <span class="o">=</span> <span class="n">zscore</span><span class="p">(</span><span class="n">sharp_wave_diff</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ripple channel: </span><span class="si">{</span><span class="n">ripple_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sharp-wave channel: </span><span class="si">{</span><span class="n">sharp_wave_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded plotting window: </span><span class="si">{</span><span class="n">plot_start</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">plot_stop</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded LFP shape: </span><span class="si">{</span><span class="n">lfp_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sampling rate: </span><span class="si">{</span><span class="n">fs</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Hz&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Number of detected events in first 1200 seconds: 448
+Ripple channel: 261
+Sharp-wave channel: 282
+Loaded plotting window: 285.25 to 1029.30 s
+Loaded LFP shape: (2, 930055)
+Sampling rate: 1250.0 Hz
+</code></pre></div>
+<h2 id="5-plot-raw-channels-and-feature-traces">5) Plot raw channels and feature traces<a class="headerlink" href="#5-plot-raw-channels-and-feature-traces" title="Permanent link">&para;</a></h2>
+<p>The overview stays intentionally simple: raw ripple channel and raw sharp-wave channel only, with accepted intervals shaded.</p>
+<p>For individual examples, each event gets two stacked axes. The top axis shows the raw channels; the bottom axis shows the ripple and sharp-wave z-scored features with their high thresholds. This is easier to read than putting every trace on one set of axes, and it still shows the joint decision clearly.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_joint_swr_summary</span><span class="p">(</span>
+    <span class="n">events</span><span class="p">,</span>
+    <span class="n">events_for_plot</span><span class="p">,</span>
+    <span class="n">timestamps</span><span class="p">,</span>
+    <span class="n">ripple_raw</span><span class="p">,</span>
+    <span class="n">sharp_wave_raw</span><span class="p">,</span>
+    <span class="n">ripple_power</span><span class="p">,</span>
+    <span class="n">sharp_wave_power</span><span class="p">,</span>
+    <span class="n">fs</span><span class="p">,</span>
+    <span class="n">ripple_high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">example_window</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span>
+        <span class="n">figsize</span><span class="o">=</span><span class="n">npy</span><span class="o">.</span><span class="n">plotting</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="s2">&quot;nature_double&quot;</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">1.65</span><span class="p">),</span>
+        <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dpi</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_gridspec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">],</span> <span class="n">hspace</span><span class="o">=</span><span class="mf">0.08</span><span class="p">)</span>
+
+    <span class="n">ax_overview</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">outer</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">timestamps</span><span class="p">,</span> <span class="n">ripple_raw</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#111827&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Ripple channel raw&quot;</span>
+    <span class="p">)</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">timestamps</span><span class="p">,</span>
+        <span class="n">sharp_wave_raw</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#047857&quot;</span><span class="p">,</span>
+        <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Sharp-wave channel raw&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="n">events</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">],</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">():</span>
+        <span class="n">ax_overview</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#f59e0b&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.16</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Raw LFP in the loaded plotting window&quot;</span><span class="p">)</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time (s)&quot;</span><span class="p">)</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;LFP&quot;</span><span class="p">)</span>
+    <span class="n">ax_overview</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">event_grid</span> <span class="o">=</span> <span class="n">outer</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">subgridspec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">hspace</span><span class="o">=</span><span class="mf">0.34</span><span class="p">,</span> <span class="n">wspace</span><span class="o">=</span><span class="mf">0.22</span><span class="p">)</span>
+    <span class="n">event_axes</span> <span class="o">=</span> <span class="n">event_grid</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">half_window</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">example_window</span> <span class="o">*</span> <span class="n">fs</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">panel_index</span><span class="p">,</span> <span class="p">(</span><span class="n">container_ax</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">event</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">event_axes</span><span class="p">,</span> <span class="n">events_for_plot</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;peaks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">())</span>
+    <span class="p">):</span>
+        <span class="n">container_ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+        <span class="n">subgrid</span> <span class="o">=</span> <span class="n">container_ax</span><span class="o">.</span><span class="n">get_subplotspec</span><span class="p">()</span><span class="o">.</span><span class="n">subgridspec</span><span class="p">(</span>
+            <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="n">hspace</span><span class="o">=</span><span class="mf">0.05</span>
+        <span class="p">)</span>
+        <span class="n">raw_ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">subgrid</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">feature_ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">subgrid</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">sharex</span><span class="o">=</span><span class="n">raw_ax</span><span class="p">)</span>
+
+        <span class="n">peak_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">timestamps</span> <span class="o">-</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">])))</span>
+        <span class="n">start_idx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">peak_idx</span> <span class="o">-</span> <span class="n">half_window</span><span class="p">)</span>
+        <span class="n">stop_idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span> <span class="n">peak_idx</span> <span class="o">+</span> <span class="n">half_window</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">local_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">timestamps</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1000.0</span>
+
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">local_time</span><span class="p">,</span>
+            <span class="n">ripple_raw</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">],</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#111827&quot;</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Ripple raw&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">local_time</span><span class="p">,</span>
+            <span class="n">sharp_wave_raw</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">],</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#047857&quot;</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Sharp-wave raw&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#f59e0b&quot;</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">0.16</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#2563eb&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ripple z=</span><span class="si">{</span><span class="n">event</span><span class="p">[</span><span class="s1">&#39;peakNormedPower&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> | SW z=</span><span class="si">{</span><span class="n">event</span><span class="p">[</span><span class="s1">&#39;sharp_wave_peakNormedPower&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Raw LFP&quot;</span><span class="p">)</span>
+        <span class="n">raw_ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelbottom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">local_time</span><span class="p">,</span>
+            <span class="n">ripple_power</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">],</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#991b1b&quot;</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Ripple feature&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">local_time</span><span class="p">,</span>
+            <span class="n">sharp_wave_power</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">stop_idx</span><span class="p">],</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#047857&quot;</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Sharp-wave feature&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span>
+            <span class="n">ripple_high_threshold</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#991b1b&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span>
+        <span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span>
+            <span class="n">sharp_wave_high_threshold</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#047857&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span>
+        <span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#2563eb&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time from ripple trough (ms)&quot;</span><span class="p">)</span>
+        <span class="n">feature_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">panel_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">raw_ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+            <span class="n">feature_ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">event_axes</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">events_for_plot</span><span class="p">)</span> <span class="p">:]:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span>
+
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plot_joint_swr_summary</span><span class="p">(</span>
+    <span class="n">ripples</span><span class="p">,</span>
+    <span class="n">events_for_plot</span><span class="p">,</span>
+    <span class="n">timestamps</span><span class="p">,</span>
+    <span class="n">raw</span><span class="p">,</span>
+    <span class="n">sharp_wave_raw</span><span class="p">,</span>
+    <span class="n">ripple_power</span><span class="p">,</span>
+    <span class="n">sharp_wave_power</span><span class="p">,</span>
+    <span class="n">fs</span><span class="p">,</span>
+    <span class="n">ripple_high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Joint sharp wave ripple detection summary&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
+</code></pre></div>
+<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_17_0.png" /></p>
+<h2 id="6-save-the-final-joint-detections-to-a-cellexplorer-event-file">6) Save the final joint detections to a CellExplorer event file<a class="headerlink" href="#6-save-the-final-joint-detections-to-a-cellexplorer-event-file" title="Permanent link">&para;</a></h2>
+<p>After the thresholds look good, rerun the detector with <code>save_mat=True</code>. Using the default <code>event_name="ripples"</code> writes a standard CellExplorer event file named <code>basename.ripples.events.mat</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
+    <span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span>
+    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+    <span class="n">high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">sharp_wave_low_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.100</span><span class="p">,</span>
+    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
+    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
+    <span class="n">noise_threshold</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.010</span><span class="p">,</span>
+    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span>
+    <span class="n">save_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>That file can then be loaded by CellExplorer or by <code>neuro_py.io.loading.load_ripples_events</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../reactivation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Reactivation">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Reactivation
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../spatial_map/" class="md-footer__link md-footer__link--next" aria-label="Next: Spatial Map">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Spatial Map
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.dbc0afdc.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+    
+  </body>
+</html>

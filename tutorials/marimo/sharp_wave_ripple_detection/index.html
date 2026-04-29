@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="./favicon.ico" />
+    <!-- Preload is necessary because we show these images when we disconnect from the server,
+    but at that point we cannot load these images from the server -->
+    <link rel="preload" href="./assets/gradient-yHQUC_QB.png" as="image" />
+    <link rel="preload" href="./assets/noise-60BoTA8O.png" as="image" />
+    <!-- Preload the fonts -->
+    <link rel="preload" href="./assets/Lora-VariableFont_wght-CZceb_kH.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/PTSans-Regular-Bam3NpBI.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/PTSans-Bold-C_DwAp7Z.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Regular-CEsLFVD9.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Medium-D5MAsWEG.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="./assets/FiraMono-Bold-C6PDArdf.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="a marimo app" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.json" />
+
+    <script data-marimo="true">
+      function __resizeIframe(obj) {
+        const scrollbarHeight = 20; // Max between windows, mac, and linux
+
+        function setHeight() {
+          // Guard against race condition where iframe isn't ready
+          if (!obj.contentWindow?.document?.documentElement) {
+            return;
+          }
+          const element = obj.contentWindow.document.documentElement;
+          // If there is no vertical scrollbar, we don't need to resize the iframe
+          if (element.scrollHeight === element.clientHeight) {
+            return;
+          }
+
+          // Create a new height that includes the scrollbar height if it's visible
+          const hasHorizontalScrollbar = element.scrollWidth > element.clientWidth;
+          const newHeight = element.scrollHeight + (hasHorizontalScrollbar ? scrollbarHeight : 0);
+
+          // Only update the height if it's different from the current height
+          if (obj.style.height !== `${newHeight}px`) {
+            obj.style.height = `${newHeight}px`;
+          }
+        }
+
+        // Resize the iframe to the height of the content and bottom scrollbar height
+        setHeight();
+
+        // Resize the iframe when the content changes
+        const resizeObserver = new ResizeObserver((_entries) => {
+          setHeight();
+        });
+        // Only observe if iframe content is ready
+        if (obj.contentWindow?.document?.body) {
+          resizeObserver.observe(obj.contentWindow.document.body);
+        }
+      }
+    </script>
+    <marimo-filename hidden>notebook.py</marimo-filename>
+    <!-- TODO(Trevor): Legacy, required by VS Code plugin. Remove when plugin is updated (see marimo/server/_templates/template.py) -->
+    <marimo-version data-version="{{ version }}" hidden></marimo-version>
+    <marimo-user-config data-config="{{ user_config }}" hidden></marimo-user-config>
+    <marimo-server-token data-token="{{ server_token }}" hidden></marimo-server-token>
+    <!-- /TODO -->
+    <title>sharp wave ripple detection</title>
+    <script type="module" crossorigin src="./assets/index-D48a2kB0.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/preload-helper-D2MJg03u.js">
+    <link rel="modulepreload" crossorigin href="./assets/chunk-LvLJmgfZ.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-Bj1aDYRI.js">
+    <link rel="modulepreload" crossorigin href="./assets/compiler-runtime-B3qBwwSJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/jsx-runtime-BqBOg78p.js">
+    <link rel="modulepreload" crossorigin href="./assets/useEventListener-BR0C1MaI.js">
+    <link rel="modulepreload" crossorigin href="./assets/defaultLocale-JieDVWC_.js">
+    <link rel="modulepreload" crossorigin href="./assets/precisionRound-CU2C3Vxx.js">
+    <link rel="modulepreload" crossorigin href="./assets/defaultLocale-BLne0bXb.js">
+    <link rel="modulepreload" crossorigin href="./assets/vega-loader.browser-DXARUlxo.js">
+    <link rel="modulepreload" crossorigin href="./assets/utils-Bq5kLQ87.js">
+    <link rel="modulepreload" crossorigin href="./assets/clsx-Dz_KRrWq.js">
+    <link rel="modulepreload" crossorigin href="./assets/cn-DCUzRj2J.js">
+    <link rel="modulepreload" crossorigin href="./assets/badge-ChrPsdTW.js">
+    <link rel="modulepreload" crossorigin href="./assets/button-D9nb17Rw.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-dom-CSu739Rf.js">
+    <link rel="modulepreload" crossorigin href="./assets/fullscreen-BDxedMYP.js">
+    <link rel="modulepreload" crossorigin href="./assets/menu-items-CwUpDHG7.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-BoOh2kN5.js">
+    <link rel="modulepreload" crossorigin href="./assets/createLucideIcon-D5guW7EU.js">
+    <link rel="modulepreload" crossorigin href="./assets/check-BH35Ndha.js">
+    <link rel="modulepreload" crossorigin href="./assets/x-C-6liIBr.js">
+    <link rel="modulepreload" crossorigin href="./assets/select-5i7URBEn.js">
+    <link rel="modulepreload" crossorigin href="./assets/tooltip-Gcwqb_SK.js">
+    <link rel="modulepreload" crossorigin href="./assets/use-toast-BDYuj3zG.js">
+    <link rel="modulepreload" crossorigin href="./assets/useEvent-D91BmmQi.js">
+    <link rel="modulepreload" crossorigin href="./assets/invariant-BUdrueMv.js">
+    <link rel="modulepreload" crossorigin href="./assets/isObject-DvLSfCY5.js">
+    <link rel="modulepreload" crossorigin href="./assets/_baseFor-DKD1r8uL.js">
+    <link rel="modulepreload" crossorigin href="./assets/merge-_9WLTEyt.js">
+    <link rel="modulepreload" crossorigin href="./assets/zod-H_cgTO0M.js">
+    <link rel="modulepreload" crossorigin href="./assets/utils-DIGrmLDO.js">
+    <link rel="modulepreload" crossorigin href="./assets/Deferred-DxQeE5uh.js">
+    <link rel="modulepreload" crossorigin href="./assets/uuid-DXdzqzcr.js">
+    <link rel="modulepreload" crossorigin href="./assets/DeferredRequestRegistry-DjHgMr3S.js">
+    <link rel="modulepreload" crossorigin href="./assets/constants-DMpttj8Q.js">
+    <link rel="modulepreload" crossorigin href="./assets/session-nmTRerwF.js">
+    <link rel="modulepreload" crossorigin href="./assets/config-ChCHm539.js">
+    <link rel="modulepreload" crossorigin href="./assets/requests-DIwGYs0l.js">
+    <link rel="modulepreload" crossorigin href="./assets/useLifecycle-DieWOfXE.js">
+    <link rel="modulepreload" crossorigin href="./assets/useNonce-DfoVjkkH.js">
+    <link rel="modulepreload" crossorigin href="./assets/useTheme-DEcgJENn.js">
+    <link rel="modulepreload" crossorigin href="./assets/arrays-DYDL-3-i.js">
+    <link rel="modulepreload" crossorigin href="./assets/strings-md4mFbOQ.js">
+    <link rel="modulepreload" crossorigin href="./assets/once-DRroIaBz.js">
+    <link rel="modulepreload" crossorigin href="./assets/capabilities-C_FLIcjP.js">
+    <link rel="modulepreload" crossorigin href="./assets/createReducer-1ePoj7v6.js">
+    <link rel="modulepreload" crossorigin href="./assets/paths-CXng2XQv.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-BrR4M-k3.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-HlsDto3K.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-CHcznzB-.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-DGxytjtv.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-DZ2qbK2N.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-CEysMnMQ.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-Ds4ite_2.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-CRPTyqAT.js">
+    <link rel="modulepreload" crossorigin href="./assets/dist-C9ZB41s2.js">
+    <link rel="modulepreload" crossorigin href="./assets/stex-jWatZkll.js">
+    <link rel="modulepreload" crossorigin href="./assets/toDate-B5A0DFEz.js">
+    <link rel="modulepreload" crossorigin href="./assets/purify.es-DC4RGS9t.js">
+    <link rel="modulepreload" crossorigin href="./assets/cjs-BRGiG41H.js">
+    <link rel="modulepreload" crossorigin href="./assets/isSymbol-BT6B8Bon.js">
+    <link rel="modulepreload" crossorigin href="./assets/now-CsYTPAhW.js">
+    <link rel="modulepreload" crossorigin href="./assets/debounce-DhnxH9Rh.js">
+    <link rel="modulepreload" crossorigin href="./assets/database-zap-BUVn5HoR.js">
+    <link rel="modulepreload" crossorigin href="./assets/main-B0OX4z33.js">
+    <link rel="modulepreload" crossorigin href="./assets/cells-A-ljPpuj.js">
+    <link rel="modulepreload" crossorigin href="./assets/ErrorBoundary-DzYV_VeY.js">
+    <link rel="modulepreload" crossorigin href="./assets/kbd-CGShmG7L.js">
+    <link rel="modulepreload" crossorigin href="./assets/useInstallPackage-afgh7PwB.js">
+    <link rel="modulepreload" crossorigin href="./assets/alert-dialog-BGBdrcqJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/dialog-EekxpBBM.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDebounce-BDIglWmG.js">
+    <link rel="modulepreload" crossorigin href="./assets/numbers-OHL_xBiC.js">
+    <link rel="modulepreload" crossorigin href="./assets/SSRProvider-D3zWcDme.js">
+    <link rel="modulepreload" crossorigin href="./assets/context-DGqo1TbK.js">
+    <link rel="modulepreload" crossorigin href="./assets/useNumberFormatter-wQU1z0W_.js">
+    <link rel="modulepreload" crossorigin href="./assets/usePress-CtfZXGno.js">
+    <link rel="modulepreload" crossorigin href="./assets/input-DyPS_GiK.js">
+    <link rel="modulepreload" crossorigin href="./assets/ImperativeModal-BBqcKmmk.js">
+    <link rel="modulepreload" crossorigin href="./assets/cell-link-d38hFEon.js">
+    <link rel="modulepreload" crossorigin href="./assets/multi-map-rafH3cg3.js">
+    <link rel="modulepreload" crossorigin href="./assets/alert-cDholnQq.js">
+    <link rel="modulepreload" crossorigin href="./assets/chevron-right-CG5QYXYk.js">
+    <link rel="modulepreload" crossorigin href="./assets/dropdown-menu-D1A3cFC8.js">
+    <link rel="modulepreload" crossorigin href="./assets/links-C-rLiK3d.js">
+    <link rel="modulepreload" crossorigin href="./assets/useRunCells-DU1tawR-.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-B5qyZn5s.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-Dk_3y0H-.js">
+    <link rel="modulepreload" crossorigin href="./assets/copy-icon-C67c9EwB.js">
+    <link rel="modulepreload" crossorigin href="./assets/RenderHTML-DR6lqJGS.js">
+    <link rel="modulepreload" crossorigin href="./assets/datasource-BCnGIjqn.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-Bsz477is.js">
+    <link rel="modulepreload" crossorigin href="./assets/sparkles-CZ5WmLPA.js">
+    <link rel="modulepreload" crossorigin href="./assets/MarimoErrorOutput-B9_RO5eX.js">
+    <link rel="modulepreload" crossorigin href="./assets/spinner-Bhir8k53.js">
+    <link rel="modulepreload" crossorigin href="./assets/html-to-image-tbPEMBJg.js">
+    <link rel="modulepreload" crossorigin href="./assets/focus-Baz7rlo0.js">
+    <link rel="modulepreload" crossorigin href="./assets/useAsyncData-dS4Ne6pU.js">
+    <link rel="modulepreload" crossorigin href="./assets/LazyAnyLanguageCodeMirror-0gZO1asr.js">
+    <link rel="modulepreload" crossorigin href="./assets/micromark-factory-space-WzovnJik.js">
+    <link rel="modulepreload" crossorigin href="./assets/chunk-5FQGJX7Z-B4RvNAGm.js">
+    <link rel="modulepreload" crossorigin href="./assets/markdown-renderer-CFrgiLqu.js">
+    <link rel="modulepreload" crossorigin href="./assets/command-CXDOCJwp.js">
+    <link rel="modulepreload" crossorigin href="./assets/popover-UExmgBsf.js">
+    <link rel="modulepreload" crossorigin href="./assets/errors-CZb6hI2x.js">
+    <link rel="modulepreload" crossorigin href="./assets/download-Iyng0xCz.js">
+    <link rel="modulepreload" crossorigin href="./assets/table-23NNA1s9.js">
+    <link rel="modulepreload" crossorigin href="./assets/useIframeCapabilities-CryCjoyY.js">
+    <link rel="modulepreload" crossorigin href="./assets/error-banner-CTBwdcdk.js">
+    <link rel="modulepreload" crossorigin href="./assets/formats-BvyJSIqk.js">
+    <link rel="modulepreload" crossorigin href="./assets/en-US-BqRooSzc.js">
+    <link rel="modulepreload" crossorigin href="./assets/isValid-bmSEa3HX.js">
+    <link rel="modulepreload" crossorigin href="./assets/dates-DhByPWH5.js">
+    <link rel="modulepreload" crossorigin href="./assets/maps-C48Oksn0.js">
+    <link rel="modulepreload" crossorigin href="./assets/extends-Co37_JfG.js">
+    <link rel="modulepreload" crossorigin href="./assets/emotion-is-prop-valid.esm-DYxi7n2b.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDateFormatter-BEz9SEXo.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-icons.esm-BUYTQ32a.js">
+    <link rel="modulepreload" crossorigin href="./assets/table-6NxtGaCm.js">
+    <link rel="modulepreload" crossorigin href="./assets/ellipsis-pk06Lq82.js">
+    <link rel="modulepreload" crossorigin href="./assets/message-circle-CWm2KnSx.js">
+    <link rel="modulepreload" crossorigin href="./assets/trash-2-D280Xiwg.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-resizable-panels.browser.esm-Bcm5njwd.js">
+    <link rel="modulepreload" crossorigin href="./assets/JsonOutput-CsshJCMI.js">
+    <link rel="modulepreload" crossorigin href="./assets/chart-no-axes-column-nqk474t8.js">
+    <link rel="modulepreload" crossorigin href="./assets/square-function-D1dlJvD8.js">
+    <link rel="modulepreload" crossorigin href="./assets/spec-Cq8FVoTf.js">
+    <link rel="modulepreload" crossorigin href="./assets/ellipsis-vertical-gxgNyR5G.js">
+    <link rel="modulepreload" crossorigin href="./assets/refresh-cw-DHwG4Mac.js">
+    <link rel="modulepreload" crossorigin href="./assets/tree-actions-oMCx6WNc.js">
+    <link rel="modulepreload" crossorigin href="./assets/components-FepcpFGL.js">
+    <link rel="modulepreload" crossorigin href="./assets/column-preview-DUPpv2dz.js">
+    <link rel="modulepreload" crossorigin href="./assets/icons-BRopQwI3.js">
+    <link rel="modulepreload" crossorigin href="./assets/floating-outline-CSNGDMAm.js">
+    <link rel="modulepreload" crossorigin href="./assets/useAddCell-De9xD63_.js">
+    <link rel="modulepreload" crossorigin href="./assets/objectWithoutPropertiesLoose-smPWkHxB.js">
+    <link rel="modulepreload" crossorigin href="./assets/esm-G1JMtvxe.js">
+    <link rel="modulepreload" crossorigin href="./assets/eye-off-BT-KOYV5.js">
+    <link rel="modulepreload" crossorigin href="./assets/plus-BgB18UzY.js">
+    <link rel="modulepreload" crossorigin href="./assets/readonly-python-code-B0nrQE3U.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-headphone-B3fuktN0.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-HTLbeC2b.js">
+    <link rel="modulepreload" crossorigin href="./assets/image-DQHXdEQn.js">
+    <link rel="modulepreload" crossorigin href="./assets/file-icons-DTNZv05h.js">
+    <link rel="modulepreload" crossorigin href="./assets/switch-DlgpDZMk.js">
+    <link rel="modulepreload" crossorigin href="./assets/events-Qeh-bHlj.js">
+    <link rel="modulepreload" crossorigin href="./assets/globals-xVhZei_S.js">
+    <link rel="modulepreload" crossorigin href="./assets/share-BXN2Sd1t.js">
+    <link rel="modulepreload" crossorigin href="./assets/blob-CTort_or.js">
+    <link rel="modulepreload" crossorigin href="./assets/memoize-Tp7rARFe.js">
+    <link rel="modulepreload" crossorigin href="./assets/get-C-qh_et5.js">
+    <link rel="modulepreload" crossorigin href="./assets/_baseSet-CxV9N1bc.js">
+    <link rel="modulepreload" crossorigin href="./assets/state-CikXvgx3.js">
+    <link rel="modulepreload" crossorigin href="./assets/label-DTR8T0AE.js">
+    <link rel="modulepreload" crossorigin href="./assets/textarea-Dd0InTQJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/radio-group-BtBoRbGH.js">
+    <link rel="modulepreload" crossorigin href="./assets/refresh-ccw-C-n2VFP5.js">
+    <link rel="modulepreload" crossorigin href="./assets/form-0wZOuqB-.js">
+    <link rel="modulepreload" crossorigin href="./assets/renderShortcut-CkNNAheg.js">
+    <link rel="modulepreload" crossorigin href="./assets/field-B8kJgr2A.js">
+    <link rel="modulepreload" crossorigin href="./assets/RSPContexts-BeHIgT4C.js">
+    <link rel="modulepreload" crossorigin href="./assets/useBoolean-CLFdHewv.js">
+    <link rel="modulepreload" crossorigin href="./assets/useDeepCompareMemoize-D0WTlCXt.js">
+    <link rel="modulepreload" crossorigin href="./assets/types-W8WWuumF.js">
+    <link rel="modulepreload" crossorigin href="./assets/fileToBase64-Bzn96tYq.js">
+    <link rel="modulepreload" crossorigin href="./assets/pathUtils-CSrNy17a.js">
+    <link rel="modulepreload" crossorigin href="./assets/prop-types-BFRDxSKF.js">
+    <link rel="modulepreload" crossorigin href="./assets/es-YQvzKo5h.js">
+    <link rel="modulepreload" crossorigin href="./assets/hasIn-DiS_ryrS.js">
+    <link rel="modulepreload" crossorigin href="./assets/flatten-Dl4V1ub3.js">
+    <link rel="modulepreload" crossorigin href="./assets/pick-DqWUNly1.js">
+    <link rel="modulepreload" crossorigin href="./assets/code-xml-CZN6vNxu.js">
+    <link rel="modulepreload" crossorigin href="./assets/square-Dj2Cf4ne.js">
+    <link rel="modulepreload" crossorigin href="./assets/triangle-alert-DBoAWWKA.js">
+    <link rel="modulepreload" crossorigin href="./assets/bundle.esm-DU-4isVC.js">
+    <link rel="stylesheet" crossorigin href="./assets/cells-jmgGt1lS.css">
+    <link rel="stylesheet" crossorigin href="./assets/markdown-renderer-DdDKmWlR.css">
+    <link rel="stylesheet" crossorigin href="./assets/JsonOutput-B7vuddcd.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DH5UUBE4.css">
+  <marimo-wasm hidden=""></marimo-wasm>
+    <script>
+        if (window.location.protocol === 'file:') {
+            alert('Warning: This file must be served by an HTTP server to function correctly.');
+        }
+    </script>
+    
+    <style>
+        #save-button {
+            display: none !important;
+        }
+        #filename-input {
+            display: none !important;
+        }
+    </style>
+    
+<script data-marimo="true">
+    Object.defineProperty(window, "__MARIMO_EXPORT_CONTEXT__", {
+        value: Object.freeze({
+            trusted: true,
+            notebookCode: "# /// script\n# requires-python = \"\u003E=3.11\"\n# dependencies = [\n#     \"marimo\u003E=0.23.0\",\n# ]\n# ///\n\nimport marimo\n\n__generated_with = \"0.23.4\"\napp = marimo.App(width=\"medium\")\n\n\n@app.cell\ndef _():\n    import html\n    import math\n    import random\n\n    import marimo as mo\n\n    return html, math, mo, random\n\n\n@app.cell\ndef _(mo):\n    mo.md(\"\"\"\n    # Interactive simulated SWR detector\n\n    This browser-only demo simulates paired ripple and sharp-wave LFP channels,\n    then runs a compact joint detector. Green spans mark the known simulated SWR\n    windows; orange spans mark accepted detections.\n\n    This app intentionally avoids `neuro_py`, `nelpy`, SciPy, Matplotlib, and real\n    session data so the interactive example can load quickly in browser-WASM.\n    \"\"\")\n    return\n\n\n@app.cell\ndef _(mo):\n    ripple_amplitude = mo.ui.slider(\n        0.5, 4.0, step=0.1, value=2.0, label=\"Ripple amplitude\"\n    )\n    sharp_wave_amplitude = mo.ui.slider(\n        0.5, 5.0, step=0.1, value=2.8, label=\"Sharp-wave amplitude\"\n    )\n    noise_amplitude = mo.ui.slider(\n        0.2, 2.0, step=0.1, value=1.1, label=\"Noise amplitude\"\n    )\n    ripple_duration = mo.ui.slider(\n        0.050, 0.150, step=0.005, value=0.100, label=\"Ripple duration (s)\"\n    )\n    ripple_threshold = mo.ui.slider(\n        0.5, 4.0, step=0.1, value=1.8, label=\"Ripple high threshold (z)\"\n    )\n    sharp_wave_threshold = mo.ui.slider(\n        0.5, 4.0, step=0.1, value=1.4, label=\"Sharp-wave high threshold (z)\"\n    )\n\n    mo.vstack(\n        [\n            mo.md(\"### Simulation and detector controls\"),\n            mo.hstack(\n                [ripple_amplitude, sharp_wave_amplitude, noise_amplitude],\n                justify=\"start\",\n                gap=1,\n            ),\n            mo.hstack(\n                [ripple_duration, ripple_threshold, sharp_wave_threshold],\n                justify=\"start\",\n                gap=1,\n            ),\n        ]\n    )\n    return (\n        noise_amplitude,\n        ripple_amplitude,\n        ripple_duration,\n        ripple_threshold,\n        sharp_wave_amplitude,\n        sharp_wave_threshold,\n    )\n\n\n@app.cell\ndef _(math, random):\n    FS = 1250.0\n    DURATION = 1.5\n    RIPPLE_FREQUENCY = 165.0\n    SWR_TIMES = [0.45, 1.02]\n\n    def zscore(values):\n        mean = sum(values) / len(values)\n        var = sum((value - mean) ** 2 for value in values) / len(values)\n        scale = math.sqrt(var)\n        if scale == 0:\n            return [0.0 for _ in values]\n        return [(value - mean) / scale for value in values]\n\n    def brown_noise(n_samples, seed):\n        rng = random.Random(seed)\n        value = 0.0\n        values = []\n        for _ in range(n_samples):\n            value += rng.gauss(0.0, 1.0)\n            values.append(value)\n        return zscore(values)\n\n    def moving_average(values, window):\n        window = max(1, int(window))\n        half = window // 2\n        averaged = []\n        for index in range(len(values)):\n            start = max(0, index - half)\n            stop = min(len(values), index + half + 1)\n            averaged.append(sum(values[start:stop]) / (stop - start))\n        return averaged\n\n    def threshold_bounds(values, low_threshold):\n        bounds = []\n        start = None\n        for index, value in enumerate(values):\n            if value \u003E= low_threshold and start is None:\n                start = index\n            elif value \u003C low_threshold and start is not None:\n                bounds.append((start, index - 1))\n                start = None\n        if start is not None:\n            bounds.append((start, len(values) - 1))\n        return bounds\n\n    def merge_bounds(bounds, gap_samples):\n        if not bounds:\n            return []\n        merged = [bounds[0]]\n        for start, stop in bounds[1:]:\n            prev_start, prev_stop = merged[-1]\n            if start - prev_stop \u003C= gap_samples:\n                merged[-1] = (prev_start, max(prev_stop, stop))\n            else:\n                merged.append((start, stop))\n        return merged\n\n    def bound_containing_index(bounds, index):\n        for start, stop in bounds:\n            if start \u003C= index \u003C= stop:\n                return start, stop\n        return None\n\n    return (\n        DURATION,\n        FS,\n        RIPPLE_FREQUENCY,\n        SWR_TIMES,\n        bound_containing_index,\n        brown_noise,\n        merge_bounds,\n        moving_average,\n        threshold_bounds,\n        zscore,\n    )\n\n\n@app.cell\ndef _(\n    DURATION,\n    FS,\n    RIPPLE_FREQUENCY,\n    SWR_TIMES,\n    brown_noise,\n    math,\n    noise_amplitude,\n    ripple_amplitude,\n    ripple_duration,\n    sharp_wave_amplitude,\n):\n    timestamps = [sample / FS for sample in range(int(DURATION * FS))]\n    ripple_noise = brown_noise(len(timestamps), seed=7)\n    sharp_noise = brown_noise(len(timestamps), seed=8)\n    ripple_raw = [noise_amplitude.value * value for value in ripple_noise]\n    sharp_wave_raw = [\n        0.75 * noise_amplitude.value * value for value in sharp_noise\n    ]\n\n    sharp_wave_duration = 0.140\n    for center in SWR_TIMES:\n        for index, time in enumerate(timestamps):\n            ripple_width = ripple_duration.value / 6.0\n            sharp_width = sharp_wave_duration / 6.0\n            ripple_envelope = math.exp(\n                -((time - center) ** 2) / (2.0 * ripple_width**2)\n            )\n            sharp_wave_envelope = math.exp(\n                -((time - center) ** 2) / (2.0 * sharp_width**2)\n            )\n            ripple_carrier = math.sin(\n                2.0 * math.pi * RIPPLE_FREQUENCY * time\n            )\n            ripple_raw[index] += (\n                ripple_amplitude.value * ripple_carrier * ripple_envelope\n            )\n            sharp_wave_raw[index] -= (\n                sharp_wave_amplitude.value * sharp_wave_envelope\n            )\n\n    truth = [\n        (\n            center - ripple_duration.value / 2.0,\n            center + ripple_duration.value / 2.0,\n        )\n        for center in SWR_TIMES\n    ]\n    return ripple_raw, sharp_wave_raw, timestamps, truth\n\n\n@app.cell\ndef _(\n    FS,\n    bound_containing_index,\n    merge_bounds,\n    moving_average,\n    ripple_raw,\n    ripple_threshold,\n    sharp_wave_raw,\n    sharp_wave_threshold,\n    threshold_bounds,\n    timestamps,\n    zscore,\n):\n    slow_ripple = moving_average(ripple_raw, window=int(0.030 * FS))\n    ripple_high = [\n        abs(raw - slow) for raw, slow in zip(ripple_raw, slow_ripple)\n    ]\n    ripple_feature = zscore(\n        moving_average(ripple_high, window=int(0.012 * FS))\n    )\n\n    sharp_wave_feature = zscore(\n        moving_average([-value for value in sharp_wave_raw], int(0.040 * FS))\n    )\n\n    ripple_bounds = merge_bounds(\n        threshold_bounds(ripple_feature, ripple_threshold.value * 0.45),\n        gap_samples=int(0.010 * FS),\n    )\n    sharp_wave_bounds = merge_bounds(\n        threshold_bounds(sharp_wave_feature, sharp_wave_threshold.value * 0.45),\n        gap_samples=int(0.010 * FS),\n    )\n\n    search_radius = int(0.060 * FS)\n    detected_events = []\n    for ripple_start, ripple_stop in ripple_bounds:\n        ripple_peak = max(\n            range(ripple_start, ripple_stop + 1),\n            key=lambda index: ripple_feature[index],\n        )\n        if ripple_feature[ripple_peak] \u003C ripple_threshold.value:\n            continue\n\n        search_start = max(0, ripple_peak - search_radius)\n        search_stop = min(len(timestamps), ripple_peak + search_radius + 1)\n        sharp_peak = max(\n            range(search_start, search_stop),\n            key=lambda index: sharp_wave_feature[index],\n        )\n        if sharp_wave_feature[sharp_peak] \u003C sharp_wave_threshold.value:\n            continue\n\n        sharp_interval = bound_containing_index(sharp_wave_bounds, sharp_peak)\n        if sharp_interval is None:\n            continue\n\n        sharp_start, sharp_stop = sharp_interval\n        event_start = min(ripple_start, sharp_start)\n        event_stop = max(ripple_stop, sharp_stop)\n        detected_events.append(\n            {\n                \"start\": timestamps[event_start],\n                \"stop\": timestamps[min(event_stop + 1, len(timestamps) - 1)],\n                \"peak\": timestamps[ripple_peak],\n                \"ripple_z\": ripple_feature[ripple_peak],\n                \"sharp_wave_z\": sharp_wave_feature[sharp_peak],\n            }\n        )\n    return detected_events, ripple_feature, sharp_wave_feature\n\n\n@app.cell\ndef _(\n    DURATION,\n    detected_events,\n    html,\n    mo,\n    ripple_feature,\n    ripple_raw,\n    sharp_wave_feature,\n    sharp_wave_raw,\n    timestamps,\n    truth,\n):\n    def polyline(values, row_top, row_height, color, stroke_width=1.4):\n        lo = min(values)\n        hi = max(values)\n        if hi == lo:\n            hi = lo + 1.0\n        points = []\n        for time, value in zip(timestamps[::2], values[::2]):\n            x = 70.0 + (time / DURATION) * 860.0\n            y = row_top + row_height - ((value - lo) / (hi - lo)) * row_height\n            points.append(f\"{x:.1f},{y:.1f}\")\n        return (\n            f'\u003Cpolyline points=\"{\" \".join(points)}\" fill=\"none\" '\n            f'stroke=\"{color}\" stroke-width=\"{stroke_width}\" /\u003E'\n        )\n\n    def span_rect(start, stop, row_top, row_height, color, opacity):\n        x = 70.0 + (start / DURATION) * 860.0\n        width = max(1.0, ((stop - start) / DURATION) * 860.0)\n        return (\n            f'\u003Crect x=\"{x:.1f}\" y=\"{row_top:.1f}\" width=\"{width:.1f}\" '\n            f'height=\"{row_height:.1f}\" fill=\"{color}\" opacity=\"{opacity}\" /\u003E'\n        )\n\n    def row_label(text, row_top):\n        return (\n            f'\u003Ctext x=\"18\" y=\"{row_top + 18:.1f}\" font-size=\"13\" '\n            f'font-weight=\"700\" fill=\"#334155\"\u003E{html.escape(text)}\u003C/text\u003E'\n        )\n\n    rows = [\n        (\"Ripple LFP\", ripple_raw, 28, 145, \"#111827\"),\n        (\"Sharp-wave LFP\", sharp_wave_raw, 198, 145, \"#047857\"),\n        (\"Detector features\", ripple_feature, 368, 145, \"#991b1b\"),\n    ]\n    overlays = []\n    for row_top in [28, 198, 368]:\n        overlays.extend(\n            span_rect(start, stop, row_top, 145, \"#16a34a\", \"0.16\")\n            for start, stop in truth\n        )\n        overlays.extend(\n            span_rect(event[\"start\"], event[\"stop\"], row_top, 145, \"#f59e0b\", \"0.28\")\n            for event in detected_events\n        )\n\n    backgrounds = []\n    series = []\n    for label, values, row_top, row_height, color in rows:\n        backgrounds.append(\n            f'\u003Crect x=\"70\" y=\"{row_top}\" width=\"860\" height=\"{row_height}\" '\n            'rx=\"8\" fill=\"#f8fafc\" stroke=\"#e2e8f0\" /\u003E'\n        )\n        series.append(row_label(label, row_top))\n        series.append(polyline(values, row_top + 8, row_height - 16, color))\n    series.append(\n        polyline(sharp_wave_feature, 376, 129, \"#047857\", stroke_width=1.1)\n    )\n\n    ticks = []\n    for tick in [0.0, 0.5, 1.0, 1.5]:\n        x = 70.0 + (tick / DURATION) * 860.0\n        ticks.append(\n            f'\u003Cline x1=\"{x:.1f}\" x2=\"{x:.1f}\" y1=\"520\" y2=\"526\" '\n            'stroke=\"#64748b\" /\u003E'\n        )\n        ticks.append(\n            f'\u003Ctext x=\"{x:.1f}\" y=\"546\" text-anchor=\"middle\" '\n            f'font-size=\"12\" fill=\"#475569\"\u003E{tick:.1f}\u003C/text\u003E'\n        )\n\n    peak_text = \", \".join(\n        f\"{event['peak']:.3f}s\" for event in detected_events\n    )\n    if not peak_text:\n        peak_text = \"none\"\n\n    svg = f\"\"\"\n    \u003Csvg viewBox=\"0 0 980 585\" width=\"100%\" role=\"img\"\n     aria-label=\"Interactive simulated sharp wave ripple detector plot\"\n     style=\"font-family: ui-sans-serif, system-ui, sans-serif;\"\u003E\n      \u003Crect x=\"0\" y=\"0\" width=\"980\" height=\"585\" rx=\"18\" fill=\"#ffffff\" /\u003E\n      \u003Ctext x=\"70\" y=\"22\" font-size=\"14\" font-weight=\"700\" fill=\"#0f172a\"\u003E\n    Simulated joint SWR detection\n      \u003C/text\u003E\n      {\"\".join(backgrounds)}\n      {\"\".join(overlays)}\n      {\"\".join(series)}\n      {\"\".join(ticks)}\n      \u003Ctext x=\"500\" y=\"572\" text-anchor=\"middle\" font-size=\"13\" fill=\"#475569\"\u003E\n    Time (s)\n      \u003C/text\u003E\n      \u003Crect x=\"695\" y=\"12\" width=\"14\" height=\"14\" fill=\"#16a34a\" opacity=\"0.25\" /\u003E\n      \u003Ctext x=\"715\" y=\"24\" font-size=\"12\" fill=\"#475569\"\u003ESimulated SWR\u003C/text\u003E\n      \u003Crect x=\"810\" y=\"12\" width=\"14\" height=\"14\" fill=\"#f59e0b\" opacity=\"0.38\" /\u003E\n      \u003Ctext x=\"830\" y=\"24\" font-size=\"12\" fill=\"#475569\"\u003EDetected SWR\u003C/text\u003E\n    \u003C/svg\u003E\n    \"\"\"\n\n    mo.vstack(\n        [\n            mo.md(\n                f\"**Detected SWRs:** {len(detected_events)}. \"\n                f\"**Peak times:** {peak_text}.\"\n            ),\n            mo.Html(svg),\n        ]\n    )\n    return\n\n\nif __name__ == \"__main__\":\n    app.run()\n",
+        }),
+        writable: false,
+        configurable: false,
+    });
+</script>
+<marimo-code hidden="">%23%20%2F%2F%2F%20script%0A%23%20requires-python%20%3D%20%22%3E%3D3.11%22%0A%23%20dependencies%20%3D%20%5B%0A%23%20%20%20%20%20%22marimo%3E%3D0.23.0%22%2C%0A%23%20%5D%0A%23%20%2F%2F%2F%0A%0Aimport%20marimo%0A%0A__generated_with%20%3D%20%220.23.4%22%0Aapp%20%3D%20marimo.App(width%3D%22medium%22)%0A%0A%0A%40app.cell%0Adef%20_()%3A%0A%20%20%20%20import%20html%0A%20%20%20%20import%20math%0A%20%20%20%20import%20random%0A%0A%20%20%20%20import%20marimo%20as%20mo%0A%0A%20%20%20%20return%20html%2C%20math%2C%20mo%2C%20random%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20mo.md(%22%22%22%0A%20%20%20%20%23%20Interactive%20simulated%20SWR%20detector%0A%0A%20%20%20%20This%20browser-only%20demo%20simulates%20paired%20ripple%20and%20sharp-wave%20LFP%20channels%2C%0A%20%20%20%20then%20runs%20a%20compact%20joint%20detector.%20Green%20spans%20mark%20the%20known%20simulated%20SWR%0A%20%20%20%20windows%3B%20orange%20spans%20mark%20accepted%20detections.%0A%0A%20%20%20%20This%20app%20intentionally%20avoids%20%60neuro_py%60%2C%20%60nelpy%60%2C%20SciPy%2C%20Matplotlib%2C%20and%20real%0A%20%20%20%20session%20data%20so%20the%20interactive%20example%20can%20load%20quickly%20in%20browser-WASM.%0A%20%20%20%20%22%22%22)%0A%20%20%20%20return%0A%0A%0A%40app.cell%0Adef%20_(mo)%3A%0A%20%20%20%20ripple_amplitude%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.5%2C%204.0%2C%20step%3D0.1%2C%20value%3D2.0%2C%20label%3D%22Ripple%20amplitude%22%0A%20%20%20%20)%0A%20%20%20%20sharp_wave_amplitude%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.5%2C%205.0%2C%20step%3D0.1%2C%20value%3D2.8%2C%20label%3D%22Sharp-wave%20amplitude%22%0A%20%20%20%20)%0A%20%20%20%20noise_amplitude%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.2%2C%202.0%2C%20step%3D0.1%2C%20value%3D1.1%2C%20label%3D%22Noise%20amplitude%22%0A%20%20%20%20)%0A%20%20%20%20ripple_duration%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.050%2C%200.150%2C%20step%3D0.005%2C%20value%3D0.100%2C%20label%3D%22Ripple%20duration%20(s)%22%0A%20%20%20%20)%0A%20%20%20%20ripple_threshold%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.5%2C%204.0%2C%20step%3D0.1%2C%20value%3D1.8%2C%20label%3D%22Ripple%20high%20threshold%20(z)%22%0A%20%20%20%20)%0A%20%20%20%20sharp_wave_threshold%20%3D%20mo.ui.slider(%0A%20%20%20%20%20%20%20%200.5%2C%204.0%2C%20step%3D0.1%2C%20value%3D1.4%2C%20label%3D%22Sharp-wave%20high%20threshold%20(z)%22%0A%20%20%20%20)%0A%0A%20%20%20%20mo.vstack(%0A%20%20%20%20%20%20%20%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20mo.md(%22%23%23%23%20Simulation%20and%20detector%20controls%22)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20mo.hstack(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Bripple_amplitude%2C%20sharp_wave_amplitude%2C%20noise_amplitude%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20justify%3D%22start%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20gap%3D1%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20mo.hstack(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Bripple_duration%2C%20ripple_threshold%2C%20sharp_wave_threshold%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20justify%3D%22start%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20gap%3D1%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20)%2C%0A%20%20%20%20%20%20%20%20%5D%0A%20%20%20%20)%0A%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20noise_amplitude%2C%0A%20%20%20%20%20%20%20%20ripple_amplitude%2C%0A%20%20%20%20%20%20%20%20ripple_duration%2C%0A%20%20%20%20%20%20%20%20ripple_threshold%2C%0A%20%20%20%20%20%20%20%20sharp_wave_amplitude%2C%0A%20%20%20%20%20%20%20%20sharp_wave_threshold%2C%0A%20%20%20%20)%0A%0A%0A%40app.cell%0Adef%20_(math%2C%20random)%3A%0A%20%20%20%20FS%20%3D%201250.0%0A%20%20%20%20DURATION%20%3D%201.5%0A%20%20%20%20RIPPLE_FREQUENCY%20%3D%20165.0%0A%20%20%20%20SWR_TIMES%20%3D%20%5B0.45%2C%201.02%5D%0A%0A%20%20%20%20def%20zscore(values)%3A%0A%20%20%20%20%20%20%20%20mean%20%3D%20sum(values)%20%2F%20len(values)%0A%20%20%20%20%20%20%20%20var%20%3D%20sum((value%20-%20mean)%20**%202%20for%20value%20in%20values)%20%2F%20len(values)%0A%20%20%20%20%20%20%20%20scale%20%3D%20math.sqrt(var)%0A%20%20%20%20%20%20%20%20if%20scale%20%3D%3D%200%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20%5B0.0%20for%20_%20in%20values%5D%0A%20%20%20%20%20%20%20%20return%20%5B(value%20-%20mean)%20%2F%20scale%20for%20value%20in%20values%5D%0A%0A%20%20%20%20def%20brown_noise(n_samples%2C%20seed)%3A%0A%20%20%20%20%20%20%20%20rng%20%3D%20random.Random(seed)%0A%20%20%20%20%20%20%20%20value%20%3D%200.0%0A%20%20%20%20%20%20%20%20values%20%3D%20%5B%5D%0A%20%20%20%20%20%20%20%20for%20_%20in%20range(n_samples)%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20value%20%2B%3D%20rng.gauss(0.0%2C%201.0)%0A%20%20%20%20%20%20%20%20%20%20%20%20values.append(value)%0A%20%20%20%20%20%20%20%20return%20zscore(values)%0A%0A%20%20%20%20def%20moving_average(values%2C%20window)%3A%0A%20%20%20%20%20%20%20%20window%20%3D%20max(1%2C%20int(window))%0A%20%20%20%20%20%20%20%20half%20%3D%20window%20%2F%2F%202%0A%20%20%20%20%20%20%20%20averaged%20%3D%20%5B%5D%0A%20%20%20%20%20%20%20%20for%20index%20in%20range(len(values))%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20start%20%3D%20max(0%2C%20index%20-%20half)%0A%20%20%20%20%20%20%20%20%20%20%20%20stop%20%3D%20min(len(values)%2C%20index%20%2B%20half%20%2B%201)%0A%20%20%20%20%20%20%20%20%20%20%20%20averaged.append(sum(values%5Bstart%3Astop%5D)%20%2F%20(stop%20-%20start))%0A%20%20%20%20%20%20%20%20return%20averaged%0A%0A%20%20%20%20def%20threshold_bounds(values%2C%20low_threshold)%3A%0A%20%20%20%20%20%20%20%20bounds%20%3D%20%5B%5D%0A%20%20%20%20%20%20%20%20start%20%3D%20None%0A%20%20%20%20%20%20%20%20for%20index%2C%20value%20in%20enumerate(values)%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20value%20%3E%3D%20low_threshold%20and%20start%20is%20None%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20start%20%3D%20index%0A%20%20%20%20%20%20%20%20%20%20%20%20elif%20value%20%3C%20low_threshold%20and%20start%20is%20not%20None%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20bounds.append((start%2C%20index%20-%201))%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20start%20%3D%20None%0A%20%20%20%20%20%20%20%20if%20start%20is%20not%20None%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20bounds.append((start%2C%20len(values)%20-%201))%0A%20%20%20%20%20%20%20%20return%20bounds%0A%0A%20%20%20%20def%20merge_bounds(bounds%2C%20gap_samples)%3A%0A%20%20%20%20%20%20%20%20if%20not%20bounds%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20%5B%5D%0A%20%20%20%20%20%20%20%20merged%20%3D%20%5Bbounds%5B0%5D%5D%0A%20%20%20%20%20%20%20%20for%20start%2C%20stop%20in%20bounds%5B1%3A%5D%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20prev_start%2C%20prev_stop%20%3D%20merged%5B-1%5D%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20start%20-%20prev_stop%20%3C%3D%20gap_samples%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20merged%5B-1%5D%20%3D%20(prev_start%2C%20max(prev_stop%2C%20stop))%0A%20%20%20%20%20%20%20%20%20%20%20%20else%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20merged.append((start%2C%20stop))%0A%20%20%20%20%20%20%20%20return%20merged%0A%0A%20%20%20%20def%20bound_containing_index(bounds%2C%20index)%3A%0A%20%20%20%20%20%20%20%20for%20start%2C%20stop%20in%20bounds%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20start%20%3C%3D%20index%20%3C%3D%20stop%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20return%20start%2C%20stop%0A%20%20%20%20%20%20%20%20return%20None%0A%0A%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20DURATION%2C%0A%20%20%20%20%20%20%20%20FS%2C%0A%20%20%20%20%20%20%20%20RIPPLE_FREQUENCY%2C%0A%20%20%20%20%20%20%20%20SWR_TIMES%2C%0A%20%20%20%20%20%20%20%20bound_containing_index%2C%0A%20%20%20%20%20%20%20%20brown_noise%2C%0A%20%20%20%20%20%20%20%20merge_bounds%2C%0A%20%20%20%20%20%20%20%20moving_average%2C%0A%20%20%20%20%20%20%20%20threshold_bounds%2C%0A%20%20%20%20%20%20%20%20zscore%2C%0A%20%20%20%20)%0A%0A%0A%40app.cell%0Adef%20_(%0A%20%20%20%20DURATION%2C%0A%20%20%20%20FS%2C%0A%20%20%20%20RIPPLE_FREQUENCY%2C%0A%20%20%20%20SWR_TIMES%2C%0A%20%20%20%20brown_noise%2C%0A%20%20%20%20math%2C%0A%20%20%20%20noise_amplitude%2C%0A%20%20%20%20ripple_amplitude%2C%0A%20%20%20%20ripple_duration%2C%0A%20%20%20%20sharp_wave_amplitude%2C%0A)%3A%0A%20%20%20%20timestamps%20%3D%20%5Bsample%20%2F%20FS%20for%20sample%20in%20range(int(DURATION%20*%20FS))%5D%0A%20%20%20%20ripple_noise%20%3D%20brown_noise(len(timestamps)%2C%20seed%3D7)%0A%20%20%20%20sharp_noise%20%3D%20brown_noise(len(timestamps)%2C%20seed%3D8)%0A%20%20%20%20ripple_raw%20%3D%20%5Bnoise_amplitude.value%20*%20value%20for%20value%20in%20ripple_noise%5D%0A%20%20%20%20sharp_wave_raw%20%3D%20%5B%0A%20%20%20%20%20%20%20%200.75%20*%20noise_amplitude.value%20*%20value%20for%20value%20in%20sharp_noise%0A%20%20%20%20%5D%0A%0A%20%20%20%20sharp_wave_duration%20%3D%200.140%0A%20%20%20%20for%20center%20in%20SWR_TIMES%3A%0A%20%20%20%20%20%20%20%20for%20index%2C%20time%20in%20enumerate(timestamps)%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20ripple_width%20%3D%20ripple_duration.value%20%2F%206.0%0A%20%20%20%20%20%20%20%20%20%20%20%20sharp_width%20%3D%20sharp_wave_duration%20%2F%206.0%0A%20%20%20%20%20%20%20%20%20%20%20%20ripple_envelope%20%3D%20math.exp(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20-((time%20-%20center)%20**%202)%20%2F%20(2.0%20*%20ripple_width**2)%0A%20%20%20%20%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20%20%20%20%20sharp_wave_envelope%20%3D%20math.exp(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20-((time%20-%20center)%20**%202)%20%2F%20(2.0%20*%20sharp_width**2)%0A%20%20%20%20%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20%20%20%20%20ripple_carrier%20%3D%20math.sin(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%202.0%20*%20math.pi%20*%20RIPPLE_FREQUENCY%20*%20time%0A%20%20%20%20%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20%20%20%20%20ripple_raw%5Bindex%5D%20%2B%3D%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20ripple_amplitude.value%20*%20ripple_carrier%20*%20ripple_envelope%0A%20%20%20%20%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20%20%20%20%20sharp_wave_raw%5Bindex%5D%20-%3D%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20sharp_wave_amplitude.value%20*%20sharp_wave_envelope%0A%20%20%20%20%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20truth%20%3D%20%5B%0A%20%20%20%20%20%20%20%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20center%20-%20ripple_duration.value%20%2F%202.0%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20center%20%2B%20ripple_duration.value%20%2F%202.0%2C%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20for%20center%20in%20SWR_TIMES%0A%20%20%20%20%5D%0A%20%20%20%20return%20ripple_raw%2C%20sharp_wave_raw%2C%20timestamps%2C%20truth%0A%0A%0A%40app.cell%0Adef%20_(%0A%20%20%20%20FS%2C%0A%20%20%20%20bound_containing_index%2C%0A%20%20%20%20merge_bounds%2C%0A%20%20%20%20moving_average%2C%0A%20%20%20%20ripple_raw%2C%0A%20%20%20%20ripple_threshold%2C%0A%20%20%20%20sharp_wave_raw%2C%0A%20%20%20%20sharp_wave_threshold%2C%0A%20%20%20%20threshold_bounds%2C%0A%20%20%20%20timestamps%2C%0A%20%20%20%20zscore%2C%0A)%3A%0A%20%20%20%20slow_ripple%20%3D%20moving_average(ripple_raw%2C%20window%3Dint(0.030%20*%20FS))%0A%20%20%20%20ripple_high%20%3D%20%5B%0A%20%20%20%20%20%20%20%20abs(raw%20-%20slow)%20for%20raw%2C%20slow%20in%20zip(ripple_raw%2C%20slow_ripple)%0A%20%20%20%20%5D%0A%20%20%20%20ripple_feature%20%3D%20zscore(%0A%20%20%20%20%20%20%20%20moving_average(ripple_high%2C%20window%3Dint(0.012%20*%20FS))%0A%20%20%20%20)%0A%0A%20%20%20%20sharp_wave_feature%20%3D%20zscore(%0A%20%20%20%20%20%20%20%20moving_average(%5B-value%20for%20value%20in%20sharp_wave_raw%5D%2C%20int(0.040%20*%20FS))%0A%20%20%20%20)%0A%0A%20%20%20%20ripple_bounds%20%3D%20merge_bounds(%0A%20%20%20%20%20%20%20%20threshold_bounds(ripple_feature%2C%20ripple_threshold.value%20*%200.45)%2C%0A%20%20%20%20%20%20%20%20gap_samples%3Dint(0.010%20*%20FS)%2C%0A%20%20%20%20)%0A%20%20%20%20sharp_wave_bounds%20%3D%20merge_bounds(%0A%20%20%20%20%20%20%20%20threshold_bounds(sharp_wave_feature%2C%20sharp_wave_threshold.value%20*%200.45)%2C%0A%20%20%20%20%20%20%20%20gap_samples%3Dint(0.010%20*%20FS)%2C%0A%20%20%20%20)%0A%0A%20%20%20%20search_radius%20%3D%20int(0.060%20*%20FS)%0A%20%20%20%20detected_events%20%3D%20%5B%5D%0A%20%20%20%20for%20ripple_start%2C%20ripple_stop%20in%20ripple_bounds%3A%0A%20%20%20%20%20%20%20%20ripple_peak%20%3D%20max(%0A%20%20%20%20%20%20%20%20%20%20%20%20range(ripple_start%2C%20ripple_stop%20%2B%201)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20key%3Dlambda%20index%3A%20ripple_feature%5Bindex%5D%2C%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20if%20ripple_feature%5Bripple_peak%5D%20%3C%20ripple_threshold.value%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20continue%0A%0A%20%20%20%20%20%20%20%20search_start%20%3D%20max(0%2C%20ripple_peak%20-%20search_radius)%0A%20%20%20%20%20%20%20%20search_stop%20%3D%20min(len(timestamps)%2C%20ripple_peak%20%2B%20search_radius%20%2B%201)%0A%20%20%20%20%20%20%20%20sharp_peak%20%3D%20max(%0A%20%20%20%20%20%20%20%20%20%20%20%20range(search_start%2C%20search_stop)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20key%3Dlambda%20index%3A%20sharp_wave_feature%5Bindex%5D%2C%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20if%20sharp_wave_feature%5Bsharp_peak%5D%20%3C%20sharp_wave_threshold.value%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20continue%0A%0A%20%20%20%20%20%20%20%20sharp_interval%20%3D%20bound_containing_index(sharp_wave_bounds%2C%20sharp_peak)%0A%20%20%20%20%20%20%20%20if%20sharp_interval%20is%20None%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20continue%0A%0A%20%20%20%20%20%20%20%20sharp_start%2C%20sharp_stop%20%3D%20sharp_interval%0A%20%20%20%20%20%20%20%20event_start%20%3D%20min(ripple_start%2C%20sharp_start)%0A%20%20%20%20%20%20%20%20event_stop%20%3D%20max(ripple_stop%2C%20sharp_stop)%0A%20%20%20%20%20%20%20%20detected_events.append(%0A%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22start%22%3A%20timestamps%5Bevent_start%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22stop%22%3A%20timestamps%5Bmin(event_stop%20%2B%201%2C%20len(timestamps)%20-%201)%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22peak%22%3A%20timestamps%5Bripple_peak%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22ripple_z%22%3A%20ripple_feature%5Bripple_peak%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22sharp_wave_z%22%3A%20sharp_wave_feature%5Bsharp_peak%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20return%20detected_events%2C%20ripple_feature%2C%20sharp_wave_feature%0A%0A%0A%40app.cell%0Adef%20_(%0A%20%20%20%20DURATION%2C%0A%20%20%20%20detected_events%2C%0A%20%20%20%20html%2C%0A%20%20%20%20mo%2C%0A%20%20%20%20ripple_feature%2C%0A%20%20%20%20ripple_raw%2C%0A%20%20%20%20sharp_wave_feature%2C%0A%20%20%20%20sharp_wave_raw%2C%0A%20%20%20%20timestamps%2C%0A%20%20%20%20truth%2C%0A)%3A%0A%20%20%20%20def%20polyline(values%2C%20row_top%2C%20row_height%2C%20color%2C%20stroke_width%3D1.4)%3A%0A%20%20%20%20%20%20%20%20lo%20%3D%20min(values)%0A%20%20%20%20%20%20%20%20hi%20%3D%20max(values)%0A%20%20%20%20%20%20%20%20if%20hi%20%3D%3D%20lo%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20hi%20%3D%20lo%20%2B%201.0%0A%20%20%20%20%20%20%20%20points%20%3D%20%5B%5D%0A%20%20%20%20%20%20%20%20for%20time%2C%20value%20in%20zip(timestamps%5B%3A%3A2%5D%2C%20values%5B%3A%3A2%5D)%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20x%20%3D%2070.0%20%2B%20(time%20%2F%20DURATION)%20*%20860.0%0A%20%20%20%20%20%20%20%20%20%20%20%20y%20%3D%20row_top%20%2B%20row_height%20-%20((value%20-%20lo)%20%2F%20(hi%20-%20lo))%20*%20row_height%0A%20%20%20%20%20%20%20%20%20%20%20%20points.append(f%22%7Bx%3A.1f%7D%2C%7By%3A.1f%7D%22)%0A%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Cpolyline%20points%3D%22%7B%22%20%22.join(points)%7D%22%20fill%3D%22none%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20f'stroke%3D%22%7Bcolor%7D%22%20stroke-width%3D%22%7Bstroke_width%7D%22%20%2F%3E'%0A%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20def%20span_rect(start%2C%20stop%2C%20row_top%2C%20row_height%2C%20color%2C%20opacity)%3A%0A%20%20%20%20%20%20%20%20x%20%3D%2070.0%20%2B%20(start%20%2F%20DURATION)%20*%20860.0%0A%20%20%20%20%20%20%20%20width%20%3D%20max(1.0%2C%20((stop%20-%20start)%20%2F%20DURATION)%20*%20860.0)%0A%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Crect%20x%3D%22%7Bx%3A.1f%7D%22%20y%3D%22%7Brow_top%3A.1f%7D%22%20width%3D%22%7Bwidth%3A.1f%7D%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20f'height%3D%22%7Brow_height%3A.1f%7D%22%20fill%3D%22%7Bcolor%7D%22%20opacity%3D%22%7Bopacity%7D%22%20%2F%3E'%0A%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20def%20row_label(text%2C%20row_top)%3A%0A%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Ctext%20x%3D%2218%22%20y%3D%22%7Brow_top%20%2B%2018%3A.1f%7D%22%20font-size%3D%2213%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20f'font-weight%3D%22700%22%20fill%3D%22%23334155%22%3E%7Bhtml.escape(text)%7D%3C%2Ftext%3E'%0A%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20rows%20%3D%20%5B%0A%20%20%20%20%20%20%20%20(%22Ripple%20LFP%22%2C%20ripple_raw%2C%2028%2C%20145%2C%20%22%23111827%22)%2C%0A%20%20%20%20%20%20%20%20(%22Sharp-wave%20LFP%22%2C%20sharp_wave_raw%2C%20198%2C%20145%2C%20%22%23047857%22)%2C%0A%20%20%20%20%20%20%20%20(%22Detector%20features%22%2C%20ripple_feature%2C%20368%2C%20145%2C%20%22%23991b1b%22)%2C%0A%20%20%20%20%5D%0A%20%20%20%20overlays%20%3D%20%5B%5D%0A%20%20%20%20for%20row_top%20in%20%5B28%2C%20198%2C%20368%5D%3A%0A%20%20%20%20%20%20%20%20overlays.extend(%0A%20%20%20%20%20%20%20%20%20%20%20%20span_rect(start%2C%20stop%2C%20row_top%2C%20145%2C%20%22%2316a34a%22%2C%20%220.16%22)%0A%20%20%20%20%20%20%20%20%20%20%20%20for%20start%2C%20stop%20in%20truth%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20overlays.extend(%0A%20%20%20%20%20%20%20%20%20%20%20%20span_rect(event%5B%22start%22%5D%2C%20event%5B%22stop%22%5D%2C%20row_top%2C%20145%2C%20%22%23f59e0b%22%2C%20%220.28%22)%0A%20%20%20%20%20%20%20%20%20%20%20%20for%20event%20in%20detected_events%0A%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20backgrounds%20%3D%20%5B%5D%0A%20%20%20%20series%20%3D%20%5B%5D%0A%20%20%20%20for%20label%2C%20values%2C%20row_top%2C%20row_height%2C%20color%20in%20rows%3A%0A%20%20%20%20%20%20%20%20backgrounds.append(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Crect%20x%3D%2270%22%20y%3D%22%7Brow_top%7D%22%20width%3D%22860%22%20height%3D%22%7Brow_height%7D%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20'rx%3D%228%22%20fill%3D%22%23f8fafc%22%20stroke%3D%22%23e2e8f0%22%20%2F%3E'%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20series.append(row_label(label%2C%20row_top))%0A%20%20%20%20%20%20%20%20series.append(polyline(values%2C%20row_top%20%2B%208%2C%20row_height%20-%2016%2C%20color))%0A%20%20%20%20series.append(%0A%20%20%20%20%20%20%20%20polyline(sharp_wave_feature%2C%20376%2C%20129%2C%20%22%23047857%22%2C%20stroke_width%3D1.1)%0A%20%20%20%20)%0A%0A%20%20%20%20ticks%20%3D%20%5B%5D%0A%20%20%20%20for%20tick%20in%20%5B0.0%2C%200.5%2C%201.0%2C%201.5%5D%3A%0A%20%20%20%20%20%20%20%20x%20%3D%2070.0%20%2B%20(tick%20%2F%20DURATION)%20*%20860.0%0A%20%20%20%20%20%20%20%20ticks.append(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Cline%20x1%3D%22%7Bx%3A.1f%7D%22%20x2%3D%22%7Bx%3A.1f%7D%22%20y1%3D%22520%22%20y2%3D%22526%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20'stroke%3D%22%2364748b%22%20%2F%3E'%0A%20%20%20%20%20%20%20%20)%0A%20%20%20%20%20%20%20%20ticks.append(%0A%20%20%20%20%20%20%20%20%20%20%20%20f'%3Ctext%20x%3D%22%7Bx%3A.1f%7D%22%20y%3D%22546%22%20text-anchor%3D%22middle%22%20'%0A%20%20%20%20%20%20%20%20%20%20%20%20f'font-size%3D%2212%22%20fill%3D%22%23475569%22%3E%7Btick%3A.1f%7D%3C%2Ftext%3E'%0A%20%20%20%20%20%20%20%20)%0A%0A%20%20%20%20peak_text%20%3D%20%22%2C%20%22.join(%0A%20%20%20%20%20%20%20%20f%22%7Bevent%5B'peak'%5D%3A.3f%7Ds%22%20for%20event%20in%20detected_events%0A%20%20%20%20)%0A%20%20%20%20if%20not%20peak_text%3A%0A%20%20%20%20%20%20%20%20peak_text%20%3D%20%22none%22%0A%0A%20%20%20%20svg%20%3D%20f%22%22%22%0A%20%20%20%20%3Csvg%20viewBox%3D%220%200%20980%20585%22%20width%3D%22100%25%22%20role%3D%22img%22%0A%20%20%20%20%20aria-label%3D%22Interactive%20simulated%20sharp%20wave%20ripple%20detector%20plot%22%0A%20%20%20%20%20style%3D%22font-family%3A%20ui-sans-serif%2C%20system-ui%2C%20sans-serif%3B%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22980%22%20height%3D%22585%22%20rx%3D%2218%22%20fill%3D%22%23ffffff%22%20%2F%3E%0A%20%20%20%20%20%20%3Ctext%20x%3D%2270%22%20y%3D%2222%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%230f172a%22%3E%0A%20%20%20%20Simulated%20joint%20SWR%20detection%0A%20%20%20%20%20%20%3C%2Ftext%3E%0A%20%20%20%20%20%20%7B%22%22.join(backgrounds)%7D%0A%20%20%20%20%20%20%7B%22%22.join(overlays)%7D%0A%20%20%20%20%20%20%7B%22%22.join(series)%7D%0A%20%20%20%20%20%20%7B%22%22.join(ticks)%7D%0A%20%20%20%20%20%20%3Ctext%20x%3D%22500%22%20y%3D%22572%22%20text-anchor%3D%22middle%22%20font-size%3D%2213%22%20fill%3D%22%23475569%22%3E%0A%20%20%20%20Time%20(s)%0A%20%20%20%20%20%20%3C%2Ftext%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%22695%22%20y%3D%2212%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%2316a34a%22%20opacity%3D%220.25%22%20%2F%3E%0A%20%20%20%20%20%20%3Ctext%20x%3D%22715%22%20y%3D%2224%22%20font-size%3D%2212%22%20fill%3D%22%23475569%22%3ESimulated%20SWR%3C%2Ftext%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%22810%22%20y%3D%2212%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%23f59e0b%22%20opacity%3D%220.38%22%20%2F%3E%0A%20%20%20%20%20%20%3Ctext%20x%3D%22830%22%20y%3D%2224%22%20font-size%3D%2212%22%20fill%3D%22%23475569%22%3EDetected%20SWR%3C%2Ftext%3E%0A%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20%22%22%22%0A%0A%20%20%20%20mo.vstack(%0A%20%20%20%20%20%20%20%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20mo.md(%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20f%22**Detected%20SWRs%3A**%20%7Blen(detected_events)%7D.%20%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20f%22**Peak%20times%3A**%20%7Bpeak_text%7D.%22%0A%20%20%20%20%20%20%20%20%20%20%20%20)%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20mo.Html(svg)%2C%0A%20%20%20%20%20%20%20%20%5D%0A%20%20%20%20)%0A%20%20%20%20return%0A%0A%0Aif%20__name__%20%3D%3D%20%22__main__%22%3A%0A%20%20%20%20app.run()%0A</marimo-code></head>
+  <body>
+    <div id="root"></div>
+    <!-- This is a portal for the data editor to render in -->
+    <div id="portal" data-testid="glide-portal" style="position: fixed; left: 0; top: 0; z-index: 9999"></div>
+    <script data-marimo="true">
+      Object.defineProperty(window, "__MARIMO_MOUNT_CONFIG__", {
+        value: Object.freeze({
+            "filename": "notebook.py",
+            "cwd": "",
+            "lspWorkspace": null,
+            "mode": "read",
+            "version": "0.23.4",
+            "serverToken": "unused",
+            "config": {"ai": {"custom_providers": {}, "models": {"custom_models": [], "displayed_models": []}}, "completion": {"activate_on_typing": true, "copilot": false, "signature_hint_on_typing": false}, "diagnostics": {"sql_linter": true}, "display": {"cell_output": "below", "code_editor_font_size": 14, "dataframes": "rich", "default_table_max_columns": 50, "default_table_page_size": 10, "default_width": "medium", "reference_highlighting": true, "theme": "light"}, "formatting": {"line_length": 79}, "keymap": {"overrides": {}, "preset": "default"}, "language_servers": {"pylsp": {"enable_flake8": false, "enable_mypy": true, "enable_pydocstyle": false, "enable_pyflakes": false, "enable_pylint": false, "enable_ruff": true, "enabled": false}}, "mcp": {"mcpServers": {}, "presets": []}, "package_management": {"manager": "pip"}, "runtime": {"auto_instantiate": false, "auto_reload": "off", "default_csv_encoding": "utf-8", "default_sql_output": "auto", "on_cell_change": "autorun", "output_max_bytes": 8000000, "reactive_tests": true, "show_tracebacks": false, "std_stream_max_bytes": 1000000, "watcher_on_save": "lazy"}, "save": {"autosave": "off", "autosave_delay": 1000, "format_on_save": false}, "server": {"browser": "default", "follow_symlink": false}, "snippets": {"custom_paths": [], "include_default_snippets": true}},
+            "configOverrides": {},
+            "appConfig": {"sql_output": "auto", "width": "medium"},
+            "view": {"showAppCode": false},
+            "notebook": null,
+            "session": null,
+            "runtimeConfig": null,
+        }),
+        writable: false,
+        configurable: false,
+      });
+    </script>
+  </body>
+</html>

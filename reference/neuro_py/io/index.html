@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.36">
+      <meta name="generator" content="zensical-0.0.37">
     
     
       
@@ -789,6 +789,8 @@
       
         
       
+        
+      
     
     
     
@@ -856,6 +858,34 @@
     
   
     dentate_spike
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detectors/sharp_wave_ripple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sharp_wave_ripple
   
 
     
@@ -3102,6 +3132,8 @@
       
         
       
+        
+      
     
     
     
@@ -3412,6 +3444,34 @@
     
   
     Reactivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/sharp_wave_ripple_detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharp Wave Ripple Detection
   
 
     
@@ -7052,13 +7112,7 @@ re-initialize an already constructed LFPLoader instance.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2623</span>
-<span class="normal">2624</span>
-<span class="normal">2625</span>
-<span class="normal">2626</span>
-<span class="normal">2627</span>
-<span class="normal">2628</span>
-<span class="normal">2629</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2629</span>
 <span class="normal">2630</span>
 <span class="normal">2631</span>
 <span class="normal">2632</span>
@@ -7069,7 +7123,13 @@ re-initialize an already constructed LFPLoader instance.</p>
 <span class="normal">2637</span>
 <span class="normal">2638</span>
 <span class="normal">2639</span>
-<span class="normal">2640</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_animal_id</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">2640</span>
+<span class="normal">2641</span>
+<span class="normal">2642</span>
+<span class="normal">2643</span>
+<span class="normal">2644</span>
+<span class="normal">2645</span>
+<span class="normal">2646</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_animal_id</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Add animal_id column to a dataframe based on the basepath column.</span>
 
@@ -7375,13 +7435,7 @@ re-initialize an already constructed LFPLoader instance.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2598</span>
-<span class="normal">2599</span>
-<span class="normal">2600</span>
-<span class="normal">2601</span>
-<span class="normal">2602</span>
-<span class="normal">2603</span>
-<span class="normal">2604</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2604</span>
 <span class="normal">2605</span>
 <span class="normal">2606</span>
 <span class="normal">2607</span>
@@ -7397,7 +7451,13 @@ re-initialize an already constructed LFPLoader instance.</p>
 <span class="normal">2617</span>
 <span class="normal">2618</span>
 <span class="normal">2619</span>
-<span class="normal">2620</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_animal_id</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal">2620</span>
+<span class="normal">2621</span>
+<span class="normal">2622</span>
+<span class="normal">2623</span>
+<span class="normal">2624</span>
+<span class="normal">2625</span>
+<span class="normal">2626</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_animal_id</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return animal ID from basepath using basename.session.mat.</span>
 
@@ -8305,13 +8365,7 @@ If neither are present, returns None.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2071</span>
-<span class="normal">2072</span>
-<span class="normal">2073</span>
-<span class="normal">2074</span>
-<span class="normal">2075</span>
-<span class="normal">2076</span>
-<span class="normal">2077</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2077</span>
 <span class="normal">2078</span>
 <span class="normal">2079</span>
 <span class="normal">2080</span>
@@ -8384,7 +8438,13 @@ If neither are present, returns None.</p>
 <span class="normal">2147</span>
 <span class="normal">2148</span>
 <span class="normal">2149</span>
-<span class="normal">2150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_SleepState_states</span><span class="p">(</span>
+<span class="normal">2150</span>
+<span class="normal">2151</span>
+<span class="normal">2152</span>
+<span class="normal">2153</span>
+<span class="normal">2154</span>
+<span class="normal">2155</span>
+<span class="normal">2156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_SleepState_states</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">states_list</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;WAKEstate&quot;</span><span class="p">,</span> <span class="s2">&quot;NREMstate&quot;</span><span class="p">,</span> <span class="s2">&quot;REMstate&quot;</span><span class="p">,</span> <span class="s2">&quot;THETA&quot;</span><span class="p">,</span> <span class="s2">&quot;nonTHETA&quot;</span><span class="p">],</span>
@@ -8699,13 +8759,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2153</span>
-<span class="normal">2154</span>
-<span class="normal">2155</span>
-<span class="normal">2156</span>
-<span class="normal">2157</span>
-<span class="normal">2158</span>
-<span class="normal">2159</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2159</span>
 <span class="normal">2160</span>
 <span class="normal">2161</span>
 <span class="normal">2162</span>
@@ -8894,7 +8948,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2345</span>
 <span class="normal">2346</span>
 <span class="normal">2347</span>
-<span class="normal">2348</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span>
+<span class="normal">2348</span>
+<span class="normal">2349</span>
+<span class="normal">2350</span>
+<span class="normal">2351</span>
+<span class="normal">2352</span>
+<span class="normal">2353</span>
+<span class="normal">2354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">alternative_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -9214,13 +9274,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1718</span>
-<span class="normal">1719</span>
-<span class="normal">1720</span>
-<span class="normal">1721</span>
-<span class="normal">1722</span>
-<span class="normal">1723</span>
-<span class="normal">1724</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1724</span>
 <span class="normal">1725</span>
 <span class="normal">1726</span>
 <span class="normal">1727</span>
@@ -9289,7 +9343,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">1790</span>
 <span class="normal">1791</span>
 <span class="normal">1792</span>
-<span class="normal">1793</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_barrage_events</span><span class="p">(</span>
+<span class="normal">1793</span>
+<span class="normal">1794</span>
+<span class="normal">1795</span>
+<span class="normal">1796</span>
+<span class="normal">1797</span>
+<span class="normal">1798</span>
+<span class="normal">1799</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_barrage_events</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">restrict_to_nrem</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -9446,13 +9506,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2643</span>
-<span class="normal">2644</span>
-<span class="normal">2645</span>
-<span class="normal">2646</span>
-<span class="normal">2647</span>
-<span class="normal">2648</span>
-<span class="normal">2649</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2649</span>
 <span class="normal">2650</span>
 <span class="normal">2651</span>
 <span class="normal">2652</span>
@@ -9471,7 +9525,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2665</span>
 <span class="normal">2666</span>
 <span class="normal">2667</span>
-<span class="normal">2668</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_basic_data</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="normal">2668</span>
+<span class="normal">2669</span>
+<span class="normal">2670</span>
+<span class="normal">2671</span>
+<span class="normal">2672</span>
+<span class="normal">2673</span>
+<span class="normal">2674</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_basic_data</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load basic data from the specified basepath.</span>
 
@@ -9603,13 +9663,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2497</span>
-<span class="normal">2498</span>
-<span class="normal">2499</span>
-<span class="normal">2500</span>
-<span class="normal">2501</span>
-<span class="normal">2502</span>
-<span class="normal">2503</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2503</span>
 <span class="normal">2504</span>
 <span class="normal">2505</span>
 <span class="normal">2506</span>
@@ -9701,7 +9755,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2592</span>
 <span class="normal">2593</span>
 <span class="normal">2594</span>
-<span class="normal">2595</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_brain_regions</span><span class="p">(</span>
+<span class="normal">2595</span>
+<span class="normal">2596</span>
+<span class="normal">2597</span>
+<span class="normal">2598</span>
+<span class="normal">2599</span>
+<span class="normal">2600</span>
+<span class="normal">2601</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_brain_regions</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">out_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;dict&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10425,13 +10485,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3123</span>
-<span class="normal">3124</span>
-<span class="normal">3125</span>
-<span class="normal">3126</span>
-<span class="normal">3127</span>
-<span class="normal">3128</span>
-<span class="normal">3129</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3129</span>
 <span class="normal">3130</span>
 <span class="normal">3131</span>
 <span class="normal">3132</span>
@@ -10441,7 +10495,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3136</span>
 <span class="normal">3137</span>
 <span class="normal">3138</span>
-<span class="normal">3139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">3139</span>
+<span class="normal">3140</span>
+<span class="normal">3141</span>
+<span class="normal">3142</span>
+<span class="normal">3143</span>
+<span class="normal">3144</span>
+<span class="normal">3145</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load channel tags from session file.</span>
 
@@ -10554,13 +10614,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2825</span>
-<span class="normal">2826</span>
-<span class="normal">2827</span>
-<span class="normal">2828</span>
-<span class="normal">2829</span>
-<span class="normal">2830</span>
-<span class="normal">2831</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2831</span>
 <span class="normal">2832</span>
 <span class="normal">2833</span>
 <span class="normal">2834</span>
@@ -10670,7 +10724,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2938</span>
 <span class="normal">2939</span>
 <span class="normal">2940</span>
-<span class="normal">2941</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_deepSuperficialfromRipple</span><span class="p">(</span>
+<span class="normal">2941</span>
+<span class="normal">2942</span>
+<span class="normal">2943</span>
+<span class="normal">2944</span>
+<span class="normal">2945</span>
+<span class="normal">2946</span>
+<span class="normal">2947</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_deepSuperficialfromRipple</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bypass_mismatch_exception</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10927,13 +10987,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1868</span>
-<span class="normal">1869</span>
-<span class="normal">1870</span>
-<span class="normal">1871</span>
-<span class="normal">1872</span>
-<span class="normal">1873</span>
-<span class="normal">1874</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1874</span>
 <span class="normal">1875</span>
 <span class="normal">1876</span>
 <span class="normal">1877</span>
@@ -11026,7 +11080,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">1964</span>
 <span class="normal">1965</span>
 <span class="normal">1966</span>
-<span class="normal">1967</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_dentate_spikes</span><span class="p">(</span>
+<span class="normal">1967</span>
+<span class="normal">1968</span>
+<span class="normal">1969</span>
+<span class="normal">1970</span>
+<span class="normal">1971</span>
+<span class="normal">1972</span>
+<span class="normal">1973</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_dentate_spikes</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dentate_spike_type</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DS1&quot;</span><span class="p">,</span> <span class="s2">&quot;DS2&quot;</span><span class="p">],</span>
     <span class="n">manual_events</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -11238,13 +11298,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3233</span>
-<span class="normal">3234</span>
-<span class="normal">3235</span>
-<span class="normal">3236</span>
-<span class="normal">3237</span>
-<span class="normal">3238</span>
-<span class="normal">3239</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3239</span>
 <span class="normal">3240</span>
 <span class="normal">3241</span>
 <span class="normal">3242</span>
@@ -11280,7 +11334,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3272</span>
 <span class="normal">3273</span>
 <span class="normal">3274</span>
-<span class="normal">3275</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_emg</span><span class="p">(</span>
+<span class="normal">3275</span>
+<span class="normal">3276</span>
+<span class="normal">3277</span>
+<span class="normal">3278</span>
+<span class="normal">3279</span>
+<span class="normal">3280</span>
+<span class="normal">3281</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_emg</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -11408,13 +11468,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2351</span>
-<span class="normal">2352</span>
-<span class="normal">2353</span>
-<span class="normal">2354</span>
-<span class="normal">2355</span>
-<span class="normal">2356</span>
-<span class="normal">2357</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2357</span>
 <span class="normal">2358</span>
 <span class="normal">2359</span>
 <span class="normal">2360</span>
@@ -11467,7 +11521,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2407</span>
 <span class="normal">2408</span>
 <span class="normal">2409</span>
-<span class="normal">2410</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">2410</span>
+<span class="normal">2411</span>
+<span class="normal">2412</span>
+<span class="normal">2413</span>
+<span class="normal">2414</span>
+<span class="normal">2415</span>
+<span class="normal">2416</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads epoch info from cell explorer basename.session and stores in a DataFrame.</span>
 
@@ -11619,13 +11679,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3278</span>
-<span class="normal">3279</span>
-<span class="normal">3280</span>
-<span class="normal">3281</span>
-<span class="normal">3282</span>
-<span class="normal">3283</span>
-<span class="normal">3284</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3284</span>
 <span class="normal">3285</span>
 <span class="normal">3286</span>
 <span class="normal">3287</span>
@@ -11661,7 +11715,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3317</span>
 <span class="normal">3318</span>
 <span class="normal">3319</span>
-<span class="normal">3320</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_events</span><span class="p">(</span>
+<span class="normal">3320</span>
+<span class="normal">3321</span>
+<span class="normal">3322</span>
+<span class="normal">3323</span>
+<span class="normal">3324</span>
+<span class="normal">3325</span>
+<span class="normal">3326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_events</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epoch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_pandas</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -11780,13 +11840,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3142</span>
-<span class="normal">3143</span>
-<span class="normal">3144</span>
-<span class="normal">3145</span>
-<span class="normal">3146</span>
-<span class="normal">3147</span>
-<span class="normal">3148</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3148</span>
 <span class="normal">3149</span>
 <span class="normal">3150</span>
 <span class="normal">3151</span>
@@ -11799,7 +11853,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3158</span>
 <span class="normal">3159</span>
 <span class="normal">3160</span>
-<span class="normal">3161</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_extracellular_metadata</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">3161</span>
+<span class="normal">3162</span>
+<span class="normal">3163</span>
+<span class="normal">3164</span>
+<span class="normal">3165</span>
+<span class="normal">3166</span>
+<span class="normal">3167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_extracellular_metadata</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load extracellular metadata from session file.</span>
 
@@ -11938,13 +11998,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1796</span>
-<span class="normal">1797</span>
-<span class="normal">1798</span>
-<span class="normal">1799</span>
-<span class="normal">1800</span>
-<span class="normal">1801</span>
-<span class="normal">1802</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1802</span>
 <span class="normal">1803</span>
 <span class="normal">1804</span>
 <span class="normal">1805</span>
@@ -12007,7 +12061,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">1862</span>
 <span class="normal">1863</span>
 <span class="normal">1864</span>
-<span class="normal">1865</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_ied_events</span><span class="p">(</span>
+<span class="normal">1865</span>
+<span class="normal">1866</span>
+<span class="normal">1867</span>
+<span class="normal">1868</span>
+<span class="normal">1869</span>
+<span class="normal">1870</span>
+<span class="normal">1871</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_ied_events</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">manual_events</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -12224,13 +12284,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2995</span>
-<span class="normal">2996</span>
-<span class="normal">2997</span>
-<span class="normal">2998</span>
-<span class="normal">2999</span>
-<span class="normal">3000</span>
-<span class="normal">3001</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3001</span>
 <span class="normal">3002</span>
 <span class="normal">3003</span>
 <span class="normal">3004</span>
@@ -12349,7 +12403,13 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3117</span>
 <span class="normal">3118</span>
 <span class="normal">3119</span>
-<span class="normal">3120</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_manipulation</span><span class="p">(</span>
+<span class="normal">3120</span>
+<span class="normal">3121</span>
+<span class="normal">3122</span>
+<span class="normal">3123</span>
+<span class="normal">3124</span>
+<span class="normal">3125</span>
+<span class="normal">3126</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_manipulation</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">struct_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -12557,13 +12617,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2944</span>
-<span class="normal">2945</span>
-<span class="normal">2946</span>
-<span class="normal">2947</span>
-<span class="normal">2948</span>
-<span class="normal">2949</span>
-<span class="normal">2950</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2950</span>
 <span class="normal">2951</span>
 <span class="normal">2952</span>
 <span class="normal">2953</span>
@@ -12605,7 +12659,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2989</span>
 <span class="normal">2990</span>
 <span class="normal">2991</span>
-<span class="normal">2992</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_mua_events</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">2992</span>
+<span class="normal">2993</span>
+<span class="normal">2994</span>
+<span class="normal">2995</span>
+<span class="normal">2996</span>
+<span class="normal">2997</span>
+<span class="normal">2998</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_mua_events</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads the MUA data from the basepath.</span>
 <span class="sd">    Meant to load .mat file created by find_HSE.m.</span>
@@ -12890,13 +12950,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3164</span>
-<span class="normal">3165</span>
-<span class="normal">3166</span>
-<span class="normal">3167</span>
-<span class="normal">3168</span>
-<span class="normal">3169</span>
-<span class="normal">3170</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3170</span>
 <span class="normal">3171</span>
 <span class="normal">3172</span>
 <span class="normal">3173</span>
@@ -12956,7 +13010,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">3227</span>
 <span class="normal">3228</span>
 <span class="normal">3229</span>
-<span class="normal">3230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">3230</span>
+<span class="normal">3231</span>
+<span class="normal">3232</span>
+<span class="normal">3233</span>
+<span class="normal">3234</span>
+<span class="normal">3235</span>
+<span class="normal">3236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load electrode coordinates and grouping from the session.extracellular.mat file.</span>
 
@@ -13287,7 +13347,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">1665</span>
 <span class="normal">1666</span>
 <span class="normal">1667</span>
-<span class="normal">1668</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_ripples_events</span><span class="p">(</span>
+<span class="normal">1668</span>
+<span class="normal">1669</span>
+<span class="normal">1670</span>
+<span class="normal">1671</span>
+<span class="normal">1672</span>
+<span class="normal">1673</span>
+<span class="normal">1674</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_ripples_events</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">manual_events</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -13345,7 +13411,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;peaks&quot;</span><span class="p">,</span> <span class="s2">&quot;amplitude&quot;</span><span class="p">,</span> <span class="s2">&quot;duration&quot;</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">,</span> <span class="s2">&quot;peakNormedPower&quot;</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;ripples&quot;</span><span class="p">][</span><span class="n">name</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;ripples&quot;</span><span class="p">][</span><span class="n">name</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+            <span class="k">elif</span> <span class="n">values</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 
@@ -13646,13 +13718,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2671</span>
-<span class="normal">2672</span>
-<span class="normal">2673</span>
-<span class="normal">2674</span>
-<span class="normal">2675</span>
-<span class="normal">2676</span>
-<span class="normal">2677</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2677</span>
 <span class="normal">2678</span>
 <span class="normal">2679</span>
 <span class="normal">2680</span>
@@ -13797,7 +13863,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2819</span>
 <span class="normal">2820</span>
 <span class="normal">2821</span>
-<span class="normal">2822</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_spikes</span><span class="p">(</span>
+<span class="normal">2822</span>
+<span class="normal">2823</span>
+<span class="normal">2824</span>
+<span class="normal">2825</span>
+<span class="normal">2826</span>
+<span class="normal">2827</span>
+<span class="normal">2828</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_spikes</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">putativeCellType</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="n">brainRegion</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
@@ -14047,13 +14119,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1671</span>
-<span class="normal">1672</span>
-<span class="normal">1673</span>
-<span class="normal">1674</span>
-<span class="normal">1675</span>
-<span class="normal">1676</span>
-<span class="normal">1677</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1677</span>
 <span class="normal">1678</span>
 <span class="normal">1679</span>
 <span class="normal">1680</span>
@@ -14091,7 +14157,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">1712</span>
 <span class="normal">1713</span>
 <span class="normal">1714</span>
-<span class="normal">1715</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_theta_cycles</span><span class="p">(</span>
+<span class="normal">1715</span>
+<span class="normal">1716</span>
+<span class="normal">1717</span>
+<span class="normal">1718</span>
+<span class="normal">1719</span>
+<span class="normal">1720</span>
+<span class="normal">1721</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_theta_cycles</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -14236,13 +14308,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1970</span>
-<span class="normal">1971</span>
-<span class="normal">1972</span>
-<span class="normal">1973</span>
-<span class="normal">1974</span>
-<span class="normal">1975</span>
-<span class="normal">1976</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1976</span>
 <span class="normal">1977</span>
 <span class="normal">1978</span>
 <span class="normal">1979</span>
@@ -14334,7 +14400,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2065</span>
 <span class="normal">2066</span>
 <span class="normal">2067</span>
-<span class="normal">2068</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_theta_rem_shift</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="normal">2068</span>
+<span class="normal">2069</span>
+<span class="normal">2070</span>
+<span class="normal">2071</span>
+<span class="normal">2072</span>
+<span class="normal">2073</span>
+<span class="normal">2074</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_theta_rem_shift</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load theta REM shift data from get_rem_shift.m.</span>
 
@@ -14517,13 +14589,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2413</span>
-<span class="normal">2414</span>
-<span class="normal">2415</span>
-<span class="normal">2416</span>
-<span class="normal">2417</span>
-<span class="normal">2418</span>
-<span class="normal">2419</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2419</span>
 <span class="normal">2420</span>
 <span class="normal">2421</span>
 <span class="normal">2422</span>
@@ -14598,7 +14664,13 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2491</span>
 <span class="normal">2492</span>
 <span class="normal">2493</span>
-<span class="normal">2494</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_trials</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">2494</span>
+<span class="normal">2495</span>
+<span class="normal">2496</span>
+<span class="normal">2497</span>
+<span class="normal">2498</span>
+<span class="normal">2499</span>
+<span class="normal">2500</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_trials</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads trials from cell explorer basename.animal.behavior and stores in a DataFrame.</span>
 
