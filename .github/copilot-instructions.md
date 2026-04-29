@@ -86,6 +86,8 @@ neuro_py/
 - Write tests in pytest style; avoid `unittest.TestCase` and `unittest` assertion helpers.
 - Python support starts at 3.10.
 - CI runs `ruff check .` and `pytest` on Python 3.10, 3.11, 3.12, and 3.13.
+- When running pytest locally, prefer a project environment with the package test dependencies installed so imports like `lazy_loader`, `nelpy`, and other runtime requirements resolve during collection.
+- If pytest fails before collection because unrelated third-party plugins auto-load from the active environment, rerun the same target with `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` to isolate the repo's own tests.
 
 Before finishing a change, run the narrowest relevant test subset first, then broader tests if needed. If you cannot run tests in the current environment, say so explicitly.
 
