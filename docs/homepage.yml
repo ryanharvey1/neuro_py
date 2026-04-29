@@ -126,6 +126,11 @@ tutorials:
     title: Neural Geodynamics
     description: Explore geometric dynamics of neural population activity.
 
+  sharp_wave_ripple_detection:
+    icon: material-pulse
+    title: Sharp Wave Ripple Detection
+    description: Detect sharp wave ripples, save CellExplorer event files, and visualize example events.
+
 # Map dependency package names to Material icons for the "Built With" grid.
 # Only deps listed here are shown; unlisted deps are skipped.
 

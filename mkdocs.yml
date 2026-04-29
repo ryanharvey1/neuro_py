@@ -175,5 +175,6 @@ nav:
   - PETH: tutorials/peth_tutorial.md
   - Plotting: tutorials/plotting_tutorial.md
   - Reactivation: tutorials/reactivation.md
+  - Sharp-Wave Ripple: tutorials/sharp_wave_ripple_detection.md
   - Spatial Map: tutorials/spatial_map.md
   - Weighted Correlation: tutorials/weighted_corr_2d.md

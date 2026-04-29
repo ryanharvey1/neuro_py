@@ -54,7 +54,8 @@ csd = [
 docs = [
     "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "nbconvert>=7.0.0"
+    "nbconvert>=7.0.0",
+    "marimo>=0.23.0"
 ]
 # An "all" group that combines all optional groups
 all = [
@@ -63,7 +64,8 @@ all = [
     "quantities>=0.15.0",
     "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "nbconvert>=7.0.0"
+    "nbconvert>=7.0.0",
+    "marimo>=0.23.0"
 ]
 
 [project.urls]

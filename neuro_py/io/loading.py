@@ -1585,7 +1585,13 @@ def load_ripples_events(
 
     for name in ["peaks", "amplitude", "duration", "frequency", "peakNormedPower"]:
         try:
-            df[name] = data["ripples"][name][0][0]
+            values = np.asarray(data["ripples"][name][0][0], dtype=float).reshape(-1)
+            if values.size == len(df):
+                df[name] = values
+            elif values.size == 1 and len(df) > 0:
+                df[name] = np.repeat(values, len(df))
+            else:
+                df[name] = np.nan
         except Exception:
             df[name] = np.nan
 
