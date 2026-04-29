@@ -11,7 +11,7 @@ from scipy import ndimage, signal
 from scipy.io import savemat
 
 from neuro_py.io import loading
-from neuro_py.process.intervals import find_interval, in_intervals
+from neuro_py.process.intervals import find_interval, in_intervals_interval
 
 
 def _sanitize_for_matlab(value: object) -> object:
@@ -58,6 +58,29 @@ def _coerce_interval_array(
             "detection_epochs must be an EpochArray or an array with shape (n_intervals, 2)."
         )
     return intervals
+
+
+def _filter_events_to_detection_epochs(
+    events: pd.DataFrame,
+    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]],
+) -> pd.DataFrame:
+    """Keep events fully contained within one detection epoch."""
+    intervals = _coerce_interval_array(detection_epochs)
+    if intervals.size == 0 or events.empty:
+        return events
+
+    start_interval = in_intervals_interval(
+        events["start"].to_numpy(dtype=float), intervals
+    )
+    stop_interval = in_intervals_interval(
+        events["stop"].to_numpy(dtype=float), intervals
+    )
+    keep = (
+        ~np.isnan(start_interval)
+        & ~np.isnan(stop_interval)
+        & (start_interval == stop_interval)
+    )
+    return events.loc[keep].reset_index(drop=True)
 
 
 def _get_ripple_channel(basepath: str) -> int:
@@ -556,6 +579,7 @@ def detect_sharp_wave_ripples(
     peak_window: float = 0.050,
     boundary_mode: str = "sharp_wave",
     filter_order: int = 4,
+    require_sharp_wave: bool = True,
     save_mat: bool = True,
     overwrite: bool = False,
     return_epoch_array: bool = False,
@@ -564,10 +588,12 @@ def detect_sharp_wave_ripples(
     """
     Detect sharp wave ripple events from a ripple-band LFP channel.
 
-    The detector follows a compact joint SWR workflow: detect candidate ripple
-    intervals from ripple-band power, require a nearby sharp-wave event on a
-    companion low-frequency channel difference, and then validate ripple and
-    sharp-wave durations separately before returning final events.
+    The detector follows a compact joint SWR workflow by default: detect
+    candidate ripple intervals from ripple-band power, require a nearby
+    sharp-wave event on a companion low-frequency channel difference, and then
+    validate ripple and sharp-wave durations separately before returning final
+    events. Set ``require_sharp_wave=False`` to run explicit ripple-only
+    detection when no sharp-wave channel is available.
 
     Parameters
     ----------
@@ -639,6 +665,12 @@ def detect_sharp_wave_ripples(
         union of ripple and sharp-wave intervals.
     filter_order : int, optional
         Butterworth filter order for ripple-band filtering.
+    require_sharp_wave : bool, optional
+        If True, require a sharp-wave signal or inferable sharp-wave channel for
+        joint SWR detection. If False, allow ripple-only detection when
+        sharp-wave data are unavailable. Ripple-only detections should be
+        interpreted cautiously because the sharp-wave criterion helps reject
+        ripple-band noise.
     save_mat : bool, optional
         If True and ``basepath`` is provided, save a CellExplorer event file.
         In-memory detections without a ``basepath`` still run normally but do
@@ -658,6 +690,8 @@ def detect_sharp_wave_ripples(
     """
     if basepath is None and ripple_signal is None:
         raise ValueError("Provide either `basepath` or `ripple_signal` for detection.")
+    if boundary_mode not in {"sharp_wave", "union"}:
+        raise ValueError("`boundary_mode` must be either 'sharp_wave' or 'union'.")
 
     should_save_mat = bool(save_mat and basepath is not None)
 
@@ -711,6 +745,14 @@ def detect_sharp_wave_ripples(
             sharp_wave_signal = np.asarray(sharp_wave_signal, dtype=float)
         if noise_signal is not None:
             noise_signal = np.asarray(noise_signal, dtype=float)
+
+    if require_sharp_wave and sharp_wave_signal is None:
+        raise ValueError(
+            "Joint SWR detection requires a sharp-wave signal. Pass "
+            "`sharp_wave_signal`, provide `sharp_wave_channel`, add a "
+            "CellExplorer SharpWave channel tag, or set "
+            "`require_sharp_wave=False` for explicit ripple-only detection."
+        )
 
     ripple_filtered, envelope, inst_freq = _compute_envelope(
         signal_in=ripple_signal,
@@ -780,12 +822,7 @@ def detect_sharp_wave_ripples(
         noise_threshold=noise_threshold,
     )
 
-    intervals = _coerce_interval_array(detection_epochs)
-    if intervals.size > 0 and not events.empty:
-        keep = in_intervals(
-            events["start"].to_numpy(dtype=float), intervals
-        ) & in_intervals(events["stop"].to_numpy(dtype=float), intervals)
-        events = events.loc[keep].reset_index(drop=True)
+    events = _filter_events_to_detection_epochs(events, detection_epochs)
 
     if should_save_mat:
         detection_params = {
@@ -805,6 +842,7 @@ def detect_sharp_wave_ripples(
             "merge_gap": float(merge_gap),
             "peak_window": float(peak_window),
             "boundary_mode": boundary_mode,
+            "require_sharp_wave": bool(require_sharp_wave),
             "filter_order": int(filter_order),
         }
         if ripple_channel is not None:

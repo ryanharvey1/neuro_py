@@ -4,9 +4,11 @@ import tempfile
 import nelpy as nel
 import numpy as np
 import pandas as pd
+import pytest
 import scipy.io as sio
 
 from neuro_py.detectors.sharp_wave_ripple import (
+    _filter_events_to_detection_epochs,
     _get_noise_channel,
     _get_sharp_wave_channel,
     detect_sharp_wave_ripples,
@@ -196,6 +198,55 @@ def test_detect_sharp_wave_ripples_requires_joint_sharp_wave_signal() -> None:
     )
 
 
+def test_detect_sharp_wave_ripples_requires_sharp_wave_by_default() -> None:
+    timestamps, ripple_signal, _ = _make_synthetic_ripple_session([1.5], duration=3.0)
+
+    with pytest.raises(ValueError, match="requires a sharp-wave signal"):
+        detect_sharp_wave_ripples(
+            ripple_signal=ripple_signal,
+            fs=1250.0,
+            timestamps=timestamps,
+            low_threshold=1.0,
+            high_threshold=3.0,
+            smooth_sigma=0.002,
+            min_duration=0.02,
+            max_duration=0.10,
+        )
+
+
+def test_detect_sharp_wave_ripples_allows_explicit_ripple_only_mode() -> None:
+    timestamps, ripple_signal, _ = _make_synthetic_ripple_session([1.5], duration=3.0)
+
+    events = detect_sharp_wave_ripples(
+        ripple_signal=ripple_signal,
+        fs=1250.0,
+        timestamps=timestamps,
+        low_threshold=1.0,
+        high_threshold=3.0,
+        smooth_sigma=0.002,
+        min_duration=0.02,
+        max_duration=0.10,
+        require_sharp_wave=False,
+    )
+
+    assert len(events) == 1
+    assert "sharp_wave_amplitude" not in events.columns
+
+
+def test_detect_sharp_wave_ripples_validates_boundary_mode_without_events() -> None:
+    timestamps = np.arange(0.0, 4.0, 1.0 / 1250.0)
+    ripple_signal = np.random.default_rng(2).normal(scale=0.1, size=timestamps.size)
+
+    with pytest.raises(ValueError, match="boundary_mode"):
+        detect_sharp_wave_ripples(
+            ripple_signal=ripple_signal,
+            fs=1250.0,
+            timestamps=timestamps,
+            boundary_mode="ripple",
+            require_sharp_wave=False,
+        )
+
+
 def test_detect_sharp_wave_ripples_merges_restricts_and_rejects_noise() -> None:
     centers = [1.00, 1.05, 3.00, 5.00]
     timestamps, ripple_signal, _ = _make_synthetic_ripple_session(centers, duration=6.0)
@@ -221,6 +272,7 @@ def test_detect_sharp_wave_ripples_merges_restricts_and_rejects_noise() -> None:
         min_duration=0.02,
         max_duration=0.12,
         merge_gap=0.03,
+        require_sharp_wave=False,
     )
 
     assert len(events) == 1
@@ -238,6 +290,7 @@ def test_detect_sharp_wave_ripples_returns_empty_outputs_when_no_events() -> Non
         timestamps=timestamps,
         low_threshold=4.0,
         high_threshold=8.0,
+        require_sharp_wave=False,
     )
     assert events.empty
 
@@ -248,9 +301,26 @@ def test_detect_sharp_wave_ripples_returns_empty_outputs_when_no_events() -> Non
         low_threshold=4.0,
         high_threshold=8.0,
         return_epoch_array=True,
+        require_sharp_wave=False,
     )
     assert isinstance(epochs, nel.EpochArray)
     assert epochs.isempty
+
+
+def test_detection_epoch_filter_requires_same_containing_interval() -> None:
+    events = pd.DataFrame(
+        {
+            "start": [0.75, 1.25, 2.75, 1.25],
+            "stop": [1.25, 2.75, 3.25, 3.25],
+            "peaks": [1.0, 2.0, 3.0, 2.2],
+        }
+    )
+
+    filtered = _filter_events_to_detection_epochs(
+        events, np.array([[0.5, 1.5], [2.5, 3.5]])
+    )
+
+    np.testing.assert_allclose(filtered["peaks"].to_numpy(), np.array([1.0, 3.0]))
 
 
 def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_file() -> (
