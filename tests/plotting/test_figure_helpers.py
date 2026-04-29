@@ -4,9 +4,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import importlib.util
 
 from neuro_py.plotting.figure_helpers import (
     _build_scaled_image_html,
+    _HTMLDisplay,
     figure_scale,
     paired_lines,
     scale_figsize,
@@ -125,13 +127,11 @@ def test_show_scaled_rejects_invalid_backend():
 
 
 def test_show_scaled_jupyter_returns_html():
-    """show_scaled should return an IPython HTML object for the Jupyter backend."""
-    from IPython.display import HTML
-
+    """show_scaled should return an HTML wrapper for the Jupyter backend."""
     fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
     display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
 
-    assert isinstance(display_obj, HTML)
+    assert isinstance(display_obj, _HTMLDisplay)
     assert 'width: 600px' in display_obj.data
     assert "data:image/png;base64," in display_obj.data
     plt.close(fig)
@@ -167,15 +167,7 @@ def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch
     """show_scaled should raise when auto backend cannot be resolved."""
     fig, _ = plt.subplots()
 
-    monkeypatch.setattr("IPython.get_ipython", lambda: None)
-    real_import = __import__
-
-    def fake_import(name, *args, **kwargs):
-        if name == "marimo":
-            raise ImportError("marimo not installed")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr("builtins.__import__", fake_import)
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
 
     with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
         show_scaled(fig, backend="auto")

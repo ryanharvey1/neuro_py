@@ -1,7 +1,9 @@
 import base64
 import io
+import importlib.util
 import warnings
 from contextlib import contextmanager
+from dataclasses import dataclass
 from itertools import cycle
 from numbers import Number
 from pathlib import Path
@@ -75,6 +77,16 @@ SCALABLE_RCPARAMS = (
     "legend.labelspacing",
     "legend.columnspacing",
 )
+
+
+@dataclass
+class _HTMLDisplay:
+    """Minimal HTML display wrapper that works without an IPython dependency."""
+
+    data: str
+
+    def _repr_html_(self) -> str:
+        return self.data
 
 
 def _check_fonts(requested_fonts: list[str]) -> None:
@@ -291,9 +303,7 @@ def show_scaled(
     resolved_backend = _resolve_show_scaled_backend(backend)
 
     if resolved_backend == "jupyter":
-        from IPython.display import HTML
-
-        return HTML(html)
+        return _HTMLDisplay(html)
 
     if resolved_backend == "marimo":
         import marimo as mo
@@ -329,20 +339,14 @@ def _resolve_show_scaled_backend(
     if backend == "marimo":
         return "marimo"
 
-    try:
+    if importlib.util.find_spec("IPython") is not None:
         from IPython import get_ipython
 
         if get_ipython() is not None:
             return "jupyter"
-    except ImportError:
-        pass
 
-    try:
-        import marimo  # noqa: F401
-
+    if importlib.util.find_spec("marimo") is not None:
         return "marimo"
-    except ImportError:
-        pass
 
     raise RuntimeError(
         "show_scaled could not detect a supported notebook backend. "
