@@ -6,10 +6,12 @@ import pandas as pd
 import pytest
 
 from neuro_py.plotting.figure_helpers import (
+    _build_scaled_image_html,
     figure_scale,
     paired_lines,
     scale_figsize,
     set_plotting_defaults,
+    show_scaled,
 )
 
 
@@ -96,6 +98,89 @@ def test_figure_scale_invalid_scale_raises(scale: float):
     with pytest.raises(ValueError, match="greater than 0"):
         with figure_scale(scale):
             pass
+
+
+def test_show_scaled_rejects_invalid_scale():
+    """show_scaled should reject non-positive scale values."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="greater than 0"):
+        show_scaled(fig, scale=0, backend="jupyter")
+    plt.close(fig)
+
+
+def test_show_scaled_rejects_invalid_format():
+    """show_scaled should reject unsupported formats."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="format must be 'png'"):
+        show_scaled(fig, format="svg", backend="jupyter")
+    plt.close(fig)
+
+
+def test_show_scaled_rejects_invalid_backend():
+    """show_scaled should reject unsupported backends."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="backend must be 'auto', 'jupyter', or 'marimo'"):
+        show_scaled(fig, backend="qt")
+    plt.close(fig)
+
+
+def test_show_scaled_jupyter_returns_html():
+    """show_scaled should return an IPython HTML object for the Jupyter backend."""
+    from IPython.display import HTML
+
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert isinstance(display_obj, HTML)
+    assert 'width: 600px' in display_obj.data
+    assert "data:image/png;base64," in display_obj.data
+    plt.close(fig)
+
+
+def test_show_scaled_does_not_mutate_figure_size_or_dpi():
+    """show_scaled should leave the original figure dimensions unchanged."""
+    fig, ax = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    original_size = tuple(fig.get_size_inches())
+    original_dpi = fig.dpi
+
+    ax.plot([0, 1], [0, 1])
+    show_scaled(fig, scale=2.0, backend="jupyter")
+
+    assert tuple(fig.get_size_inches()) == pytest.approx(original_size)
+    assert fig.dpi == pytest.approx(original_dpi)
+    plt.close(fig)
+
+
+def test_show_scaled_preserves_savefig_dimensions():
+    """show_scaled should not alter subsequent savefig dimensions."""
+    fig, ax = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    ax.plot([0, 1], [0, 1])
+    show_scaled(fig, scale=2.0, backend="jupyter")
+
+    html = _build_scaled_image_html(fig, scale=1.0, dpi=100)
+
+    assert 'width: 400px' in html
+    plt.close(fig)
+
+
+def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should raise when auto backend cannot be resolved."""
+    fig, _ = plt.subplots()
+
+    monkeypatch.setattr("IPython.get_ipython", lambda: None)
+    real_import = __import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "marimo":
+            raise ImportError("marimo not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", fake_import)
+
+    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+        show_scaled(fig, backend="auto")
+
+    plt.close(fig)
 
 
 def test_paired_lines_basic():

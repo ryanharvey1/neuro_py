@@ -1,9 +1,11 @@
+import base64
+import io
 import warnings
 from contextlib import contextmanager
 from itertools import cycle
 from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Generator, Hashable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Hashable, List, Literal, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.font_manager as fm
@@ -234,6 +236,118 @@ def figure_scale(scale: float = 1.0) -> Generator[None, None, None]:
 
     with plt.rc_context(scaled_params):
         yield
+
+
+def show_scaled(
+    fig: matplotlib.figure.Figure,
+    scale: float = 1.0,
+    dpi: float | None = None,
+    format: Literal["png"] = "png",
+    backend: Literal["auto", "jupyter", "marimo"] = "auto",
+) -> Any:
+    """
+    Display a Matplotlib figure at a larger size in notebooks without mutating it.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Existing Matplotlib figure to render for notebook display.
+    scale : float, optional
+        Multiplicative display scaling factor applied to the rendered output width,
+        by default 1.0. Must be greater than 0.
+    dpi : float, optional
+        Rasterization DPI used when rendering the display copy. If None, uses
+        ``fig.dpi``.
+    format : {"png"}, optional
+        Output format for the notebook display copy, by default ``"png"``.
+    backend : {"auto", "jupyter", "marimo"}, optional
+        Notebook display backend, by default ``"auto"``.
+
+    Returns
+    -------
+    Any
+        Frontend-specific HTML display object for the rendered figure copy.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0, or if ``format`` or ``backend`` are unsupported.
+    RuntimeError
+        If no supported notebook display backend is available.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+    if format != "png":
+        raise ValueError("format must be 'png'")
+    if backend not in {"auto", "jupyter", "marimo"}:
+        raise ValueError("backend must be 'auto', 'jupyter', or 'marimo'")
+
+    render_dpi = fig.dpi if dpi is None else dpi
+    if render_dpi <= 0:
+        raise ValueError("dpi must be greater than 0")
+
+    html = _build_scaled_image_html(fig, scale=scale, dpi=render_dpi)
+    resolved_backend = _resolve_show_scaled_backend(backend)
+
+    if resolved_backend == "jupyter":
+        from IPython.display import HTML
+
+        return HTML(html)
+
+    if resolved_backend == "marimo":
+        import marimo as mo
+
+        return mo.Html(html)
+
+    raise RuntimeError("Unsupported notebook display backend")
+
+
+def _build_scaled_image_html(
+    fig: matplotlib.figure.Figure, scale: float, dpi: float
+) -> str:
+    """Render a figure to an HTML image tag with display-only scaling."""
+
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=dpi)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    width_px = int(round(fig.get_figwidth() * dpi * scale))
+
+    return (
+        f'<img src="data:image/png;base64,{encoded}" '
+        f'style="width: {width_px}px; max-width: none; height: auto;" />'
+    )
+
+
+def _resolve_show_scaled_backend(
+    backend: Literal["auto", "jupyter", "marimo"],
+) -> Literal["jupyter", "marimo"]:
+    """Resolve the display backend for show_scaled."""
+
+    if backend == "jupyter":
+        return "jupyter"
+    if backend == "marimo":
+        return "marimo"
+
+    try:
+        from IPython import get_ipython
+
+        if get_ipython() is not None:
+            return "jupyter"
+    except ImportError:
+        pass
+
+    try:
+        import marimo  # noqa: F401
+
+        return "marimo"
+    except ImportError:
+        pass
+
+    raise RuntimeError(
+        "show_scaled could not detect a supported notebook backend. "
+        "Use backend='jupyter' or backend='marimo' explicitly."
+    )
 
 
 def lighten_color(color: str, amount: float = 0.5) -> str:

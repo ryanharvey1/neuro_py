@@ -3,6 +3,7 @@ __all__ = (
     "plot_peth",
     "plot_peth_fast",
     "figure_scale",
+    "show_scaled",
     "set_plotting_defaults",
     "set_size",
     "scale_figsize",
@@ -32,6 +33,7 @@ from .figure_helpers import (
     set_equal_axis_range,
     set_plotting_defaults,
     set_size,
+    show_scaled,
     paired_lines,
 )
 from .replay import plot_2d_replay
