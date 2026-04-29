@@ -687,6 +687,52 @@ def detect_sharp_wave_ripples(
     -------
     pandas.DataFrame or nel.EpochArray
         Detected ripple events.
+
+    Examples
+    --------
+    Detect joint SWRs from a CellExplorer session folder and save the default
+    ``*.ripples.events.mat`` file. The ripple, sharp-wave, and noise channels
+    are inferred from channel tags when available.
+
+    >>> from neuro_py.detectors.sharp_wave_ripple import detect_sharp_wave_ripples
+    >>> ripples = detect_sharp_wave_ripples(
+    ...     basepath=r"S:\\data\\HMC\\HMC1\\day8",
+    ...     low_threshold=0.75,
+    ...     high_threshold=2.5,
+    ...     sharp_wave_low_threshold=0.4,
+    ...     sharp_wave_high_threshold=2.5,
+    ...     overwrite=True,
+    ... )
+
+    Restrict detection to a time interval and return only the event table
+    without writing a CellExplorer file.
+
+    >>> ripples = detect_sharp_wave_ripples(
+    ...     basepath=r"S:\\data\\HMC\\HMC1\\day8",
+    ...     detection_epochs=np.array([[250.0, 350.0]]),
+    ...     save_mat=False,
+    ... )
+
+    Run on in-memory LFP arrays. This is useful for simulations or when data
+    have already been loaded by another pipeline.
+
+    >>> ripples = detect_sharp_wave_ripples(
+    ...     ripple_signal=ripple_lfp,
+    ...     sharp_wave_signal=sharp_wave_lfp,
+    ...     fs=1250.0,
+    ...     timestamps=timestamps,
+    ...     save_mat=False,
+    ... )
+
+    If no sharp-wave channel is available, ripple-only detection must be
+    requested explicitly.
+
+    >>> ripples = detect_sharp_wave_ripples(
+    ...     ripple_signal=ripple_lfp,
+    ...     fs=1250.0,
+    ...     save_mat=False,
+    ...     require_sharp_wave=False,
+    ... )
     """
     if basepath is None and ripple_signal is None:
         raise ValueError("Provide either `basepath` or `ripple_signal` for detection.")
