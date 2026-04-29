@@ -5,7 +5,97 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
-from neuro_py.plotting.figure_helpers import paired_lines
+from neuro_py.plotting.figure_helpers import (
+    figure_scale,
+    paired_lines,
+    scale_figsize,
+    set_plotting_defaults,
+)
+
+
+def test_scale_figsize_scales_dimensions():
+    """scale_figsize should multiply width and height by the scale."""
+    assert scale_figsize((4.0, 2.5), 1.75) == pytest.approx((7.0, 4.375))
+
+
+@pytest.mark.parametrize("scale", [0, -1, -0.5])
+def test_scale_figsize_invalid_scale_raises(scale: float):
+    """scale_figsize should reject non-positive scale values."""
+    with pytest.raises(ValueError, match="greater than 0"):
+        scale_figsize((4.0, 2.5), scale)
+
+
+def test_figure_scale_scales_targeted_rcparams():
+    """figure_scale should scale curated size-related rcParams."""
+    original_font = plt.rcParams["font.size"]
+    original_linewidth = plt.rcParams["lines.linewidth"]
+    original_marker = plt.rcParams["lines.markersize"]
+    original_tick_width = plt.rcParams["xtick.major.width"]
+
+    with figure_scale(1.5):
+        assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.5)
+        assert plt.rcParams["lines.linewidth"] == pytest.approx(
+            original_linewidth * 1.5
+        )
+        assert plt.rcParams["lines.markersize"] == pytest.approx(original_marker * 1.5)
+        assert plt.rcParams["xtick.major.width"] == pytest.approx(
+            original_tick_width * 1.5
+        )
+
+
+def test_figure_scale_restores_rcparams_after_exit():
+    """figure_scale should restore rcParams after normal context exit."""
+    original_font = plt.rcParams["font.size"]
+
+    with figure_scale(2.0):
+        assert plt.rcParams["font.size"] == pytest.approx(original_font * 2.0)
+
+    assert plt.rcParams["font.size"] == pytest.approx(original_font)
+
+
+def test_figure_scale_restores_rcparams_after_exception():
+    """figure_scale should restore rcParams even if the context errors."""
+    original_font = plt.rcParams["font.size"]
+
+    with pytest.raises(RuntimeError, match="boom"):
+        with figure_scale(1.25):
+            assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.25)
+            raise RuntimeError("boom")
+
+    assert plt.rcParams["font.size"] == pytest.approx(original_font)
+
+
+def test_figure_scale_respects_current_style_state():
+    """figure_scale should scale the active style values rather than defaults."""
+    plt.rcdefaults()
+    try:
+        set_plotting_defaults("nature")
+        original_font = plt.rcParams["font.size"]
+        original_tick_size = plt.rcParams["xtick.major.size"]
+
+        with figure_scale(1.75):
+            assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.75)
+            assert plt.rcParams["xtick.major.size"] == pytest.approx(
+                original_tick_size * 1.75
+            )
+    finally:
+        plt.rcdefaults()
+
+
+def test_figure_scale_leaves_non_numeric_rcparams_unchanged():
+    """figure_scale should not alter string-valued rcParams."""
+    original_family = list(plt.rcParams["font.family"])
+
+    with figure_scale(1.5):
+        assert list(plt.rcParams["font.family"]) == original_family
+
+
+@pytest.mark.parametrize("scale", [0, -1, -0.5])
+def test_figure_scale_invalid_scale_raises(scale: float):
+    """figure_scale should reject non-positive scale values."""
+    with pytest.raises(ValueError, match="greater than 0"):
+        with figure_scale(scale):
+            pass
 
 
 def test_paired_lines_basic():

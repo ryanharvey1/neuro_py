@@ -1,7 +1,9 @@
 import warnings
+from contextlib import contextmanager
 from itertools import cycle
+from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Hashable, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.font_manager as fm
@@ -41,6 +43,36 @@ WORKFLOW_FONTS = {
     "nature": ["Helvetica", "Arial", "DejaVu Sans"],
     "dark": ["Helvetica", "Arial", "DejaVu Sans"],
 }
+
+SCALABLE_RCPARAMS = (
+    "font.size",
+    "axes.labelsize",
+    "axes.titlesize",
+    "legend.fontsize",
+    "xtick.labelsize",
+    "ytick.labelsize",
+    "lines.linewidth",
+    "lines.markersize",
+    "axes.linewidth",
+    "grid.linewidth",
+    "patch.linewidth",
+    "errorbar.capsize",
+    "xtick.major.size",
+    "ytick.major.size",
+    "xtick.major.width",
+    "ytick.major.width",
+    "xtick.minor.size",
+    "ytick.minor.size",
+    "xtick.minor.width",
+    "ytick.minor.width",
+    "legend.borderpad",
+    "legend.handlelength",
+    "legend.handleheight",
+    "legend.handletextpad",
+    "legend.borderaxespad",
+    "legend.labelspacing",
+    "legend.columnspacing",
+)
 
 
 def _check_fonts(requested_fonts: list[str]) -> None:
@@ -139,6 +171,69 @@ def set_size(
     fig_height_in = fig_width_in * aspect * (subplots[0] / subplots[1])
 
     return fig_width_in, fig_height_in
+
+
+def scale_figsize(figsize: Tuple[float, float], scale: float) -> Tuple[float, float]:
+    """
+    Scale a Matplotlib figure size by a display factor.
+
+    Parameters
+    ----------
+    figsize : tuple of float
+        Figure dimensions in inches as ``(width, height)``.
+    scale : float
+        Multiplicative display scaling factor. Must be greater than 0.
+
+    Returns
+    -------
+    tuple of float
+        Scaled figure dimensions in inches as ``(width, height)``.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+
+    return figsize[0] * scale, figsize[1] * scale
+
+
+@contextmanager
+def figure_scale(scale: float = 1.0) -> Generator[None, None, None]:
+    """
+    Temporarily scale plotting rcParams for notebook display.
+
+    Parameters
+    ----------
+    scale : float, optional
+        Multiplicative scaling factor applied to supported numeric rcParams,
+        by default 1.0. Must be greater than 0.
+
+    Yields
+    ------
+    None
+        A Matplotlib rc context with scaled size-related parameters.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+
+    scaled_params = {
+        key: value * scale
+        for key in SCALABLE_RCPARAMS
+        if isinstance((value := plt.rcParams[key]), Number)
+    }
+
+    with plt.rc_context(scaled_params):
+        yield
 
 
 def lighten_color(color: str, amount: float = 0.5) -> str:
