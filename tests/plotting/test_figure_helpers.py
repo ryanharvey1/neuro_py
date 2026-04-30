@@ -4,8 +4,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
-import importlib.util
 
+import neuro_py.plotting.figure_helpers as figure_helpers
 from neuro_py.plotting.figure_helpers import (
     _build_scaled_image_html,
     _HTMLDisplay,
@@ -137,6 +137,39 @@ def test_show_scaled_jupyter_returns_html():
     plt.close(fig)
 
 
+def test_show_scaled_jupyter_displays_immediately(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should use the IPython display hook when it is available."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    displayed: list[_HTMLDisplay] = []
+
+    monkeypatch.setattr(
+        figure_helpers,
+        "_display_in_ipython",
+        lambda display_obj: displayed.append(display_obj) or True,
+    )
+
+    display_result = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert len(displayed) == 1
+    assert displayed[0].data.startswith('<img src="data:image/png;base64,')
+    assert display_result is None
+
+
+def test_show_scaled_jupyter_closes_pyplot_figure_after_display(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """show_scaled should close the pyplot-managed figure after Jupyter display."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    figure_number = fig.number
+
+    monkeypatch.setattr(figure_helpers, "_display_in_ipython", lambda display_obj: True)
+
+    show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert figure_number not in plt.get_fignums()
+    assert fig.get_size_inches() == pytest.approx((4.0, 2.0))
+
+
 def test_show_scaled_does_not_mutate_figure_size_or_dpi():
     """show_scaled should leave the original figure dimensions unchanged."""
     fig, ax = plt.subplots(figsize=(4.0, 2.0), dpi=100)
@@ -163,15 +196,57 @@ def test_show_scaled_preserves_savefig_dimensions():
     plt.close(fig)
 
 
-def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch):
-    """show_scaled should raise when auto backend cannot be resolved."""
+def test_show_scaled_auto_resolves_active_jupyter(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should prefer Jupyter when an active kernel is detected."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: True)
+    monkeypatch.setattr(figure_helpers, "_display_in_ipython", lambda obj: True)
+
+    display_result = show_scaled(fig, backend="auto")
+
+    assert display_result is None
+
+
+def test_show_scaled_auto_does_not_choose_marimo_when_only_installed(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """show_scaled auto backend should not pick marimo based on installation alone."""
     fig, _ = plt.subplots()
 
-    monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+    monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
 
     with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
         show_scaled(fig, backend="auto")
 
+    plt.close(fig)
+
+
+def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should raise when auto backend cannot be resolved."""
+    fig, _ = plt.subplots()
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+    monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
+
+    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+        show_scaled(fig, backend="auto")
+
+    plt.close(fig)
+
+
+def test_show_scaled_explicit_jupyter_without_ipython_still_returns_html(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Explicit Jupyter backend should still return HTML when no display hook exists."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+
+    display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert isinstance(display_obj, _HTMLDisplay)
     plt.close(fig)
 
 

@@ -1,6 +1,7 @@
 import base64
 import io
 import importlib.util
+from importlib import import_module
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -278,7 +279,10 @@ def show_scaled(
     Returns
     -------
     Any
-        Frontend-specific HTML display object for the rendered figure copy.
+        Frontend-specific display object for the rendered figure copy. In Jupyter,
+        the figure is also displayed immediately when IPython display hooks are
+        available. When displayed immediately in Jupyter, the function returns
+        ``None`` to avoid duplicate notebook rendering from the cell result.
 
     Raises
     ------
@@ -303,7 +307,13 @@ def show_scaled(
     resolved_backend = _resolve_show_scaled_backend(backend)
 
     if resolved_backend == "jupyter":
-        return _HTMLDisplay(html)
+        display_obj = _HTMLDisplay(html)
+        displayed = _display_in_ipython(display_obj)
+        if displayed:
+            # Prevent Jupyter from also auto-rendering the still-open pyplot figure.
+            plt.close(fig)
+            return None
+        return display_obj
 
     if resolved_backend == "marimo":
         import marimo as mo
@@ -339,19 +349,102 @@ def _resolve_show_scaled_backend(
     if backend == "marimo":
         return "marimo"
 
-    if importlib.util.find_spec("IPython") is not None:
-        from IPython import get_ipython
+    if _in_active_ipython_session():
+        return "jupyter"
 
-        if get_ipython() is not None:
-            return "jupyter"
-
-    if importlib.util.find_spec("marimo") is not None:
+    if _in_active_marimo_session():
         return "marimo"
 
     raise RuntimeError(
         "show_scaled could not detect a supported notebook backend. "
         "Use backend='jupyter' or backend='marimo' explicitly."
     )
+
+
+def _display_in_ipython(display_obj: _HTMLDisplay) -> bool:
+    """Display an HTML wrapper through IPython when an active display hook exists."""
+
+    if not _in_active_ipython_session():
+        return False
+
+    if importlib.util.find_spec("IPython.display") is None:
+        return False
+
+    from IPython.display import display
+
+    display(display_obj)
+    return True
+
+
+def _in_active_ipython_session() -> bool:
+    """Return True when running inside an active IPython kernel session."""
+
+    shell = _get_ipython_shell()
+    if shell is None:
+        return False
+
+    shell_class = shell.__class__
+    shell_name = shell_class.__name__
+    shell_module = shell_class.__module__.lower()
+
+    return shell_name == "ZMQInteractiveShell" or "zmqshell" in shell_module
+
+
+def _get_ipython_shell() -> Any | None:
+    """Get the active IPython shell if IPython is installed and running."""
+
+    if importlib.util.find_spec("IPython") is None:
+        return None
+
+    from IPython import get_ipython
+
+    return get_ipython()
+
+
+def _in_active_marimo_session() -> bool:
+    """Return True when running inside an active marimo runtime."""
+
+    if importlib.util.find_spec("marimo") is None:
+        return False
+
+    try:
+        marimo = import_module("marimo")
+    except ImportError:
+        return False
+
+    for attr_name in (
+        "running_in_notebook",
+        "running_in_app",
+        "is_running_in_notebook",
+        "is_in_notebook",
+    ):
+        checker = getattr(marimo, attr_name, None)
+        if callable(checker):
+            try:
+                if bool(checker()):
+                    return True
+            except Exception:
+                continue
+
+    for module_name, attr_name in (
+        ("marimo._runtime.context", "get_context"),
+        ("marimo._runtime.context", "get_runtime_context"),
+    ):
+        if importlib.util.find_spec(module_name) is None:
+            continue
+        try:
+            module = import_module(module_name)
+        except ImportError:
+            continue
+        checker = getattr(module, attr_name, None)
+        if callable(checker):
+            try:
+                if checker() is not None:
+                    return True
+            except Exception:
+                continue
+
+    return False
 
 
 def lighten_color(color: str, amount: float = 0.5) -> str:
