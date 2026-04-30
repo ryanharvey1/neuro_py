@@ -1,7 +1,14 @@
+import base64
+import io
+import importlib.util
+from importlib import import_module
 import warnings
+from contextlib import contextmanager
+from dataclasses import dataclass
 from itertools import cycle
+from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Hashable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Hashable, List, Literal, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.font_manager as fm
@@ -41,6 +48,46 @@ WORKFLOW_FONTS = {
     "nature": ["Helvetica", "Arial", "DejaVu Sans"],
     "dark": ["Helvetica", "Arial", "DejaVu Sans"],
 }
+
+SCALABLE_RCPARAMS = (
+    "font.size",
+    "axes.labelsize",
+    "axes.titlesize",
+    "legend.fontsize",
+    "xtick.labelsize",
+    "ytick.labelsize",
+    "lines.linewidth",
+    "lines.markersize",
+    "axes.linewidth",
+    "grid.linewidth",
+    "patch.linewidth",
+    "errorbar.capsize",
+    "xtick.major.size",
+    "ytick.major.size",
+    "xtick.major.width",
+    "ytick.major.width",
+    "xtick.minor.size",
+    "ytick.minor.size",
+    "xtick.minor.width",
+    "ytick.minor.width",
+    "legend.borderpad",
+    "legend.handlelength",
+    "legend.handleheight",
+    "legend.handletextpad",
+    "legend.borderaxespad",
+    "legend.labelspacing",
+    "legend.columnspacing",
+)
+
+
+@dataclass
+class _HTMLDisplay:
+    """Minimal HTML display wrapper that works without an IPython dependency."""
+
+    data: str
+
+    def _repr_html_(self) -> str:
+        return self.data
 
 
 def _check_fonts(requested_fonts: list[str]) -> None:
@@ -139,6 +186,265 @@ def set_size(
     fig_height_in = fig_width_in * aspect * (subplots[0] / subplots[1])
 
     return fig_width_in, fig_height_in
+
+
+def scale_figsize(figsize: Tuple[float, float], scale: float) -> Tuple[float, float]:
+    """
+    Scale a Matplotlib figure size by a display factor.
+
+    Parameters
+    ----------
+    figsize : tuple of float
+        Figure dimensions in inches as ``(width, height)``.
+    scale : float
+        Multiplicative display scaling factor. Must be greater than 0.
+
+    Returns
+    -------
+    tuple of float
+        Scaled figure dimensions in inches as ``(width, height)``.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+
+    return figsize[0] * scale, figsize[1] * scale
+
+
+@contextmanager
+def figure_scale(scale: float = 1.0) -> Generator[None, None, None]:
+    """
+    Temporarily scale plotting rcParams for notebook display.
+
+    Parameters
+    ----------
+    scale : float, optional
+        Multiplicative scaling factor applied to supported numeric rcParams,
+        by default 1.0. Must be greater than 0.
+
+    Yields
+    ------
+    None
+        A Matplotlib rc context with scaled size-related parameters.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+
+    scaled_params = {
+        key: value * scale
+        for key in SCALABLE_RCPARAMS
+        if isinstance((value := plt.rcParams[key]), Number)
+    }
+
+    with plt.rc_context(scaled_params):
+        yield
+
+
+def show_scaled(
+    fig: matplotlib.figure.Figure,
+    scale: float = 1.0,
+    dpi: float | None = None,
+    format: Literal["png"] = "png",
+    backend: Literal["auto", "jupyter", "marimo"] = "auto",
+) -> Any:
+    """
+    Display a Matplotlib figure at a larger size in notebooks without mutating it.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Existing Matplotlib figure to render for notebook display.
+    scale : float, optional
+        Multiplicative display scaling factor applied to the rendered output width,
+        by default 1.0. Must be greater than 0.
+    dpi : float, optional
+        Rasterization DPI used when rendering the display copy. If None, uses
+        ``fig.dpi``.
+    format : {"png"}, optional
+        Output format for the notebook display copy, by default ``"png"``.
+    backend : {"auto", "jupyter", "marimo"}, optional
+        Notebook display backend, by default ``"auto"``.
+
+    Returns
+    -------
+    Any
+        Frontend-specific display object for the rendered figure copy. In Jupyter,
+        the figure is also displayed immediately when IPython display hooks are
+        available. When displayed immediately in Jupyter, the function returns
+        ``None`` to avoid duplicate notebook rendering from the cell result.
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is not greater than 0, or if ``format`` or ``backend`` are unsupported.
+    RuntimeError
+        If no supported notebook display backend is available.
+    """
+
+    if scale <= 0:
+        raise ValueError("scale must be greater than 0")
+    if format != "png":
+        raise ValueError("format must be 'png'")
+    if backend not in {"auto", "jupyter", "marimo"}:
+        raise ValueError("backend must be 'auto', 'jupyter', or 'marimo'")
+
+    render_dpi = fig.dpi if dpi is None else dpi
+    if render_dpi <= 0:
+        raise ValueError("dpi must be greater than 0")
+
+    html = _build_scaled_image_html(fig, scale=scale, dpi=render_dpi)
+    resolved_backend = _resolve_show_scaled_backend(backend)
+
+    if resolved_backend == "jupyter":
+        display_obj = _HTMLDisplay(html)
+        displayed = _display_in_ipython(display_obj)
+        if displayed:
+            # Prevent Jupyter from also auto-rendering the still-open pyplot figure.
+            plt.close(fig)
+            return None
+        return display_obj
+
+    if resolved_backend == "marimo":
+        import marimo as mo
+
+        return mo.Html(html)
+
+    raise RuntimeError("Unsupported notebook display backend")
+
+
+def _build_scaled_image_html(
+    fig: matplotlib.figure.Figure, scale: float, dpi: float
+) -> str:
+    """Render a figure to an HTML image tag with display-only scaling."""
+
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=dpi)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    width_px = int(round(fig.get_figwidth() * dpi * scale))
+
+    return (
+        f'<img src="data:image/png;base64,{encoded}" '
+        f'style="width: {width_px}px; max-width: none; height: auto;" />'
+    )
+
+
+def _resolve_show_scaled_backend(
+    backend: Literal["auto", "jupyter", "marimo"],
+) -> Literal["jupyter", "marimo"]:
+    """Resolve the display backend for show_scaled."""
+
+    if backend == "jupyter":
+        return "jupyter"
+    if backend == "marimo":
+        return "marimo"
+
+    if _in_active_ipython_session():
+        return "jupyter"
+
+    if _in_active_marimo_session():
+        return "marimo"
+
+    raise RuntimeError(
+        "show_scaled could not detect a supported notebook backend. "
+        "Use backend='jupyter' or backend='marimo' explicitly."
+    )
+
+
+def _display_in_ipython(display_obj: _HTMLDisplay) -> bool:
+    """Display an HTML wrapper through IPython when an active display hook exists."""
+
+    if not _in_active_ipython_session():
+        return False
+
+    if importlib.util.find_spec("IPython.display") is None:
+        return False
+
+    from IPython.display import display
+
+    display(display_obj)
+    return True
+
+
+def _in_active_ipython_session() -> bool:
+    """Return True when running inside an active IPython kernel session."""
+
+    shell = _get_ipython_shell()
+    if shell is None:
+        return False
+
+    shell_class = shell.__class__
+    shell_name = shell_class.__name__
+    shell_module = shell_class.__module__.lower()
+
+    return shell_name == "ZMQInteractiveShell" or "zmqshell" in shell_module
+
+
+def _get_ipython_shell() -> Any | None:
+    """Get the active IPython shell if IPython is installed and running."""
+
+    if importlib.util.find_spec("IPython") is None:
+        return None
+
+    from IPython import get_ipython
+
+    return get_ipython()
+
+
+def _in_active_marimo_session() -> bool:
+    """Return True when running inside an active marimo runtime."""
+
+    if importlib.util.find_spec("marimo") is None:
+        return False
+
+    try:
+        marimo = import_module("marimo")
+    except ImportError:
+        return False
+
+    for attr_name in (
+        "running_in_notebook",
+        "running_in_app",
+        "is_running_in_notebook",
+        "is_in_notebook",
+    ):
+        checker = getattr(marimo, attr_name, None)
+        if callable(checker):
+            try:
+                if bool(checker()):
+                    return True
+            except Exception:
+                continue
+
+    for module_name, attr_name in (
+        ("marimo._runtime.context", "get_context"),
+        ("marimo._runtime.context", "get_runtime_context"),
+    ):
+        if importlib.util.find_spec(module_name) is None:
+            continue
+        try:
+            module = import_module(module_name)
+        except ImportError:
+            continue
+        checker = getattr(module, attr_name, None)
+        if callable(checker):
+            try:
+                if checker() is not None:
+                    return True
+            except Exception:
+                continue
+
+    return False
 
 
 def lighten_color(color: str, amount: float = 0.5) -> str:

@@ -5,7 +5,249 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
-from neuro_py.plotting.figure_helpers import paired_lines
+import neuro_py.plotting.figure_helpers as figure_helpers
+from neuro_py.plotting.figure_helpers import (
+    _build_scaled_image_html,
+    _HTMLDisplay,
+    figure_scale,
+    paired_lines,
+    scale_figsize,
+    set_plotting_defaults,
+    show_scaled,
+)
+
+
+def test_scale_figsize_scales_dimensions():
+    """scale_figsize should multiply width and height by the scale."""
+    assert scale_figsize((4.0, 2.5), 1.75) == pytest.approx((7.0, 4.375))
+
+
+@pytest.mark.parametrize("scale", [0, -1, -0.5])
+def test_scale_figsize_invalid_scale_raises(scale: float):
+    """scale_figsize should reject non-positive scale values."""
+    with pytest.raises(ValueError, match="greater than 0"):
+        scale_figsize((4.0, 2.5), scale)
+
+
+def test_figure_scale_scales_targeted_rcparams():
+    """figure_scale should scale curated size-related rcParams."""
+    original_font = plt.rcParams["font.size"]
+    original_linewidth = plt.rcParams["lines.linewidth"]
+    original_marker = plt.rcParams["lines.markersize"]
+    original_tick_width = plt.rcParams["xtick.major.width"]
+
+    with figure_scale(1.5):
+        assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.5)
+        assert plt.rcParams["lines.linewidth"] == pytest.approx(
+            original_linewidth * 1.5
+        )
+        assert plt.rcParams["lines.markersize"] == pytest.approx(original_marker * 1.5)
+        assert plt.rcParams["xtick.major.width"] == pytest.approx(
+            original_tick_width * 1.5
+        )
+
+
+def test_figure_scale_restores_rcparams_after_exit():
+    """figure_scale should restore rcParams after normal context exit."""
+    original_font = plt.rcParams["font.size"]
+
+    with figure_scale(2.0):
+        assert plt.rcParams["font.size"] == pytest.approx(original_font * 2.0)
+
+    assert plt.rcParams["font.size"] == pytest.approx(original_font)
+
+
+def test_figure_scale_restores_rcparams_after_exception():
+    """figure_scale should restore rcParams even if the context errors."""
+    original_font = plt.rcParams["font.size"]
+
+    with pytest.raises(RuntimeError, match="boom"):
+        with figure_scale(1.25):
+            assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.25)
+            raise RuntimeError("boom")
+
+    assert plt.rcParams["font.size"] == pytest.approx(original_font)
+
+
+def test_figure_scale_respects_current_style_state():
+    """figure_scale should scale the active style values rather than defaults."""
+    plt.rcdefaults()
+    try:
+        set_plotting_defaults("nature")
+        original_font = plt.rcParams["font.size"]
+        original_tick_size = plt.rcParams["xtick.major.size"]
+
+        with figure_scale(1.75):
+            assert plt.rcParams["font.size"] == pytest.approx(original_font * 1.75)
+            assert plt.rcParams["xtick.major.size"] == pytest.approx(
+                original_tick_size * 1.75
+            )
+    finally:
+        plt.rcdefaults()
+
+
+def test_figure_scale_leaves_non_numeric_rcparams_unchanged():
+    """figure_scale should not alter string-valued rcParams."""
+    original_family = list(plt.rcParams["font.family"])
+
+    with figure_scale(1.5):
+        assert list(plt.rcParams["font.family"]) == original_family
+
+
+@pytest.mark.parametrize("scale", [0, -1, -0.5])
+def test_figure_scale_invalid_scale_raises(scale: float):
+    """figure_scale should reject non-positive scale values."""
+    with pytest.raises(ValueError, match="greater than 0"):
+        with figure_scale(scale):
+            pass
+
+
+def test_show_scaled_rejects_invalid_scale():
+    """show_scaled should reject non-positive scale values."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="greater than 0"):
+        show_scaled(fig, scale=0, backend="jupyter")
+    plt.close(fig)
+
+
+def test_show_scaled_rejects_invalid_format():
+    """show_scaled should reject unsupported formats."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="format must be 'png'"):
+        show_scaled(fig, format="svg", backend="jupyter")
+    plt.close(fig)
+
+
+def test_show_scaled_rejects_invalid_backend():
+    """show_scaled should reject unsupported backends."""
+    fig, _ = plt.subplots()
+    with pytest.raises(ValueError, match="backend must be 'auto', 'jupyter', or 'marimo'"):
+        show_scaled(fig, backend="qt")
+    plt.close(fig)
+
+
+def test_show_scaled_jupyter_returns_html():
+    """show_scaled should return an HTML wrapper for the Jupyter backend."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert isinstance(display_obj, _HTMLDisplay)
+    assert 'width: 600px' in display_obj.data
+    assert "data:image/png;base64," in display_obj.data
+    plt.close(fig)
+
+
+def test_show_scaled_jupyter_displays_immediately(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should use the IPython display hook when it is available."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    displayed: list[_HTMLDisplay] = []
+
+    monkeypatch.setattr(
+        figure_helpers,
+        "_display_in_ipython",
+        lambda display_obj: displayed.append(display_obj) or True,
+    )
+
+    display_result = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert len(displayed) == 1
+    assert displayed[0].data.startswith('<img src="data:image/png;base64,')
+    assert display_result is None
+
+
+def test_show_scaled_jupyter_closes_pyplot_figure_after_display(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """show_scaled should close the pyplot-managed figure after Jupyter display."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    figure_number = fig.number
+
+    monkeypatch.setattr(figure_helpers, "_display_in_ipython", lambda display_obj: True)
+
+    show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert figure_number not in plt.get_fignums()
+    assert fig.get_size_inches() == pytest.approx((4.0, 2.0))
+
+
+def test_show_scaled_does_not_mutate_figure_size_or_dpi():
+    """show_scaled should leave the original figure dimensions unchanged."""
+    fig, ax = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    original_size = tuple(fig.get_size_inches())
+    original_dpi = fig.dpi
+
+    ax.plot([0, 1], [0, 1])
+    show_scaled(fig, scale=2.0, backend="jupyter")
+
+    assert tuple(fig.get_size_inches()) == pytest.approx(original_size)
+    assert fig.dpi == pytest.approx(original_dpi)
+    plt.close(fig)
+
+
+def test_show_scaled_preserves_savefig_dimensions():
+    """show_scaled should not alter subsequent savefig dimensions."""
+    fig, ax = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+    ax.plot([0, 1], [0, 1])
+    show_scaled(fig, scale=2.0, backend="jupyter")
+
+    html = _build_scaled_image_html(fig, scale=1.0, dpi=100)
+
+    assert 'width: 400px' in html
+    plt.close(fig)
+
+
+def test_show_scaled_auto_resolves_active_jupyter(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should prefer Jupyter when an active kernel is detected."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: True)
+    monkeypatch.setattr(figure_helpers, "_display_in_ipython", lambda obj: True)
+
+    display_result = show_scaled(fig, backend="auto")
+
+    assert display_result is None
+
+
+def test_show_scaled_auto_does_not_choose_marimo_when_only_installed(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """show_scaled auto backend should not pick marimo based on installation alone."""
+    fig, _ = plt.subplots()
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+    monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
+
+    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+        show_scaled(fig, backend="auto")
+
+    plt.close(fig)
+
+
+def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch):
+    """show_scaled should raise when auto backend cannot be resolved."""
+    fig, _ = plt.subplots()
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+    monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
+
+    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+        show_scaled(fig, backend="auto")
+
+    plt.close(fig)
+
+
+def test_show_scaled_explicit_jupyter_without_ipython_still_returns_html(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Explicit Jupyter backend should still return HTML when no display hook exists."""
+    fig, _ = plt.subplots(figsize=(4.0, 2.0), dpi=100)
+
+    monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
+
+    display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
+
+    assert isinstance(display_obj, _HTMLDisplay)
+    plt.close(fig)
 
 
 def test_paired_lines_basic():
