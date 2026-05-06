@@ -12,6 +12,10 @@ import pandas as pd
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
+_HDF5_ROOT_OBJECT_KEY = "root_object"
+_HDF5_ROOT_TYPE_ATTR = "root_type"
+_HDF5_ROOT_TYPE_OBJECT = "object"
+
 
 def encode_file_path(basepath: str, save_path: str, format_type: str = "pickle") -> str:
     """
@@ -214,14 +218,14 @@ def _load_inhomogeneous_data_hdf5(group: h5py.Group, key: str) -> object:
         raise KeyError(f"Inhomogeneous data with key '{key}' not found")
 
 
-def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
+def _save_to_hdf5(data: object, filepath: str) -> None:
     """
-    Save data to HDF5 format with support for inhomogeneous arrays.
+    Save data to HDF5 format with support for mixed Python objects.
 
     Parameters
     ----------
-    data : Union[pd.DataFrame, dict]
-        Data to save. Can be a DataFrame or dict containing DataFrames/arrays.
+    data : object
+        Data to save. Can be a DataFrame, a dict, or a picklable Python object.
     filepath : str
         Path to save the HDF5 file.
     """
@@ -263,6 +267,9 @@ def _save_to_hdf5(data: Union[pd.DataFrame, dict], filepath: str) -> None:
                         print(
                             f"Warning: Saved {key} as string representation due to: {e}"
                         )
+        else:
+            _save_inhomogeneous_data_hdf5(f, _HDF5_ROOT_OBJECT_KEY, data)
+            f.attrs[_HDF5_ROOT_TYPE_ATTR] = _HDF5_ROOT_TYPE_OBJECT
 
 
 def _save_dataframe_to_hdf5(
@@ -337,9 +344,9 @@ def _save_dataframe_to_hdf5(
     ]  # Type info
 
 
-def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
+def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict, object]:
     """
-    Load data from HDF5 format with support for inhomogeneous arrays.
+    Load data from HDF5 format with support for mixed Python objects.
 
     Parameters
     ----------
@@ -348,10 +355,13 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict]:
 
     Returns
     -------
-    Union[pd.DataFrame, dict]
+    Union[pd.DataFrame, dict, object]
         Loaded data.
     """
     with h5py.File(filepath, "r") as f:
+        if f.attrs.get(_HDF5_ROOT_TYPE_ATTR, "") == _HDF5_ROOT_TYPE_OBJECT:
+            return _load_inhomogeneous_data_hdf5(f, _HDF5_ROOT_OBJECT_KEY)
+
         if "dataframe" in f and len(f.keys()) == 1:
             # Single DataFrame case
             return _load_dataframe_from_hdf5(f["dataframe"])
@@ -801,7 +811,7 @@ def load_results(
 
 def load_specific_data(
     filepath: Union[str, os.PathLike], key: Optional[str] = None
-) -> Union[pd.DataFrame, dict, np.ndarray, None]:
+) -> Union[pd.DataFrame, dict, np.ndarray, object, None]:
     """
     Load specific data from a file (supports selective loading for HDF5).
 
@@ -814,7 +824,7 @@ def load_specific_data(
 
     Returns
     -------
-    Union[pd.DataFrame, dict, np.ndarray, None]
+    Union[pd.DataFrame, dict, np.ndarray, object, None]
         Loaded data, or None if key not found in file.
     """
     filepath_str = str(filepath)
@@ -824,11 +834,14 @@ def load_specific_data(
             return _load_from_hdf5(filepath_str)
         else:
             with h5py.File(filepath_str, "r") as f:
+                if f.attrs.get(_HDF5_ROOT_TYPE_ATTR, "") == _HDF5_ROOT_TYPE_OBJECT:
+                    return None
                 if key in f:
                     if isinstance(f[key], h5py.Group):
                         return _load_dataframe_from_hdf5(f[key])
                     else:
-                        return f[key][:]
+                        dataset = f[key]
+                        return dataset[()] if dataset.shape == () else dataset[:]
                 elif f"{key}_inhomogeneous" in f or f"{key}_pickled" in f:
                     return _load_inhomogeneous_data_hdf5(f, key)
                 else:
