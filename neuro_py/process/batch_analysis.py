@@ -12,8 +12,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-_HDF5_ROOT_OBJECT_KEY = "root_object"
-_HDF5_ROOT_TYPE_ATTR = "root_type"
+_HDF5_ROOT_OBJECT_KEY = "__neuro_py_root_object__"
+_HDF5_ROOT_TYPE_ATTR = "__neuro_py_root_payload_type__"
 _HDF5_ROOT_TYPE_OBJECT = "object"
 
 

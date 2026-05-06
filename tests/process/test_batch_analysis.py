@@ -466,6 +466,20 @@ class TestRootObjectHDF5:
         assert loaded_via_specific == data
         assert load_specific_data(filepath, key="anything") is None
 
+    def test_dict_payload_with_root_type_key_hdf5(self, tmp_path):
+        """Test dict payloads can safely use keys that resemble internal markers."""
+        data = {
+            "root_type": "object",
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "dict_with_root_type.h5"
+
+        _save_to_hdf5(data, filepath)
+        loaded_data = _load_from_hdf5(filepath)
+
+        assert loaded_data["root_type"] == "object"
+        pd.testing.assert_frame_equal(loaded_data["dataframe"], data["dataframe"])
+
     def test_save_load_top_level_nelpy_object_hdf5(self, tmp_path):
         """Test saving and loading a top-level nelpy object."""
         nel = pytest.importorskip("nelpy")
