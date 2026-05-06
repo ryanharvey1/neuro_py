@@ -362,7 +362,11 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict, object]:
         if f.attrs.get(_HDF5_ROOT_TYPE_ATTR, "") == _HDF5_ROOT_TYPE_OBJECT:
             return _load_inhomogeneous_data_hdf5(f, _HDF5_ROOT_OBJECT_KEY)
 
-        if "dataframe" in f and len(f.keys()) == 1:
+        non_internal_attrs = {
+            key: value for key, value in f.attrs.items() if key != _HDF5_ROOT_TYPE_ATTR
+        }
+
+        if "dataframe" in f and len(f.keys()) == 1 and len(non_internal_attrs) == 0:
             # Single DataFrame case
             return _load_dataframe_from_hdf5(f["dataframe"])
         else:
