@@ -480,6 +480,55 @@ class TestRootObjectHDF5:
         assert loaded_data["root_type"] == "object"
         pd.testing.assert_frame_equal(loaded_data["dataframe"], data["dataframe"])
 
+    def test_load_specific_data_preserves_dict_with_dataframe_key_hdf5(self, tmp_path):
+        """Test whole-file loads preserve dict payloads with DataFrame members."""
+        data = {
+            "root_type": "object",
+            "scalar_int": 7,
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "dict_payload.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        loaded_data = load_specific_data(filepath)
+        assert isinstance(loaded_data, dict)
+        assert loaded_data["root_type"] == "object"
+        assert loaded_data["scalar_int"] == 7
+        pd.testing.assert_frame_equal(loaded_data["dataframe"], data["dataframe"])
+
+    def test_load_specific_data_keyed_dataframe_from_mixed_dict_hdf5(self, tmp_path):
+        """Test keyed HDF5 loads still return the DataFrame member from mixed dicts."""
+        data = {
+            "root_type": "object",
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "mixed_dict_dataframe.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        loaded_dataframe = load_specific_data(filepath, key="dataframe")
+        pd.testing.assert_frame_equal(loaded_dataframe, data["dataframe"])
+
+    def test_load_results_hdf5_extracts_dataframe_from_mixed_dict(self, tmp_path):
+        """Test load_results still extracts the DataFrame from mixed HDF5 dict payloads."""
+        save_path = str(tmp_path)
+        data = {
+            "dataframe": pd.DataFrame({"session": ["session1"], "value": [1]}),
+            "root_type": "object",
+            "scalar_int": 7,
+        }
+        filepath = tmp_path / "results.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        results = load_results(save_path, format_type="hdf5")
+
+        assert isinstance(results, pd.DataFrame)
+        assert len(results) == 1
+        assert results["session"].iloc[0] == "session1"
+        assert results["value"].iloc[0] == 1
+
     def test_save_load_top_level_nelpy_object_hdf5(self, tmp_path):
         """Test saving and loading a top-level nelpy object."""
         nel = pytest.importorskip("nelpy")
