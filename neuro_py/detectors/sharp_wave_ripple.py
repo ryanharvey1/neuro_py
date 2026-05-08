@@ -11,7 +11,7 @@ from scipy import ndimage, signal
 from scipy.io import savemat
 
 from neuro_py.io import loading
-from neuro_py.process.intervals import find_interval, in_intervals_interval
+from neuro_py.process.intervals import in_intervals_interval
 
 
 def _sanitize_for_matlab(value: object) -> object:
@@ -33,6 +33,44 @@ def _zscore(values: np.ndarray) -> np.ndarray:
     if np.isnan(std) or std == 0:
         return np.zeros_like(values, dtype=float)
     return (values - mean) / std
+
+
+def _find_true_bounds(mask: np.ndarray) -> list[tuple[int, int]]:
+    """Return inclusive bounds for contiguous True segments."""
+    mask = np.asarray(mask, dtype=bool)
+    if mask.size == 0:
+        return []
+
+    padded = np.concatenate(([False], mask, [False]))
+    edges = np.flatnonzero(np.diff(padded.astype(np.int8)))
+    starts = edges[0::2]
+    stops = edges[1::2] - 1
+    return list(zip(starts.tolist(), stops.tolist()))
+
+
+def _bounds_to_array(bounds: Optional[list[tuple[int, int]]]) -> np.ndarray:
+    """Convert interval bounds to an ``(n_bounds, 2)`` integer array."""
+    if not bounds:
+        return np.empty((0, 2), dtype=int)
+    return np.asarray(bounds, dtype=int)
+
+
+def _bound_containing_index(
+    bounds: np.ndarray,
+    index: int,
+) -> Optional[tuple[int, int]]:
+    """Return the interval that contains ``index`` using binary search."""
+    if bounds.size == 0:
+        return None
+
+    candidate = int(np.searchsorted(bounds[:, 0], index, side="right") - 1)
+    if candidate < 0:
+        return None
+
+    start, stop = bounds[candidate]
+    if start <= index <= stop:
+        return int(start), int(stop)
+    return None
 
 
 def _coerce_interval_array(
@@ -173,7 +211,7 @@ def _compute_envelope(
     smooth_sigma: float,
     filter_order: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Return filtered ripple-band signal, smoothed envelope, and instantaneous frequency."""
+    """Return filtered ripple-band signal, smoothed envelope, and unwrapped phase."""
     sos = signal.butter(
         filter_order,
         np.asarray(ripple_band, dtype=float),
@@ -192,8 +230,7 @@ def _compute_envelope(
             mode="nearest",
         )
     phase = np.unwrap(np.angle(analytic))
-    inst_freq = np.gradient(phase) * fs / (2 * np.pi)
-    return filtered, envelope, inst_freq
+    return filtered, envelope, phase
 
 
 def _filter_signal(
@@ -262,28 +299,36 @@ def _merge_bounds(
     return merged
 
 
-def _bound_containing_index(
-    bounds: list[tuple[int, int]],
-    index: int,
-) -> Optional[tuple[int, int]]:
-    """Return the interval that contains ``index``."""
-    for start, stop in bounds:
-        if start <= index <= stop:
-            return (start, stop)
-    return None
-
-
 def _nearest_trough(
     filtered_signal: np.ndarray,
     center_idx: int,
     fs: float,
     window: float = 0.010,
+    min_idx: Optional[int] = None,
+    max_idx: Optional[int] = None,
 ) -> int:
     """Return the index of the nearest ripple trough around ``center_idx``."""
     radius = max(1, int(round(window * fs)))
-    start = max(0, center_idx - radius)
-    stop = min(filtered_signal.size, center_idx + radius + 1)
+    lower = 0 if min_idx is None else int(min_idx)
+    upper = filtered_signal.size - 1 if max_idx is None else int(max_idx)
+    start = max(0, lower, center_idx - radius)
+    stop = min(filtered_signal.size, upper + 1, center_idx + radius + 1)
+    if stop <= start:
+        return int(np.clip(center_idx, lower, upper))
     return int(start + np.argmin(filtered_signal[start:stop]))
+
+
+def _median_frequency_from_phase(
+    phase: np.ndarray,
+    start_idx: int,
+    stop_idx: int,
+    fs: float,
+) -> float:
+    """Return median instantaneous frequency in an event window."""
+    event_phase = phase[start_idx : stop_idx + 1]
+    if event_phase.size < 2:
+        return np.nan
+    return float(np.nanmedian(np.diff(event_phase) * fs / (2 * np.pi)))
 
 
 def _events_to_dataframe(
@@ -291,7 +336,7 @@ def _events_to_dataframe(
     ripple_power: np.ndarray,
     ripple_envelope: np.ndarray,
     ripple_filtered: np.ndarray,
-    inst_freq: np.ndarray,
+    ripple_phase: np.ndarray,
     timestamps: np.ndarray,
     fs: float,
     ripple_min_duration: float,
@@ -313,6 +358,7 @@ def _events_to_dataframe(
     records: list[dict[str, float]] = []
     dt = 1.0 / fs
     search_radius = max(1, int(round(search_window * fs)))
+    sharp_wave_bounds_array = _bounds_to_array(sharp_wave_bounds)
 
     for ripple_start, ripple_stop in ripple_bounds:
         segment = ripple_power[ripple_start : ripple_stop + 1]
@@ -339,7 +385,7 @@ def _events_to_dataframe(
         event_start_idx, event_stop_idx = ripple_start, ripple_stop
 
         if sharp_wave_power is not None:
-            if sharp_wave_bounds is None:
+            if sharp_wave_bounds_array.size == 0:
                 continue
 
             window_start = max(0, ripple_peak_idx - search_radius)
@@ -359,7 +405,7 @@ def _events_to_dataframe(
                 continue
 
             sharp_wave_interval = _bound_containing_index(
-                sharp_wave_bounds, sharp_wave_peak_idx
+                sharp_wave_bounds_array, sharp_wave_peak_idx
             )
             if sharp_wave_interval is None:
                 continue
@@ -389,11 +435,24 @@ def _events_to_dataframe(
                     "`boundary_mode` must be either 'sharp_wave' or 'union'."
                 )
 
+        event_segment = ripple_power[event_start_idx : event_stop_idx + 1]
+        if event_segment.size == 0:
+            continue
+
+        event_ripple_peak_idx = int(event_start_idx + np.nanargmax(event_segment))
+        event_ripple_peak_power = float(ripple_power[event_ripple_peak_idx])
+        if event_ripple_peak_power < ripple_high_threshold:
+            continue
+
         event_peak_idx = _nearest_trough(
             filtered_signal=ripple_filtered,
-            center_idx=ripple_peak_idx,
+            center_idx=event_ripple_peak_idx,
             fs=fs,
+            min_idx=event_start_idx,
+            max_idx=event_stop_idx,
         )
+        if not event_start_idx <= event_peak_idx <= event_stop_idx:
+            continue
 
         if noise_power is not None and noise_threshold is not None:
             noise_peak = float(
@@ -415,10 +474,13 @@ def _events_to_dataframe(
             "center": float(start + (duration / 2.0)),
             "duration": float(duration),
             "amplitude": float(ripple_envelope[event_peak_idx]),
-            "frequency": float(
-                np.nanmedian(inst_freq[event_start_idx : event_stop_idx + 1])
+            "frequency": _median_frequency_from_phase(
+                ripple_phase,
+                event_start_idx,
+                event_stop_idx,
+                fs,
             ),
-            "peakNormedPower": ripple_peak_power,
+            "peakNormedPower": event_ripple_peak_power,
             "ripple_channel": np.nan if ripple_channel is None else int(ripple_channel),
             "noise_peakNormedPower": noise_peak,
             "ripple_duration": float(ripple_duration),
@@ -800,7 +862,7 @@ def detect_sharp_wave_ripples(
             "`require_sharp_wave=False` for explicit ripple-only detection."
         )
 
-    ripple_filtered, envelope, inst_freq = _compute_envelope(
+    ripple_filtered, envelope, ripple_phase = _compute_envelope(
         signal_in=ripple_signal,
         fs=float(fs),
         ripple_band=ripple_band,
@@ -809,7 +871,7 @@ def detect_sharp_wave_ripples(
     )
     power = _zscore(envelope)
 
-    candidate_bounds = find_interval(power >= low_threshold)
+    candidate_bounds = _find_true_bounds(power >= low_threshold)
     candidate_bounds = _merge_bounds(
         candidate_bounds,
         gap_samples=max(1, int(round(merge_gap * float(fs)))),
@@ -827,7 +889,9 @@ def detect_sharp_wave_ripples(
             filter_order=filter_order,
             smooth_sigma=sharp_wave_smooth_sigma,
         )
-        sharp_wave_bounds = find_interval(sharp_wave_power >= sharp_wave_low_threshold)
+        sharp_wave_bounds = _find_true_bounds(
+            sharp_wave_power >= sharp_wave_low_threshold
+        )
         sharp_wave_bounds = _merge_bounds(
             sharp_wave_bounds,
             gap_samples=max(1, int(round(merge_gap * float(fs)))),
@@ -849,7 +913,7 @@ def detect_sharp_wave_ripples(
         ripple_power=power,
         ripple_envelope=envelope,
         ripple_filtered=ripple_filtered,
-        inst_freq=inst_freq,
+        ripple_phase=ripple_phase,
         timestamps=timestamps,
         fs=float(fs),
         ripple_min_duration=min_duration,
