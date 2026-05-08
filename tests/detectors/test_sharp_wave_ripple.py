@@ -8,9 +8,13 @@ import pytest
 import scipy.io as sio
 
 from neuro_py.detectors.sharp_wave_ripple import (
+    _bound_containing_index,
+    _bounds_to_array,
     _filter_events_to_detection_epochs,
+    _find_true_bounds,
     _get_noise_channel,
     _get_sharp_wave_channel,
+    _nearest_trough,
     detect_sharp_wave_ripples,
     save_ripple_events,
 )
@@ -152,6 +156,8 @@ def test_detect_sharp_wave_ripples_finds_synthetic_events() -> None:
     )
     assert np.all(events["duration"].between(0.02, 0.10))
     assert np.all(events["ripple_channel"] == 4)
+    assert np.all(events["start"] <= events["peaks"])
+    assert np.all(events["peaks"] <= events["stop"])
 
 
 def test_detect_sharp_wave_ripples_requires_joint_sharp_wave_signal() -> None:
@@ -196,6 +202,8 @@ def test_detect_sharp_wave_ripples_requires_joint_sharp_wave_signal() -> None:
     np.testing.assert_allclose(
         events["peaks"].to_numpy(), np.asarray(sharp_wave_centers), atol=0.02
     )
+    assert np.all(events["start"] <= events["peaks"])
+    assert np.all(events["peaks"] <= events["stop"])
 
 
 def test_detect_sharp_wave_ripples_requires_sharp_wave_by_default() -> None:
@@ -231,6 +239,8 @@ def test_detect_sharp_wave_ripples_allows_explicit_ripple_only_mode() -> None:
 
     assert len(events) == 1
     assert "sharp_wave_amplitude" not in events.columns
+    assert np.all(events["start"] <= events["peaks"])
+    assert np.all(events["peaks"] <= events["stop"])
 
 
 def test_detect_sharp_wave_ripples_validates_boundary_mode_without_events() -> None:
@@ -321,6 +331,84 @@ def test_detection_epoch_filter_requires_same_containing_interval() -> None:
     )
 
     np.testing.assert_allclose(filtered["peaks"].to_numpy(), np.array([1.0, 3.0]))
+
+
+def test_find_true_bounds_handles_empty_and_contiguous_segments() -> None:
+    assert _find_true_bounds(np.array([], dtype=bool)) == []
+    assert _find_true_bounds(np.array([False, False])) == []
+    assert _find_true_bounds(np.array([True, True, False])) == [(0, 1)]
+    assert _find_true_bounds(np.array([False, True, False, True, True])) == [
+        (1, 1),
+        (3, 4),
+    ]
+    assert _find_true_bounds(np.array([True, False, True])) == [(0, 0), (2, 2)]
+
+
+def test_bound_containing_index_handles_disjoint_boundaries() -> None:
+    bounds = _bounds_to_array([(2, 4), (8, 10)])
+
+    assert _bound_containing_index(bounds, 1) is None
+    assert _bound_containing_index(bounds, 2) == (2, 4)
+    assert _bound_containing_index(bounds, 4) == (2, 4)
+    assert _bound_containing_index(bounds, 6) is None
+    assert _bound_containing_index(bounds, 8) == (8, 10)
+    assert _bound_containing_index(bounds, 10) == (8, 10)
+    assert _bound_containing_index(bounds, 11) is None
+
+
+def test_nearest_trough_clips_search_to_event_boundaries() -> None:
+    filtered = np.ones(21)
+    filtered[4] = -10.0
+    filtered[12] = -3.0
+
+    trough = _nearest_trough(
+        filtered_signal=filtered,
+        center_idx=4,
+        fs=1250.0,
+        min_idx=10,
+        max_idx=14,
+    )
+
+    assert trough == 12
+    assert 10 <= trough <= 14
+
+
+def test_joint_detection_rejects_events_without_ripple_peak_in_final_boundary() -> None:
+    timestamps = np.arange(0.0, 3.0, 1.0 / 1250.0)
+    rng = np.random.default_rng(5)
+    ripple_signal = rng.normal(scale=0.5, size=timestamps.size)
+    sharp_wave_signal = rng.normal(scale=0.2, size=timestamps.size)
+
+    ripple_signal += _make_ripple_burst(
+        timestamps=timestamps,
+        center=1.0,
+        frequency=150.0,
+        duration=0.04,
+        amplitude=120.0,
+    )
+    sharp_wave_signal += -60.0 * np.exp(
+        -((timestamps - 1.04) ** 2) / (2 * 0.006**2)
+    )
+
+    events = detect_sharp_wave_ripples(
+        ripple_signal=ripple_signal,
+        sharp_wave_signal=sharp_wave_signal,
+        fs=1250.0,
+        timestamps=timestamps,
+        low_threshold=1.0,
+        high_threshold=3.0,
+        sharp_wave_low_threshold=0.25,
+        sharp_wave_high_threshold=1.5,
+        smooth_sigma=0.002,
+        min_duration=0.02,
+        max_duration=0.10,
+        sharp_wave_min_duration=0.005,
+        sharp_wave_max_duration=0.050,
+        merge_gap=0.01,
+        peak_window=0.060,
+    )
+
+    assert events.empty
 
 
 def test_detect_sharp_wave_ripples_loads_from_basepath_and_round_trips_event_file() -> (
