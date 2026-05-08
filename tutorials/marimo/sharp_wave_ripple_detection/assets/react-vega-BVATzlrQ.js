@@ -1,1 +1,0 @@
-import"./react-Bj1aDYRI.js";import"./jsx-runtime-BqBOg78p.js";import"./vega-loader.browser-DXARUlxo.js";import{n as m,t as o}from"./react-vega-BQXvtE5G.js";import"./defaultLocale-JieDVWC_.js";import"./defaultLocale-BLne0bXb.js";export{m as VegaEmbed,o as useVegaEmbed};
