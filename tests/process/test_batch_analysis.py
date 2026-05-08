@@ -449,6 +449,123 @@ class TestHDF5MixedDataOperations:
         pd.testing.assert_frame_equal(df, loaded_df)
 
 
+class TestRootObjectHDF5:
+    """Test HDF5 operations for top-level non-dict objects."""
+
+    def test_save_load_top_level_tuple_hdf5(self, tmp_path):
+        """Test saving and loading a top-level tuple."""
+        data = (1, "two", 3.0)
+        filepath = tmp_path / "tuple_root.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        loaded_data = _load_from_hdf5(filepath)
+        assert loaded_data == data
+
+        loaded_via_specific = load_specific_data(filepath)
+        assert loaded_via_specific == data
+        assert load_specific_data(filepath, key="anything") is None
+
+    def test_dict_payload_with_root_type_key_hdf5(self, tmp_path):
+        """Test dict payloads can safely use keys that resemble internal markers."""
+        data = {
+            "root_type": "object",
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "dict_with_root_type.h5"
+
+        _save_to_hdf5(data, filepath)
+        loaded_data = _load_from_hdf5(filepath)
+
+        assert loaded_data["root_type"] == "object"
+        pd.testing.assert_frame_equal(loaded_data["dataframe"], data["dataframe"])
+
+    def test_load_specific_data_preserves_dict_with_dataframe_key_hdf5(self, tmp_path):
+        """Test whole-file loads preserve dict payloads with DataFrame members."""
+        data = {
+            "root_type": "object",
+            "scalar_int": 7,
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "dict_payload.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        loaded_data = load_specific_data(filepath)
+        assert isinstance(loaded_data, dict)
+        assert loaded_data["root_type"] == "object"
+        assert loaded_data["scalar_int"] == 7
+        pd.testing.assert_frame_equal(loaded_data["dataframe"], data["dataframe"])
+
+    def test_load_specific_data_keyed_dataframe_from_mixed_dict_hdf5(self, tmp_path):
+        """Test keyed HDF5 loads still return the DataFrame member from mixed dicts."""
+        data = {
+            "root_type": "object",
+            "dataframe": pd.DataFrame({"col1": [1, 2, 3]}),
+        }
+        filepath = tmp_path / "mixed_dict_dataframe.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        loaded_dataframe = load_specific_data(filepath, key="dataframe")
+        pd.testing.assert_frame_equal(loaded_dataframe, data["dataframe"])
+
+    def test_load_results_hdf5_extracts_dataframe_from_mixed_dict(self, tmp_path):
+        """Test load_results still extracts the DataFrame from mixed HDF5 dict payloads."""
+        save_path = str(tmp_path)
+        data = {
+            "dataframe": pd.DataFrame({"session": ["session1"], "value": [1]}),
+            "root_type": "object",
+            "scalar_int": 7,
+        }
+        filepath = tmp_path / "results.h5"
+
+        _save_to_hdf5(data, filepath)
+
+        results = load_results(save_path, format_type="hdf5")
+
+        assert isinstance(results, pd.DataFrame)
+        assert len(results) == 1
+        assert results["session"].iloc[0] == "session1"
+        assert results["value"].iloc[0] == 1
+
+    def test_save_load_top_level_nelpy_object_hdf5(self, tmp_path):
+        """Test saving and loading a top-level nelpy object."""
+        nel = pytest.importorskip("nelpy")
+        data = nel.EpochArray([[0.0, 1.0], [2.0, 3.5]])
+        filepath = tmp_path / "epoch_root.h5"
+
+        _save_to_hdf5(data, filepath)
+        loaded_data = _load_from_hdf5(filepath)
+
+        assert isinstance(loaded_data, nel.EpochArray)
+        np.testing.assert_allclose(loaded_data.data, data.data)
+
+        loaded_via_specific = load_specific_data(filepath)
+        assert isinstance(loaded_via_specific, nel.EpochArray)
+        np.testing.assert_allclose(loaded_via_specific.data, data.data)
+        assert load_specific_data(filepath, key="anything") is None
+
+    def test_main_loop_hdf5_top_level_object(self, tmp_path):
+        """Test main_loop can persist a top-level object with HDF5."""
+        nel = pytest.importorskip("nelpy")
+
+        def dummy_func(basepath):
+            return nel.EpochArray([[0.0, 1.0], [2.0, 3.5]])
+
+        basepath = "test_session"
+        save_path = str(tmp_path)
+
+        main_loop(basepath, save_path, dummy_func, format_type="hdf5")
+
+        expected_file = encode_file_path(basepath, save_path, "hdf5")
+        assert os.path.exists(expected_file)
+
+        result = _load_from_hdf5(expected_file)
+        assert isinstance(result, nel.EpochArray)
+        np.testing.assert_allclose(result.data, np.array([[0.0, 1.0], [2.0, 3.5]]))
+
+
 class TestMainLoop:
     """Test main_loop function."""
 
