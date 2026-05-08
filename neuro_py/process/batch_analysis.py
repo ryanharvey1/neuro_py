@@ -344,7 +344,7 @@ def _save_dataframe_to_hdf5(
     ]  # Type info
 
 
-def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict, object]:
+def _load_from_hdf5(filepath: str) -> object:
     """
     Load data from HDF5 format with support for mixed Python objects.
 
@@ -355,8 +355,9 @@ def _load_from_hdf5(filepath: str) -> Union[pd.DataFrame, dict, object]:
 
     Returns
     -------
-    Union[pd.DataFrame, dict, object]
-        Loaded data.
+    object
+        Loaded data. Returns a pandas DataFrame, a dictionary of saved values,
+        or a root-level object saved through the pickle-backed fallback path.
     """
     with h5py.File(filepath, "r") as f:
         if f.attrs.get(_HDF5_ROOT_TYPE_ATTR, "") == _HDF5_ROOT_TYPE_OBJECT:
@@ -815,7 +816,7 @@ def load_results(
 
 def load_specific_data(
     filepath: Union[str, os.PathLike], key: Optional[str] = None
-) -> Union[pd.DataFrame, dict, np.ndarray, object, None]:
+) -> Optional[object]:
     """
     Load specific data from a file (supports selective loading for HDF5).
 
@@ -828,7 +829,7 @@ def load_specific_data(
 
     Returns
     -------
-    Union[pd.DataFrame, dict, np.ndarray, object, None]
+    object or None
         Loaded data, or None if key not found in file.
     """
     filepath_str = str(filepath)
