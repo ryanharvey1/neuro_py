@@ -940,6 +940,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._bounds_to_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _bounds_to_array
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.detectors.sharp_wave_ripple._coerce_interval_array" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1006,6 +1017,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._find_true_bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _find_true_bounds
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.detectors.sharp_wave_ripple._get_noise_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1043,6 +1065,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         _load_signals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._median_frequency_from_phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _median_frequency_from_phase
       </span>
     </span>
   </a>
@@ -3774,6 +3807,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._bounds_to_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _bounds_to_array
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.detectors.sharp_wave_ripple._coerce_interval_array" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3840,6 +3884,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._find_true_bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _find_true_bounds
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.detectors.sharp_wave_ripple._get_noise_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3877,6 +3932,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         _load_signals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.detectors.sharp_wave_ripple._median_frequency_from_phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        _median_frequency_from_phase
       </span>
     </span>
   </a>
@@ -4086,28 +4152,73 @@
 
     <div class="doc doc-contents ">
 
-        <p>Return the interval that contains <code>index</code>.</p>
+        <p>Return the interval that contains <code>index</code> using binary search.</p>
 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_bound_containing_index</span><span class="p">(</span>
-    <span class="n">bounds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_bound_containing_index</span><span class="p">(</span>
+    <span class="n">bounds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the interval that contains ``index``.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="n">stop</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the interval that contains ``index`` using binary search.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">bounds</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">candidate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bounds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">candidate</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="n">bounds</span><span class="p">[</span><span class="n">candidate</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="n">stop</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.detectors.sharp_wave_ripple._bounds_to_array" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_bounds_to_array</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span></code>
+
+<a href="#neuro_py.detectors.sharp_wave_ripple._bounds_to_array" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert interval bounds to an <code>(n_bounds, 2)</code> integer array.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_bounds_to_array</span><span class="p">(</span><span class="n">bounds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert interval bounds to an ``(n_bounds, 2)`` integer array.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bounds</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4130,29 +4241,29 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_coerce_interval_array</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span>
+<span class="normal">98</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_coerce_interval_array</span><span class="p">(</span>
     <span class="n">detection_epochs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize interval inputs to an ``(n_intervals, 2)`` array.&quot;&quot;&quot;</span>
@@ -4192,46 +4303,45 @@
 
     <div class="doc doc-contents ">
 
-        <p>Return filtered ripple-band signal, smoothed envelope, and instantaneous frequency.</p>
+        <p>Return filtered ripple-band signal, smoothed envelope, and unwrapped phase.</p>
 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_compute_envelope</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_compute_envelope</span><span class="p">(</span>
     <span class="n">signal_in</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">ripple_band</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">smooth_sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">filter_order</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return filtered ripple-band signal, smoothed envelope, and instantaneous frequency.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return filtered ripple-band signal, smoothed envelope, and unwrapped phase.&quot;&quot;&quot;</span>
     <span class="n">sos</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">butter</span><span class="p">(</span>
         <span class="n">filter_order</span><span class="p">,</span>
         <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ripple_band</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
@@ -4250,8 +4360,7 @@
             <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unwrap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">analytic</span><span class="p">))</span>
-    <span class="n">inst_freq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">phase</span><span class="p">)</span> <span class="o">*</span> <span class="n">fs</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">filtered</span><span class="p">,</span> <span class="n">envelope</span><span class="p">,</span> <span class="n">inst_freq</span>
+    <span class="k">return</span> <span class="n">filtered</span><span class="p">,</span> <span class="n">envelope</span><span class="p">,</span> <span class="n">phase</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4274,36 +4383,36 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_compute_sharp_wave_difference</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_compute_sharp_wave_difference</span><span class="p">(</span>
     <span class="n">ripple_signal</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">sharp_wave_signal</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -4343,7 +4452,7 @@
 
 
 <h2 id="neuro_py.detectors.sharp_wave_ripple._events_to_dataframe" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_events_to_dataframe</span><span class="p">(</span><span class="n">ripple_bounds</span><span class="p">,</span> <span class="n">ripple_power</span><span class="p">,</span> <span class="n">ripple_envelope</span><span class="p">,</span> <span class="n">ripple_filtered</span><span class="p">,</span> <span class="n">inst_freq</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">ripple_min_duration</span><span class="p">,</span> <span class="n">ripple_max_duration</span><span class="p">,</span> <span class="n">ripple_high_threshold</span><span class="p">,</span> <span class="n">ripple_channel</span><span class="p">,</span> <span class="n">sharp_wave_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_trace</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">search_window</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">boundary_mode</span><span class="o">=</span><span class="s1">&#39;sharp_wave&#39;</span><span class="p">,</span> <span class="n">noise_power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noise_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">_events_to_dataframe</span><span class="p">(</span><span class="n">ripple_bounds</span><span class="p">,</span> <span class="n">ripple_power</span><span class="p">,</span> <span class="n">ripple_envelope</span><span class="p">,</span> <span class="n">ripple_filtered</span><span class="p">,</span> <span class="n">ripple_phase</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">ripple_min_duration</span><span class="p">,</span> <span class="n">ripple_max_duration</span><span class="p">,</span> <span class="n">ripple_high_threshold</span><span class="p">,</span> <span class="n">ripple_channel</span><span class="p">,</span> <span class="n">sharp_wave_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_trace</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">search_window</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">boundary_mode</span><span class="o">=</span><span class="s1">&#39;sharp_wave&#39;</span><span class="p">,</span> <span class="n">noise_power</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noise_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#neuro_py.detectors.sharp_wave_ripple._events_to_dataframe" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4355,52 +4464,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">289</span>
-<span class="normal">290</span>
-<span class="normal">291</span>
-<span class="normal">292</span>
-<span class="normal">293</span>
-<span class="normal">294</span>
-<span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
-<span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">334</span>
 <span class="normal">335</span>
 <span class="normal">336</span>
 <span class="normal">337</span>
@@ -4526,12 +4590,74 @@
 <span class="normal">457</span>
 <span class="normal">458</span>
 <span class="normal">459</span>
-<span class="normal">460</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_events_to_dataframe</span><span class="p">(</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_events_to_dataframe</span><span class="p">(</span>
     <span class="n">ripple_bounds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
     <span class="n">ripple_power</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">ripple_envelope</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">ripple_filtered</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">inst_freq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">ripple_phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">timestamps</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">ripple_min_duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -4553,6 +4679,7 @@
     <span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">dt</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">fs</span>
     <span class="n">search_radius</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">search_window</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)))</span>
+    <span class="n">sharp_wave_bounds_array</span> <span class="o">=</span> <span class="n">_bounds_to_array</span><span class="p">(</span><span class="n">sharp_wave_bounds</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">ripple_start</span><span class="p">,</span> <span class="n">ripple_stop</span> <span class="ow">in</span> <span class="n">ripple_bounds</span><span class="p">:</span>
         <span class="n">segment</span> <span class="o">=</span> <span class="n">ripple_power</span><span class="p">[</span><span class="n">ripple_start</span> <span class="p">:</span> <span class="n">ripple_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
@@ -4579,7 +4706,7 @@
         <span class="n">event_start_idx</span><span class="p">,</span> <span class="n">event_stop_idx</span> <span class="o">=</span> <span class="n">ripple_start</span><span class="p">,</span> <span class="n">ripple_stop</span>
 
         <span class="k">if</span> <span class="n">sharp_wave_power</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">sharp_wave_bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sharp_wave_bounds_array</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
 
             <span class="n">window_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ripple_peak_idx</span> <span class="o">-</span> <span class="n">search_radius</span><span class="p">)</span>
@@ -4599,7 +4726,7 @@
                 <span class="k">continue</span>
 
             <span class="n">sharp_wave_interval</span> <span class="o">=</span> <span class="n">_bound_containing_index</span><span class="p">(</span>
-                <span class="n">sharp_wave_bounds</span><span class="p">,</span> <span class="n">sharp_wave_peak_idx</span>
+                <span class="n">sharp_wave_bounds_array</span><span class="p">,</span> <span class="n">sharp_wave_peak_idx</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">sharp_wave_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
@@ -4629,11 +4756,24 @@
                     <span class="s2">&quot;`boundary_mode` must be either &#39;sharp_wave&#39; or &#39;union&#39;.&quot;</span>
                 <span class="p">)</span>
 
+        <span class="n">event_segment</span> <span class="o">=</span> <span class="n">ripple_power</span><span class="p">[</span><span class="n">event_start_idx</span> <span class="p">:</span> <span class="n">event_stop_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">event_segment</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">event_ripple_peak_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event_start_idx</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">event_segment</span><span class="p">))</span>
+        <span class="n">event_ripple_peak_power</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ripple_power</span><span class="p">[</span><span class="n">event_ripple_peak_idx</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">event_ripple_peak_power</span> <span class="o">&lt;</span> <span class="n">ripple_high_threshold</span><span class="p">:</span>
+            <span class="k">continue</span>
+
         <span class="n">event_peak_idx</span> <span class="o">=</span> <span class="n">_nearest_trough</span><span class="p">(</span>
             <span class="n">filtered_signal</span><span class="o">=</span><span class="n">ripple_filtered</span><span class="p">,</span>
-            <span class="n">center_idx</span><span class="o">=</span><span class="n">ripple_peak_idx</span><span class="p">,</span>
+            <span class="n">center_idx</span><span class="o">=</span><span class="n">event_ripple_peak_idx</span><span class="p">,</span>
             <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+            <span class="n">min_idx</span><span class="o">=</span><span class="n">event_start_idx</span><span class="p">,</span>
+            <span class="n">max_idx</span><span class="o">=</span><span class="n">event_stop_idx</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">event_start_idx</span> <span class="o">&lt;=</span> <span class="n">event_peak_idx</span> <span class="o">&lt;=</span> <span class="n">event_stop_idx</span><span class="p">:</span>
+            <span class="k">continue</span>
 
         <span class="k">if</span> <span class="n">noise_power</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">noise_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">noise_peak</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
@@ -4655,10 +4795,13 @@
             <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="p">(</span><span class="n">duration</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)),</span>
             <span class="s2">&quot;duration&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">duration</span><span class="p">),</span>
             <span class="s2">&quot;amplitude&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">ripple_envelope</span><span class="p">[</span><span class="n">event_peak_idx</span><span class="p">]),</span>
-            <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">inst_freq</span><span class="p">[</span><span class="n">event_start_idx</span> <span class="p">:</span> <span class="n">event_stop_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="n">_median_frequency_from_phase</span><span class="p">(</span>
+                <span class="n">ripple_phase</span><span class="p">,</span>
+                <span class="n">event_start_idx</span><span class="p">,</span>
+                <span class="n">event_stop_idx</span><span class="p">,</span>
+                <span class="n">fs</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="s2">&quot;peakNormedPower&quot;</span><span class="p">:</span> <span class="n">ripple_peak_power</span><span class="p">,</span>
+            <span class="s2">&quot;peakNormedPower&quot;</span><span class="p">:</span> <span class="n">event_ripple_peak_power</span><span class="p">,</span>
             <span class="s2">&quot;ripple_channel&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="k">if</span> <span class="n">ripple_channel</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">ripple_channel</span><span class="p">),</span>
             <span class="s2">&quot;noise_peakNormedPower&quot;</span><span class="p">:</span> <span class="n">noise_peak</span><span class="p">,</span>
             <span class="s2">&quot;ripple_duration&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">ripple_duration</span><span class="p">),</span>
@@ -4720,27 +4863,27 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_filter_events_to_detection_epochs</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_filter_events_to_detection_epochs</span><span class="p">(</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">detection_epochs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
@@ -4783,21 +4926,21 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_filter_signal</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_filter_signal</span><span class="p">(</span>
     <span class="n">signal_in</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">passband</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
@@ -4821,6 +4964,49 @@
 <div class="doc doc-object doc-function">
 
 
+<h2 id="neuro_py.detectors.sharp_wave_ripple._find_true_bounds" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_find_true_bounds</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span></code>
+
+<a href="#neuro_py.detectors.sharp_wave_ripple._find_true_bounds" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return inclusive bounds for contiguous True segments.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_find_true_bounds</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return inclusive bounds for contiguous True segments.&quot;&quot;&quot;</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">padded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="kc">False</span><span class="p">],</span> <span class="n">mask</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">]))</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">padded</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)))</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">stops</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">starts</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">stops</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="neuro_py.detectors.sharp_wave_ripple._get_noise_channel" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">_get_noise_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span></code>
 
@@ -4834,15 +5020,15 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_noise_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_noise_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Infer a noise channel from CellExplorer ``Bad`` channel tags.&quot;&quot;&quot;</span>
     <span class="n">channel_tags</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Bad&quot;</span><span class="p">,</span> <span class="s2">&quot;bad&quot;</span><span class="p">):</span>
@@ -4873,18 +5059,18 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span>
-<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_ripple_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_ripple_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Infer the ripple channel from CellExplorer channel tags.&quot;&quot;&quot;</span>
     <span class="n">channel_tags</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;ripple&quot;</span><span class="p">,</span> <span class="s2">&quot;Ripple&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sp&quot;</span><span class="p">,</span> <span class="s2">&quot;ca1sp&quot;</span><span class="p">):</span>
@@ -4918,14 +5104,14 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_sharp_wave_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_sharp_wave_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Infer the sharp-wave channel from CellExplorer channel tags.&quot;&quot;&quot;</span>
     <span class="n">channel_tags</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;SharpWave&quot;</span><span class="p">,</span> <span class="s2">&quot;sharpwave&quot;</span><span class="p">,</span> <span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sr&quot;</span><span class="p">,</span> <span class="s2">&quot;ca1sr&quot;</span><span class="p">):</span>
@@ -4955,52 +5141,52 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
 <span class="normal">160</span>
 <span class="normal">161</span>
 <span class="normal">162</span>
 <span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
-<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_load_signals</span><span class="p">(</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_load_signals</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ripple_channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">sharp_wave_channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
@@ -5055,6 +5241,49 @@
 <div class="doc doc-object doc-function">
 
 
+<h2 id="neuro_py.detectors.sharp_wave_ripple._median_frequency_from_phase" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">_median_frequency_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">,</span> <span class="n">stop_idx</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span></code>
+
+<a href="#neuro_py.detectors.sharp_wave_ripple._median_frequency_from_phase" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return median instantaneous frequency in an event window.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_median_frequency_from_phase</span><span class="p">(</span>
+    <span class="n">phase</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">start_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">stop_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return median instantaneous frequency in an event window.&quot;&quot;&quot;</span>
+    <span class="n">event_phase</span> <span class="o">=</span> <span class="n">phase</span><span class="p">[</span><span class="n">start_idx</span> <span class="p">:</span> <span class="n">stop_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">event_phase</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">event_phase</span><span class="p">)</span> <span class="o">*</span> <span class="n">fs</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="neuro_py.detectors.sharp_wave_ripple._merge_bounds" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">_merge_bounds</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">gap_samples</span><span class="p">)</span></code>
 
@@ -5068,21 +5297,21 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_merge_bounds</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_merge_bounds</span><span class="p">(</span>
     <span class="n">bounds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span> <span class="n">gap_samples</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge intervals separated by fewer than ``gap_samples`` samples.&quot;&quot;&quot;</span>
@@ -5107,7 +5336,7 @@
 
 
 <h2 id="neuro_py.detectors.sharp_wave_ripple._nearest_trough" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_nearest_trough</span><span class="p">(</span><span class="n">filtered_signal</span><span class="p">,</span> <span class="n">center_idx</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">_nearest_trough</span><span class="p">(</span><span class="n">filtered_signal</span><span class="p">,</span> <span class="n">center_idx</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">min_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#neuro_py.detectors.sharp_wave_ripple._nearest_trough" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5119,26 +5348,38 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
-<span class="normal">280</span>
-<span class="normal">281</span>
-<span class="normal">282</span>
-<span class="normal">283</span>
-<span class="normal">284</span>
-<span class="normal">285</span>
-<span class="normal">286</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_nearest_trough</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_nearest_trough</span><span class="p">(</span>
     <span class="n">filtered_signal</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">center_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">window</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.010</span><span class="p">,</span>
+    <span class="n">min_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the index of the nearest ripple trough around ``center_idx``.&quot;&quot;&quot;</span>
     <span class="n">radius</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">window</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)))</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">center_idx</span> <span class="o">-</span> <span class="n">radius</span><span class="p">)</span>
-    <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">filtered_signal</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">center_idx</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">min_idx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_idx</span><span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">filtered_signal</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">max_idx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_idx</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">center_idx</span> <span class="o">-</span> <span class="n">radius</span><span class="p">)</span>
+    <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">filtered_signal</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">upper</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">center_idx</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stop</span> <span class="o">&lt;=</span> <span class="n">start</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">center_idx</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">))</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">filtered_signal</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]))</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -5858,69 +6099,7 @@ requested explicitly.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">554</span>
-<span class="normal">555</span>
-<span class="normal">556</span>
-<span class="normal">557</span>
-<span class="normal">558</span>
-<span class="normal">559</span>
-<span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
-<span class="normal">563</span>
-<span class="normal">564</span>
-<span class="normal">565</span>
-<span class="normal">566</span>
-<span class="normal">567</span>
-<span class="normal">568</span>
-<span class="normal">569</span>
-<span class="normal">570</span>
-<span class="normal">571</span>
-<span class="normal">572</span>
-<span class="normal">573</span>
-<span class="normal">574</span>
-<span class="normal">575</span>
-<span class="normal">576</span>
-<span class="normal">577</span>
-<span class="normal">578</span>
-<span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span>
-<span class="normal">585</span>
-<span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
-<span class="normal">590</span>
-<span class="normal">591</span>
-<span class="normal">592</span>
-<span class="normal">593</span>
-<span class="normal">594</span>
-<span class="normal">595</span>
-<span class="normal">596</span>
-<span class="normal">597</span>
-<span class="normal">598</span>
-<span class="normal">599</span>
-<span class="normal">600</span>
-<span class="normal">601</span>
-<span class="normal">602</span>
-<span class="normal">603</span>
-<span class="normal">604</span>
-<span class="normal">605</span>
-<span class="normal">606</span>
-<span class="normal">607</span>
-<span class="normal">608</span>
-<span class="normal">609</span>
-<span class="normal">610</span>
-<span class="normal">611</span>
-<span class="normal">612</span>
-<span class="normal">613</span>
-<span class="normal">614</span>
-<span class="normal">615</span>
-<span class="normal">616</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">616</span>
 <span class="normal">617</span>
 <span class="normal">618</span>
 <span class="normal">619</span>
@@ -6216,7 +6395,71 @@ requested explicitly.</p>
 <span class="normal">909</span>
 <span class="normal">910</span>
 <span class="normal">911</span>
-<span class="normal">912</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_sharp_wave_ripples</span><span class="p">(</span>
+<span class="normal">912</span>
+<span class="normal">913</span>
+<span class="normal">914</span>
+<span class="normal">915</span>
+<span class="normal">916</span>
+<span class="normal">917</span>
+<span class="normal">918</span>
+<span class="normal">919</span>
+<span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span>
+<span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span>
+<span class="normal">940</span>
+<span class="normal">941</span>
+<span class="normal">942</span>
+<span class="normal">943</span>
+<span class="normal">944</span>
+<span class="normal">945</span>
+<span class="normal">946</span>
+<span class="normal">947</span>
+<span class="normal">948</span>
+<span class="normal">949</span>
+<span class="normal">950</span>
+<span class="normal">951</span>
+<span class="normal">952</span>
+<span class="normal">953</span>
+<span class="normal">954</span>
+<span class="normal">955</span>
+<span class="normal">956</span>
+<span class="normal">957</span>
+<span class="normal">958</span>
+<span class="normal">959</span>
+<span class="normal">960</span>
+<span class="normal">961</span>
+<span class="normal">962</span>
+<span class="normal">963</span>
+<span class="normal">964</span>
+<span class="normal">965</span>
+<span class="normal">966</span>
+<span class="normal">967</span>
+<span class="normal">968</span>
+<span class="normal">969</span>
+<span class="normal">970</span>
+<span class="normal">971</span>
+<span class="normal">972</span>
+<span class="normal">973</span>
+<span class="normal">974</span>
+<span class="normal">975</span>
+<span class="normal">976</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_sharp_wave_ripples</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ripple_signal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -6465,7 +6708,7 @@ requested explicitly.</p>
             <span class="s2">&quot;`require_sharp_wave=False` for explicit ripple-only detection.&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">ripple_filtered</span><span class="p">,</span> <span class="n">envelope</span><span class="p">,</span> <span class="n">inst_freq</span> <span class="o">=</span> <span class="n">_compute_envelope</span><span class="p">(</span>
+    <span class="n">ripple_filtered</span><span class="p">,</span> <span class="n">envelope</span><span class="p">,</span> <span class="n">ripple_phase</span> <span class="o">=</span> <span class="n">_compute_envelope</span><span class="p">(</span>
         <span class="n">signal_in</span><span class="o">=</span><span class="n">ripple_signal</span><span class="p">,</span>
         <span class="n">fs</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">fs</span><span class="p">),</span>
         <span class="n">ripple_band</span><span class="o">=</span><span class="n">ripple_band</span><span class="p">,</span>
@@ -6474,7 +6717,7 @@ requested explicitly.</p>
     <span class="p">)</span>
     <span class="n">power</span> <span class="o">=</span> <span class="n">_zscore</span><span class="p">(</span><span class="n">envelope</span><span class="p">)</span>
 
-    <span class="n">candidate_bounds</span> <span class="o">=</span> <span class="n">find_interval</span><span class="p">(</span><span class="n">power</span> <span class="o">&gt;=</span> <span class="n">low_threshold</span><span class="p">)</span>
+    <span class="n">candidate_bounds</span> <span class="o">=</span> <span class="n">_find_true_bounds</span><span class="p">(</span><span class="n">power</span> <span class="o">&gt;=</span> <span class="n">low_threshold</span><span class="p">)</span>
     <span class="n">candidate_bounds</span> <span class="o">=</span> <span class="n">_merge_bounds</span><span class="p">(</span>
         <span class="n">candidate_bounds</span><span class="p">,</span>
         <span class="n">gap_samples</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">merge_gap</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">fs</span><span class="p">)))),</span>
@@ -6492,7 +6735,9 @@ requested explicitly.</p>
             <span class="n">filter_order</span><span class="o">=</span><span class="n">filter_order</span><span class="p">,</span>
             <span class="n">smooth_sigma</span><span class="o">=</span><span class="n">sharp_wave_smooth_sigma</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">sharp_wave_bounds</span> <span class="o">=</span> <span class="n">find_interval</span><span class="p">(</span><span class="n">sharp_wave_power</span> <span class="o">&gt;=</span> <span class="n">sharp_wave_low_threshold</span><span class="p">)</span>
+        <span class="n">sharp_wave_bounds</span> <span class="o">=</span> <span class="n">_find_true_bounds</span><span class="p">(</span>
+            <span class="n">sharp_wave_power</span> <span class="o">&gt;=</span> <span class="n">sharp_wave_low_threshold</span>
+        <span class="p">)</span>
         <span class="n">sharp_wave_bounds</span> <span class="o">=</span> <span class="n">_merge_bounds</span><span class="p">(</span>
             <span class="n">sharp_wave_bounds</span><span class="p">,</span>
             <span class="n">gap_samples</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">merge_gap</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">fs</span><span class="p">)))),</span>
@@ -6514,7 +6759,7 @@ requested explicitly.</p>
         <span class="n">ripple_power</span><span class="o">=</span><span class="n">power</span><span class="p">,</span>
         <span class="n">ripple_envelope</span><span class="o">=</span><span class="n">envelope</span><span class="p">,</span>
         <span class="n">ripple_filtered</span><span class="o">=</span><span class="n">ripple_filtered</span><span class="p">,</span>
-        <span class="n">inst_freq</span><span class="o">=</span><span class="n">inst_freq</span><span class="p">,</span>
+        <span class="n">ripple_phase</span><span class="o">=</span><span class="n">ripple_phase</span><span class="p">,</span>
         <span class="n">timestamps</span><span class="o">=</span><span class="n">timestamps</span><span class="p">,</span>
         <span class="n">fs</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">fs</span><span class="p">),</span>
         <span class="n">ripple_min_duration</span><span class="o">=</span><span class="n">min_duration</span><span class="p">,</span>
@@ -6763,69 +7008,7 @@ requested explicitly.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/sharp_wave_ripple.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">463</span>
-<span class="normal">464</span>
-<span class="normal">465</span>
-<span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span>
-<span class="normal">477</span>
-<span class="normal">478</span>
-<span class="normal">479</span>
-<span class="normal">480</span>
-<span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span>
-<span class="normal">485</span>
-<span class="normal">486</span>
-<span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
-<span class="normal">490</span>
-<span class="normal">491</span>
-<span class="normal">492</span>
-<span class="normal">493</span>
-<span class="normal">494</span>
-<span class="normal">495</span>
-<span class="normal">496</span>
-<span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
-<span class="normal">518</span>
-<span class="normal">519</span>
-<span class="normal">520</span>
-<span class="normal">521</span>
-<span class="normal">522</span>
-<span class="normal">523</span>
-<span class="normal">524</span>
-<span class="normal">525</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">525</span>
 <span class="normal">526</span>
 <span class="normal">527</span>
 <span class="normal">528</span>
@@ -6851,7 +7034,69 @@ requested explicitly.</p>
 <span class="normal">548</span>
 <span class="normal">549</span>
 <span class="normal">550</span>
-<span class="normal">551</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_ripple_events</span><span class="p">(</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_ripple_events</span><span class="p">(</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">detection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;detect_sharp_wave_ripples&quot;</span><span class="p">,</span>
