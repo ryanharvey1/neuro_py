@@ -35,6 +35,22 @@ def _zscore(values: np.ndarray) -> np.ndarray:
     return (values - mean) / std
 
 
+def _fill_nonfinite_for_filter(values: np.ndarray) -> np.ndarray:
+    """Fill non-finite samples so filtering does not poison the full trace."""
+    values = np.asarray(values, dtype=float)
+    if np.all(np.isfinite(values)):
+        return values
+
+    filled = values.copy()
+    finite = np.isfinite(filled)
+    if not finite.any():
+        return np.zeros_like(filled, dtype=float)
+
+    sample_idx = np.arange(filled.size)
+    filled[~finite] = np.interp(sample_idx[~finite], sample_idx[finite], filled[finite])
+    return filled
+
+
 def _find_true_bounds(mask: np.ndarray) -> list[tuple[int, int]]:
     """Return inclusive bounds for contiguous True segments."""
     mask = np.asarray(mask, dtype=bool)
@@ -119,6 +135,44 @@ def _filter_events_to_detection_epochs(
         & (start_interval == stop_interval)
     )
     return events.loc[keep].reset_index(drop=True)
+
+
+def _enforce_min_inter_event_interval(
+    events: pd.DataFrame,
+    min_interval: float,
+) -> pd.DataFrame:
+    """Keep the strongest event within each minimum inter-event interval cluster."""
+    if events.empty or min_interval <= 0:
+        return events
+
+    events_by_peak = events.sort_values("peaks").reset_index(drop=True)
+    keep_rows: list[int] = []
+    cluster_rows = [0]
+
+    def _event_score(row: pd.Series) -> tuple[float, float]:
+        sharp_power = row.get("sharp_wave_peakNormedPower", np.nan)
+        if pd.isna(sharp_power):
+            sharp_power = -np.inf
+        return float(row["peakNormedPower"]), float(sharp_power)
+
+    for row_idx in range(1, len(events_by_peak)):
+        previous_peak = float(events_by_peak.loc[row_idx - 1, "peaks"])
+        current_peak = float(events_by_peak.loc[row_idx, "peaks"])
+        if current_peak - previous_peak < min_interval:
+            cluster_rows.append(row_idx)
+            continue
+
+        best_row = max(cluster_rows, key=lambda idx: _event_score(events_by_peak.loc[idx]))
+        keep_rows.append(best_row)
+        cluster_rows = [row_idx]
+
+    best_row = max(cluster_rows, key=lambda idx: _event_score(events_by_peak.loc[idx]))
+    keep_rows.append(best_row)
+    return (
+        events_by_peak.loc[keep_rows]
+        .sort_values("start")
+        .reset_index(drop=True)
+    )
 
 
 def _get_ripple_channel(basepath: str) -> int:
@@ -219,7 +273,7 @@ def _compute_envelope(
         fs=fs,
         output="sos",
     )
-    filtered = signal.sosfiltfilt(sos, np.asarray(signal_in, dtype=float))
+    filtered = signal.sosfiltfilt(sos, _fill_nonfinite_for_filter(signal_in))
     analytic = signal.hilbert(filtered)
     envelope = np.abs(analytic)
     sigma_samples = smooth_sigma * fs
@@ -247,7 +301,7 @@ def _filter_signal(
         fs=fs,
         output="sos",
     )
-    return signal.sosfiltfilt(sos, np.asarray(signal_in, dtype=float))
+    return signal.sosfiltfilt(sos, _fill_nonfinite_for_filter(signal_in))
 
 
 def _compute_sharp_wave_difference(
@@ -257,6 +311,7 @@ def _compute_sharp_wave_difference(
     sharp_wave_band: tuple[float, float],
     filter_order: int,
     smooth_sigma: float,
+    sharp_wave_polarity: str,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return a filtered sharp-wave difference trace and its z-scored feature."""
     ripple_low = _filter_signal(
@@ -272,14 +327,24 @@ def _compute_sharp_wave_difference(
         filter_order=filter_order,
     )
     sharp_wave_diff = ripple_low - sharp_low
+    if sharp_wave_polarity == "negative":
+        sharp_wave_feature = sharp_wave_diff
+    elif sharp_wave_polarity == "positive":
+        sharp_wave_feature = -sharp_wave_diff
+    elif sharp_wave_polarity == "both":
+        sharp_wave_feature = np.abs(sharp_wave_diff)
+    else:
+        raise ValueError(
+            "`sharp_wave_polarity` must be 'negative', 'positive', or 'both'."
+        )
     sigma_samples = smooth_sigma * fs
     if sigma_samples > 0:
-        sharp_wave_diff = ndimage.gaussian_filter1d(
-            sharp_wave_diff,
+        sharp_wave_feature = ndimage.gaussian_filter1d(
+            sharp_wave_feature,
             sigma=sigma_samples,
             mode="nearest",
         )
-    return sharp_wave_diff, _zscore(sharp_wave_diff)
+    return sharp_wave_feature, _zscore(sharp_wave_feature)
 
 
 def _merge_bounds(
@@ -331,12 +396,83 @@ def _median_frequency_from_phase(
     return float(np.nanmedian(np.diff(event_phase) * fs / (2 * np.pi)))
 
 
+def _local_zscore_at(
+    values: np.ndarray,
+    index: int,
+    fs: float,
+    local_window: float,
+) -> float:
+    """Return a local median/std z-score at one sample index."""
+    radius = max(1, int(round(local_window * fs)))
+    start = max(0, index - radius)
+    stop = min(values.size, index + radius + 1)
+    local_values = values[start:stop]
+    median = np.nanmedian(local_values)
+    std = np.nanstd(local_values)
+    if np.isnan(std) or std == 0:
+        return np.nan
+    return float((values[index] - median) / std)
+
+
+def _edge_rejects_event(
+    event_start_idx: int,
+    event_stop_idx: int,
+    n_samples: int,
+    edge_samples: int,
+) -> bool:
+    """Return True when an event is too close to the signal edge."""
+    if edge_samples <= 0:
+        return False
+    return event_start_idx < edge_samples or event_stop_idx > (n_samples - edge_samples - 1)
+
+
+def _window_has_artifact(
+    signals: list[np.ndarray],
+    start_idx: int,
+    stop_idx: int,
+    saturation_fraction: float,
+    flat_std_threshold: float,
+) -> bool:
+    """Return True if any signal window is non-finite, saturated, or flat."""
+    def _longest_run(mask: np.ndarray) -> int:
+        if mask.size == 0:
+            return 0
+        bounds = _find_true_bounds(mask)
+        if not bounds:
+            return 0
+        return max(stop - start + 1 for start, stop in bounds)
+
+    for signal_values in signals:
+        window = np.asarray(signal_values[start_idx : stop_idx + 1], dtype=float)
+        if window.size == 0 or not np.all(np.isfinite(window)):
+            return True
+
+        window_std = float(np.nanstd(window))
+        if window_std <= flat_std_threshold:
+            return True
+
+        min_value = np.nanmin(window)
+        max_value = np.nanmax(window)
+        if min_value == max_value:
+            return True
+
+        longest_clip = max(
+            _longest_run(window == min_value),
+            _longest_run(window == max_value),
+        )
+        clipped = longest_clip / window.size
+        if longest_clip >= 3 and clipped >= saturation_fraction:
+            return True
+    return False
+
+
 def _events_to_dataframe(
     ripple_bounds: list[tuple[int, int]],
     ripple_power: np.ndarray,
     ripple_envelope: np.ndarray,
     ripple_filtered: np.ndarray,
     ripple_phase: np.ndarray,
+    ripple_signal: np.ndarray,
     timestamps: np.ndarray,
     fs: float,
     ripple_min_duration: float,
@@ -352,21 +488,47 @@ def _events_to_dataframe(
     search_window: float = 0.050,
     boundary_mode: str = "sharp_wave",
     noise_power: Optional[np.ndarray] = None,
+    noise_signal: Optional[np.ndarray] = None,
     noise_threshold: Optional[float] = None,
+    sharp_wave_signal: Optional[np.ndarray] = None,
+    threshold_mode: str = "global",
+    local_window: float = 5.0,
+    reject_edge_events: bool = True,
+    edge_buffer: float = 0.050,
+    reject_artifacts: bool = True,
+    saturation_fraction: float = 0.05,
+    flat_std_threshold: Optional[float] = None,
 ) -> pd.DataFrame:
     """Convert joint ripple and sharp-wave detections into a CellExplorer-style table."""
     records: list[dict[str, float]] = []
     dt = 1.0 / fs
     search_radius = max(1, int(round(search_window * fs)))
+    edge_samples = max(0, int(round(edge_buffer * fs)))
+    flat_std = (
+        np.finfo(float).eps
+        if flat_std_threshold is None
+        else float(flat_std_threshold)
+    )
     sharp_wave_bounds_array = _bounds_to_array(sharp_wave_bounds)
 
     for ripple_start, ripple_stop in ripple_bounds:
+        if reject_edge_events and _edge_rejects_event(
+            ripple_start, ripple_stop, ripple_power.size, edge_samples
+        ):
+            continue
+
         segment = ripple_power[ripple_start : ripple_stop + 1]
         if segment.size == 0:
             continue
 
         ripple_peak_idx = int(ripple_start + np.nanargmax(segment))
         ripple_peak_power = float(ripple_power[ripple_peak_idx])
+        if threshold_mode == "local":
+            ripple_peak_power = _local_zscore_at(
+                ripple_envelope, ripple_peak_idx, fs, local_window
+            )
+        if not np.isfinite(ripple_peak_power):
+            continue
         if ripple_peak_power < ripple_high_threshold:
             continue
 
@@ -398,6 +560,12 @@ def _events_to_dataframe(
 
             sharp_wave_peak_idx = int(window_start + np.nanargmax(local_sharp_wave))
             sharp_wave_peak_power = float(sharp_wave_power[sharp_wave_peak_idx])
+            if threshold_mode == "local":
+                sharp_wave_peak_power = _local_zscore_at(
+                    sharp_wave_trace, sharp_wave_peak_idx, fs, local_window
+                )
+            if not np.isfinite(sharp_wave_peak_power):
+                continue
             if (
                 sharp_wave_high_threshold is not None
                 and sharp_wave_peak_power < sharp_wave_high_threshold
@@ -435,12 +603,23 @@ def _events_to_dataframe(
                     "`boundary_mode` must be either 'sharp_wave' or 'union'."
                 )
 
+        if reject_edge_events and _edge_rejects_event(
+            event_start_idx, event_stop_idx, ripple_power.size, edge_samples
+        ):
+            continue
+
         event_segment = ripple_power[event_start_idx : event_stop_idx + 1]
         if event_segment.size == 0:
             continue
 
         event_ripple_peak_idx = int(event_start_idx + np.nanargmax(event_segment))
         event_ripple_peak_power = float(ripple_power[event_ripple_peak_idx])
+        if threshold_mode == "local":
+            event_ripple_peak_power = _local_zscore_at(
+                ripple_envelope, event_ripple_peak_idx, fs, local_window
+            )
+        if not np.isfinite(event_ripple_peak_power):
+            continue
         if event_ripple_peak_power < ripple_high_threshold:
             continue
 
@@ -453,6 +632,21 @@ def _events_to_dataframe(
         )
         if not event_start_idx <= event_peak_idx <= event_stop_idx:
             continue
+
+        if reject_artifacts:
+            artifact_signals = [ripple_signal]
+            if sharp_wave_signal is not None:
+                artifact_signals.append(sharp_wave_signal)
+            if noise_signal is not None:
+                artifact_signals.append(noise_signal)
+            if _window_has_artifact(
+                artifact_signals,
+                event_start_idx,
+                event_stop_idx,
+                saturation_fraction=saturation_fraction,
+                flat_std_threshold=flat_std,
+            ):
+                continue
 
         if noise_power is not None and noise_threshold is not None:
             noise_peak = float(
@@ -637,10 +831,19 @@ def detect_sharp_wave_ripples(
     max_duration: float = 0.200,
     sharp_wave_min_duration: float = 0.020,
     sharp_wave_max_duration: float = 0.500,
+    min_inter_event_interval: float = 0.050,
     merge_gap: float = 0.020,
     peak_window: float = 0.050,
     boundary_mode: str = "sharp_wave",
     filter_order: int = 4,
+    threshold_mode: str = "global",
+    local_window: float = 5.0,
+    reject_edge_events: bool = True,
+    edge_buffer: Optional[float] = None,
+    reject_artifacts: bool = True,
+    saturation_fraction: float = 0.05,
+    flat_std_threshold: Optional[float] = None,
+    sharp_wave_polarity: str = "negative",
     require_sharp_wave: bool = True,
     save_mat: bool = True,
     overwrite: bool = False,
@@ -717,6 +920,9 @@ def detect_sharp_wave_ripples(
         Minimum sharp-wave duration in seconds.
     sharp_wave_max_duration : float, optional
         Maximum sharp-wave duration in seconds.
+    min_inter_event_interval : float, optional
+        Minimum time between accepted event peaks in seconds. Nearby detections
+        are clustered and the strongest event is kept. Set to 0 to disable.
     merge_gap : float, optional
         Merge candidate events separated by less than this gap, in seconds.
     peak_window : float, optional
@@ -727,6 +933,30 @@ def detect_sharp_wave_ripples(
         union of ripple and sharp-wave intervals.
     filter_order : int, optional
         Butterworth filter order for ripple-band filtering.
+    threshold_mode : {"global", "local"}, optional
+        Use global z-scored features or MATLAB-like local median/std validation
+        around each candidate event.
+    local_window : float, optional
+        Half-window in seconds used for local threshold validation when
+        ``threshold_mode="local"``.
+    reject_edge_events : bool, optional
+        If True, reject candidate events too close to signal boundaries.
+    edge_buffer : float, optional
+        Boundary buffer in seconds. If omitted, uses at least ``peak_window`` and
+        uses ``local_window`` when local thresholds are enabled.
+    reject_artifacts : bool, optional
+        If True, reject event windows with non-finite, saturated, or flat
+        required signals.
+    saturation_fraction : float, optional
+        Maximum tolerated fraction of event-window samples at the local minimum
+        or maximum before the window is treated as clipped.
+    flat_std_threshold : float, optional
+        Minimum allowed event-window standard deviation. Defaults to a
+        near-zero variation check.
+    sharp_wave_polarity : {"negative", "positive", "both"}, optional
+        Polarity of sharp-wave deflections. The default expects downward
+        sharp waves and scores them positively. Ripples remain polarity
+        independent because they are detected from envelope power.
     require_sharp_wave : bool, optional
         If True, require a sharp-wave signal or inferable sharp-wave channel for
         joint SWR detection. If False, allow ripple-only detection when
@@ -800,6 +1030,20 @@ def detect_sharp_wave_ripples(
         raise ValueError("Provide either `basepath` or `ripple_signal` for detection.")
     if boundary_mode not in {"sharp_wave", "union"}:
         raise ValueError("`boundary_mode` must be either 'sharp_wave' or 'union'.")
+    if threshold_mode not in {"global", "local"}:
+        raise ValueError("`threshold_mode` must be either 'global' or 'local'.")
+    if sharp_wave_polarity not in {"negative", "positive", "both"}:
+        raise ValueError(
+            "`sharp_wave_polarity` must be 'negative', 'positive', or 'both'."
+        )
+    if min_inter_event_interval < 0:
+        raise ValueError("`min_inter_event_interval` must be non-negative.")
+    if local_window <= 0:
+        raise ValueError("`local_window` must be positive.")
+    if not 0 < saturation_fraction <= 1:
+        raise ValueError("`saturation_fraction` must be in the interval (0, 1].")
+    if edge_buffer is not None and edge_buffer < 0:
+        raise ValueError("`edge_buffer` must be non-negative.")
 
     should_save_mat = bool(save_mat and basepath is not None)
 
@@ -888,6 +1132,7 @@ def detect_sharp_wave_ripples(
             sharp_wave_band=sharp_wave_band,
             filter_order=filter_order,
             smooth_sigma=sharp_wave_smooth_sigma,
+            sharp_wave_polarity=sharp_wave_polarity,
         )
         sharp_wave_bounds = _find_true_bounds(
             sharp_wave_power >= sharp_wave_low_threshold
@@ -908,12 +1153,17 @@ def detect_sharp_wave_ripples(
         )
         noise_power = _zscore(noise_envelope)
 
+    effective_edge_buffer = peak_window if edge_buffer is None else float(edge_buffer)
+    if threshold_mode == "local":
+        effective_edge_buffer = max(effective_edge_buffer, float(local_window))
+
     events = _events_to_dataframe(
         ripple_bounds=candidate_bounds,
         ripple_power=power,
         ripple_envelope=envelope,
         ripple_filtered=ripple_filtered,
         ripple_phase=ripple_phase,
+        ripple_signal=ripple_signal,
         timestamps=timestamps,
         fs=float(fs),
         ripple_min_duration=min_duration,
@@ -929,10 +1179,20 @@ def detect_sharp_wave_ripples(
         search_window=peak_window,
         boundary_mode=boundary_mode,
         noise_power=noise_power,
+        noise_signal=noise_signal,
         noise_threshold=noise_threshold,
+        sharp_wave_signal=sharp_wave_signal,
+        threshold_mode=threshold_mode,
+        local_window=local_window,
+        reject_edge_events=reject_edge_events,
+        edge_buffer=effective_edge_buffer,
+        reject_artifacts=reject_artifacts,
+        saturation_fraction=saturation_fraction,
+        flat_std_threshold=flat_std_threshold,
     )
 
     events = _filter_events_to_detection_epochs(events, detection_epochs)
+    events = _enforce_min_inter_event_interval(events, min_inter_event_interval)
 
     if should_save_mat:
         detection_params = {
@@ -949,9 +1209,18 @@ def detect_sharp_wave_ripples(
             "max_duration": float(max_duration),
             "sharp_wave_min_duration": float(sharp_wave_min_duration),
             "sharp_wave_max_duration": float(sharp_wave_max_duration),
+            "min_inter_event_interval": float(min_inter_event_interval),
             "merge_gap": float(merge_gap),
             "peak_window": float(peak_window),
             "boundary_mode": boundary_mode,
+            "threshold_mode": threshold_mode,
+            "local_window": float(local_window),
+            "reject_edge_events": bool(reject_edge_events),
+            "edge_buffer": effective_edge_buffer,
+            "reject_artifacts": bool(reject_artifacts),
+            "saturation_fraction": float(saturation_fraction),
+            "flat_std_threshold": flat_std_threshold,
+            "sharp_wave_polarity": sharp_wave_polarity,
             "require_sharp_wave": bool(require_sharp_wave),
             "filter_order": int(filter_order),
         }
