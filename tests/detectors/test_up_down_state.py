@@ -143,9 +143,9 @@ def test_detect_up_down_states_bimodal_thresh_basic():
         t = 0
         bin_size = 0.01
         for rate in firing_rate_series:
-            n_spikes = np.random.poisson(rate * bin_size)
+            n_spikes = rng.poisson(rate * bin_size)
             if n_spikes > 0:
-                spike_times.extend(np.random.uniform(t, t + bin_size, n_spikes))
+                spike_times.extend(rng.uniform(t, t + bin_size, n_spikes))
             t += bin_size
         spikes_list.append(np.sort(spike_times))
 
@@ -200,9 +200,9 @@ def test_detect_up_down_states_bimodal_thresh_epoch_by_epoch():
         bin_size = 0.01
         all_rates = np.concatenate([epoch1_rates, epoch2_rates])
         for rate in all_rates:
-            n_spikes = np.random.poisson(rate * bin_size)
+            n_spikes = rng.poisson(rate * bin_size)
             if n_spikes > 0:
-                spike_times.extend(np.random.uniform(t, t + bin_size, n_spikes))
+                spike_times.extend(rng.uniform(t, t + bin_size, n_spikes))
             t += bin_size
         spikes_list.append(np.sort(spike_times))
 
