@@ -141,35 +141,35 @@ def _enforce_min_inter_event_interval(
     events: pd.DataFrame,
     min_interval: float,
 ) -> pd.DataFrame:
-    """Keep the strongest event within each minimum inter-event interval cluster."""
+    """Keep strongest events while removing direct minimum-interval conflicts."""
     if events.empty or min_interval <= 0:
         return events
 
-    events_by_peak = events.sort_values("peaks").reset_index(drop=True)
-    keep_rows: list[int] = []
-    cluster_rows = [0]
+    events_for_sort = events.copy()
+    if "sharp_wave_peakNormedPower" in events_for_sort.columns:
+        events_for_sort["_sharp_wave_score"] = events_for_sort[
+            "sharp_wave_peakNormedPower"
+        ].fillna(-np.inf)
+    else:
+        events_for_sort["_sharp_wave_score"] = -np.inf
 
-    def _event_score(row: pd.Series) -> tuple[float, float]:
-        sharp_power = row.get("sharp_wave_peakNormedPower", np.nan)
-        if pd.isna(sharp_power):
-            sharp_power = -np.inf
-        return float(row["peakNormedPower"]), float(sharp_power)
+    events_by_strength = events_for_sort.sort_values(
+        by=["peakNormedPower", "_sharp_wave_score"],
+        ascending=[False, False],
+        na_position="last",
+    )
+    keep_indices: list[int] = []
+    kept_peaks: list[float] = []
 
-    for row_idx in range(1, len(events_by_peak)):
-        previous_peak = float(events_by_peak.loc[row_idx - 1, "peaks"])
-        current_peak = float(events_by_peak.loc[row_idx, "peaks"])
-        if current_peak - previous_peak < min_interval:
-            cluster_rows.append(row_idx)
+    for row_index, row in events_by_strength.iterrows():
+        peak = float(row["peaks"])
+        if any(abs(peak - kept_peak) < min_interval for kept_peak in kept_peaks):
             continue
+        keep_indices.append(row_index)
+        kept_peaks.append(peak)
 
-        best_row = max(cluster_rows, key=lambda idx: _event_score(events_by_peak.loc[idx]))
-        keep_rows.append(best_row)
-        cluster_rows = [row_idx]
-
-    best_row = max(cluster_rows, key=lambda idx: _event_score(events_by_peak.loc[idx]))
-    keep_rows.append(best_row)
     return (
-        events_by_peak.loc[keep_rows]
+        events.loc[keep_indices]
         .sort_values("start")
         .reset_index(drop=True)
     )

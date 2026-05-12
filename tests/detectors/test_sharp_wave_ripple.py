@@ -358,6 +358,22 @@ def test_min_inter_event_interval_keeps_strongest_nearby_event() -> None:
     np.testing.assert_allclose(filtered["peaks"].to_numpy(), np.array([1.03, 1.24]))
 
 
+def test_min_inter_event_interval_does_not_chain_indirect_conflicts() -> None:
+    events = pd.DataFrame(
+        {
+            "start": [0.00, 0.035, 0.075],
+            "stop": [0.02, 0.055, 0.095],
+            "peaks": [0.00, 0.04, 0.08],
+            "peakNormedPower": [6.0, 5.0, 6.0],
+            "sharp_wave_peakNormedPower": [1.0, 1.0, 1.0],
+        }
+    )
+
+    filtered = _enforce_min_inter_event_interval(events, min_interval=0.05)
+
+    np.testing.assert_allclose(filtered["peaks"].to_numpy(), np.array([0.00, 0.08]))
+
+
 def test_find_true_bounds_handles_empty_and_contiguous_segments() -> None:
     assert _find_true_bounds(np.array([], dtype=bool)) == []
     assert _find_true_bounds(np.array([False, False])) == []
