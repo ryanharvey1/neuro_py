@@ -449,6 +449,7 @@ def test_joint_detection_rejects_events_without_ripple_peak_in_final_boundary() 
         sharp_wave_max_duration=0.050,
         merge_gap=0.01,
         peak_window=0.060,
+        boundary_mode="sharp_wave",
     )
 
     assert events.empty
@@ -597,6 +598,7 @@ def test_sharp_wave_polarity_defaults_to_negative_deflections() -> None:
         smooth_sigma=0.002,
         min_duration=0.02,
         max_duration=0.10,
+        boundary_mode="sharp_wave",
     )
     positive_events_default = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -610,6 +612,7 @@ def test_sharp_wave_polarity_defaults_to_negative_deflections() -> None:
         smooth_sigma=0.002,
         min_duration=0.02,
         max_duration=0.10,
+        boundary_mode="sharp_wave",
     )
     positive_events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -624,6 +627,7 @@ def test_sharp_wave_polarity_defaults_to_negative_deflections() -> None:
         min_duration=0.02,
         max_duration=0.10,
         sharp_wave_polarity="positive",
+        boundary_mode="sharp_wave",
     )
 
     assert len(default_events) == 1
