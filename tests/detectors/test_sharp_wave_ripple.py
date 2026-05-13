@@ -12,10 +12,12 @@ from neuro_py.detectors.sharp_wave_ripple import (
     _bounds_to_array,
     _enforce_min_inter_event_interval,
     _filter_events_to_detection_epochs,
+    _find_local_peaks,
     _find_true_bounds,
     _get_noise_channel,
     _get_sharp_wave_channel,
     _nearest_trough,
+    _select_sharp_wave_partner,
     detect_sharp_wave_ripples,
     save_ripple_events,
 )
@@ -450,6 +452,105 @@ def test_joint_detection_rejects_events_without_ripple_peak_in_final_boundary() 
     )
 
     assert events.empty
+
+
+def test_sharp_wave_partner_selection_splits_broad_intervals() -> None:
+    sharp_wave_power = np.full(90, 0.6)
+    sharp_wave_power[20] = 5.0
+    sharp_wave_power[60] = 3.0
+    sharp_wave_bounds = np.asarray([[10, 70]])
+
+    first_partner = _select_sharp_wave_partner(
+        sharp_wave_power=sharp_wave_power,
+        sharp_wave_bounds=sharp_wave_bounds,
+        ripple_start=18,
+        ripple_stop=22,
+        ripple_peak_idx=20,
+        search_radius=20,
+        low_threshold=0.5,
+    )
+    second_partner = _select_sharp_wave_partner(
+        sharp_wave_power=sharp_wave_power,
+        sharp_wave_bounds=sharp_wave_bounds,
+        ripple_start=58,
+        ripple_stop=62,
+        ripple_peak_idx=60,
+        search_radius=20,
+        low_threshold=0.5,
+    )
+
+    assert first_partner is not None
+    assert second_partner is not None
+    assert first_partner[2] == 20
+    assert second_partner[2] == 60
+    assert first_partner[1] < second_partner[0]
+
+
+def test_sharp_wave_partner_selection_falls_back_to_window_maximum() -> None:
+    sharp_wave_power = np.linspace(0.0, 1.0, 30)
+    sharp_wave_bounds = np.asarray([[10, 20]])
+
+    assert _find_local_peaks(sharp_wave_power, 10, 20).tolist() == [20]
+    partner = _select_sharp_wave_partner(
+        sharp_wave_power=sharp_wave_power,
+        sharp_wave_bounds=sharp_wave_bounds,
+        ripple_start=12,
+        ripple_stop=15,
+        ripple_peak_idx=15,
+        search_radius=10,
+        low_threshold=0.25,
+    )
+
+    assert partner == (10, 20, 20, sharp_wave_power[20])
+
+
+def test_joint_detection_keeps_nearby_ripples_with_distinct_sharp_waves() -> None:
+    timestamps = np.arange(0.0, 2.0, 1.0 / 1250.0)
+    rng = np.random.default_rng(8)
+    ripple_signal = rng.normal(scale=0.4, size=timestamps.size)
+    sharp_wave_signal = rng.normal(scale=0.2, size=timestamps.size)
+
+    ripple_centers = np.asarray([0.80, 0.958])
+    for center in ripple_centers:
+        ripple_signal += _make_ripple_burst(
+            timestamps=timestamps,
+            center=float(center),
+            frequency=150.0,
+            duration=0.045,
+            amplitude=150.0,
+        )
+
+    sharp_wave_signal += -90.0 * np.exp(
+        -((timestamps - 0.85) ** 2) / (2 * 0.035**2)
+    )
+    sharp_wave_signal += -55.0 * np.exp(
+        -((timestamps - 0.958) ** 2) / (2 * 0.025**2)
+    )
+
+    events = detect_sharp_wave_ripples(
+        ripple_signal=ripple_signal,
+        sharp_wave_signal=sharp_wave_signal,
+        fs=1250.0,
+        timestamps=timestamps,
+        low_threshold=0.5,
+        high_threshold=2.0,
+        sharp_wave_low_threshold=0.25,
+        sharp_wave_high_threshold=1.0,
+        smooth_sigma=0.002,
+        min_duration=0.02,
+        max_duration=0.12,
+        sharp_wave_min_duration=0.005,
+        sharp_wave_max_duration=0.12,
+        merge_gap=0.001,
+        peak_window=0.150,
+        min_inter_event_interval=0.025,
+        reject_edge_events=False,
+        reject_artifacts=False,
+    )
+
+    assert len(events) == 2
+    np.testing.assert_allclose(events["peaks"].to_numpy(), ripple_centers, atol=0.02)
+    _assert_event_invariants(events)
 
 
 def test_local_threshold_mode_accepts_strong_local_events() -> None:

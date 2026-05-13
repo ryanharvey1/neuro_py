@@ -466,6 +466,136 @@ def _window_has_artifact(
     return False
 
 
+def _find_local_peaks(
+    values: np.ndarray,
+    start_idx: int,
+    stop_idx: int,
+) -> np.ndarray:
+    """Return local peak indices, falling back to the window maximum."""
+    if stop_idx < start_idx:
+        return np.empty((0,), dtype=int)
+
+    segment = np.asarray(values[start_idx : stop_idx + 1], dtype=float)
+    if segment.size == 0 or np.all(~np.isfinite(segment)):
+        return np.empty((0,), dtype=int)
+
+    finite_segment = np.where(np.isfinite(segment), segment, -np.inf)
+    local_peaks, _ = signal.find_peaks(finite_segment)
+    if local_peaks.size == 0:
+        return np.asarray([start_idx + int(np.nanargmax(segment))], dtype=int)
+    return local_peaks.astype(int) + start_idx
+
+
+def _localize_sharp_wave_interval(
+    sharp_wave_power: np.ndarray,
+    parent_start: int,
+    parent_stop: int,
+    peak_idx: int,
+    low_threshold: float,
+) -> tuple[int, int]:
+    """Split a broad sharp-wave interval around a selected local peak."""
+    local_peaks = _find_local_peaks(sharp_wave_power, parent_start, parent_stop)
+    local_peaks = np.unique(np.append(local_peaks, peak_idx)).astype(int)
+    local_peaks.sort()
+
+    peak_position = int(np.searchsorted(local_peaks, peak_idx))
+    previous_peak = local_peaks[peak_position - 1] if peak_position > 0 else None
+    next_peak = (
+        local_peaks[peak_position + 1]
+        if peak_position < local_peaks.size - 1
+        else None
+    )
+
+    split_start = parent_start
+    split_stop = parent_stop
+    if previous_peak is not None:
+        split_start = max(split_start, int(np.floor((previous_peak + peak_idx) / 2)) + 1)
+    if next_peak is not None:
+        split_stop = min(split_stop, int(np.ceil((peak_idx + next_peak) / 2)) - 1)
+
+    if split_stop < split_start:
+        return int(peak_idx), int(peak_idx)
+
+    above_threshold = (
+        np.isfinite(sharp_wave_power[split_start : split_stop + 1])
+        & (sharp_wave_power[split_start : split_stop + 1] >= low_threshold)
+    )
+    peak_offset = peak_idx - split_start
+    if 0 <= peak_offset < above_threshold.size and above_threshold[peak_offset]:
+        left = peak_offset
+        right = peak_offset
+        while left > 0 and above_threshold[left - 1]:
+            left -= 1
+        while right < above_threshold.size - 1 and above_threshold[right + 1]:
+            right += 1
+        split_start += left
+        split_stop = split_start + (right - left)
+
+    return int(split_start), int(split_stop)
+
+
+def _select_sharp_wave_partner(
+    sharp_wave_power: np.ndarray,
+    sharp_wave_bounds: np.ndarray,
+    ripple_start: int,
+    ripple_stop: int,
+    ripple_peak_idx: int,
+    search_radius: int,
+    low_threshold: float,
+) -> Optional[tuple[int, int, int, float]]:
+    """Select the nearest/overlapping sharp-wave sub-event for a ripple."""
+    if sharp_wave_bounds.size == 0:
+        return None
+
+    association_start = max(0, ripple_start - search_radius)
+    association_stop = min(sharp_wave_power.size - 1, ripple_stop + search_radius)
+    if association_stop < association_start:
+        return None
+
+    candidate_rows = sharp_wave_bounds[
+        (sharp_wave_bounds[:, 1] >= association_start)
+        & (sharp_wave_bounds[:, 0] <= association_stop)
+    ]
+    best_partner: Optional[
+        tuple[tuple[float, int, float], tuple[int, int, int, float]]
+    ] = None
+
+    for parent_start, parent_stop in candidate_rows:
+        clipped_start = max(int(parent_start), association_start)
+        clipped_stop = min(int(parent_stop), association_stop)
+        local_peaks = _find_local_peaks(sharp_wave_power, clipped_start, clipped_stop)
+        for peak_idx in local_peaks:
+            peak_power = float(sharp_wave_power[peak_idx])
+            if not np.isfinite(peak_power):
+                continue
+
+            localized_start, localized_stop = _localize_sharp_wave_interval(
+                sharp_wave_power,
+                int(parent_start),
+                int(parent_stop),
+                int(peak_idx),
+                low_threshold,
+            )
+            overlap = max(
+                0,
+                min(ripple_stop, localized_stop)
+                - max(ripple_start, localized_start)
+                + 1,
+            )
+            score = (
+                abs(int(peak_idx) - ripple_peak_idx),
+                -overlap,
+                -peak_power,
+            )
+            partner = (localized_start, localized_stop, int(peak_idx), peak_power)
+            if best_partner is None or score < best_partner[0]:
+                best_partner = (score, partner)
+
+    if best_partner is None:
+        return None
+    return best_partner[1]
+
+
 def _events_to_dataframe(
     ripple_bounds: list[tuple[int, int]],
     ripple_power: np.ndarray,
@@ -482,6 +612,7 @@ def _events_to_dataframe(
     sharp_wave_bounds: Optional[list[tuple[int, int]]] = None,
     sharp_wave_power: Optional[np.ndarray] = None,
     sharp_wave_trace: Optional[np.ndarray] = None,
+    sharp_wave_low_threshold: float = 0.5,
     sharp_wave_high_threshold: Optional[float] = None,
     sharp_wave_min_duration: Optional[float] = None,
     sharp_wave_max_duration: Optional[float] = None,
@@ -550,15 +681,21 @@ def _events_to_dataframe(
             if sharp_wave_bounds_array.size == 0:
                 continue
 
-            window_start = max(0, ripple_peak_idx - search_radius)
-            window_stop = min(
-                sharp_wave_power.size, ripple_peak_idx + search_radius + 1
+            sharp_wave_partner = _select_sharp_wave_partner(
+                sharp_wave_power=sharp_wave_power,
+                sharp_wave_bounds=sharp_wave_bounds_array,
+                ripple_start=ripple_start,
+                ripple_stop=ripple_stop,
+                ripple_peak_idx=ripple_peak_idx,
+                search_radius=search_radius,
+                low_threshold=sharp_wave_low_threshold,
             )
-            local_sharp_wave = sharp_wave_power[window_start:window_stop]
-            if local_sharp_wave.size == 0:
+            if sharp_wave_partner is None:
                 continue
 
-            sharp_wave_peak_idx = int(window_start + np.nanargmax(local_sharp_wave))
+            sharp_wave_start, sharp_wave_stop, sharp_wave_peak_idx, _ = (
+                sharp_wave_partner
+            )
             sharp_wave_peak_power = float(sharp_wave_power[sharp_wave_peak_idx])
             if threshold_mode == "local":
                 sharp_wave_peak_power = _local_zscore_at(
@@ -572,13 +709,6 @@ def _events_to_dataframe(
             ):
                 continue
 
-            sharp_wave_interval = _bound_containing_index(
-                sharp_wave_bounds_array, sharp_wave_peak_idx
-            )
-            if sharp_wave_interval is None:
-                continue
-
-            sharp_wave_start, sharp_wave_stop = sharp_wave_interval
             sharp_wave_duration = float(
                 (timestamps[sharp_wave_stop] + dt) - timestamps[sharp_wave_start]
             )
@@ -921,13 +1051,14 @@ def detect_sharp_wave_ripples(
     sharp_wave_max_duration : float, optional
         Maximum sharp-wave duration in seconds.
     min_inter_event_interval : float, optional
-        Minimum time between accepted event peaks in seconds. Nearby detections
-        are clustered and the strongest event is kept. Set to 0 to disable.
+        Minimum time between accepted event peaks in seconds. Stronger events
+        are kept first and weaker direct conflicts are removed. Set to 0 to
+        disable.
     merge_gap : float, optional
         Merge candidate events separated by less than this gap, in seconds.
     peak_window : float, optional
-        Search window around the ripple peak, in seconds, used to find the
-        associated sharp-wave peak.
+        Maximum association window around the ripple candidate, in seconds,
+        used to find the nearest/overlapping sharp-wave partner.
     boundary_mode : {"sharp_wave", "union"}, optional
         Whether final event boundaries follow the sharp-wave interval or the
         union of ripple and sharp-wave intervals.
@@ -1173,6 +1304,7 @@ def detect_sharp_wave_ripples(
         sharp_wave_bounds=sharp_wave_bounds,
         sharp_wave_power=sharp_wave_power,
         sharp_wave_trace=sharp_wave_trace,
+        sharp_wave_low_threshold=sharp_wave_low_threshold,
         sharp_wave_high_threshold=sharp_wave_high_threshold,
         sharp_wave_min_duration=sharp_wave_min_duration,
         sharp_wave_max_duration=sharp_wave_max_duration,
