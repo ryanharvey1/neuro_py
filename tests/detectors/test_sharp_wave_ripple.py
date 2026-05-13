@@ -505,6 +505,48 @@ def test_sharp_wave_partner_selection_falls_back_to_window_maximum() -> None:
     assert partner == (10, 20, 20, sharp_wave_power[20])
 
 
+def test_sharp_wave_partner_selection_includes_left_endpoint_peak() -> None:
+    sharp_wave_power = np.zeros(40)
+    sharp_wave_power[10] = 5.0
+    sharp_wave_power[15] = 2.0
+    sharp_wave_bounds = np.asarray([[10, 20]])
+
+    assert _find_local_peaks(sharp_wave_power, 10, 20).tolist() == [10, 15]
+    partner = _select_sharp_wave_partner(
+        sharp_wave_power=sharp_wave_power,
+        sharp_wave_bounds=sharp_wave_bounds,
+        ripple_start=8,
+        ripple_stop=11,
+        ripple_peak_idx=10,
+        search_radius=10,
+        low_threshold=0.25,
+    )
+
+    assert partner is not None
+    assert partner[2] == 10
+
+
+def test_sharp_wave_partner_selection_includes_right_endpoint_peak() -> None:
+    sharp_wave_power = np.zeros(40)
+    sharp_wave_power[15] = 2.0
+    sharp_wave_power[20] = 5.0
+    sharp_wave_bounds = np.asarray([[10, 20]])
+
+    assert _find_local_peaks(sharp_wave_power, 10, 20).tolist() == [15, 20]
+    partner = _select_sharp_wave_partner(
+        sharp_wave_power=sharp_wave_power,
+        sharp_wave_bounds=sharp_wave_bounds,
+        ripple_start=19,
+        ripple_stop=22,
+        ripple_peak_idx=20,
+        search_radius=10,
+        low_threshold=0.25,
+    )
+
+    assert partner is not None
+    assert partner[2] == 20
+
+
 def test_joint_detection_keeps_nearby_ripples_with_distinct_sharp_waves() -> None:
     timestamps = np.arange(0.0, 2.0, 1.0 / 1250.0)
     rng = np.random.default_rng(8)

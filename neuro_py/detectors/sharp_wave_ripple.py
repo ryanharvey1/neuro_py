@@ -481,9 +481,9 @@ def _find_local_peaks(
 
     finite_segment = np.where(np.isfinite(segment), segment, -np.inf)
     local_peaks, _ = signal.find_peaks(finite_segment)
-    if local_peaks.size == 0:
-        return np.asarray([start_idx + int(np.nanargmax(segment))], dtype=int)
-    return local_peaks.astype(int) + start_idx
+    window_maximum = int(np.nanargmax(segment))
+    local_peaks = np.unique(np.append(local_peaks, window_maximum)).astype(int)
+    return local_peaks + start_idx
 
 
 def _localize_sharp_wave_interval(
