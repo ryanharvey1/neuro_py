@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.40">
+      <meta name="generator" content="zensical-0.0.41">
     
     
       
@@ -221,6 +221,41 @@
   
   
     
+      
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
     
       <li class="md-tabs__item">
         <a href="../../reference/" class="md-tabs__link">
@@ -241,6 +276,39 @@
     
   
   
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
     
     
       <li class="md-tabs__item md-tabs__item--active">
@@ -3495,6 +3563,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#best-practices-for-parameter-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Best practices for parameter selection
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3754,6 +3833,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#best-practices-for-parameter-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Best practices for parameter selection
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3830,6 +3920,7 @@
     <li class="md-path__item">
       <a href="../.." class="md-path__link">
         
+  
   <span class="md-ellipsis">
     Home
   </span>
@@ -3845,9 +3936,43 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
       <li class="md-path__item">
         <a href="../attractor_landscape/" class="md-path__link">
           
+  
   <span class="md-ellipsis">
     Tutorials
   </span>
@@ -4026,7 +4151,7 @@
     <tr>
       <th>0</th>
       <td>0.4168</td>
-      <td>0.4920</td>
+      <td>0.4792</td>
       <td>0.4528</td>
       <td>5.148345</td>
       <td>2.035222</td>
@@ -4034,7 +4159,7 @@
     <tr>
       <th>1</th>
       <td>0.9880</td>
-      <td>1.1152</td>
+      <td>1.0472</td>
       <td>1.0288</td>
       <td>5.136576</td>
       <td>2.681947</td>
@@ -4201,25 +4326,27 @@
 <li><code>Bad</code> or <code>bad</code> for an optional noise channel.</li>
 </ul>
 <p>The important behavior is still joint detection by default: a candidate event must pass separate ripple and sharp-wave criteria. If a session does not have a usable sharp-wave channel, you can explicitly run ripple-only detection with <code>require_sharp_wave=False</code>, but those events should be interpreted more cautiously because the sharp-wave criterion helps reject ripple-band noise.</p>
-<div class="highlight"><pre><span></span><code><span class="n">basepath</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;S:\data\HMC\HMC1\day8&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="n">basepath</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;S:\data\HMC\HMC1\day8&quot;</span> <span class="c1"># 12691.7</span>
 
 <span class="n">ripples</span> <span class="o">=</span> <span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
     <span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span>
-    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="n">high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
     <span class="n">sharp_wave_low_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
     <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
     <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
-    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.100</span><span class="p">,</span>
-    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
-    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
-    <span class="n">noise_threshold</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.010</span><span class="p">,</span>
-    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span>
-    <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
+    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.500</span><span class="p">,</span>
+    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">noise_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">min_inter_event_interval</span><span class="o">=</span><span class="mf">0.025</span><span class="p">,</span>
+    <span class="n">peak_window</span><span class="o">=</span><span class="mf">0.150</span><span class="p">,</span>
+    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;union&quot;</span><span class="p">,</span>
+    <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="c1"># CHANGE TO TRUE TO SAVE MATLAB FILE</span>
 <span class="p">)</span>
-
-<span class="n">ripples</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">ripples</span>
 </code></pre></div>
 <div>
 <style scoped>
@@ -4258,91 +4385,194 @@
   <tbody>
     <tr>
       <th>0</th>
-      <td>1.0104</td>
-      <td>1.1384</td>
+      <td>1.0512</td>
+      <td>1.1264</td>
       <td>1.1032</td>
-      <td>1.0744</td>
-      <td>0.1280</td>
+      <td>1.0888</td>
+      <td>0.0752</td>
       <td>760.759106</td>
-      <td>134.276792</td>
+      <td>152.210805</td>
       <td>4.782693</td>
       <td>261</td>
       <td>2.197593</td>
-      <td>0.0776</td>
-      <td>2.963279</td>
-      <td>3597.090011</td>
-      <td>0.1280</td>
+      <td>0.0752</td>
+      <td>2.422366</td>
+      <td>2940.482427</td>
+      <td>0.0264</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>3.9912</td>
-      <td>4.0528</td>
-      <td>3.9992</td>
-      <td>4.0220</td>
-      <td>0.0616</td>
-      <td>512.311494</td>
-      <td>115.437931</td>
-      <td>3.278953</td>
-      <td>261</td>
-      <td>1.056192</td>
-      <td>0.0344</td>
-      <td>1.627667</td>
-      <td>1975.807248</td>
-      <td>0.0616</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>7.1056</td>
+      <td>7.0960</td>
       <td>7.1648</td>
       <td>7.1368</td>
-      <td>7.1352</td>
-      <td>0.0592</td>
+      <td>7.1304</td>
+      <td>0.0688</td>
       <td>1086.031154</td>
-      <td>169.068432</td>
+      <td>168.152198</td>
       <td>8.196290</td>
       <td>261</td>
       <td>1.212196</td>
-      <td>0.0696</td>
+      <td>0.0632</td>
       <td>5.626167</td>
       <td>6829.537229</td>
       <td>0.0592</td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>7.1744</td>
+      <th>2</th>
+      <td>7.1768</td>
       <td>7.2384</td>
       <td>7.2144</td>
-      <td>7.2064</td>
-      <td>0.0640</td>
+      <td>7.2076</td>
+      <td>0.0616</td>
       <td>1304.984970</td>
-      <td>149.256807</td>
+      <td>150.874740</td>
       <td>9.573347</td>
       <td>261</td>
       <td>2.108075</td>
-      <td>0.0648</td>
+      <td>0.0616</td>
       <td>7.564478</td>
       <td>9182.428640</td>
-      <td>0.0640</td>
+      <td>0.0408</td>
     </tr>
     <tr>
-      <th>4</th>
-      <td>7.4288</td>
+      <th>3</th>
+      <td>7.4264</td>
       <td>7.5176</td>
       <td>7.4720</td>
-      <td>7.4732</td>
-      <td>0.0888</td>
+      <td>7.4720</td>
+      <td>0.0912</td>
       <td>1218.558875</td>
-      <td>140.469821</td>
+      <td>140.678647</td>
       <td>8.721061</td>
       <td>261</td>
       <td>0.664760</td>
-      <td>0.0816</td>
-      <td>7.635724</td>
-      <td>9268.913910</td>
-      <td>0.0888</td>
+      <td>0.0760</td>
+      <td>4.828709</td>
+      <td>5861.512967</td>
+      <td>0.0424</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>14.1352</td>
+      <td>14.2008</td>
+      <td>14.1640</td>
+      <td>14.1680</td>
+      <td>0.0656</td>
+      <td>571.949331</td>
+      <td>153.709476</td>
+      <td>3.518855</td>
+      <td>261</td>
+      <td>0.596309</td>
+      <td>0.0424</td>
+      <td>7.625344</td>
+      <td>9256.313835</td>
+      <td>0.0600</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>11371</th>
+      <td>23718.8024</td>
+      <td>23718.8568</td>
+      <td>23718.8320</td>
+      <td>23718.8296</td>
+      <td>0.0544</td>
+      <td>900.653660</td>
+      <td>116.882316</td>
+      <td>5.862642</td>
+      <td>261</td>
+      <td>-0.421557</td>
+      <td>0.0424</td>
+      <td>2.175996</td>
+      <td>2641.416257</td>
+      <td>0.0304</td>
+    </tr>
+    <tr>
+      <th>11372</th>
+      <td>23718.8576</td>
+      <td>23718.9184</td>
+      <td>23718.8912</td>
+      <td>23718.8880</td>
+      <td>0.0608</td>
+      <td>1003.267970</td>
+      <td>123.708513</td>
+      <td>6.719147</td>
+      <td>261</td>
+      <td>-0.079005</td>
+      <td>0.0512</td>
+      <td>2.662700</td>
+      <td>3232.220196</td>
+      <td>0.0480</td>
+    </tr>
+    <tr>
+      <th>11373</th>
+      <td>23720.4048</td>
+      <td>23720.4512</td>
+      <td>23720.4160</td>
+      <td>23720.4280</td>
+      <td>0.0464</td>
+      <td>755.675320</td>
+      <td>118.455691</td>
+      <td>4.712376</td>
+      <td>261</td>
+      <td>0.080638</td>
+      <td>0.0288</td>
+      <td>1.713672</td>
+      <td>2080.207093</td>
+      <td>0.0352</td>
+    </tr>
+    <tr>
+      <th>11374</th>
+      <td>23803.4384</td>
+      <td>23803.5000</td>
+      <td>23803.4528</td>
+      <td>23803.4692</td>
+      <td>0.0616</td>
+      <td>825.348764</td>
+      <td>149.988464</td>
+      <td>5.396754</td>
+      <td>261</td>
+      <td>0.279748</td>
+      <td>0.0416</td>
+      <td>6.506896</td>
+      <td>7898.643345</td>
+      <td>0.0592</td>
+    </tr>
+    <tr>
+      <th>11375</th>
+      <td>23803.5768</td>
+      <td>23803.6808</td>
+      <td>23803.6648</td>
+      <td>23803.6288</td>
+      <td>0.1040</td>
+      <td>1181.015387</td>
+      <td>145.108995</td>
+      <td>8.584351</td>
+      <td>261</td>
+      <td>-0.109664</td>
+      <td>0.0400</td>
+      <td>2.441024</td>
+      <td>2963.130588</td>
+      <td>0.0552</td>
     </tr>
   </tbody>
 </table>
+<p>11376 rows × 14 columns</p>
 </div>
 
 <h3 id="parameter-guide">Parameter guide<a class="headerlink" href="#parameter-guide" title="Permanent link">&para;</a></h3>
@@ -4352,13 +4582,33 @@
 <li><code>high_threshold</code>: peak z-scored ripple-envelope threshold required to accept the ripple component.</li>
 <li><code>sharp_wave_low_threshold</code>: lower z-scored sharp-wave threshold used to set sharp-wave candidate boundaries.</li>
 <li><code>sharp_wave_high_threshold</code>: peak z-scored sharp-wave threshold required near the ripple peak.</li>
-<li><code>min_duration</code> and <code>max_duration</code>: allowed ripple-component duration in seconds.</li>
+<li><code>min_duration</code> and <code>max_duration</code>: allowed ripple-component duration in seconds. Keep <code>max_duration</code> permissive enough for real long ripples.</li>
 <li><code>sharp_wave_min_duration</code> and <code>sharp_wave_max_duration</code>: allowed sharp-wave-component duration in seconds.</li>
 <li><code>noise_threshold</code>: optional rejection threshold on the noise-channel ripple-band feature.</li>
-<li><code>merge_gap</code>: merge nearby candidate intervals separated by less than this gap in seconds.</li>
-<li><code>boundary_mode</code>: use <code>"sharp_wave"</code> for sharp-wave event boundaries or <code>"union"</code> for the combined ripple/sharp-wave interval.</li>
+<li><code>merge_gap</code>: merge nearby candidate intervals separated by less than this gap in seconds. Smaller values help keep nearby ripple bursts separate.</li>
+<li><code>peak_window</code>: maximum time window for associating a ripple candidate with its nearby sharp-wave partner.</li>
+<li><code>boundary_mode</code>: use <code>"sharp_wave"</code> for sharp-wave event boundaries or <code>"union"</code> for the combined ripple/sharp-wave interval. <code>"union"</code> is useful when ripple bursts ride on the shoulder of a broader sharp wave.</li>
 <li><code>require_sharp_wave</code>: keep the default <code>True</code> for joint SWR detection, or set <code>False</code> only when you intentionally want ripple-only detection because no sharp-wave channel is available.</li>
 </ul>
+<h3 id="best-practices-for-parameter-selection">Best practices for parameter selection<a class="headerlink" href="#best-practices-for-parameter-selection" title="Permanent link">&para;</a></h3>
+<p>A good detector should be tuned from examples, not just from the final event count. Start with the defaults, inspect a short window with raw ripple and sharp-wave channels, and verify that accepted events have a visible ripple burst paired with a downward sharp-wave deflection.</p>
+<ul>
+<li>Tune <code>high_threshold</code> first. Increasing it removes weak ripple-band events; decreasing it increases sensitivity but can admit noise.</li>
+<li>Tune <code>low_threshold</code> after <code>high_threshold</code>. This mostly changes candidate boundaries. Raising it can split nearby ripple bursts when the envelope valley stays above a very permissive threshold.</li>
+<li>Tune <code>sharp_wave_high_threshold</code> next. This is often the most useful way to reject ripple-band artifacts that do not have a convincing sharp wave.</li>
+<li>Keep <code>sharp_wave_polarity="negative"</code> for the usual case where sharp waves deflect downward. If example events show the sharp-wave feature is inverted, either swap/revisit channel choice or use <code>sharp_wave_polarity="positive"</code>.</li>
+<li>Use a small <code>merge_gap</code> such as 1 ms when tuning dense ripple bouts. Larger gaps can glue two nearby ripple bursts into one candidate before joint detection happens.</li>
+<li>Keep <code>max_duration</code> permissive if your data contain true long ripples. Do not rely on a short <code>max_duration</code> to split nearby events; use <code>low_threshold</code> and <code>merge_gap</code> instead.</li>
+<li>Increase <code>peak_window</code> when ripple bursts and sharp-wave troughs are visibly offset in time. A value around 100-150 ms can work well for broad sharp waves, especially with <code>boundary_mode="union"</code>.</li>
+<li>Use <code>boundary_mode="union"</code> when ripple bursts occur on the shoulder of the sharp wave and would be clipped by sharp-wave-only boundaries. Use <code>"sharp_wave"</code> when you want stricter sharp-wave-centered intervals.</li>
+<li>Use <code>threshold_mode="local"</code> when ripple or sharp-wave amplitudes change strongly across the session. Local thresholds are helpful for nonstationary recordings, but always inspect examples because they can change event counts relative to global z-scoring.</li>
+<li>Keep <code>min_inter_event_interval</code> near 25 ms when you want to avoid duplicate detections while still allowing nearby real SWRs. Increase it for stricter duplicate suppression.</li>
+<li>Prefer joint detection with <code>require_sharp_wave=True</code>. Use ripple-only mode only when no valid sharp-wave channel exists, and interpret those events more cautiously.</li>
+<li>Use a noise or bad channel when available. A conservative <code>noise_threshold</code> can remove muscle or hardware artifacts with ripple-band power.</li>
+<li>Leave <code>reject_edge_events=True</code> and <code>reject_artifacts=True</code> for normal use. These checks remove events near filter edges and windows with NaNs, flat traces, or clipped plateaus.</li>
+<li>After tuning, confirm detector invariants: events should be sorted, durations should be positive, peaks should fall inside <code>[start, stop]</code>, and example events should not cluster around obvious artifacts.</li>
+</ul>
+<p>A practical workflow is to tune on several representative windows from different parts of the session, then run the full session with <code>save_mat=True</code>. If you change parameters later, use <code>overwrite=True</code> so the saved CellExplorer event file reflects the new detector settings.</p>
 <p>See <code>detect_sharp_wave_ripples</code> for the full docstring and less commonly changed options such as passbands and smoothing widths.</p>
 <h2 id="3-inspect-the-real-data-detection-output">3) Inspect the real-data detection output<a class="headerlink" href="#3-inspect-the-real-data-detection-output" title="Permanent link">&para;</a></h2>
 <p>The returned table follows the CellExplorer event convention and includes a few extra columns that are useful for QC:</p>
@@ -4383,7 +4633,7 @@
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ripples</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> joint SWR events&quot;</span><span class="p">)</span>
 <span class="n">display</span><span class="p">(</span><span class="n">ripples</span><span class="p">[</span><span class="n">summary_columns</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>Detected 11,493 joint SWR events
+<div class="highlight"><pre><span></span><code>Detected 11,376 joint SWR events
 </code></pre></div>
 <div>
 <style scoped>
@@ -4418,133 +4668,133 @@
   <tbody>
     <tr>
       <th>0</th>
-      <td>1.0104</td>
-      <td>1.1384</td>
+      <td>1.0512</td>
+      <td>1.1264</td>
       <td>1.1032</td>
-      <td>0.1280</td>
-      <td>0.0776</td>
-      <td>0.1280</td>
-      <td>134.276792</td>
+      <td>0.0752</td>
+      <td>0.0752</td>
+      <td>0.0264</td>
+      <td>152.210805</td>
       <td>4.782693</td>
-      <td>2.963279</td>
+      <td>2.422366</td>
       <td>2.197593</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>3.9912</td>
-      <td>4.0528</td>
-      <td>3.9992</td>
-      <td>0.0616</td>
-      <td>0.0344</td>
-      <td>0.0616</td>
-      <td>115.437931</td>
-      <td>3.278953</td>
-      <td>1.627667</td>
-      <td>1.056192</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>7.1056</td>
+      <td>7.0960</td>
       <td>7.1648</td>
       <td>7.1368</td>
+      <td>0.0688</td>
+      <td>0.0632</td>
       <td>0.0592</td>
-      <td>0.0696</td>
-      <td>0.0592</td>
-      <td>169.068432</td>
+      <td>168.152198</td>
       <td>8.196290</td>
       <td>5.626167</td>
       <td>1.212196</td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>7.1744</td>
+      <th>2</th>
+      <td>7.1768</td>
       <td>7.2384</td>
       <td>7.2144</td>
-      <td>0.0640</td>
-      <td>0.0648</td>
-      <td>0.0640</td>
-      <td>149.256807</td>
+      <td>0.0616</td>
+      <td>0.0616</td>
+      <td>0.0408</td>
+      <td>150.874740</td>
       <td>9.573347</td>
       <td>7.564478</td>
       <td>2.108075</td>
     </tr>
     <tr>
-      <th>4</th>
-      <td>7.4288</td>
+      <th>3</th>
+      <td>7.4264</td>
       <td>7.5176</td>
       <td>7.4720</td>
-      <td>0.0888</td>
-      <td>0.0816</td>
-      <td>0.0888</td>
-      <td>140.469821</td>
+      <td>0.0912</td>
+      <td>0.0760</td>
+      <td>0.0424</td>
+      <td>140.678647</td>
       <td>8.721061</td>
-      <td>7.635724</td>
+      <td>4.828709</td>
       <td>0.664760</td>
     </tr>
     <tr>
-      <th>5</th>
-      <td>14.0992</td>
-      <td>14.1952</td>
+      <th>4</th>
+      <td>14.1352</td>
+      <td>14.2008</td>
       <td>14.1640</td>
-      <td>0.0960</td>
-      <td>0.0632</td>
-      <td>0.0960</td>
-      <td>167.111533</td>
+      <td>0.0656</td>
+      <td>0.0424</td>
+      <td>0.0600</td>
+      <td>153.709476</td>
       <td>3.518855</td>
       <td>7.625344</td>
-      <td>1.878792</td>
+      <td>0.596309</td>
     </tr>
     <tr>
-      <th>6</th>
-      <td>14.6080</td>
-      <td>14.6736</td>
+      <th>5</th>
+      <td>14.6272</td>
+      <td>14.6832</td>
       <td>14.6472</td>
-      <td>0.0656</td>
-      <td>0.0752</td>
-      <td>0.0656</td>
-      <td>165.331762</td>
+      <td>0.0560</td>
+      <td>0.0560</td>
+      <td>0.0360</td>
+      <td>163.644184</td>
       <td>12.713671</td>
       <td>6.487357</td>
       <td>3.301809</td>
     </tr>
     <tr>
-      <th>7</th>
-      <td>17.5416</td>
-      <td>17.6168</td>
-      <td>17.5880</td>
-      <td>0.0752</td>
-      <td>0.0344</td>
-      <td>0.0752</td>
-      <td>133.228881</td>
-      <td>2.533836</td>
-      <td>2.632161</td>
-      <td>1.133834</td>
-    </tr>
-    <tr>
-      <th>8</th>
+      <th>6</th>
       <td>22.3400</td>
       <td>22.4008</td>
       <td>22.3840</td>
       <td>0.0608</td>
-      <td>0.0336</td>
+      <td>0.0312</td>
       <td>0.0608</td>
-      <td>170.302184</td>
+      <td>172.125805</td>
       <td>5.733974</td>
       <td>7.285906</td>
       <td>0.764961</td>
     </tr>
     <tr>
-      <th>9</th>
+      <th>7</th>
       <td>26.8832</td>
-      <td>26.9288</td>
+      <td>26.9432</td>
       <td>26.9200</td>
+      <td>0.0600</td>
+      <td>0.0336</td>
       <td>0.0456</td>
-      <td>0.0448</td>
-      <td>0.0456</td>
-      <td>134.940743</td>
+      <td>130.276986</td>
       <td>3.218880</td>
       <td>8.845681</td>
       <td>1.957444</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>34.4480</td>
+      <td>34.5256</td>
+      <td>34.4552</td>
+      <td>0.0776</td>
+      <td>0.0304</td>
+      <td>0.0432</td>
+      <td>131.247959</td>
+      <td>2.590872</td>
+      <td>5.050478</td>
+      <td>1.783983</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>34.7008</td>
+      <td>34.7592</td>
+      <td>34.7392</td>
+      <td>0.0584</td>
+      <td>0.0512</td>
+      <td>0.0344</td>
+      <td>153.718537</td>
+      <td>11.774589</td>
+      <td>6.308865</td>
+      <td>1.835325</td>
     </tr>
   </tbody>
 </table>
@@ -4635,11 +4885,11 @@
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded LFP shape: </span><span class="si">{</span><span class="n">lfp_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sampling rate: </span><span class="si">{</span><span class="n">fs</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Hz&quot;</span><span class="p">)</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>Number of detected events in first 1200 seconds: 448
+<div class="highlight"><pre><span></span><code>Number of detected events in first 1200 seconds: 459
 Ripple channel: 261
 Sharp-wave channel: 282
-Loaded plotting window: 285.25 to 1029.30 s
-Loaded LFP shape: (2, 930055)
+Loaded plotting window: 227.08 to 1029.31 s
+Loaded LFP shape: (2, 1002791)
 Sampling rate: 1250.0 Hz
 </code></pre></div>
 <h2 id="5-plot-raw-channels-and-feature-traces">5) Plot raw channels and feature traces<a class="headerlink" href="#5-plot-raw-channels-and-feature-traces" title="Permanent link">&para;</a></h2>
@@ -4656,7 +4906,7 @@ Sampling rate: 1250.0 Hz
     <span class="n">fs</span><span class="p">,</span>
     <span class="n">ripple_high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
     <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
-    <span class="n">example_window</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span>
+    <span class="n">example_window</span><span class="o">=</span><span class="mf">0.150</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span>
         <span class="n">figsize</span><span class="o">=</span><span class="n">npy</span><span class="o">.</span><span class="n">plotting</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="s2">&quot;nature_double&quot;</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">1.65</span><span class="p">),</span>
@@ -4783,22 +5033,24 @@ Sampling rate: 1250.0 Hz
 <span class="p">)</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Joint sharp wave ripple detection summary&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
 </code></pre></div>
-<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_17_0.png" /></p>
+<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_18_0.png" /></p>
 <h2 id="6-save-the-final-joint-detections-to-a-cellexplorer-event-file">6) Save the final joint detections to a CellExplorer event file<a class="headerlink" href="#6-save-the-final-joint-detections-to-a-cellexplorer-event-file" title="Permanent link">&para;</a></h2>
 <p>After the thresholds look good, rerun the detector with <code>save_mat=True</code>. Using the default <code>event_name="ripples"</code> writes a standard CellExplorer event file named <code>basename.ripples.events.mat</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
     <span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span>
-    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+    <span class="n">low_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="n">high_threshold</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
     <span class="n">sharp_wave_low_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
     <span class="n">sharp_wave_high_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
     <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
-    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.100</span><span class="p">,</span>
-    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.020</span><span class="p">,</span>
-    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
-    <span class="n">noise_threshold</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.010</span><span class="p">,</span>
-    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;sharp_wave&quot;</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span>
+    <span class="n">sharp_wave_min_duration</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+    <span class="n">sharp_wave_max_duration</span><span class="o">=</span><span class="mf">0.500</span><span class="p">,</span>
+    <span class="n">noise_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">merge_gap</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">min_inter_event_interval</span><span class="o">=</span><span class="mf">0.025</span><span class="p">,</span>
+    <span class="n">peak_window</span><span class="o">=</span><span class="mf">0.150</span><span class="p">,</span>
+    <span class="n">boundary_mode</span><span class="o">=</span><span class="s2">&quot;union&quot;</span><span class="p">,</span>
     <span class="n">save_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
