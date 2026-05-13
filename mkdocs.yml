@@ -76,9 +76,10 @@ plugins:
             docstring_style: numpy
             docstring_section_style: table
             filters:
-              - "!__"
-              - "!tests"
-              - "!test_*"
+              - "!^__"
+              - "!^_[^_]"
+              - "!^test_"
+              - "!^tests$"
 nav:
 - Home: index.md
 - API Reference:
@@ -97,6 +98,7 @@ nav:
   - detectors:
     - detectors: reference/neuro_py/detectors/index.md
     - dentate_spike: reference/neuro_py/detectors/dentate_spike.md
+    - sharp_wave_ripple: reference/neuro_py/detectors/sharp_wave_ripple.md
     - up_down_state: reference/neuro_py/detectors/up_down_state.md
   - ensemble:
     - ensemble: reference/neuro_py/ensemble/index.md
@@ -132,6 +134,7 @@ nav:
     - decorators: reference/neuro_py/plotting/decorators.md
     - events: reference/neuro_py/plotting/events.md
     - figure_helpers: reference/neuro_py/plotting/figure_helpers.md
+    - replay: reference/neuro_py/plotting/replay.md
   - process:
     - process: reference/neuro_py/process/index.md
     - batch_analysis: reference/neuro_py/process/batch_analysis.md
