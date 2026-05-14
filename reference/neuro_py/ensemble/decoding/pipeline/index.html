@@ -305,8 +305,6 @@
       
         
       
-        
-      
     
     
     
@@ -1338,17 +1336,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         pipeline
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.ensemble.decoding.pipeline._get_trial_spikes_with_no_overlap_history" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _get_trial_spikes_with_no_overlap_history
       </span>
     </span>
   </a>
@@ -3322,8 +3309,6 @@
       
         
       
-        
-      
     
     
     
@@ -3716,33 +3701,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../../tutorials/weighted_corr_2d/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Weighted Correlation
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3791,17 +3749,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         pipeline
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.ensemble.decoding.pipeline._get_trial_spikes_with_no_overlap_history" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _get_trial_spikes_with_no_overlap_history
       </span>
     </span>
   </a>
@@ -4157,195 +4104,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.ensemble.decoding.pipeline._get_trial_spikes_with_no_overlap_history" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_get_trial_spikes_with_no_overlap_history</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">bins_before</span><span class="p">,</span> <span class="n">bins_after</span><span class="p">,</span> <span class="n">bins_current</span><span class="p">)</span></code>
-
-<a href="#neuro_py.ensemble.decoding.pipeline._get_trial_spikes_with_no_overlap_history" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Get trial spikes with no overlap history.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>X</code>
-            </td>
-            <td>
-                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Input binned spike data.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>bins_before</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of bins before the current bin.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>bins_after</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of bins after the current bin.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>bins_current</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of current bins.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="typing.List">List</span>[<span title="numpy.typing.NDArray">NDArray</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>List of trial covariates with no overlap history.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 77</span>
-<span class="normal"> 78</span>
-<span class="normal"> 79</span>
-<span class="normal"> 80</span>
-<span class="normal"> 81</span>
-<span class="normal"> 82</span>
-<span class="normal"> 83</span>
-<span class="normal"> 84</span>
-<span class="normal"> 85</span>
-<span class="normal"> 86</span>
-<span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_trial_spikes_with_no_overlap_history</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">bins_before</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bins_after</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bins_current</span><span class="p">:</span> <span class="nb">int</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get trial spikes with no overlap history.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    X : NDArray</span>
-<span class="sd">        Input binned spike data.</span>
-<span class="sd">    bins_before : int</span>
-<span class="sd">        Number of bins before the current bin.</span>
-<span class="sd">    bins_after : int</span>
-<span class="sd">        Number of bins after the current bin.</span>
-<span class="sd">    bins_current : int</span>
-<span class="sd">        Number of current bins.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    List[NDArray]</span>
-<span class="sd">        List of trial covariates with no overlap history.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nonoverlap_trial_covariates</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">X_cov</span> <span class="o">=</span> <span class="n">get_spikes_with_history</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">bins_before</span><span class="p">,</span> <span class="n">bins_after</span><span class="p">,</span> <span class="n">bins_current</span><span class="p">)</span>
-        <span class="n">nonoverlap_trial_covariates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_cov</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">X_trial</span> <span class="ow">in</span> <span class="n">X</span><span class="p">:</span>
-            <span class="n">X_cov</span> <span class="o">=</span> <span class="n">get_spikes_with_history</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X_trial</span><span class="p">),</span> <span class="n">bins_before</span><span class="p">,</span> <span class="n">bins_after</span><span class="p">,</span> <span class="n">bins_current</span>
-            <span class="p">)</span>
-            <span class="n">nonoverlap_trial_covariates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_cov</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">nonoverlap_trial_covariates</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 

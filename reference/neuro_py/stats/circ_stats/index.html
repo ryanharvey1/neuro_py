@@ -305,8 +305,6 @@
       
         
       
-        
-      
     
     
     
@@ -2822,17 +2820,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#neuro_py.stats.circ_stats._complex_mean" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _complex_mean
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#neuro_py.stats.circ_stats.center" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3300,8 +3287,6 @@
       
         
       
-        
-      
     
     
     
@@ -3694,33 +3679,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../tutorials/weighted_corr_2d/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Weighted Correlation
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3791,17 +3749,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         swap2zeroaxis
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.stats.circ_stats._complex_mean" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _complex_mean
       </span>
     </span>
   </a>
@@ -4676,209 +4623,6 @@ scale or on a linear scale.</p>
 
 </div>
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.stats.circ_stats._complex_mean" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_complex_mean</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axial_correction</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
-
-<a href="#neuro_py.stats.circ_stats._complex_mean" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the weighted mean of complex values.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>alpha</code>
-            </td>
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Array of angles (in radians) representing complex values.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>w</code>
-            </td>
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Array of weights corresponding to the alpha values. If None, uniform weights are used.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>axis</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Axis along which the mean is computed. If None, the mean is computed over the entire array.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>axial_correction</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Correction factor for the angles (default is 1).</p>
-              </div>
-            </td>
-            <td>
-                  <code>1</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Weighted mean of the complex values.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/stats/circ_stats.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
-<span class="normal">280</span>
-<span class="normal">281</span>
-<span class="normal">282</span>
-<span class="normal">283</span>
-<span class="normal">284</span>
-<span class="normal">285</span>
-<span class="normal">286</span>
-<span class="normal">287</span>
-<span class="normal">288</span>
-<span class="normal">289</span>
-<span class="normal">290</span>
-<span class="normal">291</span>
-<span class="normal">292</span>
-<span class="normal">293</span>
-<span class="normal">294</span>
-<span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
-<span class="normal">299</span>
-<span class="normal">300</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_complex_mean</span><span class="p">(</span>
-    <span class="n">alpha</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">axis</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">axial_correction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the weighted mean of complex values.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    alpha : np.ndarray</span>
-<span class="sd">        Array of angles (in radians) representing complex values.</span>
-<span class="sd">    w : np.ndarray, optional</span>
-<span class="sd">        Array of weights corresponding to the alpha values. If None, uniform weights are used.</span>
-<span class="sd">    axis : int, optional</span>
-<span class="sd">        Axis along which the mean is computed. If None, the mean is computed over the entire array.</span>
-<span class="sd">    axial_correction : float, optional</span>
-<span class="sd">        Correction factor for the angles (default is 1).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    np.ndarray</span>
-<span class="sd">        Weighted mean of the complex values.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
-    <span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
-
-    <span class="k">assert</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">alpha</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Dimensions of data &quot;</span>
-        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="o">+</span> <span class="s2">&quot; and w &quot;</span>
-        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="o">+</span> <span class="s2">&quot; do not match!&quot;</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">axial_correction</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-        <span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 

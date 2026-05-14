@@ -305,8 +305,6 @@
       
         
       
-        
-      
     
     
     
@@ -2257,17 +2255,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#neuro_py.process.intervals._find_intersecting_intervals" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _find_intersecting_intervals
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#neuro_py.process.intervals.find_intersecting_intervals" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3311,8 +3298,6 @@
       
         
       
-        
-      
     
     
     
@@ -3705,33 +3690,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../tutorials/weighted_corr_2d/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Weighted Correlation
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3780,17 +3738,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         intervals
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.process.intervals._find_intersecting_intervals" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _find_intersecting_intervals
       </span>
     </span>
   </a>
@@ -4115,160 +4062,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.process.intervals._find_intersecting_intervals" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_find_intersecting_intervals</span><span class="p">(</span><span class="n">set1</span><span class="p">,</span> <span class="n">set2</span><span class="p">)</span></code>
-
-<a href="#neuro_py.process.intervals._find_intersecting_intervals" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Find the amount of time two sets of intervals are intersecting each other for each interval in set1.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>set1</code>
-            </td>
-            <td>
-                  <code><span title="ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>An array of intervals represented as pairs of start and end times.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>set2</code>
-            </td>
-            <td>
-                  <code><span title="ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>An array of intervals represented as pairs of start and end times.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code>list of float</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>A list of floats, where each float represents the amount of time the
-corresponding interval in set1 intersects with any interval in set2.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/process/intervals.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_find_intersecting_intervals</span><span class="p">(</span><span class="n">set1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">set2</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Find the amount of time two sets of intervals are intersecting each other for each interval in set1.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    set1 : ndarray</span>
-<span class="sd">        An array of intervals represented as pairs of start and end times.</span>
-<span class="sd">    set2 : ndarray</span>
-<span class="sd">        An array of intervals represented as pairs of start and end times.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    list of float</span>
-<span class="sd">        A list of floats, where each float represents the amount of time the</span>
-<span class="sd">        corresponding interval in set1 intersects with any interval in set2.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">intersecting_intervals</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">start1</span><span class="p">,</span> <span class="n">end1</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">set1</span><span class="p">):</span>
-        <span class="c1"># Check if any of the intervals in set2 intersect with the current interval in set1</span>
-        <span class="k">for</span> <span class="n">start2</span><span class="p">,</span> <span class="n">end2</span> <span class="ow">in</span> <span class="n">set2</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">start2</span> <span class="o">&lt;=</span> <span class="n">end1</span> <span class="ow">and</span> <span class="n">end2</span> <span class="o">&gt;=</span> <span class="n">start1</span><span class="p">:</span>
-                <span class="c1"># Calculate the amount of intersection between the two intervals</span>
-                <span class="n">intersection</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">end1</span><span class="p">,</span> <span class="n">end2</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="n">start1</span><span class="p">,</span> <span class="n">start2</span><span class="p">)</span>
-                <span class="n">intersecting_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">intersection</span><span class="p">)</span>
-                <span class="k">break</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">intersecting_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># No intersection found</span>
-
-    <span class="k">return</span> <span class="n">intersecting_intervals</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 

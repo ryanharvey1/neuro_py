@@ -305,8 +305,6 @@
       
         
       
-        
-      
     
     
     
@@ -2284,28 +2282,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#neuro_py.process.peri_event._sync_fill_indices" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _sync_fill_indices
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.process.peri_event._sync_find_windows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _sync_find_windows
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#neuro_py.process.peri_event.compute_psth" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3377,8 +3353,6 @@
       
         
       
-        
-      
     
     
     
@@ -3771,33 +3745,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../tutorials/weighted_corr_2d/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Weighted Correlation
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3846,28 +3793,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         peri_event
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.process.peri_event._sync_fill_indices" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _sync_fill_indices
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.process.peri_event._sync_find_windows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _sync_find_windows
       </span>
     </span>
   </a>
@@ -4247,217 +4172,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.process.peri_event._sync_fill_indices" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_sync_fill_indices</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">stops</span><span class="p">,</span> <span class="n">events_with_hits</span><span class="p">,</span> <span class="n">total_hits</span><span class="p">)</span></code>
-
-<a href="#neuro_py.process.peri_event._sync_fill_indices" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Numba-compiled function to fill Is and Ie index arrays.</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">526</span>
-<span class="normal">527</span>
-<span class="normal">528</span>
-<span class="normal">529</span>
-<span class="normal">530</span>
-<span class="normal">531</span>
-<span class="normal">532</span>
-<span class="normal">533</span>
-<span class="normal">534</span>
-<span class="normal">535</span>
-<span class="normal">536</span>
-<span class="normal">537</span>
-<span class="normal">538</span>
-<span class="normal">539</span>
-<span class="normal">540</span>
-<span class="normal">541</span>
-<span class="normal">542</span>
-<span class="normal">543</span>
-<span class="normal">544</span>
-<span class="normal">545</span>
-<span class="normal">546</span>
-<span class="normal">547</span>
-<span class="normal">548</span>
-<span class="normal">549</span>
-<span class="normal">550</span>
-<span class="normal">551</span>
-<span class="normal">552</span>
-<span class="normal">553</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_sync_fill_indices</span><span class="p">(</span>
-    <span class="n">starts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">stops</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">events_with_hits</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">total_hits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Numba-compiled function to fill Is and Ie index arrays.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">Is</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">total_hits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">Ie</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">total_hits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-    <span class="n">write_pos</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)):</span>
-        <span class="n">start_idx</span> <span class="o">=</span> <span class="n">starts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">stop_idx</span> <span class="o">=</span> <span class="n">stops</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">event_i</span> <span class="o">=</span> <span class="n">events_with_hits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">run_len</span> <span class="o">=</span> <span class="n">stop_idx</span> <span class="o">-</span> <span class="n">start_idx</span>
-
-        <span class="c1"># Fill this segment</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">run_len</span><span class="p">):</span>
-            <span class="n">Is</span><span class="p">[</span><span class="n">write_pos</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">j</span>
-            <span class="n">Ie</span><span class="p">[</span><span class="n">write_pos</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">event_i</span>
-
-        <span class="n">write_pos</span> <span class="o">+=</span> <span class="n">run_len</span>
-
-    <span class="k">return</span> <span class="n">Is</span><span class="p">,</span> <span class="n">Ie</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.process.peri_event._sync_find_windows" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_sync_find_windows</span><span class="p">(</span><span class="n">sample_times</span><span class="p">,</span> <span class="n">event_times</span><span class="p">,</span> <span class="n">start_offset</span><span class="p">,</span> <span class="n">stop_offset</span><span class="p">)</span></code>
-
-<a href="#neuro_py.process.peri_event._sync_find_windows" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Numba-compiled function to find time windows for each event.</p>
-<p>Returns arrays of starts, stops, events_with_hits, and total_hits count.</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span>
-<span class="normal">477</span>
-<span class="normal">478</span>
-<span class="normal">479</span>
-<span class="normal">480</span>
-<span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span>
-<span class="normal">485</span>
-<span class="normal">486</span>
-<span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
-<span class="normal">490</span>
-<span class="normal">491</span>
-<span class="normal">492</span>
-<span class="normal">493</span>
-<span class="normal">494</span>
-<span class="normal">495</span>
-<span class="normal">496</span>
-<span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
-<span class="normal">518</span>
-<span class="normal">519</span>
-<span class="normal">520</span>
-<span class="normal">521</span>
-<span class="normal">522</span>
-<span class="normal">523</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_sync_find_windows</span><span class="p">(</span>
-    <span class="n">sample_times</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">event_times</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">start_offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">stop_offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Numba-compiled function to find time windows for each event.</span>
-
-<span class="sd">    Returns arrays of starts, stops, events_with_hits, and total_hits count.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_times</span><span class="p">)</span>
-    <span class="n">n_events</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">event_times</span><span class="p">)</span>
-
-    <span class="c1"># Pre-allocate maximum possible size</span>
-    <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">stops</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">events_with_hits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-    <span class="n">n_hits</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">total_hits</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">left_idx</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">right_idx</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="k">for</span> <span class="n">event_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_events</span><span class="p">):</span>
-        <span class="n">event_t</span> <span class="o">=</span> <span class="n">event_times</span><span class="p">[</span><span class="n">event_i</span><span class="p">]</span>
-        <span class="n">start_t</span> <span class="o">=</span> <span class="n">event_t</span> <span class="o">+</span> <span class="n">start_offset</span>
-        <span class="n">stop_t</span> <span class="o">=</span> <span class="n">event_t</span> <span class="o">+</span> <span class="n">stop_offset</span>
-
-        <span class="c1"># Advance left pointer</span>
-        <span class="k">while</span> <span class="n">left_idx</span> <span class="o">&lt;</span> <span class="n">n_samples</span> <span class="ow">and</span> <span class="n">sample_times</span><span class="p">[</span><span class="n">left_idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">start_t</span><span class="p">:</span>
-            <span class="n">left_idx</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1"># Ensure right_idx is at least left_idx</span>
-        <span class="k">if</span> <span class="n">right_idx</span> <span class="o">&lt;</span> <span class="n">left_idx</span><span class="p">:</span>
-            <span class="n">right_idx</span> <span class="o">=</span> <span class="n">left_idx</span>
-
-        <span class="c1"># Advance right pointer</span>
-        <span class="k">while</span> <span class="n">right_idx</span> <span class="o">&lt;</span> <span class="n">n_samples</span> <span class="ow">and</span> <span class="n">sample_times</span><span class="p">[</span><span class="n">right_idx</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">stop_t</span><span class="p">:</span>
-            <span class="n">right_idx</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1"># Record if we found any samples in this window</span>
-        <span class="k">if</span> <span class="n">right_idx</span> <span class="o">&gt;</span> <span class="n">left_idx</span><span class="p">:</span>
-            <span class="n">starts</span><span class="p">[</span><span class="n">n_hits</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_idx</span>
-            <span class="n">stops</span><span class="p">[</span><span class="n">n_hits</span><span class="p">]</span> <span class="o">=</span> <span class="n">right_idx</span>
-            <span class="n">events_with_hits</span><span class="p">[</span><span class="n">n_hits</span><span class="p">]</span> <span class="o">=</span> <span class="n">event_i</span>
-            <span class="n">total_hits</span> <span class="o">+=</span> <span class="n">right_idx</span> <span class="o">-</span> <span class="n">left_idx</span>
-            <span class="n">n_hits</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="c1"># Trim arrays to actual size</span>
-    <span class="n">starts</span> <span class="o">=</span> <span class="n">starts</span><span class="p">[:</span><span class="n">n_hits</span><span class="p">]</span>
-    <span class="n">stops</span> <span class="o">=</span> <span class="n">stops</span><span class="p">[:</span><span class="n">n_hits</span><span class="p">]</span>
-    <span class="n">events_with_hits</span> <span class="o">=</span> <span class="n">events_with_hits</span><span class="p">[:</span><span class="n">n_hits</span><span class="p">]</span>
-
-    <span class="k">return</span> <span class="n">starts</span><span class="p">,</span> <span class="n">stops</span><span class="p">,</span> <span class="n">events_with_hits</span><span class="p">,</span> <span class="n">total_hits</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 

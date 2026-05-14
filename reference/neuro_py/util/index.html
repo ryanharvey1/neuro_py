@@ -305,8 +305,6 @@
       
         
       
-        
-      
     
     
     
@@ -3114,8 +3112,6 @@
       
         
       
-        
-      
     
     
     
@@ -3508,33 +3504,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../tutorials/weighted_corr_2d/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Weighted Correlation
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3583,17 +3552,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         util
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#neuro_py.util._check_dependency" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        _check_dependency
       </span>
     </span>
   </a>
@@ -3851,110 +3809,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.util._check_dependency" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">_check_dependency</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">extra</span><span class="p">)</span></code>
-
-<a href="#neuro_py.util._check_dependency" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Check if a module is installed, and raise an ImportError with a helpful message if not.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>module_name</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the module to check.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>extra</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the extra requirement group (e.g., 'csd') to suggest in the error message.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/util/_dependencies.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
-<span class="normal"> 2</span>
-<span class="normal"> 3</span>
-<span class="normal"> 4</span>
-<span class="normal"> 5</span>
-<span class="normal"> 6</span>
-<span class="normal"> 7</span>
-<span class="normal"> 8</span>
-<span class="normal"> 9</span>
-<span class="normal">10</span>
-<span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_dependency</span><span class="p">(</span><span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extra</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Check if a module is installed, and raise an ImportError with a helpful message if not.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    module_name : str</span>
-<span class="sd">        The name of the module to check.</span>
-<span class="sd">    extra : str</span>
-<span class="sd">        The name of the extra requirement group (e.g., &#39;csd&#39;) to suggest in the error message.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="nb">__import__</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s2"> is not installed. Please install it to use this function. &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;Run: pip install -e .[</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">]&quot;</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
