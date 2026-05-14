@@ -73,3 +73,17 @@
 .md-header .md-search__button::after {
   background-color: rgba(0, 0, 0, 0.5);
 }
+
+/* Notebook dataframe output */
+.md-typeset table.dataframe {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.md-typeset table.dataframe th,
+.md-typeset table.dataframe td {
+  white-space: nowrap;
+}
