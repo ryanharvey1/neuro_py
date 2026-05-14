@@ -88,6 +88,11 @@ neuro_py/
 - CI runs `ruff check .` and `pytest` on Python 3.10, 3.11, 3.12, and 3.13.
 - When running pytest locally, prefer a project environment with the package test dependencies installed so imports like `lazy_loader`, `nelpy`, and other runtime requirements resolve during collection.
 - If pytest fails before collection because unrelated third-party plugins auto-load from the active environment, rerun the same target with `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` to isolate the repo's own tests.
+- On this Windows workspace, if the ambient Anaconda Python is too old or missing dependencies and `.venv`/`uv` reports cache or interpreter access issues, set the uv cache inside the repo and inject pytest for the run:
+  ```powershell
+  $env:UV_CACHE_DIR='D:\github\neuro_py\.uv-cache'
+  uv run --with pytest python -m pytest tests\util\test_util_array.py -q
+  ```
 
 Before finishing a change, run the narrowest relevant test subset first, then broader tests if needed. If you cannot run tests in the current environment, say so explicitly.
 

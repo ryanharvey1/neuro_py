@@ -347,6 +347,7 @@ def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
     Notes
     -----
     - Columns with zero variance will result in NaN values.
+    - Columns that are entirely missing will remain NaN.
     - The input DataFrame is not modified.
 
     Examples
@@ -388,14 +389,18 @@ def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
     1       NaN
     2       NaN
     """
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    if not numeric_cols.equals(df.columns):
-        non_numeric = df.columns.difference(numeric_cols)
+    non_numeric = [
+        column
+        for idx, (column, dtype) in enumerate(zip(df.columns, df.dtypes))
+        if not pd.api.types.is_numeric_dtype(dtype) and not df.iloc[:, idx].isna().all()
+    ]
+    if non_numeric:
         raise TypeError(
             "zscore_columns expects all columns to be numeric; "
-            f"non-numeric columns found: {list(non_numeric)}"
+            f"non-numeric columns found: {non_numeric}"
         )
-    return (df - df.mean(axis=0)) / df.std(axis=0, ddof=ddof)
+    numeric_df = df.astype(float)
+    return (numeric_df - numeric_df.mean(axis=0)) / numeric_df.std(axis=0, ddof=ddof)
 
 
 def smooth_peth(
