@@ -402,6 +402,32 @@ def test_zscore_zero_variance_column():
     assert np.isclose(z["varying"].mean(), 0.0)
 
 
+def test_zscore_all_nan_columns_are_preserved():
+    """All-NaN columns should remain NaN instead of failing validation."""
+    df = pd.DataFrame(
+        {
+            0: pd.Series([np.nan, np.nan, np.nan], dtype=object),
+            1: pd.Series([np.nan, np.nan, np.nan], dtype=object),
+            2: [1.0, 2.0, 3.0],
+        }
+    )
+
+    z = zscore_columns(df, ddof=0)
+
+    assert z[0].isna().all()
+    assert z[1].isna().all()
+    assert np.isclose(z[2].mean(), 0.0)
+    assert np.isclose(z[2].std(ddof=0), 1.0)
+
+
+def test_zscore_non_numeric_columns_raise():
+    """Non-numeric columns with data should still raise."""
+    df = pd.DataFrame({"numeric": [1.0, 2.0, 3.0], "label": ["a", "b", "c"]})
+
+    with pytest.raises(TypeError, match="non-numeric columns found: \\['label'\\]"):
+        zscore_columns(df)
+
+
 class TestSmoothPeth:
     def test_numpy_array_matches_gaussian_filter(self):
         """NumPy path should match pandas Gaussian rolling reference."""
