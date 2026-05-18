@@ -1,6 +1,7 @@
 import os
 import pickle
 import sys
+from collections.abc import MutableMapping, Sequence
 from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -2122,13 +2123,21 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
-        def get_epoch_entry(epoch_index: int) -> dict:
+        def validate_epoch_entry(epoch_entry: object, epoch_index: int) -> MutableMapping:
+            if not isinstance(epoch_entry, MutableMapping):
+                raise TypeError(
+                    "behavior['epochs'] entries must be mutable mapping types, "
+                    f"got {type(epoch_entry).__name__} at index {epoch_index}"
+                )
+            return epoch_entry
+
+        def get_epoch_entry(epoch_index: int) -> MutableMapping:
             behavior_epochs = data["behavior"].get("epochs")
 
             if behavior_epochs is None:
                 raise KeyError("behavior['epochs'] is missing from the behavior file")
 
-            if isinstance(behavior_epochs, dict):
+            if isinstance(behavior_epochs, MutableMapping):
                 if epoch_index != 0:
                     raise IndexError(
                         f"behavior['epochs'] contains a single epoch, cannot access index {epoch_index}"
@@ -2136,17 +2145,17 @@ class NodePicker:
                 return behavior_epochs
 
             if isinstance(behavior_epochs, np.ndarray):
-                if behavior_epochs.ndim == 0:
-                    epoch_entry = behavior_epochs.item()
-                else:
-                    epoch_entry = behavior_epochs[epoch_index]
-                if not isinstance(epoch_entry, dict):
-                    raise TypeError(
-                        "behavior['epochs'] entries must be dict-like after loading"
-                    )
-                return epoch_entry
+                behavior_epochs = behavior_epochs.item() if behavior_epochs.ndim == 0 else behavior_epochs
 
-            return behavior_epochs[epoch_index]
+            if isinstance(behavior_epochs, Sequence) and not isinstance(
+                behavior_epochs, (str, bytes, bytearray)
+            ):
+                return validate_epoch_entry(behavior_epochs[epoch_index], epoch_index)
+
+            raise TypeError(
+                "behavior['epochs'] must be a mutable mapping, numpy.ndarray, or sequence "
+                f"of mutable mappings, got {type(behavior_epochs).__name__}"
+            )
 
         if self.epoch is None and self.interval is None:
             # load epochs
