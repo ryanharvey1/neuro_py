@@ -533,6 +533,45 @@ class TestNodePicker:
             expected = [(0, 0), (2, 0)]
             assert picker._nodes == expected
 
+    @patch("neuro_py.behavior.linearization.load_epoch")
+    def test_save_nodes_edges_to_behavior_single_epoch_dict(self, mock_load_epoch):
+        """Regression test for behavior files where epochs loads as a single dict."""
+        with patch("matplotlib.pyplot.gca") as mock_gca:
+            mock_ax = Mock()
+            mock_gca.return_value = mock_ax
+
+            picker = NodePicker(basepath="test_basepath")
+            picker._nodes = [(0, 0), (1, 0)]
+            picker.edges = [[0, 1]]
+
+            behave_df = pd.DataFrame(
+                {
+                    "time": [0.5, 1.0, 1.5],
+                    "linearized": [0.0, 1.0, 2.0],
+                }
+            )
+            mock_load_epoch.return_value = pd.DataFrame(
+                [{"startTime": 0.0, "stopTime": 2.0}]
+            )
+
+            data = {
+                "behavior": {
+                    "epochs": {
+                        "name": "y_maze",
+                        "startTime": 0.0,
+                        "stopTime": 2.0,
+                    }
+                }
+            }
+
+            result = picker.save_nodes_edges_to_behavior(data, behave_df)
+
+            np.testing.assert_array_equal(
+                result["behavior"]["epochs"]["node_positions"],
+                np.array([[0, 0], [1, 0]]),
+            )
+            assert result["behavior"]["epochs"]["edges"] == [[0, 1]]
+
     @patch("neuro_py.behavior.linearization.load_animal_behavior")
     @patch("neuro_py.behavior.linearization.load_epoch")
     @patch("neuro_py.behavior.linearization.loadmat")

@@ -2122,6 +2122,32 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
+        def get_epoch_entry(epoch_index: int) -> dict:
+            behavior_epochs = data["behavior"].get("epochs")
+
+            if behavior_epochs is None:
+                raise KeyError("behavior['epochs'] is missing from the behavior file")
+
+            if isinstance(behavior_epochs, dict):
+                if epoch_index != 0:
+                    raise IndexError(
+                        f"behavior['epochs'] contains a single epoch, cannot access index {epoch_index}"
+                    )
+                return behavior_epochs
+
+            if isinstance(behavior_epochs, np.ndarray):
+                if behavior_epochs.ndim == 0:
+                    epoch_entry = behavior_epochs.item()
+                else:
+                    epoch_entry = behavior_epochs[epoch_index]
+                if not isinstance(epoch_entry, dict):
+                    raise TypeError(
+                        "behavior['epochs'] entries must be dict-like after loading"
+                    )
+                return epoch_entry
+
+            return behavior_epochs[epoch_index]
+
         if self.epoch is None and self.interval is None:
             # load epochs
             epochs = load_epoch(self.basepath)
@@ -2130,14 +2156,13 @@ class NodePicker:
                 # locate index for given epoch
                 idx = behave_df.time.between(ep.startTime, ep.stopTime)
                 # if linearized is not all nan, add nodes and edges
-                if not all(np.isnan(behave_df[idx].linearized)) & (
-                    behave_df[idx].shape[0] != 0
+                if behave_df[idx].shape[0] != 0 and not np.all(
+                    np.isnan(behave_df[idx].linearized)
                 ):
                     # adding nodes and edges
-                    data["behavior"]["epochs"][epoch_i]["node_positions"] = (
-                        self.node_positions
-                    )
-                    data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
+                    epoch_entry = get_epoch_entry(epoch_i)
+                    epoch_entry["node_positions"] = self.node_positions
+                    epoch_entry["edges"] = self.edges
         elif self.interval is not None:
             # if interval was used, add nodes and edges just the epochs within that interval
             epochs = load_epoch(self.basepath)
@@ -2149,16 +2174,14 @@ class NodePicker:
 
                 # if overlap is greater than 1 second, add nodes and edges
                 if overlap > 1:
-                    data["behavior"]["epochs"][epoch_i]["node_positions"] = (
-                        self.node_positions
-                    )
-                    data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
+                    epoch_entry = get_epoch_entry(epoch_i)
+                    epoch_entry["node_positions"] = self.node_positions
+                    epoch_entry["edges"] = self.edges
         else:
             # if epoch was used, add nodes and edges just that that epoch
-            data["behavior"]["epochs"][self.epoch]["node_positions"] = (
-                self.node_positions
-            )
-            data["behavior"]["epochs"][self.epoch]["edges"] = self.edges
+            epoch_entry = get_epoch_entry(self.epoch)
+            epoch_entry["node_positions"] = self.node_positions
+            epoch_entry["edges"] = self.edges
 
         return data
 
