@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.41">
+      <meta name="generator" content="zensical-0.0.43">
     
     
       
@@ -4596,8 +4596,7 @@ along track segments, and observations are 2D coordinates.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 438</span>
-<span class="normal"> 439</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 439</span>
 <span class="normal"> 440</span>
 <span class="normal"> 441</span>
 <span class="normal"> 442</span>
@@ -5458,7 +5457,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1297</span>
 <span class="normal">1298</span>
 <span class="normal">1299</span>
-<span class="normal">1300</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">HMMLinearizer</span><span class="p">:</span>
+<span class="normal">1300</span>
+<span class="normal">1301</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">HMMLinearizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Hidden Markov Model for track linearization.</span>
 
@@ -6427,8 +6427,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">900</span>
-<span class="normal">901</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">901</span>
 <span class="normal">902</span>
 <span class="normal">903</span>
 <span class="normal">904</span>
@@ -6511,7 +6510,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">981</span>
 <span class="normal">982</span>
 <span class="normal">983</span>
-<span class="normal">984</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">linearize_with_hmm</span><span class="p">(</span>
+<span class="normal">984</span>
+<span class="normal">985</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">linearize_with_hmm</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -6988,8 +6988,7 @@ along track segments, and observations are 2D coordinates.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1757</span>
-<span class="normal">1758</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1758</span>
 <span class="normal">1759</span>
 <span class="normal">1760</span>
 <span class="normal">1761</span>
@@ -7394,7 +7393,39 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">2160</span>
 <span class="normal">2161</span>
 <span class="normal">2162</span>
-<span class="normal">2163</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NodePicker</span><span class="p">:</span>
+<span class="normal">2163</span>
+<span class="normal">2164</span>
+<span class="normal">2165</span>
+<span class="normal">2166</span>
+<span class="normal">2167</span>
+<span class="normal">2168</span>
+<span class="normal">2169</span>
+<span class="normal">2170</span>
+<span class="normal">2171</span>
+<span class="normal">2172</span>
+<span class="normal">2173</span>
+<span class="normal">2174</span>
+<span class="normal">2175</span>
+<span class="normal">2176</span>
+<span class="normal">2177</span>
+<span class="normal">2178</span>
+<span class="normal">2179</span>
+<span class="normal">2180</span>
+<span class="normal">2181</span>
+<span class="normal">2182</span>
+<span class="normal">2183</span>
+<span class="normal">2184</span>
+<span class="normal">2185</span>
+<span class="normal">2186</span>
+<span class="normal">2187</span>
+<span class="normal">2188</span>
+<span class="normal">2189</span>
+<span class="normal">2190</span>
+<span class="normal">2191</span>
+<span class="normal">2192</span>
+<span class="normal">2193</span>
+<span class="normal">2194</span>
+<span class="normal">2195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NodePicker</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interactive creation of track graph by looking at video frames.</span>
 
@@ -7762,6 +7793,40 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="sd">        dict</span>
 <span class="sd">            The updated behavior data dictionary.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;behavior[&#39;epochs&#39;] entries must be mutable mapping types, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> at index </span><span class="si">{</span><span class="n">epoch_index</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">epoch_entry</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+            <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epochs&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">behavior_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;behavior[&#39;epochs&#39;] is missing from the behavior file&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">epoch_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;behavior[&#39;epochs&#39;] contains a single epoch, cannot access index </span><span class="si">{</span><span class="n">epoch_index</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">return</span> <span class="n">behavior_epochs</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">behavior_epochs</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">behavior_epochs</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="n">validate_epoch_entry</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">[</span><span class="n">epoch_index</span><span class="p">],</span> <span class="n">epoch_index</span><span class="p">)</span>
+
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;behavior[&#39;epochs&#39;] must be a mutable mapping, numpy.ndarray, or sequence &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;of mutable mappings, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># load epochs</span>
             <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
@@ -7770,14 +7835,13 @@ along track segments, and observations are 2D coordinates.</p>
                 <span class="c1"># locate index for given epoch</span>
                 <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
                 <span class="c1"># if linearized is not all nan, add nodes and edges</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span>
-                    <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">)</span>
                 <span class="p">):</span>
                     <span class="c1"># adding nodes and edges</span>
-                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-                    <span class="p">)</span>
-                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+                    <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_i</span><span class="p">)</span>
+                    <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+                    <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># if interval was used, add nodes and edges just the epochs within that interval</span>
             <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
@@ -7789,16 +7853,14 @@ along track segments, and observations are 2D coordinates.</p>
 
                 <span class="c1"># if overlap is greater than 1 second, add nodes and edges</span>
                 <span class="k">if</span> <span class="n">overlap</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-                    <span class="p">)</span>
-                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+                    <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_i</span><span class="p">)</span>
+                    <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+                    <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># if epoch was used, add nodes and edges just that that epoch</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-            <span class="p">)</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+            <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+            <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+            <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
 
         <span class="k">return</span> <span class="n">data</span>
 </code></pre></div></td></tr></table></div>
@@ -7878,11 +7940,11 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2016</span>
-<span class="normal">2017</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2017</span>
 <span class="normal">2018</span>
 <span class="normal">2019</span>
-<span class="normal">2020</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2020</span>
+<span class="normal">2021</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Clear all nodes and edges.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="p">[[]]</span>
@@ -7940,8 +8002,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1928</span>
-<span class="normal">1929</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1929</span>
 <span class="normal">1930</span>
 <span class="normal">1931</span>
 <span class="normal">1932</span>
@@ -7980,7 +8041,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1965</span>
 <span class="normal">1966</span>
 <span class="normal">1967</span>
-<span class="normal">1968</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">click_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1968</span>
+<span class="normal">1969</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">click_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process mouse click events.</span>
 
@@ -8043,13 +8105,13 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1902</span>
-<span class="normal">1903</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1903</span>
 <span class="normal">1904</span>
 <span class="normal">1905</span>
 <span class="normal">1906</span>
 <span class="normal">1907</span>
-<span class="normal">1908</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1908</span>
+<span class="normal">1909</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Connect the event handlers.&quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connecting to events&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -8078,11 +8140,11 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1910</span>
-<span class="normal">1911</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1911</span>
 <span class="normal">1912</span>
 <span class="normal">1913</span>
-<span class="normal">1914</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1914</span>
+<span class="normal">1915</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Disconnect the event handlers.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cid</span><span class="p">)</span>
@@ -8109,8 +8171,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2022</span>
-<span class="normal">2023</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2023</span>
 <span class="normal">2024</span>
 <span class="normal">2025</span>
 <span class="normal">2026</span>
@@ -8185,7 +8246,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">2095</span>
 <span class="normal">2096</span>
 <span class="normal">2097</span>
-<span class="normal">2098</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">format_and_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2098</span>
+<span class="normal">2099</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">format_and_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Format the data and save it to disk.&quot;&quot;&quot;</span>
     <span class="n">behave_df</span> <span class="o">=</span> <span class="n">load_animal_behavior</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
 
@@ -8315,8 +8377,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1916</span>
-<span class="normal">1917</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1917</span>
 <span class="normal">1918</span>
 <span class="normal">1919</span>
 <span class="normal">1920</span>
@@ -8325,7 +8386,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1923</span>
 <span class="normal">1924</span>
 <span class="normal">1925</span>
-<span class="normal">1926</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1926</span>
+<span class="normal">1927</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process key press events.</span>
 
@@ -8358,8 +8420,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1970</span>
-<span class="normal">1971</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1971</span>
 <span class="normal">1972</span>
 <span class="normal">1973</span>
 <span class="normal">1974</span>
@@ -8388,7 +8449,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1997</span>
 <span class="normal">1998</span>
 <span class="normal">1999</span>
-<span class="normal">2000</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2000</span>
+<span class="normal">2001</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Redraw the nodes and edges.&quot;&quot;&quot;</span>
     <span class="c1"># Draw Node Circles</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -8472,8 +8534,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2002</span>
-<span class="normal">2003</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2003</span>
 <span class="normal">2004</span>
 <span class="normal">2005</span>
 <span class="normal">2006</span>
@@ -8484,7 +8545,8 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">2011</span>
 <span class="normal">2012</span>
 <span class="normal">2013</span>
-<span class="normal">2014</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2014</span>
+<span class="normal">2015</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove a point from the nodes.</span>
 
@@ -8519,12 +8581,12 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2100</span>
-<span class="normal">2101</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2101</span>
 <span class="normal">2102</span>
 <span class="normal">2103</span>
 <span class="normal">2104</span>
-<span class="normal">2105</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2105</span>
+<span class="normal">2106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Save the nodes and edges to a pickle file.&quot;&quot;&quot;</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;node_positions&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span><span class="p">,</span> <span class="s2">&quot;edges&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">}</span>
     <span class="n">save_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="s2">&quot;linearization_nodes_edges.pkl&quot;</span><span class="p">)</span>
@@ -8624,8 +8686,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2107</span>
-<span class="normal">2108</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2108</span>
 <span class="normal">2109</span>
 <span class="normal">2110</span>
 <span class="normal">2111</span>
@@ -8680,7 +8741,39 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">2160</span>
 <span class="normal">2161</span>
 <span class="normal">2162</span>
-<span class="normal">2163</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">2163</span>
+<span class="normal">2164</span>
+<span class="normal">2165</span>
+<span class="normal">2166</span>
+<span class="normal">2167</span>
+<span class="normal">2168</span>
+<span class="normal">2169</span>
+<span class="normal">2170</span>
+<span class="normal">2171</span>
+<span class="normal">2172</span>
+<span class="normal">2173</span>
+<span class="normal">2174</span>
+<span class="normal">2175</span>
+<span class="normal">2176</span>
+<span class="normal">2177</span>
+<span class="normal">2178</span>
+<span class="normal">2179</span>
+<span class="normal">2180</span>
+<span class="normal">2181</span>
+<span class="normal">2182</span>
+<span class="normal">2183</span>
+<span class="normal">2184</span>
+<span class="normal">2185</span>
+<span class="normal">2186</span>
+<span class="normal">2187</span>
+<span class="normal">2188</span>
+<span class="normal">2189</span>
+<span class="normal">2190</span>
+<span class="normal">2191</span>
+<span class="normal">2192</span>
+<span class="normal">2193</span>
+<span class="normal">2194</span>
+<span class="normal">2195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Store nodes and edges into behavior file.</span>
 <span class="sd">    Searches to find epochs with valid linearized coords.</span>
@@ -8698,6 +8791,40 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="sd">    dict</span>
 <span class="sd">        The updated behavior data dictionary.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;behavior[&#39;epochs&#39;] entries must be mutable mapping types, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> at index </span><span class="si">{</span><span class="n">epoch_index</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">epoch_entry</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+        <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epochs&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">behavior_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;behavior[&#39;epochs&#39;] is missing from the behavior file&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">epoch_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;behavior[&#39;epochs&#39;] contains a single epoch, cannot access index </span><span class="si">{</span><span class="n">epoch_index</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">behavior_epochs</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">behavior_epochs</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">behavior_epochs</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">validate_epoch_entry</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">[</span><span class="n">epoch_index</span><span class="p">],</span> <span class="n">epoch_index</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;behavior[&#39;epochs&#39;] must be a mutable mapping, numpy.ndarray, or sequence &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;of mutable mappings, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># load epochs</span>
         <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
@@ -8706,14 +8833,13 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="c1"># locate index for given epoch</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
             <span class="c1"># if linearized is not all nan, add nodes and edges</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span>
-                <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="c1"># adding nodes and edges</span>
-                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-                <span class="p">)</span>
-                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+                <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_i</span><span class="p">)</span>
+                <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+                <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># if interval was used, add nodes and edges just the epochs within that interval</span>
         <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
@@ -8725,16 +8851,14 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <span class="c1"># if overlap is greater than 1 second, add nodes and edges</span>
             <span class="k">if</span> <span class="n">overlap</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-                <span class="p">)</span>
-                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="n">epoch_i</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+                <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_i</span><span class="p">)</span>
+                <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+                <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># if epoch was used, add nodes and edges just that that epoch</span>
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">][</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
-        <span class="p">)</span>
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">][</span><span class="s2">&quot;epochs&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">][</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
+        <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+        <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
+        <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
 
     <span class="k">return</span> <span class="n">data</span>
 </code></pre></div></td></tr></table></div>
@@ -8824,8 +8948,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">356</span>
-<span class="normal">357</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
@@ -8903,7 +9026,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
-<span class="normal">435</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TrackGraph</span><span class="p">:</span>
+<span class="normal">435</span>
+<span class="normal">436</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TrackGraph</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simple track graph implementation for linearization.</span>
 
@@ -9270,8 +9394,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1602</span>
-<span class="normal">1603</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1603</span>
 <span class="normal">1604</span>
 <span class="normal">1605</span>
 <span class="normal">1606</span>
@@ -9403,7 +9526,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1732</span>
 <span class="normal">1733</span>
 <span class="normal">1734</span>
-<span class="normal">1735</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linearized_position</span><span class="p">(</span>
+<span class="normal">1735</span>
+<span class="normal">1736</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linearized_position</span><span class="p">(</span>
     <span class="n">position</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span><span class="p">,</span>
     <span class="n">edge_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -9613,36 +9737,36 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2166</span>
-<span class="normal">2167</span>
-<span class="normal">2168</span>
-<span class="normal">2169</span>
-<span class="normal">2170</span>
-<span class="normal">2171</span>
-<span class="normal">2172</span>
-<span class="normal">2173</span>
-<span class="normal">2174</span>
-<span class="normal">2175</span>
-<span class="normal">2176</span>
-<span class="normal">2177</span>
-<span class="normal">2178</span>
-<span class="normal">2179</span>
-<span class="normal">2180</span>
-<span class="normal">2181</span>
-<span class="normal">2182</span>
-<span class="normal">2183</span>
-<span class="normal">2184</span>
-<span class="normal">2185</span>
-<span class="normal">2186</span>
-<span class="normal">2187</span>
-<span class="normal">2188</span>
-<span class="normal">2189</span>
-<span class="normal">2190</span>
-<span class="normal">2191</span>
-<span class="normal">2192</span>
-<span class="normal">2193</span>
-<span class="normal">2194</span>
-<span class="normal">2195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2198</span>
+<span class="normal">2199</span>
+<span class="normal">2200</span>
+<span class="normal">2201</span>
+<span class="normal">2202</span>
+<span class="normal">2203</span>
+<span class="normal">2204</span>
+<span class="normal">2205</span>
+<span class="normal">2206</span>
+<span class="normal">2207</span>
+<span class="normal">2208</span>
+<span class="normal">2209</span>
+<span class="normal">2210</span>
+<span class="normal">2211</span>
+<span class="normal">2212</span>
+<span class="normal">2213</span>
+<span class="normal">2214</span>
+<span class="normal">2215</span>
+<span class="normal">2216</span>
+<span class="normal">2217</span>
+<span class="normal">2218</span>
+<span class="normal">2219</span>
+<span class="normal">2220</span>
+<span class="normal">2221</span>
+<span class="normal">2222</span>
+<span class="normal">2223</span>
+<span class="normal">2224</span>
+<span class="normal">2225</span>
+<span class="normal">2226</span>
+<span class="normal">2227</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load animal behavior data from a .mat file.</span>
 
@@ -9748,26 +9872,26 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2198</span>
-<span class="normal">2199</span>
-<span class="normal">2200</span>
-<span class="normal">2201</span>
-<span class="normal">2202</span>
-<span class="normal">2203</span>
-<span class="normal">2204</span>
-<span class="normal">2205</span>
-<span class="normal">2206</span>
-<span class="normal">2207</span>
-<span class="normal">2208</span>
-<span class="normal">2209</span>
-<span class="normal">2210</span>
-<span class="normal">2211</span>
-<span class="normal">2212</span>
-<span class="normal">2213</span>
-<span class="normal">2214</span>
-<span class="normal">2215</span>
-<span class="normal">2216</span>
-<span class="normal">2217</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2230</span>
+<span class="normal">2231</span>
+<span class="normal">2232</span>
+<span class="normal">2233</span>
+<span class="normal">2234</span>
+<span class="normal">2235</span>
+<span class="normal">2236</span>
+<span class="normal">2237</span>
+<span class="normal">2238</span>
+<span class="normal">2239</span>
+<span class="normal">2240</span>
+<span class="normal">2241</span>
+<span class="normal">2242</span>
+<span class="normal">2243</span>
+<span class="normal">2244</span>
+<span class="normal">2245</span>
+<span class="normal">2246</span>
+<span class="normal">2247</span>
+<span class="normal">2248</span>
+<span class="normal">2249</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load epoch info from cell explorer basename.session and store in a DataFrame.</span>
 
@@ -9879,8 +10003,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1738</span>
-<span class="normal">1739</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1739</span>
 <span class="normal">1740</span>
 <span class="normal">1741</span>
 <span class="normal">1742</span>
@@ -9895,7 +10018,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1751</span>
 <span class="normal">1752</span>
 <span class="normal">1753</span>
-<span class="normal">1754</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_track_graph</span><span class="p">(</span><span class="n">node_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">TrackGraph</span><span class="p">:</span>
+<span class="normal">1754</span>
+<span class="normal">1755</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_track_graph</span><span class="p">(</span><span class="n">node_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">TrackGraph</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a track graph from node positions and edges.</span>
 
@@ -10029,8 +10153,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1386</span>
-<span class="normal">1387</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1387</span>
 <span class="normal">1388</span>
 <span class="normal">1389</span>
 <span class="normal">1390</span>
@@ -10242,7 +10365,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1596</span>
 <span class="normal">1597</span>
 <span class="normal">1598</span>
-<span class="normal">1599</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_linearization_confirmation</span><span class="p">(</span>
+<span class="normal">1599</span>
+<span class="normal">1600</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_linearization_confirmation</span><span class="p">(</span>
     <span class="n">original_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">linearized_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span><span class="p">,</span>
@@ -10568,8 +10692,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1303</span>
-<span class="normal">1304</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1304</span>
 <span class="normal">1305</span>
 <span class="normal">1306</span>
 <span class="normal">1307</span>
@@ -10648,7 +10771,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1380</span>
 <span class="normal">1381</span>
 <span class="normal">1382</span>
-<span class="normal">1383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">project_position_to_track</span><span class="p">(</span>
+<span class="normal">1383</span>
+<span class="normal">1384</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">project_position_to_track</span><span class="p">(</span>
     <span class="n">position</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10837,39 +10961,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2220</span>
-<span class="normal">2221</span>
-<span class="normal">2222</span>
-<span class="normal">2223</span>
-<span class="normal">2224</span>
-<span class="normal">2225</span>
-<span class="normal">2226</span>
-<span class="normal">2227</span>
-<span class="normal">2228</span>
-<span class="normal">2229</span>
-<span class="normal">2230</span>
-<span class="normal">2231</span>
-<span class="normal">2232</span>
-<span class="normal">2233</span>
-<span class="normal">2234</span>
-<span class="normal">2235</span>
-<span class="normal">2236</span>
-<span class="normal">2237</span>
-<span class="normal">2238</span>
-<span class="normal">2239</span>
-<span class="normal">2240</span>
-<span class="normal">2241</span>
-<span class="normal">2242</span>
-<span class="normal">2243</span>
-<span class="normal">2244</span>
-<span class="normal">2245</span>
-<span class="normal">2246</span>
-<span class="normal">2247</span>
-<span class="normal">2248</span>
-<span class="normal">2249</span>
-<span class="normal">2250</span>
-<span class="normal">2251</span>
-<span class="normal">2252</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2252</span>
 <span class="normal">2253</span>
 <span class="normal">2254</span>
 <span class="normal">2255</span>
@@ -10890,7 +10982,39 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">2270</span>
 <span class="normal">2271</span>
 <span class="normal">2272</span>
-<span class="normal">2273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
+<span class="normal">2273</span>
+<span class="normal">2274</span>
+<span class="normal">2275</span>
+<span class="normal">2276</span>
+<span class="normal">2277</span>
+<span class="normal">2278</span>
+<span class="normal">2279</span>
+<span class="normal">2280</span>
+<span class="normal">2281</span>
+<span class="normal">2282</span>
+<span class="normal">2283</span>
+<span class="normal">2284</span>
+<span class="normal">2285</span>
+<span class="normal">2286</span>
+<span class="normal">2287</span>
+<span class="normal">2288</span>
+<span class="normal">2289</span>
+<span class="normal">2290</span>
+<span class="normal">2291</span>
+<span class="normal">2292</span>
+<span class="normal">2293</span>
+<span class="normal">2294</span>
+<span class="normal">2295</span>
+<span class="normal">2296</span>
+<span class="normal">2297</span>
+<span class="normal">2298</span>
+<span class="normal">2299</span>
+<span class="normal">2300</span>
+<span class="normal">2301</span>
+<span class="normal">2302</span>
+<span class="normal">2303</span>
+<span class="normal">2304</span>
+<span class="normal">2305</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">epoch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -11064,7 +11188,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.dbc0afdc.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.6e5f0216.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       
