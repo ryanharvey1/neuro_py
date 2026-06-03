@@ -33,6 +33,12 @@ __all__ = [
     "bottom_up_replay_detection",
     "explained_variance",
     "jump_distance",
+    "PPSeq",
+    "PPSeqResult",
+    "bin_spikes",
+    "ppseq_seed_stability",
+    "select_ppseq_template_count",
+    "template_set_similarity",
 ]
 
 from . import decoding
@@ -60,6 +66,14 @@ from .pairwise_bias_correlation import (
     observed_and_shuffled_correlation,
     shuffled_significance,
     skew_bias_matrix,
+)
+from .ppseq import (
+    PPSeq,
+    PPSeqResult,
+    bin_spikes,
+    ppseq_seed_stability,
+    select_ppseq_template_count,
+    template_set_similarity,
 )
 from .replay import (
     PairwiseBias,

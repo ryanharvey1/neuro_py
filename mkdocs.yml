@@ -116,6 +116,7 @@ nav:
     - explained_variance: reference/neuro_py/ensemble/explained_variance.md
     - geometry: reference/neuro_py/ensemble/geometry.md
     - pairwise_bias_correlation: reference/neuro_py/ensemble/pairwise_bias_correlation.md
+    - ppseq: reference/neuro_py/ensemble/ppseq.md
     - replay: reference/neuro_py/ensemble/replay.md
     - similarity_index: reference/neuro_py/ensemble/similarity_index.md
     - similaritymat: reference/neuro_py/ensemble/similaritymat.md
@@ -177,6 +178,7 @@ nav:
   - Neural Geodynamics: tutorials/neural_geodynamics.md
   - PETH: tutorials/peth_tutorial.md
   - Plotting: tutorials/plotting_tutorial.md
+  - PPSeq Sequence Detection: tutorials/ppseq_sequence_detection.md
   - Reactivation: tutorials/reactivation.md
   - Sharp-Wave Ripple: tutorials/sharp_wave_ripple_detection.md
   - Spatial Map: tutorials/spatial_map.md
