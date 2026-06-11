@@ -13,6 +13,7 @@ __all__ = (
     "split_epoch_equal_parts",
     "overlap_intersect",
     "find_intersecting_intervals",
+    "find_intersection_intervals_strict",
     "find_interval",
     "in_intervals",
     "in_intervals_interval",
@@ -73,6 +74,7 @@ from .correlations import (
 )
 from .intervals import (
     find_intersecting_intervals,
+    find_intersection_intervals_strict,
     find_interval,
     in_intervals,
     in_intervals_interval,
