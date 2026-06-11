@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.43">
+      <meta name="generator" content="zensical-0.0.45">
     
     
       
@@ -3805,6 +3805,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         find_intersecting_intervals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.process.find_intersection_intervals_strict" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        find_intersection_intervals_strict
       </span>
     </span>
   </a>
@@ -10641,6 +10652,183 @@ If return_indices is False, returns a NumPy array with the amount of time each i
     <span class="k">if</span> <span class="n">return_indices</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">intersection</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">return</span> <span class="n">intersection</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.process.find_intersection_intervals_strict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">find_intersection_intervals_strict</span><span class="p">(</span><span class="n">set1</span><span class="p">,</span> <span class="n">set2</span><span class="p">)</span></code>
+
+<a href="#neuro_py.process.find_intersection_intervals_strict" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Find the intervals in set1 that are completely contained within set2.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>set1</code>
+            </td>
+            <td>
+                  <code>nelpy EpochArray</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The first set of intervals to check for intersections.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>set2</code>
+            </td>
+            <td>
+                  <code>nelpy EpochArray</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The second set of intervals to check for intersections.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>nelpy EpochArray</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An EpochArray containing the intervals in set1 which are completely contained within set2.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">set1</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">([(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">set2</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">find_intersection_intervals_strict</span><span class="p">(</span><span class="n">set1</span><span class="p">,</span> <span class="n">set2</span><span class="p">)</span>
+<span class="go">EpochArray([[1, 3]])</span>
+</code></pre></div>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Common use cases:
+- Finding theta cycles (set1) that are completely within running periods (set2)
+- Finding SWRs (set1) that are completely within NREM periods (set2)
+- Generally useful when you don't want partial overlaps created by intersection of set1 &amp; set2</p>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/process/intervals.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_intersection_intervals_strict</span><span class="p">(</span>
+    <span class="n">set1</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">set2</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the intervals in set1 that are completely contained within set2.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    set1 : nelpy EpochArray</span>
+<span class="sd">        The first set of intervals to check for intersections.</span>
+<span class="sd">    set2 : nelpy EpochArray</span>
+<span class="sd">        The second set of intervals to check for intersections.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    nelpy EpochArray</span>
+<span class="sd">        An EpochArray containing the intervals in set1 which are completely contained within set2.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; set1 = nel.EpochArray([(1, 3), (5, 7), (9, 10)])</span>
+<span class="sd">    &gt;&gt;&gt; set2 = nel.EpochArray([(0, 4), (6, 8)])</span>
+<span class="sd">    &gt;&gt;&gt; find_intersection_intervals_strict(set1, set2)</span>
+<span class="sd">    EpochArray([[1, 3]])</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Common use cases:</span>
+<span class="sd">    - Finding theta cycles (set1) that are completely within running periods (set2)</span>
+<span class="sd">    - Finding SWRs (set1) that are completely within NREM periods (set2)</span>
+<span class="sd">    - Generally useful when you don&#39;t want partial overlaps created by intersection of set1 &amp; set2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">overlap</span> <span class="o">=</span> <span class="n">find_intersecting_intervals</span><span class="p">(</span><span class="n">set1</span><span class="p">,</span> <span class="n">set2</span><span class="p">,</span> <span class="n">return_indices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">set1</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">set1</span><span class="o">.</span><span class="n">lengths</span> <span class="o">==</span> <span class="n">overlap</span><span class="p">])</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">_domain</span> <span class="o">=</span> <span class="n">set1</span><span class="o">.</span><span class="n">domain</span>
+    <span class="k">return</span> <span class="n">out</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
