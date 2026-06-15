@@ -209,7 +209,7 @@ def test_explained_variance_return_full_matches_manual_calculation():
     post_task = task + rng.normal(scale=0.1, size=task.shape)
     pre_task = rng.normal(size=(5, 30))
 
-    ev, rev, beh_pos, beh_pre, pre_pos = explained_variance(
+    ev, rev, task_post_corr, task_pre_corr, pre_post_corr = explained_variance(
         task, post_task, pre_task, return_full=True
     )
 
@@ -221,23 +221,29 @@ def test_explained_variance_return_full_matches_manual_calculation():
     r_post = corr_post[li]
     r_pre = corr_pre[li]
 
-    expected_beh_pos = np.corrcoef(r_beh, r_post)[0, 1]
-    expected_beh_pre = np.corrcoef(r_beh, r_pre)[0, 1]
-    expected_pre_pos = np.corrcoef(r_pre, r_post)[0, 1]
+    expected_task_post_corr = np.corrcoef(r_beh, r_post)[0, 1]
+    expected_task_pre_corr = np.corrcoef(r_beh, r_pre)[0, 1]
+    expected_pre_post_corr = np.corrcoef(r_pre, r_post)[0, 1]
 
     eps = 1e-10
     expected_ev = (
-        (expected_beh_pos - expected_beh_pre * expected_pre_pos)
-        / (np.sqrt((1 - expected_beh_pre**2) * (1 - expected_pre_pos**2)) + eps)
+        (expected_task_post_corr - expected_task_pre_corr * expected_pre_post_corr)
+        / (
+            np.sqrt((1 - expected_task_pre_corr**2) * (1 - expected_pre_post_corr**2))
+            + eps
+        )
     ) ** 2
     expected_rev = (
-        (expected_beh_pre - expected_beh_pos * expected_pre_pos)
-        / (np.sqrt((1 - expected_beh_pos**2) * (1 - expected_pre_pos**2)) + eps)
+        (expected_task_pre_corr - expected_task_post_corr * expected_pre_post_corr)
+        / (
+            np.sqrt((1 - expected_task_post_corr**2) * (1 - expected_pre_post_corr**2))
+            + eps
+        )
     ) ** 2
 
-    assert beh_pos == pytest.approx(expected_beh_pos)
-    assert beh_pre == pytest.approx(expected_beh_pre)
-    assert pre_pos == pytest.approx(expected_pre_pos)
+    assert task_post_corr == pytest.approx(expected_task_post_corr)
+    assert task_pre_corr == pytest.approx(expected_task_pre_corr)
+    assert pre_post_corr == pytest.approx(expected_pre_post_corr)
     assert ev == pytest.approx(expected_ev)
     assert rev == pytest.approx(expected_rev)
 

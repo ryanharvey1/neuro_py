@@ -441,13 +441,13 @@ def explained_variance(
         Explained variance.
     rEV : float
         Reverse explained variance.
-    beh_pos : float, optional
+    task_post_corr : float, optional
         Correlation between the task and post-task pairwise-correlation
         templates. Only returned when ``return_full=True``.
-    beh_pre : float, optional
+    task_pre_corr : float, optional
         Correlation between the task and pre-task pairwise-correlation
         templates. Only returned when ``return_full=True``.
-    pre_pos : float, optional
+    pre_post_corr : float, optional
         Correlation between the pre-task and post-task pairwise-correlation
         templates. Only returned when ``return_full=True``.
 
@@ -541,18 +541,18 @@ def explained_variance(
         return float(np.corrcoef(a_clean, b_clean)[0, 1])
 
     # Between-epoch correlations of pairwise templates
-    beh_pos = _corr(r_beh, r_post)
-    beh_pre = _corr(r_beh, r_pre)
-    pre_pos = _corr(r_pre, r_post)
+    task_post_corr = _corr(r_beh, r_post)
+    task_pre_corr = _corr(r_beh, r_pre)
+    pre_post_corr = _corr(r_pre, r_post)
 
     # Explained variance and reverse explained variance (squared partial correlations)
     eps = 1e-10
-    denom_ev = np.sqrt((1 - beh_pre**2) * (1 - pre_pos**2)) + eps
-    denom_rev = np.sqrt((1 - beh_pos**2) * (1 - pre_pos**2)) + eps
-    EV = ((beh_pos - beh_pre * pre_pos) / denom_ev) ** 2
-    rEV = ((beh_pre - beh_pos * pre_pos) / denom_rev) ** 2
+    denom_ev = np.sqrt((1 - task_pre_corr**2) * (1 - pre_post_corr**2)) + eps
+    denom_rev = np.sqrt((1 - task_post_corr**2) * (1 - pre_post_corr**2)) + eps
+    EV = ((task_post_corr - task_pre_corr * pre_post_corr) / denom_ev) ** 2
+    rEV = ((task_pre_corr - task_post_corr * pre_post_corr) / denom_rev) ** 2
 
     if return_full:
-        return EV, rEV, beh_pos, beh_pre, pre_pos
+        return EV, rEV, task_post_corr, task_pre_corr, pre_post_corr
 
     return EV, rEV
