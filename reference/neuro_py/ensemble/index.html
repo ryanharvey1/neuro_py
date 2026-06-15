@@ -8688,12 +8688,12 @@ of neurons in the spike train.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__validate_window_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">control_window_size</span><span class="p">,</span> <span class="n">matching_window_size</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate window sizes.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">control_window_size</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control</span><span class="o">.</span><span class="n">duration</span>
-        <span class="p">),</span> <span class="s2">&quot;window is bigger than control&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">matching_window_size</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching</span><span class="o">.</span><span class="n">duration</span>
-        <span class="p">),</span> <span class="s2">&quot;window is bigger than matching&quot;</span>
+        <span class="k">assert</span> <span class="n">control_window_size</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control</span><span class="o">.</span><span class="n">duration</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;window is bigger than control&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">matching_window_size</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching</span><span class="o">.</span><span class="n">duration</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;window is bigger than matching&quot;</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__get_template_corr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get pairwise correlations for template period.&quot;&quot;&quot;</span>
