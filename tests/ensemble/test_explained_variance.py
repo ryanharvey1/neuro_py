@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from neuro_py.ensemble.explained_variance import ExplainedVariance
+from neuro_py.ensemble.explained_variance import ExplainedVariance, explained_variance
 
 
 def test_explained_variance():
@@ -201,3 +201,56 @@ def test_explained_variance():
     test_calculate_statistics()
     test_validate_input()
     test_examples()
+
+
+def test_explained_variance_return_full_matches_manual_calculation():
+    rng = np.random.default_rng(0)
+    task = rng.normal(size=(5, 30))
+    post_task = task + rng.normal(scale=0.1, size=task.shape)
+    pre_task = rng.normal(size=(5, 30))
+
+    ev, rev, beh_pos, beh_pre, pre_pos = explained_variance(
+        task, post_task, pre_task, return_full=True
+    )
+
+    corr_beh = np.corrcoef(task)
+    corr_post = np.corrcoef(post_task)
+    corr_pre = np.corrcoef(pre_task)
+    li = np.tril_indices(task.shape[0], k=-1)
+    r_beh = corr_beh[li]
+    r_post = corr_post[li]
+    r_pre = corr_pre[li]
+
+    expected_beh_pos = np.corrcoef(r_beh, r_post)[0, 1]
+    expected_beh_pre = np.corrcoef(r_beh, r_pre)[0, 1]
+    expected_pre_pos = np.corrcoef(r_pre, r_post)[0, 1]
+
+    eps = 1e-10
+    expected_ev = (
+        (expected_beh_pos - expected_beh_pre * expected_pre_pos)
+        / (np.sqrt((1 - expected_beh_pre**2) * (1 - expected_pre_pos**2)) + eps)
+    ) ** 2
+    expected_rev = (
+        (expected_beh_pre - expected_beh_pos * expected_pre_pos)
+        / (np.sqrt((1 - expected_beh_pos**2) * (1 - expected_pre_pos**2)) + eps)
+    ) ** 2
+
+    assert beh_pos == pytest.approx(expected_beh_pos)
+    assert beh_pre == pytest.approx(expected_beh_pre)
+    assert pre_pos == pytest.approx(expected_pre_pos)
+    assert ev == pytest.approx(expected_ev)
+    assert rev == pytest.approx(expected_rev)
+
+
+def test_explained_variance_return_full_false_matches_prefix_of_full_output():
+    rng = np.random.default_rng(1)
+    task = rng.normal(size=(4, 40))
+    post_task = task + rng.normal(scale=0.05, size=task.shape)
+    pre_task = rng.normal(size=(4, 40))
+
+    short_output = explained_variance(task, post_task, pre_task)
+    full_output = explained_variance(task, post_task, pre_task, return_full=True)
+
+    assert len(short_output) == 2
+    assert len(full_output) == 5
+    assert short_output == pytest.approx(full_output[:2])

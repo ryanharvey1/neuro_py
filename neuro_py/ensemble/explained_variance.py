@@ -204,12 +204,12 @@ class ExplainedVariance(object):
 
     def __validate_window_sizes(self, control_window_size, matching_window_size):
         """Validate window sizes."""
-        assert (
-            control_window_size <= self.control.duration
-        ), "window is bigger than control"
-        assert (
-            matching_window_size <= self.matching.duration
-        ), "window is bigger than matching"
+        assert control_window_size <= self.control.duration, (
+            "window is bigger than control"
+        )
+        assert matching_window_size <= self.matching.duration, (
+            "window is bigger than matching"
+        )
 
     def __get_template_corr(self):
         """Get pairwise correlations for template period."""
@@ -415,8 +415,11 @@ class ExplainedVariance(object):
 
 
 def explained_variance(
-    task: np.ndarray, post_task: np.ndarray, pre_task: np.ndarray
-) -> tuple:
+    task: np.ndarray,
+    post_task: np.ndarray,
+    pre_task: np.ndarray,
+    return_full: bool = False,
+) -> tuple[float, float] | tuple[float, float, float, float, float]:
     """
     Simplified version of explained variance and reverse explained variance
 
@@ -428,13 +431,25 @@ def explained_variance(
         2D array, spike counts matrix with shape(n_features, n_timepoints)
     pre_task : np.ndarray
         2D array, spike counts matrix with shape(n_features, n_timepoints)
+    return_full : bool, optional
+        If True, also return the three scalar correlations used to compute the
+        explained variance terms, by default False.
 
     Returns
     -------
     EV : float
-        explained variance
+        Explained variance.
     rEV : float
-        reverse explained variance
+        Reverse explained variance.
+    beh_pos : float, optional
+        Correlation between the task and post-task pairwise-correlation
+        templates. Only returned when ``return_full=True``.
+    beh_pre : float, optional
+        Correlation between the task and pre-task pairwise-correlation
+        templates. Only returned when ``return_full=True``.
+    pre_pos : float, optional
+        Correlation between the pre-task and post-task pairwise-correlation
+        templates. Only returned when ``return_full=True``.
 
     Examples
     --------
@@ -536,5 +551,8 @@ def explained_variance(
     denom_rev = np.sqrt((1 - beh_pos**2) * (1 - pre_pos**2)) + eps
     EV = ((beh_pos - beh_pre * pre_pos) / denom_ev) ** 2
     rEV = ((beh_pre - beh_pos * pre_pos) / denom_rev) ** 2
+
+    if return_full:
+        return EV, rEV, beh_pos, beh_pre, pre_pos
 
     return EV, rEV
