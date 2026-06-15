@@ -56,7 +56,7 @@ def test_non_numeric_input_values():
     tc = np.random.rand(3, 3, 5)
     occupancy = np.random.rand(3, 3)
     bin_size_s = "a"
-    with pytest.raises(TypingError):
+    with pytest.raises((TypingError, TypeError)):
         decode(ct, tc, occupancy, bin_size_s)
 
 

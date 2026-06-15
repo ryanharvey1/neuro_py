@@ -1,6 +1,7 @@
 import builtins
 import importlib
 import sys
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
@@ -23,14 +24,28 @@ def _mocked_import(name, globals=None, locals=None, fromlist=(), level=0):
     return _ORIGINAL_IMPORT(name, globals, locals, fromlist, level)
 
 
-def test_decoding_imports_without_dl_dependencies() -> None:
+@contextmanager
+def _isolated_neuro_py_import_state():
+    original_modules = {
+        name: module
+        for name, module in sys.modules.items()
+        if name.startswith("neuro_py")
+    }
     _clear_neuro_py_modules()
+    try:
+        yield
+    finally:
+        _clear_neuro_py_modules()
+        sys.modules.update(original_modules)
 
-    with patch("builtins.__import__", side_effect=_mocked_import):
-        neuro_py = importlib.import_module("neuro_py")
-        ensemble = importlib.import_module("neuro_py.ensemble")
-        decoding = importlib.import_module("neuro_py.ensemble.decoding")
-        bayesian = importlib.import_module("neuro_py.ensemble.decoding.bayesian")
+
+def test_decoding_imports_without_dl_dependencies() -> None:
+    with _isolated_neuro_py_import_state():
+        with patch("builtins.__import__", side_effect=_mocked_import):
+            neuro_py = importlib.import_module("neuro_py")
+            ensemble = importlib.import_module("neuro_py.ensemble")
+            decoding = importlib.import_module("neuro_py.ensemble.decoding")
+            bayesian = importlib.import_module("neuro_py.ensemble.decoding.bayesian")
 
     assert neuro_py is not None
     assert ensemble is not None
@@ -39,9 +54,8 @@ def test_decoding_imports_without_dl_dependencies() -> None:
 
 
 def test_dl_entrypoint_requires_dl_extra() -> None:
-    _clear_neuro_py_modules()
-
-    with patch("builtins.__import__", side_effect=_mocked_import):
-        decoding = importlib.import_module("neuro_py.ensemble.decoding")
-        with pytest.raises(ImportError, match=r"\[dl\]"):
-            decoding.MLP
+    with _isolated_neuro_py_import_state():
+        with patch("builtins.__import__", side_effect=_mocked_import):
+            decoding = importlib.import_module("neuro_py.ensemble.decoding")
+            with pytest.raises(ImportError, match=r"\[dl\]"):
+                decoding.MLP
