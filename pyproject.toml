@@ -34,8 +34,6 @@ dependencies = [
     "lazy-loader>=0.4",
     "PyWavelets>=1.6.0",
     "Bottleneck>=1.4.2",
-    "tensorboard>=2.18.0",
-    "lightning>=2.4.0",
     "h5py>=3.13.0",
     "decorator>=4.4.2",
     # Conditional dependency for Python < 3.11
@@ -44,6 +42,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# For deep-learning decoders and training pipelines
+dl = [
+    "lightning>=2.4.0",
+    "tensorboard>=2.18.0"
+]
 # For current source density (CSD) analysis
 csd = [
     "elephant>=1.1.0",
@@ -59,6 +62,8 @@ docs = [
 ]
 # An "all" group that combines all optional groups
 all = [
+    "lightning>=2.4.0",
+    "tensorboard>=2.18.0",
     "elephant>=1.1.0",
     "neo>=0.13.3",
     "quantities>=0.15.0",

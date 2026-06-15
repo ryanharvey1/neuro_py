@@ -16,7 +16,8 @@ Overview
 ========
 `neuro_py` is a Python package for analysis of neuroelectrophysiology data. It is built on top of the [nelpy](https://github.com/nelpy/nelpy) package, which provides core data objects. `neuro_py` provides a set of functions for analysis of freely moving electrophysiology, including behavior tracking utilities, neural ensemble detection, peri-event analyses, robust batch analysis tools, and more. 
 
-Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials) and more will be added. 
+Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials) and more will be added.
+The decoding tutorial and torch/lightning-backed decoders require the optional `dl` extra.
 
 
 ## Installation
@@ -25,6 +26,12 @@ Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials
 git clone
 cd neuro_py
 pip install -e .
+```
+
+For the optional deep-learning decoders, install the `dl` extra:
+
+```bash
+pip install -e .[dl]
 ```
 
 To sync the `nelpy` dependency to latest version, use following instead,

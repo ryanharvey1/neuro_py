@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import os
 import random
@@ -5,18 +7,36 @@ import zlib
 from typing import Any, Dict, List, Optional, Tuple
 
 import bottleneck as bn
-import lightning.pytorch as pl
 import numpy as np
 import pandas as pd
 import sklearn
 import sklearn.preprocessing
-import torch
 from numpy.typing import NDArray
 
-from .lstm import LSTM  # noqa
-from .m2mlstm import M2MLSTM, NSVDataset  # noqa
-from .mlp import MLP  # noqa
-from .transformer import NDT  # noqa
+from ...util._dependencies import _check_dependency
+
+
+def _check_dl_dependencies(include_tensorboard: bool = False) -> None:
+    _check_dependency("torch", "dl")
+    _check_dependency("lightning", "dl")
+    if include_tensorboard:
+        _check_dependency("tensorboard", "dl")
+
+
+def _get_decoder(name: str) -> Any:
+    _check_dl_dependencies()
+    from .lstm import LSTM
+    from .m2mlstm import M2MLSTM
+    from .mlp import MLP
+    from .transformer import NDT
+
+    decoders = {
+        "MLP": MLP,
+        "LSTM": LSTM,
+        "M2MLSTM": M2MLSTM,
+        "NDT": NDT,
+    }
+    return decoders[name]
 
 
 def seed_worker(worker_id: int) -> None:
@@ -32,6 +52,9 @@ def seed_worker(worker_id: int) -> None:
     -----
     This function is used to ensure reproducibility when using multi-process data loading.
     """
+    _check_dl_dependencies()
+    import torch
+
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
@@ -407,6 +430,9 @@ def minibatchify(
     Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader]
         DataLoaders for training, validation, and testing.
     """
+    _check_dl_dependencies()
+    import torch
+
     g_seed = torch.Generator()
     g_seed.manual_seed(seed)
     if Xtrain.ndim == 2:  # handle object arrays
@@ -509,7 +535,7 @@ def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, pl.LightningModule]:
     Tuple[Any, pl.LightningModule]
         The decoder class and instantiated model.
     """
-    decoder = eval(f"{hyperparams['model']}")
+    decoder = _get_decoder(hyperparams["model"])
     model = decoder(**hyperparams["model_args"])
 
     if "LSTM" in hyperparams["model"]:
@@ -568,6 +594,9 @@ def preprocess_data(
     Tuple[Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray], Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader, torch.utils.data.DataLoader], Dict[str, Any]]
         Preprocessed data, data loaders, and normalization parameters.
     """
+    _check_dl_dependencies()
+    import torch
+
     bins_before = hyperparams["bins_before"]
     bins_current = hyperparams["bins_current"]
     bins_after = hyperparams["bins_after"]
@@ -618,6 +647,8 @@ def preprocess_data(
         )
         hyperparams["model_args"]["in_dim"] = X_train.shape[-1]
     else:
+        from .m2mlstm import NSVDataset
+
         if is_2D:
             nsv_train, bv_train = [nsv_train], [bv_train]
             nsv_val, bv_val = [nsv_val], [bv_val]
@@ -752,6 +783,9 @@ def evaluate_model(
     Tuple[Dict[str, float], NDArray]
         Evaluation metrics and model predictions.
     """
+    _check_dl_dependencies()
+    import torch
+
     if hyperparams["model"] in ("M2MLSTM", "NDT"):
         out_dim = hyperparams["model_args"]["out_dim"]
         with torch.no_grad():
@@ -920,6 +954,9 @@ def train_model(
         'cpu'.
     - `seed`: int, the random seed for reproducibility.
     """
+    _check_dl_dependencies(include_tensorboard=True)
+    import lightning.pytorch as pl
+
     ohe = sklearn.preprocessing.OneHotEncoder()
     bv_preds_folds = []
     bv_models_folds = []
