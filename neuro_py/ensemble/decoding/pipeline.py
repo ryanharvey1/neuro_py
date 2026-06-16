@@ -36,6 +36,9 @@ def _get_decoder(name: str) -> Any:
         "M2MLSTM": M2MLSTM,
         "NDT": NDT,
     }
+    if name not in decoders:
+        supported = ", ".join(sorted(decoders))
+        raise ValueError(f"Unknown decoder '{name}'. Supported decoders: {supported}")
     return decoders[name]
 
 
