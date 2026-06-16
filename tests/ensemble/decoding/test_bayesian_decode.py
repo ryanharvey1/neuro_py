@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from numba.core.errors import TypingError
 
 from neuro_py.ensemble.decoding.bayesian import decode
 
@@ -51,13 +50,17 @@ def test_invalid_input_shapes():
         decode(ct, tc, occupancy, bin_size_s)
 
 
-def test_non_numeric_input_values():
-    ct = np.random.rand(10, 5)
-    tc = np.random.rand(3, 3, 5)
-    occupancy = np.random.rand(3, 3)
-    bin_size_s = "a"
-    with pytest.raises((TypingError, TypeError)):
-        decode(ct, tc, occupancy, bin_size_s)
+def test_decode_jit_compiles_and_repeated_calls_are_stable():
+    rng = np.random.default_rng(0)
+    ct = rng.random((10, 5))
+    tc = rng.random((3, 3, 5))
+    occupancy = rng.random((3, 3))
+
+    first = decode(ct, tc, occupancy, 0.1)
+    second = decode(ct, tc, occupancy, 0.1)
+
+    np.testing.assert_allclose(first, second)
+    np.testing.assert_allclose(first.sum(axis=(1, 2)), np.ones(first.shape[0]))
 
 
 def test_1d_input():

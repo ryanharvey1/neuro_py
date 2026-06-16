@@ -53,23 +53,25 @@ For ease of use, this package uses `nelpy` core data objects. See [nelpy](https:
 
 ## Testing
 
-The canonical repo test entrypoint is:
+Use plain `pytest` for normal development and CI-like local runs:
+
+```bash
+pytest
+```
+
+To run a narrow target:
+
+```bash
+pytest tests/detectors/test_sharp_wave_ripple.py -q
+```
+
+If your local environment auto-loads unrelated third-party pytest plugins, use the wrapper to isolate the repo's own test environment:
 
 ```bash
 python tools/run_pytest.py
 ```
 
-To run a narrow target, pass the usual `pytest` arguments through:
-
-```bash
-python tools/run_pytest.py tests/detectors/test_sharp_wave_ripple.py -q
-```
-
-This wrapper sets a few local defaults that make editable `nelpy` installs more reliable in development environments:
-
-- `NUMBA_DISABLE_JIT=1`
-- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
-- `MPLBACKEND=Agg`
+This wrapper only sets `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Numba JIT and matplotlib backend behavior are exercised by the tests themselves.
 
 CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
 
