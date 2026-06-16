@@ -20,7 +20,9 @@ def _clear_neuro_py_modules() -> None:
 def _mocked_import(name, globals=None, locals=None, fromlist=(), level=0):
     root_name = name.split(".")[0]
     if root_name in DL_MODULES:
-        raise ImportError(f"{root_name} intentionally unavailable during test")
+        raise ModuleNotFoundError(
+            f"{root_name} intentionally unavailable during test", name=root_name
+        )
     return _ORIGINAL_IMPORT(name, globals, locals, fromlist, level)
 
 
