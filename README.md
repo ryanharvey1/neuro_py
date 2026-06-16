@@ -53,6 +53,8 @@ For ease of use, this package uses `nelpy` core data objects. See [nelpy](https:
 
 ## Testing
 
+The canonical repo test entrypoint is:
+
 ```bash
 python tools/run_pytest.py
 ```
@@ -68,6 +70,8 @@ This wrapper sets a few local defaults that make editable `nelpy` installs more 
 - `NUMBA_DISABLE_JIT=1`
 - `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
 - `MPLBACKEND=Agg`
+
+CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
 
 ## Contributing
 
