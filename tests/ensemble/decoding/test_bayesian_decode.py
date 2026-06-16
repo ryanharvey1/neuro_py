@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numba.core.errors import TypingError
 
 from neuro_py.ensemble.decoding.bayesian import decode
 
@@ -61,6 +62,15 @@ def test_decode_jit_compiles_and_repeated_calls_are_stable():
 
     np.testing.assert_allclose(first, second)
     np.testing.assert_allclose(first.sum(axis=(1, 2)), np.ones(first.shape[0]))
+
+
+def test_non_numeric_input_values():
+    ct = np.random.rand(10, 5)
+    tc = np.random.rand(3, 3, 5)
+    occupancy = np.random.rand(3, 3)
+
+    with pytest.raises(TypingError):
+        decode(ct, tc, occupancy, "a")
 
 
 def test_1d_input():

@@ -1,13 +1,12 @@
 import warnings
 
 import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
 from neuro_py.plotting.replay import make_replay, plot_2d_replay
-
-matplotlib.use("Agg")
 
 
 def test_plot_2d_replay_returns_fig_ax_and_stable_image_count():
