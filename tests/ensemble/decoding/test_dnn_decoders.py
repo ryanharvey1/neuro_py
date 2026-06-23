@@ -3,6 +3,12 @@ import unittest
 
 import numpy as np
 import pandas as pd
+import pytest
+
+pytest.importorskip("torch")
+pytest.importorskip("lightning")
+pytest.importorskip("tensorboard")
+
 import torch
 import torch.nn.functional as F
 from torch import nn

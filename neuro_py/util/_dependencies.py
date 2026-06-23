@@ -11,8 +11,10 @@ def _check_dependency(module_name: str, extra: str) -> None:
     """
     try:
         __import__(module_name)
-    except ImportError:
+    except ModuleNotFoundError as exc:
+        if exc.name != module_name:
+            raise
         raise ImportError(
             f"{module_name} is not installed. Please install it to use this function. "
             f"Run: pip install -e .[{extra}]"
-        )
+        ) from exc

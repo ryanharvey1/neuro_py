@@ -5,21 +5,29 @@ Tests coverage for compute_AutoCorrs and pairwise_cross_corr.
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from neuro_py.process.correlations import compute_AutoCorrs, pairwise_cross_corr
 from neuro_py.process.peri_event import crossCorr
 
 
-@pytest.fixture(scope="module", autouse=True)
-def prewarm_jit():
-    """Pre-warm the JIT compiler with proper types to avoid typing issues during tests."""
-    prewarm_t1 = np.array([0.1, 0.2], dtype=np.float64)
-    prewarm_t2 = np.array([0.15, 0.25], dtype=np.float64)
-    try:
-        crossCorr(prewarm_t1, prewarm_t2, 0.01, 10)
-    except Exception as e:
-        pytest.fail(f"JIT compilation failed during pre-warm: {e}")
+def test_crosscorr_jit_compiles_and_returns_expected_shape():
+    t1 = np.array([0.1, 0.2], dtype=np.float64)
+    t2 = np.array([0.15, 0.25], dtype=np.float64)
+
+    result = crossCorr(t1, t2, 0.01, 10)
+
+    assert result.shape == (11,)
+    assert np.all(result >= 0)
+
+
+def test_crosscorr_repeated_calls_are_stable():
+    t1 = np.array([0.1, 0.2, 0.3], dtype=np.float64)
+    t2 = np.array([0.15, 0.25, 0.35], dtype=np.float64)
+
+    first = crossCorr(t1, t2, 0.01, 50)
+    second = crossCorr(t1, t2, 0.01, 50)
+
+    np.testing.assert_allclose(first, second)
 
 
 class TestComputeAutoCorrs:

@@ -16,7 +16,8 @@ Overview
 ========
 `neuro_py` is a Python package for analysis of neuroelectrophysiology data. It is built on top of the [nelpy](https://github.com/nelpy/nelpy) package, which provides core data objects. `neuro_py` provides a set of functions for analysis of freely moving electrophysiology, including behavior tracking utilities, neural ensemble detection, peri-event analyses, robust batch analysis tools, and more. 
 
-Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials) and more will be added. 
+Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials) and more will be added.
+The decoding tutorial and torch/lightning-backed decoders require the optional `dl` extra.
 
 
 ## Installation
@@ -25,6 +26,12 @@ Tutorials are [here](https://github.com/ryanharvey1/neuro_py/tree/main/tutorials
 git clone
 cd neuro_py
 pip install -e .
+```
+
+For the optional deep-learning decoders, install the `dl` extra:
+
+```bash
+pip install -e .[dl]
 ```
 
 To sync the `nelpy` dependency to latest version, use following instead,
@@ -46,21 +53,27 @@ For ease of use, this package uses `nelpy` core data objects. See [nelpy](https:
 
 ## Testing
 
+Use plain `pytest` for normal development and CI-like local runs:
+
+```bash
+pytest
+```
+
+To run a narrow target:
+
+```bash
+pytest tests/detectors/test_sharp_wave_ripple.py -q
+```
+
+If your local environment auto-loads unrelated third-party pytest plugins, use the wrapper to isolate the repo's own test environment:
+
 ```bash
 python tools/run_pytest.py
 ```
 
-To run a narrow target, pass the usual `pytest` arguments through:
+This wrapper only sets `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Numba JIT and matplotlib backend behavior are exercised by the tests themselves.
 
-```bash
-python tools/run_pytest.py tests/detectors/test_sharp_wave_ripple.py -q
-```
-
-This wrapper sets a few local defaults that make editable `nelpy` installs more reliable in development environments:
-
-- `NUMBA_DISABLE_JIT=1`
-- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
-- `MPLBACKEND=Agg`
+CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
 
 ## Contributing
 

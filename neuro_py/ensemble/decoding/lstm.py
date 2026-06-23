@@ -1,5 +1,10 @@
 from typing import Dict, List, Optional, Tuple
 
+from ...util._dependencies import _check_dependency
+
+_check_dependency("torch", "dl")
+_check_dependency("lightning", "dl")
+
 import lightning as L
 import torch
 import torch.nn.functional as F
