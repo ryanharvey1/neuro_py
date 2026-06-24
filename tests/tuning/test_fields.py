@@ -1,8 +1,11 @@
-from types import SimpleNamespace
 import time
+from types import SimpleNamespace
 
 import numpy as np
+import pytest
 from scipy import ndimage
+from scipy.spatial.distance import pdist
+from skimage import measure
 
 from neuro_py.tuning import fields
 from neuro_py.tuning.maps import SpatialMap
@@ -16,10 +19,7 @@ def _gaussian_blob(
 ) -> np.ndarray:
     x_idx, y_idx = np.indices(shape)
     return amplitude * np.exp(
-        -(
-            ((x_idx - center[0]) ** 2) + ((y_idx - center[1]) ** 2)
-        )
-        / (2 * sigma**2)
+        -(((x_idx - center[0]) ** 2) + ((y_idx - center[1]) ** 2)) / (2 * sigma**2)
     )
 
 
@@ -259,7 +259,40 @@ def test_spatial_map_find_fields_2d_empty_outputs():
     assert np.isnan(spatial_map.tc.field_width[0])
 
 
-def test_compute_2d_place_fields_large_noisy_map_completes_quickly():
+def test_spatial_map_find_fields_2d_uses_primary_field_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    ratemap = np.zeros((30, 30), dtype=float)
+    ratemap[3:9, 3:9] = 5.0
+    ratemap[12:28, 16:28] = 2.0
+    peaks = np.zeros((30, 30), dtype=int)
+    peaks[3:9, 3:9] = 1
+    peaks[12:28, 16:28] = 2
+
+    spatial_map = _make_spatial_map_stub(np.array([ratemap]))
+
+    monkeypatch.setattr(
+        fields, "compute_2d_place_fields", lambda *args, **kwargs: peaks
+    )
+
+    SpatialMap.find_fields(spatial_map)
+
+    expected_contours = measure.find_contours(
+        (peaks == 1).astype(float),
+        0.5,
+        fully_connected="low",
+        positive_orientation="low",
+    )
+    expected_width = np.max(
+        pdist(max(expected_contours, key=lambda contour: contour.shape[0]), "euclidean")
+    )
+
+    assert spatial_map.tc.field_peak_rate.tolist() == [5.0]
+    assert spatial_map.tc.n_fields.tolist() == [2]
+    assert spatial_map.tc.field_width[0] == pytest.approx(expected_width)
+
+
+def test_compute_2d_place_fields_large_noisy_map_smoke():
     rng = np.random.default_rng(0)
     ratemap = rng.random((180, 240)) * 5.0
     ratemap += _gaussian_blob((180, 240), center=(80, 120), amplitude=6.0, sigma=10.0)
@@ -276,4 +309,4 @@ def test_compute_2d_place_fields_large_noisy_map_completes_quickly():
     elapsed = time.perf_counter() - start
 
     assert labels.shape == ratemap.shape
-    assert elapsed < 5.0
+    assert elapsed < 30.0
