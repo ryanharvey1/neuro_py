@@ -1205,6 +1205,12 @@ class SpatialMap(NDimensionalBinner):
                     max_size=(self.place_field_max_size / avg_binsize),
                     sigma=self.place_field_sigma,
                 )
+                mask.append(peaks)
+                if not np.any(peaks):
+                    field_width.append(np.nan)
+                    peak_rate.append(np.nan)
+                    continue
+
                 # field coords of fields using contours
                 bc = measure.find_contours(
                     peaks, 0, fully_connected="low", positive_orientation="low"
@@ -1212,16 +1218,12 @@ class SpatialMap(NDimensionalBinner):
                 if len(bc) == 0:
                     field_width.append(np.nan)
                     peak_rate.append(np.nan)
-                    mask.append(peaks)
                 elif np.vstack(bc).shape[0] < 3:
                     field_width.append(np.nan)
                     peak_rate.append(np.nan)
-                    mask.append(peaks)
                 else:
                     field_width.append(np.max(pdist(bc[0], "euclidean")) * avg_binsize)
-                    # field_ids = np.unique(peaks)
                     peak_rate.append(ratemap_[peaks == 1].max())
-                    mask.append(peaks)
 
         self.tc.field_width = np.array(field_width)
         self.tc.field_peak_rate = np.array(peak_rate)
