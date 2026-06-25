@@ -1205,23 +1205,39 @@ class SpatialMap(NDimensionalBinner):
                     max_size=(self.place_field_max_size / avg_binsize),
                     sigma=self.place_field_sigma,
                 )
-                # field coords of fields using contours
+                mask.append(peaks)
+                if not np.any(peaks):
+                    field_width.append(np.nan)
+                    peak_rate.append(np.nan)
+                    continue
+
+                primary_field = peaks == 1
+                if not np.any(primary_field):
+                    field_width.append(np.nan)
+                    peak_rate.append(np.nan)
+                    continue
+
+                # Measure the strongest field boundary from its binary mask so
+                # multi-field label transitions do not become the plotted width contour.
                 bc = measure.find_contours(
-                    peaks, 0, fully_connected="low", positive_orientation="low"
+                    primary_field.astype(float),
+                    0.5,
+                    fully_connected="low",
+                    positive_orientation="low",
                 )
                 if len(bc) == 0:
                     field_width.append(np.nan)
                     peak_rate.append(np.nan)
-                    mask.append(peaks)
-                elif np.vstack(bc).shape[0] < 3:
-                    field_width.append(np.nan)
-                    peak_rate.append(np.nan)
-                    mask.append(peaks)
                 else:
-                    field_width.append(np.max(pdist(bc[0], "euclidean")) * avg_binsize)
-                    # field_ids = np.unique(peaks)
-                    peak_rate.append(ratemap_[peaks == 1].max())
-                    mask.append(peaks)
+                    primary_contour = max(bc, key=lambda contour: contour.shape[0])
+                    if primary_contour.shape[0] < 3:
+                        field_width.append(np.nan)
+                        peak_rate.append(np.nan)
+                    else:
+                        field_width.append(
+                            np.max(pdist(primary_contour, "euclidean")) * avg_binsize
+                        )
+                        peak_rate.append(ratemap_[primary_field].max())
 
         self.tc.field_width = np.array(field_width)
         self.tc.field_peak_rate = np.array(peak_rate)

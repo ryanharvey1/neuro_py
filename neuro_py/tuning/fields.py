@@ -758,36 +758,87 @@ def compute_2d_place_fields(
     if sigma is not None:
         firing_rate = ndimage.gaussian_filter(firing_rate, sigma)
 
-    local_maxima_inds = firing_rate == ndimage.maximum_filter(
+    local_maxima_mask = firing_rate == ndimage.maximum_filter(
         firing_rate, size=filter_size
     )
-    receptive_fields = np.zeros(firing_rate.shape, dtype=int)
-    n_receptive_fields = 0
-    firing_rate = firing_rate.copy()
-    for local_max in np.flipud(np.sort(firing_rate[local_maxima_inds])):
-        labeled_image, num_labels = ndimage.label(
-            firing_rate > max(local_max * thresh, min_firing_rate)
-        )
+    if not np.any(local_maxima_mask):
+        return np.zeros(firing_rate.shape, dtype=int)
 
-        if not num_labels:  # nothing above min_firing_thresh
+    working_rate = firing_rate.copy()
+    receptive_fields = np.zeros(firing_rate.shape, dtype=int)
+    accepted_field_count = 0
+
+    local_maxima_values = np.flipud(np.sort(firing_rate[local_maxima_mask]))
+    for local_max in local_maxima_values:
+        threshold_mask = working_rate > max(local_max * thresh, min_firing_rate)
+        if not np.any(threshold_mask):
             continue
-        for i in range(1, num_labels + 1):
-            image_label = labeled_image == i
-            if local_max in firing_rate[image_label]:
+
+        row_idx, col_idx = np.nonzero(threshold_mask)
+        row_min, row_max = row_idx.min(), row_idx.max() + 1
+        col_min, col_max = col_idx.min(), col_idx.max() + 1
+        threshold_mask_view = threshold_mask[row_min:row_max, col_min:col_max]
+        working_rate_view = working_rate[row_min:row_max, col_min:col_max]
+
+        labeled_image, num_labels = ndimage.label(threshold_mask_view)
+        if not num_labels:
+            continue
+
+        for label_id in range(1, num_labels + 1):
+            image_label = labeled_image == label_id
+            if local_max in working_rate_view[image_label]:
                 break
-            if np.sum(image_label) >= min_size:
-                n_receptive_fields += 1
-                receptive_fields[image_label] = n_receptive_fields
-                firing_rate[image_label] = 0
+
+            component_mask = np.zeros_like(working_rate, dtype=bool)
+            component_mask[row_min:row_max, col_min:col_max] = image_label
+            working_rate[component_mask] = 0
+
+            valid_field = _validate_2d_field_component(
+                component_mask=component_mask,
+                min_size=int(min_size),
+            )
+            if valid_field is None:
+                continue
+
+            accepted_field_count += 1
+            receptive_fields[valid_field] = accepted_field_count
+
+    if accepted_field_count == 0:
+        return receptive_fields
 
     receptive_fields = remove_fields_by_area(
         receptive_fields, int(min_size), maximum_field_area=max_size
     )
-    if n_receptive_fields > 0:
+    if np.any(receptive_fields):
         receptive_fields = sort_fields_by_rate(
             firing_rate_orig, receptive_fields, func=np.max
         )
     return receptive_fields
+
+
+def _validate_2d_field_component(
+    component_mask: np.ndarray,
+    min_size: int,
+) -> Optional[np.ndarray]:
+    """
+    Validate a candidate 2D field component and return its thresholded mask.
+
+    Parameters
+    ----------
+    component_mask : np.ndarray
+        Boolean mask for a candidate peak component.
+    min_size : int
+        Minimum size of a valid field in bins.
+
+    Returns
+    -------
+    Optional[np.ndarray]
+        Boolean mask for the valid field if accepted, otherwise None.
+    """
+    field_size = int(np.count_nonzero(component_mask))
+    if field_size < min_size:
+        return None
+    return component_mask
 
 
 def find_field(
