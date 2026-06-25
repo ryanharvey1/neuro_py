@@ -4538,7 +4538,7 @@ variables.</p>
 
 <span class="n">spatial_maps</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;TuningCurve2D at 0x21bf1c04e90&gt; with shape (16, 64, 64)
+<div class="highlight"><pre><span></span><code>&lt;TuningCurve2D at 0x1c98439e490&gt; with shape (16, 64, 64)
 </code></pre></div>
 <p>You can also shuffle your data to find which cell has more spatial information
 than chance. Depending on how many cells you have this can take a bit of time,
@@ -4585,45 +4585,91 @@ but it shouldn't take more than a minute with the default 500 shuffles.</p>
  &#39;ybins&#39;]
 </code></pre></div>
 <h2 id="section-5-inspect-the-results-by-looking-at-the-tuning-curves-and-spikes-on-path-plots">Section 5: Inspect the results by looking at the tuning curves and spikes on path plots<a class="headerlink" href="#section-5-inspect-the-results-by-looking-at-the-tuning-curves-and-spikes-on-path-plots" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># pull out velocity restricted position</span>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_field_boundaries</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">field_mask</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">x_centers</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">y_centers</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="n">field_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">field_mask</span><span class="p">)</span>
+    <span class="n">field_ids</span> <span class="o">=</span> <span class="n">field_ids</span><span class="p">[</span><span class="n">field_ids</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">field_id</span> <span class="ow">in</span> <span class="n">field_ids</span><span class="p">:</span>
+        <span class="n">contours</span> <span class="o">=</span> <span class="n">measure</span><span class="o">.</span><span class="n">find_contours</span><span class="p">((</span><span class="n">field_mask</span> <span class="o">==</span> <span class="n">field_id</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contours</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">c</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_centers</span><span class="p">)),</span> <span class="n">x_centers</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">c</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_centers</span><span class="p">)),</span> <span class="n">y_centers</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">lw</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+
+
+<span class="c1"># pull out velocity restricted position</span>
 <span class="n">current_pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">beh_epochs</span><span class="p">[</span><span class="n">behavior_idx</span><span class="p">]][</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">run_epochs</span><span class="p">]</span>
 
 <span class="n">spatial_information</span> <span class="o">=</span> <span class="n">spatial_maps</span><span class="o">.</span><span class="n">spatial_information</span><span class="p">()</span>
+
+<span class="n">extent</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">spatial_maps</span><span class="o">.</span><span class="n">x_edges</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+    <span class="n">spatial_maps</span><span class="o">.</span><span class="n">x_edges</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+    <span class="n">spatial_maps</span><span class="o">.</span><span class="n">y_edges</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+    <span class="n">spatial_maps</span><span class="o">.</span><span class="n">y_edges</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+<span class="p">]</span>
 
 <span class="c1"># iterate over the tuning curves</span>
 <span class="k">for</span> <span class="n">ratemap_i</span><span class="p">,</span> <span class="n">ratemap__</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">ratemap</span><span class="p">):</span>
     <span class="n">ratemap_</span> <span class="o">=</span> <span class="n">ratemap__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">ratemap_</span><span class="p">[</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">occupancy</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-    <span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">ratemap_</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># sns.heatmap(ratemap_.T, ax=ax[0])</span>
+    <span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">ratemap_</span><span class="p">,</span> <span class="mi">99</span><span class="p">)</span>
+
+    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+        <span class="n">ratemap_</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
+        <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">,</span>
+        <span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;rocket&quot;</span><span class="p">,</span>
+        <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># add colorbar with it&#39;s own axis</span>
+    <span class="n">cbar_ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.92</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">])</span>
+    <span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">cbar_ax</span><span class="p">)</span>
+    <span class="n">cbar</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;Firing Rate (Hz)&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">270</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
 
     <span class="n">field_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_mask</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">])</span>
 
     <span class="c1"># plot field boundaries over the heat map</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">field_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">field_ids</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">bc</span> <span class="o">=</span> <span class="n">measure</span><span class="o">.</span><span class="n">find_contours</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_mask</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span> <span class="o">==</span> <span class="n">field_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
-                <span class="mi">0</span><span class="p">,</span>
-                <span class="n">fully_connected</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span>
-                <span class="n">positive_orientation</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">bc</span><span class="p">:</span>
-                <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+        <span class="n">plot_field_boundaries</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_mask</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">],</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">x_edges</span><span class="p">,</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">y_edges</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">plot_field_boundaries</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_mask</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">],</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">x_edges</span><span class="p">,</span>
+            <span class="n">spatial_maps</span><span class="o">.</span><span class="n">y_edges</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+
 
     <span class="c1"># plot xy coords for animal position</span>
-    <span class="n">npl</span><span class="o">.</span><span class="n">plot2d</span><span class="p">(</span><span class="n">current_pos</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;0.8&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">npl</span><span class="o">.</span><span class="n">plot2d</span><span class="p">(</span><span class="n">current_pos</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;0.8&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="c1"># plot xy coords for each spike</span>
     <span class="n">x_time</span><span class="p">,</span> <span class="n">pos_at_spikes</span> <span class="o">=</span> <span class="n">pos</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
         <span class="n">at</span><span class="o">=</span><span class="n">st</span><span class="p">[</span><span class="n">beh_epochs</span><span class="p">[</span><span class="n">behavior_idx</span><span class="p">]][</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">run_epochs</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span>
     <span class="p">)</span>
-    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos_at_spikes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pos_at_spikes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos_at_spikes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pos_at_spikes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">)</span>
+
     <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
     <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Y Position (cm)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Y Position (cm)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;X Position (cm)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;X Position (cm)&quot;</span><span class="p">)</span>
     <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cm</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="o">.</span><span class="n">brainRegion</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cm</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="o">.</span><span class="n">UID</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
         <span class="sa">f</span><span class="s2">&quot;field width, </span><span class="si">{</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_width</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">. peak rate </span><span class="si">{</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">tc</span><span class="o">.</span><span class="n">field_peak_rate</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">. </span><span class="se">\n</span><span class="s2"> info: </span><span class="si">{</span><span class="n">spatial_information</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, pval: </span><span class="si">{</span><span class="n">spatial_info_pvalues</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, Z: </span><span class="si">{</span><span class="n">spatial_maps</span><span class="o">.</span><span class="n">spatial_information_zscore</span><span class="p">[</span><span class="n">ratemap_i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="p">)</span>
     <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">()</span>
@@ -4865,13 +4911,13 @@ information.</p>
 <span class="n">speed</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">ddt_asa</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.250</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">pos</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x21bf37a5090: 1 signals&gt; for a total of 24:06:298 minutes
+<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x1c985f80b90: 1 signals&gt; for a total of 24:06:298 minutes
 </code></pre></div>
 <h3 id="section-62-visualize-the-1d-position">Section 6.2: Visualize the 1D position<a class="headerlink" href="#section-62-visualize-the-1d-position" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pos</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>[&lt;matplotlib.lines.Line2D at 0x21bf18a1ed0&gt;]
+<div class="highlight"><pre><span></span><code>[&lt;matplotlib.lines.Line2D at 0x1c9860d6290&gt;]
 </code></pre></div>
 <p><img alt="png" src="../spatial_map_files/spatial_map_23_1.png" /></p>
 <h3 id="section-62-get-outbound-and-inbound-epochs">Section 6.2: Get outbound and inbound epochs<a class="headerlink" href="#section-62-get-outbound-and-inbound-epochs" title="Permanent link">&para;</a></h3>
@@ -4883,8 +4929,8 @@ information.</p>
 
 <span class="n">outbound_epochs</span><span class="p">,</span> <span class="n">inbound_epochs</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>(&lt;EpochArray at 0x21bf3456c50: 19 epochs&gt; of length 9:45:574 minutes,
- &lt;EpochArray at 0x21bf34468d0: 20 epochs&gt; of length 13:36:844 minutes)
+<div class="highlight"><pre><span></span><code>(&lt;EpochArray at 0x1c985f74590: 19 epochs&gt; of length 9:45:574 minutes,
+ &lt;EpochArray at 0x1c98552f210: 20 epochs&gt; of length 13:36:844 minutes)
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
@@ -4903,7 +4949,7 @@ information.</p>
 <span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;matplotlib.legend.Legend at 0x21bffa9ebd0&gt;
+<div class="highlight"><pre><span></span><code>&lt;matplotlib.legend.Legend at 0x1c985fec7d0&gt;
 </code></pre></div>
 <p><img alt="png" src="../spatial_map_files/spatial_map_26_1.png" /></p>
 <h3 id="section-63-make-tuning-curves-for-the-outbound-trajectories">Section 6.3: Make tuning curves for the outbound trajectories<a class="headerlink" href="#section-63-make-tuning-curves-for-the-outbound-trajectories" title="Permanent link">&para;</a></h3>
@@ -5093,7 +5139,7 @@ information.</p>
 <div class="highlight"><pre><span></span><code><span class="n">assembly_act</span> <span class="o">=</span> <span class="n">assembly_react</span><span class="o">.</span><span class="n">get_assembly_act</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">beh_epochs</span><span class="p">[</span><span class="n">behavior_idx</span><span class="p">])</span>
 <span class="n">assembly_act</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x21bf085c210: 15 signals&gt; for a total of 36:48:240 minutes
+<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x1c9913648d0: 15 signals&gt; for a total of 36:48:240 minutes
 </code></pre></div>
 <h3 id="section-73-calculate-spatial-maps-for-each-assembly-for-both-directions">Section 7.3: Calculate spatial maps for each assembly for both directions<a class="headerlink" href="#section-73-calculate-spatial-maps-for-each-assembly-for-both-directions" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">spatial_map_outbound_assembly</span> <span class="o">=</span> <span class="n">maps</span><span class="o">.</span><span class="n">SpatialMap</span><span class="p">(</span>
@@ -5241,8 +5287,8 @@ information.</p>
 
 <span class="n">outbound_epochs</span><span class="p">,</span> <span class="n">inbound_epochs</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>(&lt;EpochArray at 0x21bf37fb150: 19 epochs&gt; of length 9:45:574 minutes,
- &lt;EpochArray at 0x21bf37f8310: 20 epochs&gt; of length 13:36:844 minutes)
+<div class="highlight"><pre><span></span><code>(&lt;EpochArray at 0x1c985b7da90: 19 epochs&gt; of length 9:45:574 minutes,
+ &lt;EpochArray at 0x1c985b7ebd0: 20 epochs&gt; of length 13:36:844 minutes)
 </code></pre></div>
 <h3 id="section-81-prepare-the-n-dimensional-position-data">Section 8.1: Prepare the n-dimensional position data<a class="headerlink" href="#section-81-prepare-the-n-dimensional-position-data" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># find which position values are in outbound and inbound epochs</span>
@@ -5273,7 +5319,7 @@ information.</p>
 <span class="n">pos_and_trials</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">pos</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">[</span><span class="o">~</span><span class="n">remove_idx</span><span class="p">])</span>
 <span class="n">pos_and_trials</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x21bf1b88fd0: 3 signals (55 segments)&gt; for a total of 20:04:480 minutes
+<div class="highlight"><pre><span></span><code>&lt;AnalogSignalArray at 0x1c985981310: 3 signals (55 segments)&gt; for a total of 20:04:480 minutes
 </code></pre></div>
 <h3 id="section-82-create-the-spatialmap-object">Section 8.2: Create the SpatialMap object<a class="headerlink" href="#section-82-create-the-spatialmap-object" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># 3 cm for position, 1 for travel direction, 1 for trial number</span>
@@ -5309,7 +5355,7 @@ information.</p>
 <span class="p">)</span>
 <span class="n">spatial_map</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>&lt;TuningCurveND(3D) at 0x21c03b1d110&gt; with shape (16, 98, 2, 20)
+<div class="highlight"><pre><span></span><code>&lt;TuningCurveND(3D) at 0x1c985b83050&gt; with shape (16, 98, 2, 20)
 </code></pre></div>
 <h3 id="section-83-visualize-the-n-dimensional-spatial-map">Section 8.3: Visualize the n-dimensional spatial map<a class="headerlink" href="#section-83-visualize-the-n-dimensional-spatial-map" title="Permanent link">&para;</a></h3>
 <ul>
