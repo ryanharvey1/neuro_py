@@ -71,7 +71,7 @@ If your local environment auto-loads unrelated third-party pytest plugins, use t
 python tools/run_pytest.py
 ```
 
-This wrapper only sets `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Numba JIT and matplotlib backend behavior are exercised by the tests themselves.
+This wrapper disables ambient third-party pytest plugins and, when `CI` is set, caps joblib/BLAS thread fan-out to keep the full suite stable on shared runners. Numba JIT and matplotlib backend behavior are still exercised by the tests themselves.
 
 CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
 
