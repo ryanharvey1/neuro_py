@@ -939,6 +939,9 @@ class LFPLoader(nel.AnalogSignalArray):
             support=support,
         )
 
+    def __repr__(self) -> str:  # ty: ignore[missing-override-decorator]
+        return super().__repr__()
+
     def _get_bandpass_sos(
         self, band2filter: Sequence[float] = (6, 12), ford: int = 3
     ) -> np.ndarray:
@@ -2536,7 +2539,7 @@ def load_trials(basepath: str) -> pd.DataFrame:
 
 def load_brain_regions(
     basepath: str, out_format: str = "dict"
-) -> Union[dict[str, dict[str, Any]], pd.DataFrame]:
+) -> Union[dict[str, dict[str, Any]], pd.DataFrame, None]:
     """
     Loads brain region info from cell explorer basename.session and stores in dict (default) or DataFrame.
 
@@ -2634,10 +2637,10 @@ def load_brain_regions(
     if out_format == "dict":
         return brainRegions
 
-    raise ValueError("out_format must be either 'dict' or 'DataFrame'")
+    return None
 
 
-def get_animal_id(basepath: str) -> str:
+def get_animal_id(basepath: str) -> Union[str, pd.DataFrame]:
     """
     Return animal ID from basepath using basename.session.mat.
 
@@ -2655,7 +2658,7 @@ def get_animal_id(basepath: str) -> str:
         filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
     except Exception:
         warnings.warn("file does not exist")
-        return ""
+        return pd.DataFrame()
 
     # load file
     data = sio.loadmat(filename)
@@ -2985,7 +2988,7 @@ def load_deepSuperficialfromRipple(
 
     ripple_average[channel_sort_idx] = np.hstack(rip_map).T
 
-    brainRegions = load_brain_regions(basepath)
+    brainRegions = cast(dict[str, dict[str, Any]], load_brain_regions(basepath))
     for key, value in brainRegions.items():
         if isinstance(key, str) and (("ca1" in key.lower()) | ("ca2" in key.lower())):
             for shank in value["electrodeGroups"]:

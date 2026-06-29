@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union, cast
 
 import bottleneck as bn
 import numpy as np
@@ -798,7 +798,7 @@ def event_triggered_average(
     return_average: bool = True,
     return_pandas: bool = False,
     irregular_sampling: bool = False,
-) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]]:
     """
     Calculates the event-triggered averages of signals in a time window
     relative to the event times of corresponding events for multiple signals.
@@ -880,9 +880,9 @@ def event_triggered_average(
         empty_shape = (window_bins, signal.shape[1])
         if return_average:
             result = np.zeros(empty_shape)
-            if return_pandas:
-                return pd.DataFrame(result, index=time_lags)
-            return result, time_lags
+            return (
+                pd.DataFrame(result, index=time_lags) if return_pandas else result
+            ), time_lags
         else:
             return np.full(empty_shape + (len(events),), np.nan), time_lags
 
@@ -1251,14 +1251,17 @@ def peth(
         sampling_rate = 1 / np.median(np.diff(timestamps))
 
         # Compute event-triggered average
-        result, time_lags = event_triggered_average(
-            timestamps,
-            signal,
-            events,
-            sampling_rate=sampling_rate,
-            window=window,
-            return_average=average,
-            return_pandas=False,
+        result, time_lags = cast(
+            Tuple[np.ndarray, np.ndarray],
+            event_triggered_average(
+                timestamps,
+                signal,
+                events,
+                sampling_rate=sampling_rate,
+                window=window,
+                return_average=average,
+                return_pandas=False,
+            ),
         )
 
         if average:

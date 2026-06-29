@@ -1,4 +1,5 @@
 import glob
+import multiprocessing
 import os
 import pickle
 import traceback
@@ -8,7 +9,7 @@ from typing import Literal, Optional, Union
 import h5py
 import numpy as np
 import pandas as pd
-from joblib import Parallel, cpu_count, delayed
+from joblib import Parallel, delayed
 from tqdm import tqdm
 
 _HDF5_ROOT_OBJECT_KEY = "__neuro_py_root_object__"
@@ -654,8 +655,8 @@ def run(
     skip_if_error : bool, optional
         Whether to skip processing if an error occurs. Defaults to False.
     num_cores : int, optional
-        Number of CPU cores to use (if None, will use the effective CPU count
-        available to joblib). Defaults to None.
+        Number of CPU cores to use (if None, will use all available cores).
+        Defaults to None.
     format_type : Literal["pickle", "hdf5"], optional
         File format to use for saving. Defaults to "pickle".
     kwargs : dict
@@ -674,7 +675,7 @@ def run(
     if parallel:
         # get number of cores
         if num_cores is None:
-            num_cores = cpu_count()
+            num_cores = multiprocessing.cpu_count()
 
         # Avoid creating tqdm monitor threads unless the caller asked for
         # console progress updates.

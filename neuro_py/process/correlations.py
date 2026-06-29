@@ -52,7 +52,7 @@ def compute_AutoCorrs(
 
 def pairwise_corr(
     X: np.ndarray, method: str = "pearson", pairs: Optional[np.ndarray] = None
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[list[float], list[float], np.ndarray]:
     """
     Compute pairwise correlations between all rows of a matrix.
 
@@ -102,7 +102,7 @@ def pairwise_corr(
             raise ValueError("method must be pearson, spearman or kendall")
         rho.append(rho_)
         pval.append(pval_)
-    return np.asarray(rho), np.asarray(pval), pairs
+    return rho, pval, pairs
 
 
 def pairwise_cross_corr(
