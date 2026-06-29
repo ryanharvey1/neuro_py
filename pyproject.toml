@@ -180,7 +180,6 @@ rules = { all = "ignore" }
 [[tool.ty.overrides]]
 include = [
     "neuro_py/process/batch_analysis.py",
-    "neuro_py/process/correlations.py",
     "neuro_py/process/intervals.py",
     "neuro_py/process/pychronux.py",
     "neuro_py/process/utils.py",
