@@ -4,6 +4,7 @@ import pandas as pd
 from neuro_py.stats import circ_stats as ncirc
 from neuro_py.stats import regression as nreg
 from neuro_py.stats import stats as nstats
+from neuro_py.stats import system_identifier as nsys
 
 
 def test_reindex_df():
@@ -28,6 +29,12 @@ def test_ideal_data():
     X, Y = nreg.ideal_data(100, 5, 3, 2)
     assert X.shape == (100, 5)
     assert Y.shape == (100, 3)
+
+
+def test_system_identifier_ideal_data():
+    U, Y = nsys.ideal_data(30, 4, 3, 2)
+    assert U.shape == (30, 4)
+    assert Y.shape == (30, 3)
 
 
 def test_ReducedRankRegressor():

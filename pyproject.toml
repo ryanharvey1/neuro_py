@@ -139,7 +139,6 @@ exclude = [
     "neuro_py/raw/preprocessing.py",
     "neuro_py/raw/spike_sorting.py",
     "neuro_py/stats/circ_stats.py",
-    "neuro_py/stats/system_identifier.py",
     "neuro_py/tuning/fields.py",
     "neuro_py/tuning/maps.py",
 ]

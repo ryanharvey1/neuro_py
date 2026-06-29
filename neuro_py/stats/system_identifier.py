@@ -61,10 +61,10 @@ def ideal_data(
 
     # make sure state evolution is stable
     U, S, V = np.linalg.svd(A)
-    A = np.dot(U, np.dot(np.lib.diag(S / max(S)), V))
+    A = np.dot(U, np.dot(np.diag(S / max(S)), V))
     U, S, V = np.linalg.svd(B)
     S2 = np.zeros((np.size(U, 1), np.size(V, 0)))
-    S2[:, : np.size(U, 1)] = np.lib.diag(S / max(S))
+    S2[:, : np.size(U, 1)] = np.diag(S / max(S))
     B = np.dot(U, np.dot(S2, V))
 
     # random input
@@ -190,7 +190,7 @@ class SystemIdentifier(object):
         self.C = Sys[statedim:, :statedim]
         self.D = Sys[statedim:, statedim:]
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Linear Dynamical System"
 
     def predict(self, U: np.ndarray) -> np.ndarray:
