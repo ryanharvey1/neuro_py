@@ -1,17 +1,19 @@
+from collections.abc import Sequence
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 def plot_2d_replay(
-    replay_matrix,
+    replay_matrix: np.ndarray,
     ax=None,
     cmap="cool",
-    extent=None,
-    saturation=3,
-    percentile_threshold=99,
-    abs_threshold=None,
-    per_frame_alpha_normalization=True,
+    extent: Sequence[float] | None = None,
+    saturation: float = 3,
+    percentile_threshold: float = 99,
+    abs_threshold: float | None = None,
+    per_frame_alpha_normalization: bool = True,
 ):
     """
     Plot a single 2D replay event.
@@ -131,7 +133,10 @@ def plot_2d_replay(
     global_max = replay_matrix.max()
 
     if extent is None:
-        extent = [0, nx, 0, ny]
+        extent = (0.0, float(nx), 0.0, float(ny))
+    else:
+        xmin, xmax, ymin, ymax = extent
+        extent = (xmin, xmax, ymin, ymax)
     xmin, xmax, ymin, ymax = extent
 
     for t in range(T):
