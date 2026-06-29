@@ -144,7 +144,6 @@ exclude = [
     "neuro_py/stats/system_identifier.py",
     "neuro_py/tuning/fields.py",
     "neuro_py/tuning/maps.py",
-    "neuro_py/util/array.py",
 ]
 
 [tool.ty.environment]
