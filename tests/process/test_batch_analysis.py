@@ -1142,7 +1142,7 @@ class TestDataFrameHDF5EdgeCases:
 
     def test_dataframe_with_datetime_index(self, tmp_path):
         """Test DataFrame with datetime index."""
-        dates = pd.date_range("2023-01-01", periods=3, freq="D")
+        dates = pd.DatetimeIndex(["2023-01-01", "2023-01-02", "2023-01-03"])
         df = pd.DataFrame({"values": [1, 2, 3]}, index=dates)
 
         filepath = tmp_path / "test.h5"
