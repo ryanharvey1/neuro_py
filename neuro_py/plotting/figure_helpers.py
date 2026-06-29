@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from itertools import cycle
 from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Generator, Hashable, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Hashable, List, Literal, Optional, Tuple, Union, cast
 
 import matplotlib
 import matplotlib.font_manager as fm
@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.patches import PathPatch
 
 from neuro_py.process.peri_event import joint_peth
@@ -247,12 +249,12 @@ def figure_scale(scale: float = 1.0) -> Generator[None, None, None]:
         if isinstance((value := plt.rcParams[key]), Number)
     }
 
-    with plt.rc_context(scaled_params):
+    with plt.rc_context(cast(Any, scaled_params)):
         yield
 
 
 def show_scaled(
-    fig: matplotlib.figure.Figure,
+    fig: Figure,
     scale: float = 1.0,
     dpi: float | None = None,
     format: Literal["png"] = "png",
@@ -316,7 +318,7 @@ def show_scaled(
         return display_obj
 
     if resolved_backend == "marimo":
-        import marimo as mo
+        import marimo as mo  # ty: ignore[unresolved-import]
 
         return mo.Html(html)
 
@@ -324,7 +326,7 @@ def show_scaled(
 
 
 def _build_scaled_image_html(
-    fig: matplotlib.figure.Figure, scale: float, dpi: float
+    fig: Figure, scale: float, dpi: float
 ) -> str:
     """Render a figure to an HTML image tag with display-only scaling."""
 
@@ -370,7 +372,7 @@ def _display_in_ipython(display_obj: _HTMLDisplay) -> bool:
     if importlib.util.find_spec("IPython.display") is None:
         return False
 
-    from IPython.display import display
+    from IPython.display import display  # ty: ignore[unresolved-import]
 
     display(display_obj)
     return True
@@ -396,7 +398,7 @@ def _get_ipython_shell() -> Any | None:
     if importlib.util.find_spec("IPython") is None:
         return None
 
-    from IPython import get_ipython
+    from IPython import get_ipython  # ty: ignore[unresolved-import]
 
     return get_ipython()
 
@@ -505,8 +507,8 @@ def set_equal_axis_range(ax1: plt.Axes, ax2: plt.Axes) -> None:
     >>> set_equal_axis_range(ax1, ax2)
     """
     # Get x and y axis limits for both axes
-    axis_x_values = np.hstack(np.array((ax1.get_xlim(), ax2.get_xlim())))
-    axis_y_values = np.hstack(np.array((ax1.get_ylim(), ax2.get_ylim())))
+    axis_x_values = np.array([*ax1.get_xlim(), *ax2.get_xlim()])
+    axis_y_values = np.array([*ax1.get_ylim(), *ax2.get_ylim()])
 
     ax1.set_xlim(axis_x_values.min(), axis_x_values.max())
     ax1.set_ylim(axis_y_values.min(), axis_y_values.max())
@@ -515,7 +517,7 @@ def set_equal_axis_range(ax1: plt.Axes, ax2: plt.Axes) -> None:
 
 
 def restore_natural_scale(
-    ax: matplotlib.axes.Axes,
+    ax: Axes,
     min_: float,
     max_: float,
     n_steps: int = 4,
@@ -629,7 +631,7 @@ def plot_joint_peth(
     peth_2: np.ndarray,
     ts: np.ndarray,
     smooth_std: float = 2,
-    labels: list = ["peth_1", "peth_2", "event"],
+    labels: list[str] = ["peth_1", "peth_2", "event"],
 ) -> Tuple[plt.Figure, np.ndarray]:
     """
     Plot joint peri-event time histograms (PETHs) and the difference between the observed and expected responses.
@@ -783,13 +785,13 @@ def paired_lines(
     dodge: bool = True,
     dodge_width: float = 0.2,
     color: Optional[str] = None,
-    palette: Optional[Union[str, List[str], dict]] = None,
+    palette: Optional[Union[str, List[str], dict[Hashable, str]]] = None,
     alpha: float = 0.5,
     lw: float = 1,
-    ax: Optional[matplotlib.axes.Axes] = None,
+    ax: Optional[Axes] = None,
     zorder: int = 0,
     **kwargs: Any,
-) -> matplotlib.axes.Axes:
+) -> Axes:
     """
     Draw lines connecting paired points within each x-category.
 
@@ -1024,7 +1026,7 @@ def paired_lines(
 
         for group_key, g in data.groupby(groupby_cols, sort=False):
             if units:
-                x_cat, unit_val = group_key
+                x_cat, unit_val = cast(tuple[Hashable, Hashable], group_key)
             else:
                 # When grouping by single column as list, pandas returns 1-tuple
                 x_cat = group_key[0] if isinstance(group_key, tuple) else group_key
@@ -1170,7 +1172,7 @@ def paired_lines(
     # Since we plot with numeric positions internally, we explicitly set the labels
     n_categories = len(order)
     ax.set_xticks(range(n_categories))
-    ax.set_xticklabels(order)
+    ax.set_xticklabels(cast(Any, order))
     ax.set_xlim(-0.5, n_categories - 0.5, auto=None)
 
     # Set axis labels if requested and not already set
