@@ -459,7 +459,7 @@ def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.n
     array([nan,  0,  0,  0,  1,  1,  1, nan])
     """
     in_interval = np.full(timestamps.shape, np.nan)
-    for i in range(intervals.shape[0]):
+    for i in numba.prange(intervals.shape[0]):
         start, end = intervals[i]
         mask = (timestamps >= start) & (timestamps <= end)
         in_interval[mask] = i

@@ -459,7 +459,7 @@ def peth_matrix(
 
     H = np.zeros((len(times), len(time_ref)))
 
-    for event_i in range(len(time_ref)):
+    for event_i in prange(len(time_ref)):
         H[:, event_i] = crossCorr([time_ref[event_i]], data, bin_width, n_bins)
 
     return H, times

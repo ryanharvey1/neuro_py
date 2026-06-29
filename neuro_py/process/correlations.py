@@ -391,7 +391,7 @@ def event_triggered_cross_correlation(
 def _jit_event_corr(signal1_matrix, signal2_matrix):
     n_events, n_lags = signal1_matrix.shape
     out = np.zeros((n_events, 2 * n_lags - 1))
-    for i in range(n_events):
+    for i in numba.prange(n_events):
         s1 = signal1_matrix[i]
         s2 = signal2_matrix[i]
         s1c = s1 - np.mean(s1)

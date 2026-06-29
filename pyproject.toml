@@ -117,6 +117,14 @@ rules = { all = "ignore" }
 
 [[tool.ty.overrides]]
 include = [
+    "neuro_py/process/correlations.py",
+    "neuro_py/process/intervals.py",
+    "neuro_py/process/peri_event.py",
+]
+rules = { not-iterable = "ignore" }
+
+[[tool.ty.overrides]]
+include = [
     "neuro_py/behavior/circle_maze.py",
     "neuro_py/behavior/get_trials.py",
     "neuro_py/behavior/linear_positions.py",
