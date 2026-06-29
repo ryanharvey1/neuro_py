@@ -114,8 +114,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools setuptools-scm
-          pip install .[all]
-          pip install pytest ty
+          pip install .[all,dev]
 
       - name: Run ty
         run: |

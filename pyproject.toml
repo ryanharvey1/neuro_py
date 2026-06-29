@@ -60,6 +60,12 @@ docs = [
     "nbconvert>=7.0.0",
     "marimo>=0.23.0"
 ]
+# For local development and CI tooling
+dev = [
+    "pytest",
+    "ruff",
+    "ty==0.0.55"
+]
 # An "all" group that combines all optional groups
 all = [
     "lightning>=2.4.0",

@@ -79,6 +79,12 @@ CI also runs a lightweight plain-`pytest` smoke check against the base install s
 
 The repository uses [ty](https://docs.astral.sh/ty/) for staged static type checking.
 
+To install the development tools used by CI:
+
+```bash
+pip install -e .[dev]
+```
+
 If `ty` is installed in your active environment, run:
 
 ```bash
