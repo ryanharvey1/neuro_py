@@ -4,6 +4,22 @@ import pandas as pd
 from neuro_py.session import locate_epochs
 
 
+def test_find_pre_task_post_accepts_list_input():
+    mask, indices = locate_epochs.find_pre_task_post(["sleep", "maze", "sleep"])
+
+    assert np.array_equal(mask, np.array([True, True, True]))
+    assert indices == [0, 1, 2]
+
+
+def test_find_pre_task_post_finds_shifted_pattern():
+    mask, indices = locate_epochs.find_pre_task_post(
+        ["home", "sleep", "maze", "sleep"]
+    )
+
+    assert np.array_equal(mask, np.array([False, True, True, True]))
+    assert indices == [1, 2, 3]
+
+
 def test_find_multitask_pre_post():
     # Example usage
     df1 = pd.DataFrame(

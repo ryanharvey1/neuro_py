@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -44,18 +44,20 @@ def find_pre_task_post(
     """
     if len(env) < 3:
         return None, None
-    numeric_idx = (pre_post_label == env) * 1
+    env = np.asarray(env)
+    numeric_idx = (env == pre_post_label).astype(int)
     dummy = np.zeros_like(numeric_idx) == 1
     if all(numeric_idx[:3] == [1, 0, 1]):
         dummy[:3] = True
         return dummy, [0, 1, 2]
     else:
-        for i in np.arange(len(numeric_idx) + 3):
+        for i in range(len(numeric_idx) - 2):
             if 3 + i > len(numeric_idx):
                 return None, None
             if all(numeric_idx[0 + i : 3 + i] == [1, 0, 1]):
                 dummy[0 + i : 3 + i] = True
-                return dummy, [0, 1, 2] + i
+                return dummy, [0 + i, 1 + i, 2 + i]
+    return None, None
 
 
 def compress_repeated_epochs(epoch_df, epoch_name=None):
@@ -388,7 +390,7 @@ def find_pre_task_post_optimize_novel(
     return epoch_df
 
 
-def get_experience_level(behavioralParadigm: pd.Series) -> int:
+def get_experience_level(behavioralParadigm: object) -> Union[int, float]:
     """
     Extract the experience level from the behavioralParadigm column.
 
@@ -414,11 +416,11 @@ def get_experience_level(behavioralParadigm: pd.Series) -> int:
     else:
         try:
             # extract first number from string
-            experience = int(re.findall(r"\d+", behavioralParadigm)[0])
+            experience = int(re.findall(r"\d+", str(behavioralParadigm))[0])
         except Exception:
             try:
                 # extract experience level from behavioralParadigm column if it is a number
-                experience = int(behavioralParadigm)
+                experience = int(cast(Any, behavioralParadigm))
             except Exception:
                 experience = np.nan
     return experience
