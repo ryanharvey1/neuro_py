@@ -4,7 +4,7 @@ import os
 import pickle
 import traceback
 from collections.abc import Callable
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Sequence, Union, cast
 
 import h5py
 import numpy as np
@@ -126,38 +126,40 @@ def _save_inhomogeneous_data_hdf5(group: h5py.Group, key: str, value: object) ->
     """
     # Strategy 1: Try to save as individual arrays if it's a list of arrays
     if isinstance(value, (list, tuple)) and len(value) > 0:
+        sequence_value = cast(Sequence[object], value)
         # Check if all elements are numpy arrays
-        if all(isinstance(item, np.ndarray) for item in value):
+        if all(isinstance(item, np.ndarray) for item in sequence_value):
             # Create a group for this inhomogeneous array collection
             inhom_group = group.create_group(f"{key}_inhomogeneous")
 
             # Save each array separately with its index
-            for i, arr in enumerate(value):
+            for i, arr in enumerate(sequence_value):
                 inhom_group.create_dataset(f"array_{i}", data=arr)
 
             # Save metadata about the structure
             inhom_group.attrs["type"] = "inhomogeneous_array_list"
-            inhom_group.attrs["length"] = len(value)
+            inhom_group.attrs["length"] = len(sequence_value)
             return
 
         # Check if it's a nested list where each element is a list of arrays
         elif (
-            len(value) > 0
-            and isinstance(value[0], (list, tuple))
-            and len(value[0]) > 0
-            and isinstance(value[0][0], np.ndarray)
+            len(sequence_value) > 0
+            and isinstance(sequence_value[0], (list, tuple))
+            and len(sequence_value[0]) > 0
+            and isinstance(sequence_value[0][0], np.ndarray)
         ):
             # Handle nested structure like [[array1, array2, ...], [array3, array4, ...]]
             inhom_group = group.create_group(f"{key}_inhomogeneous")
 
-            for i, sublist in enumerate(value):
+            for i, sublist in enumerate(sequence_value):
+                sublist = cast(Sequence[object], sublist)
                 subgroup = inhom_group.create_group(f"sublist_{i}")
                 for j, arr in enumerate(sublist):
                     subgroup.create_dataset(f"array_{j}", data=arr)
                 subgroup.attrs["length"] = len(sublist)
 
             inhom_group.attrs["type"] = "nested_inhomogeneous_array_list"
-            inhom_group.attrs["length"] = len(value)
+            inhom_group.attrs["length"] = len(sequence_value)
             return
 
     # Strategy 2: Fall back to pickle serialization for complex structures
@@ -235,7 +237,8 @@ def _save_to_hdf5(data: object, filepath: str) -> None:
             _save_dataframe_to_hdf5(data, f, "dataframe")
         elif isinstance(data, dict):
             # Save each item in the dictionary
-            for key, value in data.items():
+            dict_data = cast(dict[str, object], data)
+            for key, value in dict_data.items():
                 if value is None:
                     # Handle None values by storing as pickled data
                     _save_inhomogeneous_data_hdf5(f, key, value)
@@ -567,7 +570,7 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
 def main_loop(
     basepath: str,
     save_path: str,
-    func: Callable,
+    func: Callable[..., object],
     overwrite: bool = False,
     skip_if_error: bool = False,
     format_type: Literal["pickle", "hdf5"] = "pickle",
@@ -626,12 +629,12 @@ def main_loop(
 def run(
     df: pd.DataFrame,
     save_path: str,
-    func: Callable,
+    func: Callable[..., object],
     parallel: bool = True,
     verbose: bool = False,
     overwrite: bool = False,
     skip_if_error: bool = False,
-    num_cores: int = None,
+    num_cores: int | None = None,
     format_type: Literal["pickle", "hdf5"] = "pickle",
     **kwargs,
 ) -> None:
@@ -797,9 +800,9 @@ def load_results(
         elif (
             isinstance(results_, dict)
             and "dataframe" in results_
-            and isinstance(results_["dataframe"], pd.DataFrame)
+            and isinstance(cast(dict[str, object], results_)["dataframe"], pd.DataFrame)
         ):
-            results_ = results_["dataframe"]
+            results_ = cast(dict[str, object], results_)["dataframe"]
 
         # Ensure we have a DataFrame
         if not isinstance(results_, pd.DataFrame):
@@ -821,7 +824,7 @@ def load_results(
 
 
 def load_specific_data(
-    filepath: Union[str, os.PathLike], key: Optional[str] = None
+    filepath: Union[str, os.PathLike[str]], key: Optional[str] = None
 ) -> Optional[object]:
     """
     Load specific data from a file (supports selective loading for HDF5).
