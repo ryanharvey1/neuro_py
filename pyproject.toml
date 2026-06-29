@@ -181,7 +181,6 @@ rules = { all = "ignore" }
 include = [
     "neuro_py/process/batch_analysis.py",
     "neuro_py/process/pychronux.py",
-    "neuro_py/process/utils.py",
 ]
 rules = { all = "ignore" }
 

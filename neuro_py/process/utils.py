@@ -221,7 +221,7 @@ def remove_inactive_cells(
     if not isinstance(st, nel.core._eventarray.SpikeTrainArray):
         raise ValueError("st must be a SpikeTrainArray object")
 
-    if not isinstance(cell_metrics, (pd.core.frame.DataFrame, type(None))):
+    if not isinstance(cell_metrics, (pd.DataFrame, type(None))):
         raise ValueError("cell_metrics must be a DataFrame object")
 
     if not isinstance(epochs, (nel.core._intervalarray.EpochArray, list)):
@@ -276,13 +276,13 @@ def remove_inactive_cells(
 
 def remove_inactive_cells_pre_task_post(
     st: nel.core._eventarray.SpikeTrainArray,
-    cell_metrics: Union[pd.core.frame.DataFrame, None] = None,
-    beh_epochs: nel.core._intervalarray.EpochArray = None,
-    nrem_epochs: nel.core._intervalarray.EpochArray = None,
-    theta_epochs: nel.core._intervalarray.EpochArray = None,
+    cell_metrics: Union[pd.DataFrame, None] = None,
+    beh_epochs: Union[nel.core._intervalarray.EpochArray, None] = None,
+    nrem_epochs: Union[nel.core._intervalarray.EpochArray, None] = None,
+    theta_epochs: Union[nel.core._intervalarray.EpochArray, None] = None,
     min_spikes: int = 100,
     nrem_time: Union[int, float] = 3600,
-) -> tuple:
+) -> Tuple[nel.core._eventarray.SpikeTrainArray, Union[pd.DataFrame, None]]:
     """
     remove_inactive_cells_pre_task_post: Remove cells with fewer than min_spikes spikes per pre/task/post
 
