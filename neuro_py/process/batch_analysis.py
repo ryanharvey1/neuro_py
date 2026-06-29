@@ -675,34 +675,38 @@ def run(
         # get number of cores
         if num_cores is None:
             num_cores = multiprocessing.cpu_count()
-        # run in parallel
-        Parallel(n_jobs=num_cores)(
-            delayed(main_loop)(
-                basepath,
-                save_path,
-                func,
-                overwrite,
-                skip_if_error,
-                format_type,
-                **kwargs,
-            )
-            for basepath in tqdm(basepaths)
-        )
+        # Explicitly scope the progress bar and joblib pool so their helper
+        # threads/processes are torn down deterministically between test runs.
+        with tqdm(basepaths) as progress_bar:
+            with Parallel(n_jobs=num_cores) as parallel_runner:
+                parallel_runner(
+                    delayed(main_loop)(
+                        basepath,
+                        save_path,
+                        func,
+                        overwrite,
+                        skip_if_error,
+                        format_type,
+                        **kwargs,
+                    )
+                    for basepath in progress_bar
+                )
     else:
         # run in serial
-        for basepath in tqdm(basepaths):
-            if verbose:
-                print(basepath)
-            # run main_loop on each basepath in df
-            main_loop(
-                basepath,
-                save_path,
-                func,
-                overwrite,
-                skip_if_error,
-                format_type,
-                **kwargs,
-            )
+        with tqdm(basepaths) as progress_bar:
+            for basepath in progress_bar:
+                if verbose:
+                    print(basepath)
+                # run main_loop on each basepath in df
+                main_loop(
+                    basepath,
+                    save_path,
+                    func,
+                    overwrite,
+                    skip_if_error,
+                    format_type,
+                    **kwargs,
+                )
 
 
 def load_results(
