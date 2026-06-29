@@ -7,7 +7,8 @@ from scipy.ndimage.measurements import label
 
 
 def paired_distances(
-    x: Union[np.ndarray, list], y: Union[np.ndarray, list]
+    x: Union[np.ndarray, list[float], list[list[float]]],
+    y: Union[np.ndarray, list[float], list[list[float]]],
 ) -> np.ndarray:
     """
     Euclidean distance between x and y at each time point.
@@ -31,8 +32,8 @@ def paired_distances(
 
 
 def enter_exit_target(
-    position: Union[np.ndarray, list],
-    target: Union[np.ndarray, list],
+    position: Union[np.ndarray, list[float], list[list[float]]],
+    target: Union[np.ndarray, list[float], list[list[float]]],
     max_distance: float = 1.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """

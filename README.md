@@ -75,6 +75,24 @@ This wrapper only sets `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Numba JIT and matplot
 
 CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
 
+## Type checking
+
+The repository uses [ty](https://docs.astral.sh/ty/) for staged static type checking.
+
+If `ty` is installed in your active environment, run:
+
+```bash
+ty check
+```
+
+If you prefer not to install `ty` into the environment, use `uvx` against the project environment:
+
+```bash
+uvx ty check --python .venv
+```
+
+For editor integration, point your editor at the `ty` language server (`ty server`) and keep `pyproject.toml` as the source of truth for repo-specific overrides and temporary suppressions.
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
