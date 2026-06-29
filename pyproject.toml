@@ -131,7 +131,6 @@ exclude = [
     "neuro_py/lfp/preprocessing.py",
     "neuro_py/lfp/spectral.py",
     "neuro_py/lfp/theta_cycles.py",
-    "neuro_py/plotting/events.py",
     "neuro_py/plotting/figure_helpers.py",
     "neuro_py/process/pychronux.py",
     "neuro_py/raw/preprocessing.py",
