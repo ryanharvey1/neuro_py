@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import pytest
+from joblib.externals.loky import get_reusable_executor
 
 from neuro_py.process import batch_analysis
 from neuro_py.process.batch_analysis import (
@@ -25,6 +26,12 @@ from neuro_py.process.batch_analysis import (
     main_loop,
     run,
 )
+
+
+@pytest.fixture(autouse=True)
+def _shutdown_loky_executor_after_test():
+    yield
+    get_reusable_executor().shutdown(wait=True, kill_workers=True)
 
 
 def test_batchanalysis():
