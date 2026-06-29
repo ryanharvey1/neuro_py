@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 
 import numpy as np
 import scipy
@@ -79,7 +79,7 @@ class ReducedRankRegressor(object):
         self.W = V[0:rank, :].T
         self.A = (np.linalg.pinv(CXX) @ (CXY @ self.W)).T
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Reduced Rank Regressor (rank = {})".format(self.rank)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -125,7 +125,7 @@ class MultivariateRegressor(object):
         W2 = np.dot(X, W1)
         self.W = np.dot(Y.T, W2)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Multivariate Linear Regression"
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -177,7 +177,7 @@ class kernelReducedRankRegressor(BaseEstimator):
         self.Q_fr = Q_fr
         self.trainX = trainX
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "kernel Reduced Rank Ridge Regression by Mukherjee (rank = {})".format(
             self.rank
         )
@@ -199,8 +199,11 @@ class kernelReducedRankRegressor(BaseEstimator):
     def predict(self, testX: np.ndarray) -> np.ndarray:
         # use try/except blog with exceptions!
 
-        K_Xx = np.dot(testX, self.trainX.T)
-        Yhat = np.dot(K_Xx, np.dot(self.Q_fr, self.P_rr))
+        trainX = cast(np.ndarray, self.trainX)
+        Q_fr = cast(np.ndarray, self.Q_fr)
+        P_rr = cast(np.ndarray, self.P_rr)
+        K_Xx = np.dot(testX, trainX.T)
+        Yhat = np.dot(K_Xx, np.dot(Q_fr, P_rr))
 
         return Yhat
 
@@ -209,7 +212,9 @@ class kernelReducedRankRegressor(BaseEstimator):
         return diag_corr
 
     ## Optional
-    def get_params(self, deep: bool = True) -> dict:
+    def get_params(  # ty: ignore[missing-override-decorator]
+        self, deep: bool = True
+    ) -> dict[str, int | float]:
         return {"rank": self.rank, "reg": self.reg}
 
     #
