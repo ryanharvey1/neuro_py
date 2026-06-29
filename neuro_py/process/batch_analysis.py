@@ -1,5 +1,4 @@
 import glob
-import multiprocessing
 import os
 import pickle
 import traceback
@@ -9,7 +8,7 @@ from typing import Literal, Optional, Union
 import h5py
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
+from joblib import Parallel, cpu_count, delayed
 from tqdm import tqdm
 
 _HDF5_ROOT_OBJECT_KEY = "__neuro_py_root_object__"
@@ -655,7 +654,8 @@ def run(
     skip_if_error : bool, optional
         Whether to skip processing if an error occurs. Defaults to False.
     num_cores : int, optional
-        Number of CPU cores to use (if None, will use all available cores). Defaults to None.
+        Number of CPU cores to use (if None, will use the effective CPU count
+        available to joblib). Defaults to None.
     format_type : Literal["pickle", "hdf5"], optional
         File format to use for saving. Defaults to "pickle".
     kwargs : dict
@@ -674,31 +674,14 @@ def run(
     if parallel:
         # get number of cores
         if num_cores is None:
-            num_cores = multiprocessing.cpu_count()
-        # Explicitly scope the progress bar and joblib pool so their helper
-        # threads/processes are torn down deterministically between test runs.
-        with tqdm(basepaths) as progress_bar:
-            with Parallel(n_jobs=num_cores) as parallel_runner:
-                parallel_runner(
-                    delayed(main_loop)(
-                        basepath,
-                        save_path,
-                        func,
-                        overwrite,
-                        skip_if_error,
-                        format_type,
-                        **kwargs,
-                    )
-                    for basepath in progress_bar
-                )
-    else:
-        # run in serial
-        with tqdm(basepaths) as progress_bar:
-            for basepath in progress_bar:
-                if verbose:
-                    print(basepath)
-                # run main_loop on each basepath in df
-                main_loop(
+            num_cores = cpu_count()
+
+        # Avoid creating tqdm monitor threads unless the caller asked for
+        # console progress updates.
+        basepath_iter = tqdm(basepaths) if verbose else basepaths
+        with Parallel(n_jobs=num_cores) as parallel_runner:
+            parallel_runner(
+                delayed(main_loop)(
                     basepath,
                     save_path,
                     func,
@@ -707,6 +690,24 @@ def run(
                     format_type,
                     **kwargs,
                 )
+                for basepath in basepath_iter
+            )
+    else:
+        # run in serial
+        basepath_iter = tqdm(basepaths) if verbose else basepaths
+        for basepath in basepath_iter:
+            if verbose:
+                print(basepath)
+            # run main_loop on each basepath in df
+            main_loop(
+                basepath,
+                save_path,
+                func,
+                overwrite,
+                skip_if_error,
+                format_type,
+                **kwargs,
+            )
 
 
 def load_results(

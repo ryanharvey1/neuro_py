@@ -1414,7 +1414,7 @@ class TestRunEdgeCases:
             mock_parallel.assert_called_once_with(n_jobs=2)
 
     def test_run_with_default_num_cores(self, tmp_path):
-        """Test run with default number of cores (all available)."""
+        """Test run with default number of cores from joblib."""
         df = pd.DataFrame({"basepath": ["session1"]})
 
         def dummy_func(basepath):
@@ -1423,13 +1423,10 @@ class TestRunEdgeCases:
         save_path = str(tmp_path)
 
         with patch("neuro_py.process.batch_analysis.Parallel") as mock_parallel:
-            with patch(
-                "neuro_py.process.batch_analysis.multiprocessing.cpu_count",
-                return_value=8,
-            ):
+            with patch("neuro_py.process.batch_analysis.cpu_count", return_value=8):
                 run(df, save_path, dummy_func, parallel=True, format_type="pickle")
 
-                # Check that Parallel was called with all available cores
+                # Check that Parallel was called with the effective worker count
                 mock_parallel.assert_called_once_with(n_jobs=8)
 
 
