@@ -60,6 +60,12 @@ docs = [
     "nbconvert>=7.0.0",
     "marimo>=0.23.0"
 ]
+# For local development and CI tooling
+dev = [
+    "pytest",
+    "ruff",
+    "ty==0.0.55"
+]
 # An "all" group that combines all optional groups
 all = [
     "lightning>=2.4.0",
@@ -85,3 +91,71 @@ exclude = ['docs']
 
 [tool.ruff.lint]
 select = ["NPY201"]
+
+[tool.ty.src]
+include = ["neuro_py", "tests", "tools"]
+exclude = [
+    "backup/**",
+    "build/**",
+    "data/**",
+    "docs/**",
+    "reference/**",
+    "site/**",
+    "tests/**",
+    "tutorials/**",
+    "neuro_py/behavior/circle_maze.py",
+    "neuro_py/behavior/get_trials.py",
+    "neuro_py/behavior/linear_positions.py",
+    "neuro_py/behavior/linearization.py",
+    "neuro_py/behavior/linearization_pipeline.py",
+    "neuro_py/detectors/dentate_spike.py",
+    "neuro_py/detectors/sharp_wave_ripple.py",
+    "neuro_py/detectors/up_down_state.py",
+    "neuro_py/ensemble/__init__.pyi",
+    "neuro_py/ensemble/assembly.py",
+    "neuro_py/ensemble/assembly_reactivation.py",
+    "neuro_py/ensemble/decoding/bayesian.py",
+    "neuro_py/ensemble/decoding/lstm.py",
+    "neuro_py/ensemble/decoding/m2mlstm.py",
+    "neuro_py/ensemble/decoding/mlp.py",
+    "neuro_py/ensemble/decoding/pipeline.py",
+    "neuro_py/ensemble/decoding/preprocess.py",
+    "neuro_py/ensemble/decoding/transformer.py",
+    "neuro_py/ensemble/explained_variance.py",
+    "neuro_py/ensemble/pairwise_bias_correlation.py",
+    "neuro_py/ensemble/replay.py",
+    "neuro_py/ensemble/similarity_index.py",
+    "neuro_py/ensemble/similaritymat.py",
+    "neuro_py/io/__init__.pyi",
+    "neuro_py/lfp/CSD.py",
+    "neuro_py/lfp/preprocessing.py",
+    "neuro_py/lfp/spectral.py",
+    "neuro_py/lfp/theta_cycles.py",
+    "neuro_py/process/pychronux.py",
+    "neuro_py/raw/preprocessing.py",
+    "neuro_py/raw/spike_sorting.py",
+    "neuro_py/stats/circ_stats.py",
+    "neuro_py/tuning/fields.py",
+    "neuro_py/tuning/maps.py",
+]
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.rules]
+all = "error"
+
+[[tool.ty.overrides]]
+include = [
+    "neuro_py/process/correlations.py",
+    "neuro_py/process/intervals.py",
+    "neuro_py/process/peri_event.py",
+]
+rules = { not-iterable = "ignore" }
+
+[tool.ty.analysis]
+# `track_linearization` is an optional dependency used by the linearization pipeline.
+allowed-unresolved-imports = ["track_linearization"]

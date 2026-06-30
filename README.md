@@ -71,9 +71,33 @@ If your local environment auto-loads unrelated third-party pytest plugins, use t
 python tools/run_pytest.py
 ```
 
-This wrapper only sets `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. Numba JIT and matplotlib backend behavior are exercised by the tests themselves.
+This wrapper disables ambient third-party pytest plugins and, when `CI` is set, caps joblib/BLAS thread fan-out to keep the full suite stable on shared runners. Numba JIT and matplotlib backend behavior are still exercised by the tests themselves.
 
 CI also runs a lightweight plain-`pytest` smoke check against the base install so we still catch issues outside the wrapper path.
+
+## Type checking
+
+The repository uses [ty](https://docs.astral.sh/ty/) for staged static type checking.
+
+To install the development tools used by CI:
+
+```bash
+pip install -e .[dev]
+```
+
+If `ty` is installed in your active environment, run:
+
+```bash
+ty check
+```
+
+If you prefer not to install `ty` into the environment, use `uvx` against the project environment:
+
+```bash
+uvx ty check --python .venv
+```
+
+For editor integration, point your editor at the `ty` language server (`ty server`) and keep `pyproject.toml` as the source of truth for repo-specific overrides and temporary suppressions.
 
 ## Contributing
 

@@ -63,7 +63,7 @@ def spindices_to_ndarray(
     return data
 
 
-def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
+def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list[float]:
     """
     Calculate the burst index from Royer et al. (2012).
     The burst index ranges from -1 to 1, where:

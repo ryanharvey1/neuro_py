@@ -306,6 +306,7 @@ def pcorrelate(t: np.ndarray, u: np.ndarray, bins: np.ndarray) -> np.ndarray:
 
     # For each ti, perform binning of (u - ti) and accumulate counts in Y
     for ti in t:
+        j = 0
         for k, (tau_min, tau_max) in enumerate(zip(bins[:-1], bins[1:])):
             if k == 0:
                 j = imin[k]

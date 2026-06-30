@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -492,6 +492,8 @@ def smooth_peth(
     is_series = isinstance(peth, pd.Series)
     is_df = isinstance(peth, pd.DataFrame)
     return_ndarray_1d = False
+    series_name = None
+    columns = None
 
     if is_series:
         # Convert Series to DataFrame for rolling, preserve name and index
@@ -541,16 +543,16 @@ def smooth_peth(
     smooth_std_samples = smooth_std / dt_local
 
     # Use pandas rolling with Gaussian window
-    smoothed_df = (
+    rolling_window = cast(
+        Any,
         peth_df.rolling(
             window=window_samples,
             win_type="gaussian",
             center=True,
             min_periods=1,
-        )
-        .mean(std=smooth_std_samples)
-        .copy()
+        ),
     )
+    smoothed_df = rolling_window.mean(std=smooth_std_samples).copy()
 
     # Convert back to original type
     if is_series:

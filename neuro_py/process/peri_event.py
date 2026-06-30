@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union, cast
 
 import bottleneck as bn
 import numpy as np
@@ -114,7 +114,7 @@ def compute_psth(
     event: np.ndarray,
     bin_width: float = 0.002,
     n_bins: int = 100,
-    window: list = None,
+    window: Union[list[float], None] = None,
 ) -> pd.DataFrame:
     """
     Compute the Peri-Stimulus Time Histogram (PSTH) for discrete-time events.
@@ -156,8 +156,8 @@ def compute_psth(
     >>> event = np.array([0.1, 0.3])
     >>> psth = compute_psth(spikes, event)
     """
+    window_original: np.ndarray | None = None
     if window is not None:
-        window_original = None
         # check if window is symmetric around 0, if not make it so
         mid = (window[1] - window[0]) / 2.0
         is_symmetric = np.isclose(mid, window[1]) and np.isclose(-mid, window[0])
@@ -722,7 +722,7 @@ def event_triggered_average_irregular_sample(
     time_ref: np.ndarray,
     bin_width: float = 0.002,
     n_bins: int = 100,
-    window: Union[tuple, None] = None,
+    window: Union[Tuple[float, float], None] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Compute the average and standard deviation of data values within a window around
@@ -794,11 +794,11 @@ def event_triggered_average(
     signal: np.ndarray,
     events: Union[np.ndarray, List[np.ndarray]],
     sampling_rate: Union[float, None] = None,
-    window: List[float] = [-0.5, 0.5],
+    window: list[float] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
     irregular_sampling: bool = False,
-) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
+) -> Union[pd.DataFrame, Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]]:
     """
     Calculates the event-triggered averages of signals in a time window
     relative to the event times of corresponding events for multiple signals.
@@ -965,10 +965,10 @@ def event_triggered_average_fast(
     signal: np.ndarray,
     events: np.ndarray,
     sampling_rate: int,
-    window: Union[list, Tuple[float, float]] = [-0.5, 0.5],
+    window: Union[list[float], Tuple[float, float]] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
-) -> Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]:
+) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
     """
     Calculate the event-triggered average of a signal.
 
@@ -1052,7 +1052,7 @@ def event_triggered_average_fast(
 def peth(
     data,
     events: np.ndarray,
-    window: Union[list, None] = None,
+    window: Union[list[float], None] = None,
     bin_width: float = 0.002,
     n_bins: int = 100,
     average: bool = True,
@@ -1161,6 +1161,10 @@ def peth(
 
     # Determine data type and extract spike/signal data
     is_continuous = False
+    timestamps: np.ndarray | None = None
+    signal: np.ndarray | None = None
+    spike_data: np.ndarray | None = None
+    t: np.ndarray | None = None
 
     if isinstance(
         data,
@@ -1238,6 +1242,8 @@ def peth(
     # Compute PETH based on data type
     if is_continuous:
         # Continuous data - use event_triggered_average
+        if timestamps is None or signal is None:
+            raise ValueError("Continuous data requires timestamps and signal values.")
         if window is None:
             window = [times[0], times[-1]]
 
@@ -1245,14 +1251,17 @@ def peth(
         sampling_rate = 1 / np.median(np.diff(timestamps))
 
         # Compute event-triggered average
-        result, time_lags = event_triggered_average(
-            timestamps,
-            signal,
-            events,
-            sampling_rate=sampling_rate,
-            window=window,
-            return_average=average,
-            return_pandas=False,
+        result, time_lags = cast(
+            Tuple[np.ndarray, np.ndarray],
+            event_triggered_average(
+                timestamps,
+                signal,
+                events,
+                sampling_rate=sampling_rate,
+                window=window,
+                return_average=average,
+                return_pandas=False,
+            ),
         )
 
         if average:
@@ -1265,6 +1274,8 @@ def peth(
 
     else:
         # Point process data
+        if spike_data is None:
+            raise ValueError("Point-process data requires spike timestamps.")
         if average:
             # Use crossCorr for averaged PETH
             peth_df = pd.DataFrame(index=times, columns=np.arange(n_series))
@@ -1281,6 +1292,7 @@ def peth(
             # Build matrix for each spike train: (n_time_bins, n_signals, n_events)
             matrices_list = []
             window_arg = None if window is None else (window[0], window[1])
+            t = times
 
             for i, s in enumerate(spike_data):
                 # Ensure spike times are float64
@@ -1530,7 +1542,11 @@ def get_rank_order(
         edges = split_epoch_by_width(epochs.data, dt)
 
         z_t = count_in_interval(st.data, edges[:, 0], edges[:, 1], par_type="counts")
-        _, interval_id = in_intervals(edges[:, 0], epochs.data, return_interval=True)
+        interval_result = in_intervals(edges[:, 0], epochs.data, return_interval=True)
+        if isinstance(interval_result, tuple):
+            interval_id = interval_result[1]
+        else:
+            interval_id = interval_result
 
         # iter over epochs
         for event_i, epochs_temp in enumerate(epochs):
@@ -1776,7 +1792,7 @@ def nearest_event_delay(
 def event_spiking_threshold(
     spikes: SpikeTrainArray,
     events: np.ndarray,
-    window: list = [-0.5, 0.5],
+    window: Sequence[float] = (-0.5, 0.5),
     event_size: float = 0.1,
     spiking_thres: float = 0,
     binsize: float = 0.01,
@@ -1842,7 +1858,7 @@ def event_spiking_threshold(
         bst[np.newaxis, :],
         events,
         sampling_rate=int(1 / binsize),
-        window=window,
+        window=list(window),
         return_average=False,
     )
     # get the event response within the event size

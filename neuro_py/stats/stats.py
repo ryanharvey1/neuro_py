@@ -8,7 +8,7 @@ import scipy.stats as stats
 
 
 def get_significant_events(
-    scores: Union[list, np.ndarray],
+    scores: Union[list[float], np.ndarray],
     shuffled_scores: np.ndarray,
     q: float = 95,
     tail: str = "both",
@@ -39,46 +39,49 @@ def get_significant_events(
         The standard deviation of the scores in terms of the shuffled scores.
     """
     # check shape and correct if needed
+    scores_array = np.asarray(scores)
     if isinstance(scores, list) | isinstance(scores, np.ndarray):
-        if shuffled_scores.shape[1] != len(scores):
+        if shuffled_scores.shape[1] != len(scores_array):
             shuffled_scores = shuffled_scores.T
 
     n = shuffled_scores.shape[0]
     if tail == "both":
-        r = np.sum(np.abs(shuffled_scores) >= np.abs(scores), axis=0)
+        r = np.sum(np.abs(shuffled_scores) >= np.abs(scores_array), axis=0)
     elif tail == "right":
-        r = np.sum(shuffled_scores >= scores, axis=0)
+        r = np.sum(shuffled_scores >= scores_array, axis=0)
     elif tail == "left":
-        r = np.sum(shuffled_scores <= scores, axis=0)
+        r = np.sum(shuffled_scores <= scores_array, axis=0)
     else:
         raise ValueError("tail must be 'left', 'right', or 'both'")
     pvalues = (r + 1) / (n + 1)
 
     # set nan scores to 1
-    if isinstance(np.isnan(scores), np.ndarray):
-        pvalues[np.isnan(scores)] = 1
+    if isinstance(np.isnan(scores_array), np.ndarray):
+        pvalues[np.isnan(scores_array)] = 1
 
+    sig_event_idx = np.array([], dtype=int)
     if tail == "both":
         threshold = np.percentile(np.abs(shuffled_scores), axis=0, q=q)
-        sig_event_idx = np.where(np.abs(scores) > threshold)[0]
+        sig_event_idx = np.where(np.abs(scores_array) > threshold)[0]
     elif tail == "right":
         threshold = np.percentile(shuffled_scores, axis=0, q=q)
-        sig_event_idx = np.where(scores > threshold)[0]
+        sig_event_idx = np.where(scores_array > threshold)[0]
     elif tail == "left":
         threshold = np.percentile(shuffled_scores, axis=0, q=100 - q)
-        sig_event_idx = np.where(scores < threshold)[0]
+        sig_event_idx = np.where(scores_array < threshold)[0]
 
     # calculate how many standard deviations away from shuffle
+    stddev = np.array([], dtype=float)
     if tail == "both":
         stddev = (
-            np.abs(scores) - np.nanmean(np.abs(shuffled_scores), axis=0)
+            np.abs(scores_array) - np.nanmean(np.abs(shuffled_scores), axis=0)
         ) / np.nanstd(np.abs(shuffled_scores), axis=0)
     elif tail == "right":
-        stddev = (scores - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
+        stddev = (scores_array - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
             shuffled_scores, axis=0
         )
     elif tail == "left":
-        stddev = (np.nanmean(shuffled_scores, axis=0) - scores) / np.nanstd(
+        stddev = (np.nanmean(shuffled_scores, axis=0) - scores_array) / np.nanstd(
             shuffled_scores, axis=0
         )
 
@@ -88,7 +91,7 @@ def get_significant_events(
 def confidence_intervals(
     X: np.ndarray,
     conf: float = 0.95,
-    estimator: Callable = np.nanmean,
+    estimator: Callable[..., np.ndarray | float] = np.nanmean,
     n_boot: int = 1000,
     random_state: Optional[int] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:

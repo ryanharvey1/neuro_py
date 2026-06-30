@@ -1,5 +1,5 @@
 import itertools
-from typing import Optional, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
@@ -52,7 +52,7 @@ def compute_AutoCorrs(
 
 def pairwise_corr(
     X: np.ndarray, method: str = "pearson", pairs: Optional[np.ndarray] = None
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[list[float], list[float], np.ndarray]:
     """
     Compute pairwise correlations between all rows of a matrix.
 
@@ -89,9 +89,9 @@ def pairwise_corr(
         x = np.arange(0, X.shape[0])
         pairs = np.array(list(itertools.combinations(x, 2)))
 
-    rho = []
-    pval = []
-    for i, s in enumerate(pairs):
+    rho: list[float] = []
+    pval: list[float] = []
+    for s in pairs:
         if method == "pearson":
             rho_, pval_ = stats.pearsonr(X[s[0], :], X[s[1], :])
         elif method == "spearman":
@@ -112,7 +112,7 @@ def pairwise_cross_corr(
     return_index: bool = False,
     pairs: Optional[np.ndarray] = None,
     deconvolve: bool = False,
-) -> Tuple[pd.DataFrame, Optional[np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, np.ndarray]]:
     """
     Compute pairwise time-lagged cross-correlations between spike trains of different cells.
 
@@ -186,7 +186,7 @@ def pairwise_cross_corr(
 
 
 def pairwise_spatial_corr(
-    X: np.ndarray, return_index: bool = False, pairs: np.ndarray = None
+    X: np.ndarray, return_index: bool = False, pairs: Optional[np.ndarray] = None
 ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Compute pairwise spatial correlations between cells' spatial maps.
@@ -274,7 +274,7 @@ def event_triggered_cross_correlation(
     signal2_data: np.ndarray,
     signal2_ts: np.ndarray,
     time_lags: Union[np.ndarray, None] = None,
-    window: list = [-0.5, 0.5],
+    window: Sequence[float] = (-0.5, 0.5),
     bin_width: float = 0.005,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -411,7 +411,7 @@ def pairwise_event_triggered_cross_correlation(
     signals_data: np.ndarray,
     signals_ts: np.ndarray,
     time_lags: Union[np.ndarray, None] = None,
-    window: list = [-0.5, 0.5],
+    window: Sequence[float] = (-0.5, 0.5),
     bin_width: float = 0.005,
     pairs: Optional[np.ndarray] = None,
     n_jobs: int = -1,
@@ -555,10 +555,10 @@ def cch_conv(
 
     SDG = W / 2
     if round(SDG) == SDG:  # even W
-        win = local_gausskernel(SDG, 6 * SDG + 1)
+        win = local_gausskernel(SDG, int(6 * SDG + 1))
         cidx = int(SDG * 3 + 1)
     else:
-        win = local_gausskernel(SDG, 6 * SDG + 2)
+        win = local_gausskernel(SDG, int(6 * SDG + 2))
         cidx = int(SDG * 3 + 1.5)
     win[cidx - 1] = win[cidx - 1] * (1 - HF)
     win = win / sum(win)

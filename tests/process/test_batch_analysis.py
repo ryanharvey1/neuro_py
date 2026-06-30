@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import pytest
+from joblib.externals.loky import get_reusable_executor
 
 from neuro_py.process import batch_analysis
 from neuro_py.process.batch_analysis import (
@@ -25,6 +26,12 @@ from neuro_py.process.batch_analysis import (
     main_loop,
     run,
 )
+
+
+@pytest.fixture(autouse=True)
+def _shutdown_loky_executor_after_test():
+    yield
+    get_reusable_executor().shutdown(wait=True, kill_workers=True)
 
 
 def test_batchanalysis():
@@ -1135,7 +1142,7 @@ class TestDataFrameHDF5EdgeCases:
 
     def test_dataframe_with_datetime_index(self, tmp_path):
         """Test DataFrame with datetime index."""
-        dates = pd.date_range("2023-01-01", periods=3, freq="D")
+        dates = pd.DatetimeIndex(["2023-01-01", "2023-01-02", "2023-01-03"])
         df = pd.DataFrame({"values": [1, 2, 3]}, index=dates)
 
         filepath = tmp_path / "test.h5"
@@ -1414,7 +1421,7 @@ class TestRunEdgeCases:
             mock_parallel.assert_called_once_with(n_jobs=2)
 
     def test_run_with_default_num_cores(self, tmp_path):
-        """Test run with default number of cores (all available)."""
+        """Test run with default number of cores."""
         df = pd.DataFrame({"basepath": ["session1"]})
 
         def dummy_func(basepath):
