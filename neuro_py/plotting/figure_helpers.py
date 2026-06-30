@@ -318,8 +318,7 @@ def show_scaled(
         return display_obj
 
     if resolved_backend == "marimo":
-        import marimo as mo  # ty: ignore[unresolved-import]
-
+        mo = import_module("marimo")
         return mo.Html(html)
 
     raise RuntimeError("Unsupported notebook display backend")
