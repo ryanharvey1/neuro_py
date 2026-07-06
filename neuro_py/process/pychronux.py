@@ -148,7 +148,7 @@ def mtfftpt(
     nfft: int,
     t: np.ndarray,
     f: np.ndarray,
-    findx: List[bool],
+    findx: np.ndarray,
 ) -> Tuple[np.ndarray, float, float]:
     """
     Multitaper FFT for point process times.
@@ -228,10 +228,10 @@ def mtfftpt(
 def mtspectrumpt(
     data: np.ndarray,
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
+    time_support: Union[list[float], None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
     nfft: Optional[int] = None,
@@ -366,7 +366,7 @@ def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarr
 
 
 def mtspectrumc(
-    data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray
+    data: np.ndarray, Fs: int, fpass: list[float], tapers: np.ndarray
 ) -> pd.Series:
     """
     Compute the multitaper power spectrum for continuous data.
@@ -496,10 +496,10 @@ def mtcsdpt(
     data1: np.ndarray,
     data2: np.ndarray,
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
+    time_support: Union[list[float], None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
     nfft: Optional[int] = None,
@@ -548,6 +548,9 @@ def mtcsdpt(
         N = len(tapers_ts)
         tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
 
+    if tapers_ts is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+
     tapers = tapers.T
     N = len(tapers_ts)
 
@@ -571,10 +574,10 @@ def mtcoherencept(
     data1: np.ndarray,
     data2: np.ndarray,
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
+    time_support: Union[list[float], None] = None,
     tapers: Union[np.ndarray, None] = None,
     tapers_ts: Union[np.ndarray, None] = None,
     nfft: Optional[int] = None,
