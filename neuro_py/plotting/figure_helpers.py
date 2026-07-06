@@ -371,8 +371,7 @@ def _display_in_ipython(display_obj: _HTMLDisplay) -> bool:
     if importlib.util.find_spec("IPython.display") is None:
         return False
 
-    from IPython.display import display  # ty: ignore[unresolved-import]
-
+    display = import_module("IPython.display").display
     display(display_obj)
     return True
 
@@ -397,8 +396,7 @@ def _get_ipython_shell() -> Any | None:
     if importlib.util.find_spec("IPython") is None:
         return None
 
-    from IPython import get_ipython  # ty: ignore[unresolved-import]
-
+    get_ipython = import_module("IPython").get_ipython
     return get_ipython()
 
 
