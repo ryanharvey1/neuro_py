@@ -1,13 +1,13 @@
 import re
 import time
 import warnings
+from importlib import import_module
 
 import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from IPython.display import clear_output, display
 
 
 def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
@@ -44,6 +44,9 @@ def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
 
     # dark mode plotting
     plt.style.use("dark_background")
+    ipython_display = import_module("IPython.display")
+    clear_output = ipython_display.clear_output
+    display = ipython_display.display
 
     def safe_read_csv(file, retries=3):
         for _ in range(retries):
