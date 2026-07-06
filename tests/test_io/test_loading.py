@@ -34,6 +34,19 @@ from neuro_py.io.loading import (
 )
 
 
+def test_add_manual_events_lazy_export():
+    """The lazy io package export should expose the manual-event helper."""
+    import neuro_py.io as nio
+
+    df = pd.DataFrame({"start": [0.0], "stop": [2.0], "peaks": [1.0]})
+
+    result = nio.add_manual_events(df, [4.0])
+
+    assert list(result["peaks"]) == [1.0, 4.0]
+    assert result.loc[1, "start"] == 3.0
+    assert result.loc[1, "stop"] == 5.0
+
+
 # test load_trials
 def test_load_trials_file_not_found():
     """Test that the function returns an empty DataFrame and issues a warning when the file does not exist."""

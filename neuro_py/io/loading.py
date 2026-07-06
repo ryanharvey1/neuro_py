@@ -1551,6 +1551,25 @@ def _add_manual_events(df: pd.DataFrame, added_ts: Sequence[float]) -> pd.DataFr
     return df
 
 
+def add_manual_events(df: pd.DataFrame, added_ts: Sequence[float]) -> pd.DataFrame:
+    """
+    Add manual events to an event dataframe.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Event dataframe with ``start``, ``stop``, and ``peaks`` columns.
+    added_ts : sequence of float
+        Peak timestamps for the manual events to add.
+
+    Returns
+    -------
+    pd.DataFrame
+        Event dataframe with the manual events added and sorted by ``peaks``.
+    """
+    return _add_manual_events(df, added_ts)
+
+
 def load_ripples_events(
     basepath: str, return_epoch_array: bool = False, manual_events: bool = True
 ) -> Union[pd.DataFrame, nel.EpochArray]:
