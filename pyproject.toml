@@ -111,7 +111,6 @@ exclude = [
     "neuro_py/detectors/dentate_spike.py",
     "neuro_py/detectors/sharp_wave_ripple.py",
     "neuro_py/detectors/up_down_state.py",
-    "neuro_py/ensemble/__init__.pyi",
     "neuro_py/ensemble/assembly.py",
     "neuro_py/ensemble/assembly_reactivation.py",
     "neuro_py/ensemble/decoding/bayesian.py",

@@ -6,6 +6,13 @@ from numpy.testing import assert_allclose
 from neuro_py.ensemble.replay import weighted_corr_2d, weighted_correlation
 
 
+def test_weighted_corr_2d_jit_lazy_export():
+    import neuro_py.ensemble as ensemble
+    from neuro_py.ensemble import replay
+
+    assert ensemble.weighted_corr_2d_jit is replay.weighted_corr_2d_jit
+
+
 class TestWeightedCorr2D:
     """Test suite for weighted_corr_2d function."""
 

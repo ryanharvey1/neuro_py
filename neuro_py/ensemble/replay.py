@@ -147,6 +147,9 @@ def __weighted_corr_2d_jit(
     )
 
 
+weighted_corr_2d_jit = __weighted_corr_2d_jit
+
+
 def weighted_corr_2d(
     weights: np.ndarray,
     x_coords: Optional[np.ndarray] = None,
