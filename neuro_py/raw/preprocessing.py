@@ -169,7 +169,7 @@ def remove_artifacts(
     log_file = os.path.splitext(filepath)[0] + "_zeroed_intervals.log"
     try:
         with open(log_file, "w") as f:
-            f.write(f"Zeroed intervals: {zero_intervals.tolist()}\n")
+            f.write(f"Zeroed intervals: {np.asarray(zero_intervals).tolist()}\n")
     except Exception as e:
         warnings.warn(f"Failed to create log file: {e}")
 
