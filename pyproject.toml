@@ -126,7 +126,6 @@ exclude = [
     "neuro_py/ensemble/similarity_index.py",
     "neuro_py/ensemble/similaritymat.py",
     "neuro_py/lfp/CSD.py",
-    "neuro_py/lfp/preprocessing.py",
     "neuro_py/lfp/spectral.py",
     "neuro_py/lfp/theta_cycles.py",
     "neuro_py/stats/circ_stats.py",

@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, cast
 
 import nelpy as nel
 import numpy as np
@@ -8,7 +8,7 @@ from neuro_py.process import intervals
 
 def clean_lfp(
     lfp: Union[nel.AnalogSignalArray, np.ndarray],
-    t: np.ndarray = None,
+    t: np.ndarray | None = None,
     thresholds: Tuple[float, float] = (5, 10),
     artifact_time_expand: Tuple[float, float] = (0.25, 0.1),
     return_bad_intervals: bool = False,
@@ -72,7 +72,7 @@ def clean_lfp(
 
     # Detect large global artefacts [0]
     artefactInterval = t[
-        np.array(intervals.find_interval(np.abs(z) > threshold1), dtype=int)
+        np.array(intervals.find_interval((np.abs(z) > threshold1).tolist()), dtype=int)
     ]
     artefactInterval = nel.EpochArray(artefactInterval)
     if not artefactInterval.isempty:
@@ -80,7 +80,7 @@ def clean_lfp(
 
     # Find noise using the derivative of the z-scored signal [1]
     noisyInterval = t[
-        np.array(intervals.find_interval(np.abs(d) > threshold2), dtype=int)
+        np.array(intervals.find_interval((np.abs(d) > threshold2).tolist()), dtype=int)
     ]
     noisyInterval = nel.EpochArray(noisyInterval)
     if not noisyInterval.isempty:
@@ -93,7 +93,7 @@ def clean_lfp(
         return values
 
     # Find timestamps within intervals for artefacts and noise
-    in_interval = intervals.in_intervals(t, bad.data)
+    in_interval = cast(np.ndarray, intervals.in_intervals(t, bad.data))
 
     # Interpolate values for timestamps within intervals for artefacts and noise
     values[in_interval] = np.interp(
