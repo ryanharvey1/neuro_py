@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 from ...util._dependencies import _check_dependency
 
@@ -7,6 +8,7 @@ _check_dependency("lightning", "dl")
 
 import lightning as L
 import numpy as np
+from numpy.typing import NDArray
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -276,7 +278,7 @@ class NSVDataset(torch.utils.data.Dataset):
         List of trial-segmented behavioral state vector arrays as float32
     """
 
-    def __init__(self, nsv: List[np.ndarray], dv: List[np.ndarray]):
+    def __init__(self, nsv: List[NDArray[Any]], dv: List[NDArray[Any]]):
         self.nsv = [i.astype(np.float32) for i in nsv]
         self.dv = [i.astype(np.float32) for i in dv]
 
@@ -291,7 +293,7 @@ class NSVDataset(torch.utils.data.Dataset):
         """
         return len(self.nsv)
 
-    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> Tuple[NDArray[Any], NDArray[Any]]:
         """
         Get a sample from the dataset.
 

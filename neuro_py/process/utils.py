@@ -1,13 +1,15 @@
 from typing import List, Tuple, Union
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 from neuro_py.process.intervals import truncate_epoch
 
 
-def circular_shift(m: np.ndarray, s: np.ndarray) -> np.ndarray:
+def circular_shift(m: NDArray[Any], s: NDArray[Any]) -> NDArray[Any]:
     """
     Circularly shift matrix rows or columns by specified amounts.
 
@@ -88,7 +90,7 @@ def circular_shift(m: np.ndarray, s: np.ndarray) -> np.ndarray:
     return shifted
 
 
-def average_diagonal(mat: np.ndarray) -> np.ndarray:
+def average_diagonal(mat: NDArray[Any]) -> NDArray[Any]:
     """
     Average values over all offset diagonals of a 2D array.
 
@@ -385,7 +387,7 @@ def remove_inactive_cells_pre_task_post(
 
 
 def compute_image_spread(
-    X: np.ndarray, exponent: float = 2, normalize: bool = True
+    X: NDArray[Any], exponent: float = 2, normalize: bool = True
 ) -> Tuple[float, float]:
     """
     Compute the spread of an image using the square root of a weighted moment.

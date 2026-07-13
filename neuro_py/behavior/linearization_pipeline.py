@@ -6,6 +6,7 @@ from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from scipy.io import loadmat, savemat
 
@@ -169,7 +170,7 @@ class NodePicker:
         self.connect()
 
     @property
-    def node_positions(self) -> np.ndarray:
+    def node_positions(self) -> NDArray[Any]:
         """
         Get the positions of the nodes.
 

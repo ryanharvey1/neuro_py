@@ -64,8 +64,8 @@ def seed_worker(worker_id: int) -> None:
 
 
 def get_spikes_with_history(
-    neural_data: np.ndarray, bins_before: int, bins_after: int, bins_current: int = 1
-) -> np.ndarray:
+    neural_data: NDArray[Any], bins_before: int, bins_after: int, bins_current: int = 1
+) -> NDArray[Any]:
     """
     Create the covariate matrix of neural activity.
 
@@ -853,7 +853,7 @@ def train_model(
     hyperparams: Dict[str, Any],
     resultspath: Optional[str] = None,
     stop_partition: Optional[int] = None,
-) -> Tuple[List[np.ndarray], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
+) -> Tuple[List[NDArray[Any]], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
     """
     Train a DNN model on the given data partitions with in-built caching & checkpointing.
 

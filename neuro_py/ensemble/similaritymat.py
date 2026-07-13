@@ -1,16 +1,18 @@
 from typing import Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import scipy.optimize as optimize
 from sklearn.metrics.pairwise import cosine_similarity as getsim
 
 
 def similaritymat(
-    patternsX: np.ndarray,
-    patternsY: Optional[np.ndarray] = None,
+    patternsX: NDArray[Any],
+    patternsY: Optional[NDArray[Any]] = None,
     method: str = "cosine",
     findpairs: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray], None]:
+) -> Union[NDArray[Any], Tuple[NDArray[Any], NDArray[Any], NDArray[Any]], None]:
     """
     Calculate the similarity matrix of co-activation patterns (assemblies).
 

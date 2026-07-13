@@ -1,3 +1,4 @@
+from typing import Any
 import glob
 import os
 import pickle
@@ -6,6 +7,7 @@ from unittest.mock import patch
 
 import h5py
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import pytest
 from joblib.externals.loky import get_reusable_executor

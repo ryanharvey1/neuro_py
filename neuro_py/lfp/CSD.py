@@ -2,6 +2,7 @@ from importlib import import_module
 from typing import Any, Literal, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from neuro_py.io import loading
 from neuro_py.util._dependencies import _check_dependency
@@ -11,7 +12,7 @@ _check_dependency("elephant", "csd")
 _check_dependency("quantities", "csd")
 
 
-def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
+def get_coords(basepath: str, shank: int = 0) -> NDArray[Any]:
     """
     Get the coordinates of the channels from the probe layout.
 
@@ -46,7 +47,7 @@ def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
 
 def get_csd(
     basepath: str,
-    data: np.ndarray,
+    data: NDArray[Any],
     shank: int,
     fs: float = 1250,
     diam: float = 0.015,

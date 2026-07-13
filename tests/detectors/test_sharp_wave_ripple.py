@@ -1,8 +1,10 @@
+from typing import Any
 import os
 import tempfile
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import pytest
 import scipy.io as sio
@@ -25,12 +27,12 @@ from neuro_py.io.loading import load_ripples_events
 
 
 def _make_ripple_burst(
-    timestamps: np.ndarray,
+    timestamps: NDArray[Any],
     center: float,
     frequency: float,
     duration: float,
     amplitude: float,
-) -> np.ndarray:
+) -> NDArray[Any]:
     mask = np.abs(timestamps - center) <= (duration / 2.0)
     burst = np.zeros_like(timestamps, dtype=float)
     n_samples = int(mask.sum())
@@ -50,7 +52,7 @@ def _make_synthetic_ripple_session(
     ripple_frequency: float = 150.0,
     ripple_duration: float = 0.04,
     ripple_amplitude: float = 120.0,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     timestamps = np.arange(0.0, duration, 1.0 / fs)
     rng = np.random.default_rng(0)
     ripple_signal = rng.normal(scale=5.0, size=timestamps.size)

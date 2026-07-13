@@ -2,20 +2,22 @@ import itertools
 import math
 import multiprocessing
 from typing import Optional, Tuple
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from joblib import Parallel, delayed
 from scipy import stats
 
 from neuro_py.stats.stats import get_significant_events
 
 def similarity_index(
-    patterns: np.ndarray,
+    patterns: NDArray[Any],
     n_shuffles: int = 1000,
     parallel: bool = True,
-    groups: Optional[np.ndarray] = None,
+    groups: Optional[NDArray[Any]] = None,
     adjust_pvalue: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Calculate the similarity index of a set of patterns.
 
@@ -84,7 +86,7 @@ def similarity_index(
     # Calculate absolute inner product between patterns
     combinations = np.array(list(itertools.combinations(range(patterns.shape[0]), 2)))
 
-    def get_si(patterns: np.ndarray) -> np.ndarray:
+    def get_si(patterns: NDArray[Any]) -> NDArray[Any]:
         si = np.array(
             [np.abs(np.inner(patterns[i], patterns[j])) for i, j in combinations]
         )

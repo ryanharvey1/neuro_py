@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from scipy.io import loadmat, savemat
 from scipy.optimize import minimize
@@ -366,7 +367,7 @@ class TrackGraph:
         List of edge connections between nodes
     """
 
-    def __init__(self, node_positions: np.ndarray, edges: List[List[int]]):
+    def __init__(self, node_positions: NDArray[Any], edges: List[List[int]]):
         self.node_positions = np.asarray(node_positions)
         self.edges = edges
         self.n_nodes = len(node_positions)
@@ -410,7 +411,7 @@ class TrackGraph:
                     distances[(node2, node1)] = dist
         return distances
 
-    def _calculate_cumulative_distances(self) -> np.ndarray:
+    def _calculate_cumulative_distances(self) -> NDArray[Any]:
         """Calculate cumulative distances along the track."""
         # Find the main path through the track
         # For simplicity, we'll use the first edge as the starting point
@@ -582,7 +583,7 @@ class HMMLinearizer:
         # Build emission model
         self._build_emission_model()
 
-    def _interpolate_along_segment(self, edge: List[int], t: float) -> np.ndarray:
+    def _interpolate_along_segment(self, edge: List[int], t: float) -> NDArray[Any]:
         """Interpolate position along a track segment."""
         if len(edge) < 2:
             return np.array([0, 0])
@@ -724,7 +725,7 @@ class HMMLinearizer:
                         self.transition_matrix[i, :] = uniform_log_prob
 
     def _calculate_transition_probability(
-        self, seg1: int, pos1: np.ndarray, seg2: int, pos2: np.ndarray
+        self, seg1: int, pos1: NDArray[Any], seg2: int, pos2: NDArray[Any]
     ) -> float:
         """Calculate transition log-probability between two states."""
         # Distance-based probability
@@ -766,7 +767,7 @@ class HMMLinearizer:
         nodes2 = set(edge2)
         return len(nodes1.intersection(nodes2)) > 0
 
-    def _auto_tune_parameters(self, positions: np.ndarray) -> dict:
+    def _auto_tune_parameters(self, positions: NDArray[Any]) -> dict:
         """
         Automatically tune HMM parameters based on data characteristics.
         Optimized for real rat tracking data from DeepLabCut.
@@ -846,7 +847,7 @@ class HMMLinearizer:
         # For real tracking data, we need to ensure positions can be assigned to states
         # even if they're not exactly on the track due to tracking noise
 
-    def _emission_probability(self, observation: np.ndarray, state: int) -> float:
+    def _emission_probability(self, observation: NDArray[Any], state: int) -> float:
         """Calculate emission probability P(observation | state)."""
         center = self.emission_centers[state]
 
@@ -855,8 +856,8 @@ class HMMLinearizer:
         return rv.pdf(observation)
 
     def _emission_probabilities_vectorized(
-        self, observations: np.ndarray
-    ) -> np.ndarray:
+        self, observations: NDArray[Any]
+    ) -> NDArray[Any]:
         """
         Calculate emission log-probabilities for all observations and states at once.
         Much faster than calling _emission_probability repeatedly.
@@ -899,8 +900,8 @@ class HMMLinearizer:
             return log_emission_probs
 
     def linearize_with_hmm(
-        self, positions: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, positions: NDArray[Any]
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Linearize positions using HMM inference.
 
@@ -985,8 +986,8 @@ class HMMLinearizer:
         return linear_positions, track_segment_ids, projected_positions
 
     def _linearize_with_fast_approximate_hmm(
-        self, positions: np.ndarray, valid_mask: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, positions: NDArray[Any], valid_mask: NDArray[Any]
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Fast approximate HMM linearization for very large track graphs.
         Uses simplified approach: project to nearest state and apply temporal smoothing.
@@ -1025,7 +1026,7 @@ class HMMLinearizer:
         
         return linear_positions, track_segment_ids, projected_positions
 
-    def _apply_temporal_smoothing(self, states: np.ndarray) -> np.ndarray:
+    def _apply_temporal_smoothing(self, states: NDArray[Any]) -> NDArray[Any]:
         """
         Apply simple temporal smoothing to state sequence.
         Uses a moving average approach to reduce noise.
@@ -1048,7 +1049,7 @@ class HMMLinearizer:
         
         return smoothed
 
-    def _viterbi(self, observations: np.ndarray) -> np.ndarray:
+    def _viterbi(self, observations: NDArray[Any]) -> NDArray[Any]:
         """
         Run Viterbi algorithm to find most likely state sequence.
         Uses log-probabilities for numerical stability.
@@ -1116,7 +1117,7 @@ class HMMLinearizer:
             return state_sequence
 
     def _calculate_linear_position(
-        self, segment_id: int, position: np.ndarray
+        self, segment_id: int, position: NDArray[Any]
     ) -> float:
         """Calculate linear position along the track for a given segment and position."""
         if segment_id >= len(self.track_graph.edges):
@@ -1167,12 +1168,12 @@ class HMMLinearizer:
 
     def _interpolate_missing_values(
         self,
-        linear_positions: np.ndarray,
-        track_segment_ids: np.ndarray,
-        projected_positions: np.ndarray,
-        original_indices: np.ndarray,
-        valid_mask: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        linear_positions: NDArray[Any],
+        track_segment_ids: NDArray[Any],
+        projected_positions: NDArray[Any],
+        original_indices: NDArray[Any],
+        valid_mask: NDArray[Any],
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Interpolate missing values in subsampled linearization results.
 
@@ -1302,8 +1303,8 @@ class HMMLinearizer:
 
 
 def project_position_to_track(
-    position: np.ndarray, track_graph: TrackGraph
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    position: NDArray[Any], track_graph: TrackGraph
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Project 2D positions onto the track graph.
 
@@ -1385,7 +1386,7 @@ def project_position_to_track(
 
 
 def plot_linearization_confirmation(
-    original_positions: np.ndarray,
+    original_positions: NDArray[Any],
     linearized_df: pd.DataFrame,
     track_graph: TrackGraph,
     title: str = "Linearization Confirmation",
@@ -1601,7 +1602,7 @@ def plot_linearization_confirmation(
 
 
 def get_linearized_position(
-    position: np.ndarray,
+    position: NDArray[Any],
     track_graph: TrackGraph,
     edge_order: Optional[List[List[int]]] = None,
     use_HMM: bool = False,
@@ -1736,7 +1737,7 @@ def get_linearized_position(
         return result_df
 
 
-def make_track_graph(node_positions: np.ndarray, edges: List[List[int]]) -> TrackGraph:
+def make_track_graph(node_positions: NDArray[Any], edges: List[List[int]]) -> TrackGraph:
     """
     Create a track graph from node positions and edges.
 
@@ -1889,7 +1890,7 @@ class NodePicker:
         self.connect()
 
     @property
-    def node_positions(self) -> np.ndarray:
+    def node_positions(self) -> NDArray[Any]:
         """
         Get the positions of the nodes.
 

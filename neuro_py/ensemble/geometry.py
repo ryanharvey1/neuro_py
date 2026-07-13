@@ -1,7 +1,9 @@
+from typing import Any
 import numpy as np
+from numpy.typing import NDArray
 
 
-def proximity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
+def proximity(pv1: NDArray[Any], pv2: NDArray[Any]) -> NDArray[Any]:
     """
     Proximity between two firing rate vector trajectories.
 

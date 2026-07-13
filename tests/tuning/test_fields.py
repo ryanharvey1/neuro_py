@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from scipy import ndimage
 from scipy.spatial.distance import pdist
 from skimage import measure
@@ -16,14 +17,14 @@ def _gaussian_blob(
     center: tuple[float, float],
     amplitude: float,
     sigma: float,
-) -> np.ndarray:
+) -> NDArray[np.float64]:
     x_idx, y_idx = np.indices(shape)
     return amplitude * np.exp(
         -(((x_idx - center[0]) ** 2) + ((y_idx - center[1]) ** 2)) / (2 * sigma**2)
     )
 
 
-def _make_spatial_map_stub(ratemaps: np.ndarray) -> SpatialMap:
+def _make_spatial_map_stub(ratemaps: NDArray[np.float64]) -> SpatialMap:
     spatial_map = SpatialMap.__new__(SpatialMap)
     spatial_map.dim = 2
     spatial_map.s_binsize_array = np.array([1.0, 1.0])
@@ -37,14 +38,14 @@ def _make_spatial_map_stub(ratemaps: np.ndarray) -> SpatialMap:
 
 
 def _legacy_compute_2d_place_fields(
-    firing_rate: np.ndarray,
+    firing_rate: NDArray[np.float64],
     min_firing_rate: float = 1,
     thresh: float = 0.2,
     min_size: int = 100,
     max_size: int = 200,
     sigma: float | None = None,
     filter_size: int = 3,
-) -> np.ndarray:
+) -> NDArray[np.int64]:
     firing_rate_orig = firing_rate.copy()
 
     if sigma is not None:

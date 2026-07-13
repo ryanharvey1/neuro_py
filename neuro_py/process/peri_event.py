@@ -1,8 +1,10 @@
 import warnings
 from typing import List, Optional, Sequence, Tuple, Union, cast
+from typing import Any
 
 import bottleneck as bn
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from nelpy import EpochArray
 from nelpy.core import (
@@ -22,11 +24,11 @@ from neuro_py.process.intervals import in_intervals, split_epoch_by_width
 
 @jit(nopython=True)
 def crossCorr(
-    t1: np.ndarray,
-    t2: np.ndarray,
+    t1: NDArray[Any],
+    t2: NDArray[Any],
     binsize: float,
     nbins: int,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Compute a cross-correlogram using independent event-wise histograms.
 
@@ -110,8 +112,8 @@ def crossCorr(
 
 
 def compute_psth(
-    data: np.ndarray,
-    event: np.ndarray,
+    data: NDArray[Any],
+    event: NDArray[Any],
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: Union[list[float], None] = None,
@@ -156,7 +158,7 @@ def compute_psth(
     >>> event = np.array([0.1, 0.3])
     >>> psth = compute_psth(spikes, event)
     """
-    window_original: np.ndarray | None = None
+    window_original: NDArray[Any] | None = None
     if window is not None:
         # check if window is symmetric around 0, if not make it so
         mid = (window[1] - window[0]) / 2.0
@@ -187,8 +189,8 @@ def compute_psth(
 
 
 def joint_peth(
-    peth_1: np.ndarray, peth_2: np.ndarray, smooth_std: float = 2
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    peth_1: NDArray[Any], peth_2: NDArray[Any], smooth_std: float = 2
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Produce a joint histogram for the co-occurrence of two sets of signals around events.
 
@@ -290,8 +292,8 @@ def joint_peth(
 
 
 def deconvolve_peth(
-    signal: np.ndarray, events: np.ndarray, bin_width: float = 0.002, n_bins: int = 100
-) -> Tuple[np.ndarray, np.ndarray]:
+    signal: NDArray[Any], events: NDArray[Any], bin_width: float = 0.002, n_bins: int = 100
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Perform deconvolution of a peri-event time histogram (PETH) signal.
 
@@ -353,12 +355,12 @@ def deconvolve_peth(
 
 @jit(nopython=True)
 def get_raster_points(
-    data: np.ndarray,
-    time_ref: np.ndarray,
+    data: NDArray[Any],
+    time_ref: NDArray[Any],
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: Optional[Tuple[float, float]] = None,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Generate points for a raster plot centered around each reference time in the `time_ref` array.
 
@@ -405,12 +407,12 @@ def get_raster_points(
 
 @jit(nopython=True, parallel=True)
 def peth_matrix(
-    data: np.ndarray,
-    time_ref: np.ndarray,
+    data: NDArray[Any],
+    time_ref: NDArray[Any],
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: Union[Tuple[float, float], None] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Generate a peri-event time histogram (PETH) matrix.
 
@@ -469,11 +471,11 @@ def peth_matrix(
 
 @jit(nopython=True)
 def _sync_find_windows(
-    sample_times: np.ndarray,
-    event_times: np.ndarray,
+    sample_times: NDArray[Any],
+    event_times: NDArray[Any],
     start_offset: float,
     stop_offset: float,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], int]:
     """
     Numba-compiled function to find time windows for each event.
 
@@ -527,11 +529,11 @@ def _sync_find_windows(
 
 @jit(nopython=True)
 def _sync_fill_indices(
-    starts: np.ndarray,
-    stops: np.ndarray,
-    events_with_hits: np.ndarray,
+    starts: NDArray[Any],
+    stops: NDArray[Any],
+    events_with_hits: NDArray[Any],
     total_hits: int,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Numba-compiled function to fill Is and Ie index arrays.
     """
@@ -556,11 +558,11 @@ def _sync_fill_indices(
 
 
 def sync(
-    samples: np.ndarray,
-    sync_times: np.ndarray,
+    samples: NDArray[Any],
+    sync_times: NDArray[Any],
     durations: Tuple[float, float] = (-0.5, 0.5),
     fast: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Synchronize sample timestamps to reference events.
 
@@ -719,9 +721,9 @@ def sync(
 
 
 def event_triggered_average_irregular_sample(
-    timestamps: np.ndarray,
-    data: np.ndarray,
-    time_ref: np.ndarray,
+    timestamps: NDArray[Any],
+    data: NDArray[Any],
+    time_ref: NDArray[Any],
     bin_width: float = 0.002,
     n_bins: int = 100,
     window: Union[Tuple[float, float], None] = None,
@@ -792,15 +794,15 @@ def event_triggered_average_irregular_sample(
 
 
 def event_triggered_average(
-    timestamps: np.ndarray,
-    signal: np.ndarray,
-    events: Union[np.ndarray, List[np.ndarray]],
+    timestamps: NDArray[Any],
+    signal: NDArray[Any],
+    events: Union[NDArray[Any], List[NDArray[Any]]],
     sampling_rate: Union[float, None] = None,
     window: list[float] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
     irregular_sampling: bool = False,
-) -> Union[pd.DataFrame, Tuple[Union[np.ndarray, pd.DataFrame], np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[Union[NDArray[Any], pd.DataFrame], NDArray[Any]]]:
     """
     Calculates the event-triggered averages of signals in a time window
     relative to the event times of corresponding events for multiple signals.
@@ -964,13 +966,13 @@ def event_triggered_average(
 
 
 def event_triggered_average_fast(
-    signal: np.ndarray,
-    events: np.ndarray,
+    signal: NDArray[Any],
+    events: NDArray[Any],
     sampling_rate: int,
     window: Union[list[float], Tuple[float, float]] = [-0.5, 0.5],
     return_average: bool = True,
     return_pandas: bool = False,
-) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[NDArray[Any], NDArray[Any]]]:
     """
     Calculate the event-triggered average of a signal.
 
@@ -1053,12 +1055,12 @@ def event_triggered_average_fast(
 
 def peth(
     data,
-    events: np.ndarray,
+    events: NDArray[Any],
     window: Union[list[float], None] = None,
     bin_width: float = 0.002,
     n_bins: int = 100,
     average: bool = True,
-) -> Union[pd.DataFrame, Tuple[np.ndarray, np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[NDArray[Any], NDArray[Any]]]:
     """
     Compute peri-event time histogram (PETH) for nelpy data objects or numpy arrays.
 
@@ -1163,10 +1165,10 @@ def peth(
 
     # Determine data type and extract spike/signal data
     is_continuous = False
-    timestamps: np.ndarray | None = None
-    signal: np.ndarray | None = None
-    spike_data: np.ndarray | None = None
-    t: np.ndarray | None = None
+    timestamps: NDArray[Any] | None = None
+    signal: NDArray[Any] | None = None
+    spike_data: NDArray[Any] | None = None
+    t: NDArray[Any] | None = None
 
     if isinstance(
         data,
@@ -1328,11 +1330,11 @@ def peth(
 
 
 def count_in_interval(
-    data: np.ndarray,
-    event_starts: np.ndarray,
-    event_stops: np.ndarray,
+    data: NDArray[Any],
+    event_starts: NDArray[Any],
+    event_stops: NDArray[Any],
     par_type: str = "counts",
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Count discrete-time events in specified intervals and return a matrix where each
     column represents counts for each discrete-time event series over given epochs.
@@ -1428,7 +1430,7 @@ def get_rank_order(
     dt: float = 0.001,
     sigma: float = 0.01,
     min_units: int = 5,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Calculate the rank order of spike trains within specified epochs.
 
@@ -1615,8 +1617,8 @@ def get_rank_order(
 
 
 def count_events(
-    events: np.ndarray, time_ref: np.ndarray, time_range: Tuple[float, float]
-) -> np.ndarray:
+    events: NDArray[Any], time_ref: NDArray[Any], time_range: Tuple[float, float]
+) -> NDArray[Any]:
     """
     Count the number of events that occur within a given time range after each reference event.
 
@@ -1649,8 +1651,8 @@ def count_events(
 
 @jit(nopython=True)
 def relative_times(
-    t: np.ndarray, intervals: np.ndarray, values: np.ndarray = np.array([0, 1])
-) -> Tuple[np.ndarray, np.ndarray]:
+    t: NDArray[Any], intervals: NDArray[Any], values: NDArray[Any] = np.array([0, 1])
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Calculate relative times and interval IDs for a set of time points.
 
@@ -1723,8 +1725,8 @@ def relative_times(
 
 
 def nearest_event_delay(
-    ts_1: np.ndarray, ts_2: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ts_1: NDArray[Any], ts_2: NDArray[Any]
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Return for each timestamp in ts_1 the nearest timestamp in ts_2 and the delay between the two.
 
@@ -1793,7 +1795,7 @@ def nearest_event_delay(
 
 def event_spiking_threshold(
     spikes: SpikeTrainArray,
-    events: np.ndarray,
+    events: NDArray[Any],
     window: Sequence[float] = (-0.5, 0.5),
     event_size: float = 0.1,
     spiking_thres: float = 0,
@@ -1801,7 +1803,7 @@ def event_spiking_threshold(
     sigma: float = 0.02,
     min_units: int = 6,
     show_fig: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     event_spiking_threshold: filter events based on spiking threshold
 

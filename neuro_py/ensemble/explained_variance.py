@@ -1,4 +1,6 @@
+from typing import Any
 import numpy as np
+from numpy.typing import NDArray
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
@@ -415,9 +417,9 @@ class ExplainedVariance(object):
 
 
 def explained_variance(
-    task: np.ndarray,
-    post_task: np.ndarray,
-    pre_task: np.ndarray,
+    task: NDArray[Any],
+    post_task: NDArray[Any],
+    pre_task: NDArray[Any],
     return_full: bool = False,
 ) -> tuple[float, float] | tuple[float, float, float, float, float]:
     """

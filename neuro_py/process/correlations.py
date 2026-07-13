@@ -1,8 +1,10 @@
 import itertools
 from typing import Optional, Sequence, Tuple, Union
+from typing import Any
 
 import numba
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from joblib import Parallel, delayed
 from scipy import signal, stats
@@ -12,7 +14,7 @@ from neuro_py.process.peri_event import crossCorr, deconvolve_peth
 
 
 def compute_AutoCorrs(
-    spks: np.ndarray, binsize: float = 0.001, nbins: int = 100
+    spks: NDArray[Any], binsize: float = 0.001, nbins: int = 100
 ) -> pd.DataFrame:
     """
     Compute autocorrelations for spike trains.
@@ -51,8 +53,8 @@ def compute_AutoCorrs(
 
 
 def pairwise_corr(
-    X: np.ndarray, method: str = "pearson", pairs: Optional[np.ndarray] = None
-) -> Tuple[list[float], list[float], np.ndarray]:
+    X: NDArray[Any], method: str = "pearson", pairs: Optional[NDArray[Any]] = None
+) -> Tuple[list[float], list[float], NDArray[Any]]:
     """
     Compute pairwise correlations between all rows of a matrix.
 
@@ -106,13 +108,13 @@ def pairwise_corr(
 
 
 def pairwise_cross_corr(
-    spks: np.ndarray,
+    spks: NDArray[Any],
     binsize: float = 0.001,
     nbins: int = 100,
     return_index: bool = False,
-    pairs: Optional[np.ndarray] = None,
+    pairs: Optional[NDArray[Any]] = None,
     deconvolve: bool = False,
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, np.ndarray]]:
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, NDArray[Any]]]:
     """
     Compute pairwise time-lagged cross-correlations between spike trains of different cells.
 
@@ -186,8 +188,8 @@ def pairwise_cross_corr(
 
 
 def pairwise_spatial_corr(
-    X: np.ndarray, return_index: bool = False, pairs: Optional[np.ndarray] = None
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    X: NDArray[Any], return_index: bool = False, pairs: Optional[NDArray[Any]] = None
+) -> Union[NDArray[Any], Tuple[NDArray[Any], NDArray[Any]]]:
     """
     Compute pairwise spatial correlations between cells' spatial maps.
 
@@ -228,7 +230,7 @@ def pairwise_spatial_corr(
 
 
 def compute_cross_correlogram(
-    X: np.ndarray, dt: float = 1.0, window: float = 0.5
+    X: NDArray[Any], dt: float = 1.0, window: float = 0.5
 ) -> pd.DataFrame:
     """
     Compute pairwise cross-correlograms between signals in an array.
@@ -268,15 +270,15 @@ def compute_cross_correlogram(
 
 
 def event_triggered_cross_correlation(
-    event_times: np.ndarray,
-    signal1_data: np.ndarray,
-    signal1_ts: np.ndarray,
-    signal2_data: np.ndarray,
-    signal2_ts: np.ndarray,
-    time_lags: Union[np.ndarray, None] = None,
+    event_times: NDArray[Any],
+    signal1_data: NDArray[Any],
+    signal1_ts: NDArray[Any],
+    signal2_data: NDArray[Any],
+    signal2_ts: NDArray[Any],
+    time_lags: Union[NDArray[Any], None] = None,
     window: Sequence[float] = (-0.5, 0.5),
     bin_width: float = 0.005,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Computes the cross-correlation between two signals at specific event times
 
@@ -407,15 +409,15 @@ def _jit_event_corr(signal1_matrix, signal2_matrix):
 
 
 def pairwise_event_triggered_cross_correlation(
-    event_times: np.ndarray,
-    signals_data: np.ndarray,
-    signals_ts: np.ndarray,
-    time_lags: Union[np.ndarray, None] = None,
+    event_times: NDArray[Any],
+    signals_data: NDArray[Any],
+    signals_ts: NDArray[Any],
+    time_lags: Union[NDArray[Any], None] = None,
     window: Sequence[float] = (-0.5, 0.5),
     bin_width: float = 0.005,
-    pairs: Optional[np.ndarray] = None,
+    pairs: Optional[NDArray[Any]] = None,
     n_jobs: int = -1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Computes event-triggered cross-correlation for all unique signal pairs.
 
@@ -484,7 +486,7 @@ def pairwise_event_triggered_cross_correlation(
     return lags, avg_correlation, pairs
 
 
-def local_firfilt(x: np.ndarray, W: np.ndarray) -> np.ndarray:
+def local_firfilt(x: NDArray[Any], W: NDArray[Any]) -> NDArray[Any]:
     """
     Apply a FIR filter to the input signal x using the provided filter coefficients W.
 
@@ -509,7 +511,7 @@ def local_firfilt(x: np.ndarray, W: np.ndarray) -> np.ndarray:
     return Y
 
 
-def local_gausskernel(sigma: float, N: int) -> np.ndarray:
+def local_gausskernel(sigma: float, N: int) -> NDArray[Any]:
     """
     Generate a Gaussian kernel with the given standard deviation and size.
 
@@ -531,8 +533,8 @@ def local_gausskernel(sigma: float, N: int) -> np.ndarray:
 
 
 def cch_conv(
-    cch: np.ndarray, W: int = 30, HF: float = 0.6
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    cch: NDArray[Any], W: int = 30, HF: float = 0.6
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Convolve the cross-correlogram with a Gaussian window and calculate p-values.
 
@@ -569,12 +571,12 @@ def cch_conv(
 
 
 def sig_mod(
-    cch: np.ndarray,
+    cch: NDArray[Any],
     binsize: float = 0.005,
     sig_window: float = 0.2,
     alpha: float = 0.001,
     W: int = 30,
-) -> Tuple[bool, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[bool, NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Assess the significance of cross-correlogram values using Poisson statistics.
 

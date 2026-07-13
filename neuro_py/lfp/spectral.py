@@ -1,8 +1,10 @@
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import pywt
 from scipy import signal
@@ -11,7 +13,7 @@ from scipy.signal import butter, filtfilt, firwin
 
 
 def filter_signal(
-    sig: np.ndarray,
+    sig: NDArray[Any],
     fs: float,
     pass_type: str,
     f_range: Union[float, Tuple[float, float]],
@@ -20,7 +22,7 @@ def filter_signal(
     n_seconds: Optional[float] = None,
     butterworth_order: int = 4,
     remove_edges: bool = True,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Filter a neural signal using an FIR or IIR filter.
 
@@ -161,13 +163,13 @@ def filter_signal(
 
 
 def yule_walker(
-    x: Union[np.ndarray, list],
+    x: Union[NDArray[Any], list],
     order: int = 1,
     method: str = "adjusted",
     df: Optional[int] = None,
     inv: bool = False,
     demean: bool = True,
-) -> Union[Tuple[np.ndarray, float], Tuple[np.ndarray, float, np.ndarray]]:
+) -> Union[Tuple[NDArray[Any], float], Tuple[NDArray[Any], float, NDArray[Any]]]:
     """
     Estimate autoregressive (AR) parameters using the Yule-Walker equations.
 
@@ -260,7 +262,7 @@ def yule_walker(
         return rho, sigma
 
 
-def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
+def whiten_lfp(lfp: NDArray[Any], order: int = 2) -> NDArray[Any]:
     """
     Perform temporal whitening of Local Field Potential (LFP) data using an Autoregressive (AR) model.
 
@@ -289,9 +291,9 @@ def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
 
 
 def event_triggered_wavelet(
-    signal: np.ndarray,
-    timestamps: np.ndarray,
-    events: np.ndarray,
+    signal: NDArray[Any],
+    timestamps: NDArray[Any],
+    events: NDArray[Any],
     max_lag: float = 1,
     freq_min: float = 4,
     freq_max: float = 100,
@@ -488,14 +490,14 @@ def event_triggered_wavelet(
 
 
 def compute_wavelet_transform(
-    sig: np.ndarray,
+    sig: NDArray[Any],
     fs: float,
-    freqs: Union[np.ndarray, List[float], Tuple[float, float, Optional[float]]],
+    freqs: Union[NDArray[Any], List[float], Tuple[float, float, Optional[float]]],
     wavelet: str = "cmor",
     center_frequency: float = 0.5,
     bandwidth_frequency: float = 1.5,
     method="conv",
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Compute the time-frequency representation of a signal using Morlet wavelets via PyWavelets.
 

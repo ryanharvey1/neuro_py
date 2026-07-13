@@ -1,9 +1,11 @@
 import os
 import sys
 from typing import Optional, Tuple
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from scipy.io import savemat
 
@@ -72,7 +74,7 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
     return None
 
 
-def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
+def process_lfp(basepath: str) -> Tuple[NDArray[Any], NDArray[Any], float]:
     """
     Process and load Local Field Potential (LFP) data.
 
@@ -94,7 +96,7 @@ def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
     return lfp, ts, fs
 
 
-def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
+def get_ep_from_df(df: pd.DataFrame, ts: NDArray[Any]) -> nel.EpochArray:
     """
     Extract epochs of theta oscillations from a bycycle dataframe.
 
@@ -133,7 +135,7 @@ def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
 
 def save_theta_cycles(
     df: pd.DataFrame,
-    ts: np.ndarray,
+    ts: NDArray[Any],
     basepath: str,
     detection_params: dict,
     ch: int,

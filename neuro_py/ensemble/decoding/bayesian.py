@@ -1,15 +1,17 @@
+from typing import Any
 import numpy as np
+from numpy.typing import NDArray
 from numba import njit, prange
 
 
 @njit(parallel=True, fastmath=True)
 def decode(
-    ct: np.ndarray,
-    tc: np.ndarray,
-    occupancy: np.ndarray,
+    ct: NDArray[Any],
+    tc: NDArray[Any],
+    occupancy: NDArray[Any],
     bin_size_s: float,
     uniform_prior: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Decode position from spike counts in an N-dimensional spatial environment
 
@@ -114,12 +116,12 @@ def decode(
 
 @njit(parallel=True, fastmath=True, cache=True)
 def decode_with_prior_fallback(
-    ct: np.ndarray,
-    tc: np.ndarray,
-    occupancy: np.ndarray,
+    ct: NDArray[Any],
+    tc: NDArray[Any],
+    occupancy: NDArray[Any],
     bin_size_s: float,
     uniform_prior: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Decode position from spike counts in an N-dimensional spatial environment
 
@@ -227,12 +229,12 @@ def decode_with_prior_fallback(
 
 # @njit(parallel=True, fastmath=True, cache=True)
 # def decode_with_prior_fallback(
-#     ct: np.ndarray,
-#     tc: np.ndarray,
-#     occupancy: np.ndarray,
+#     ct: NDArray[Any],
+#     tc: NDArray[Any],
+#     occupancy: NDArray[Any],
 #     bin_size_s: float,
 #     uniform_prior: bool = False,
-# ) -> np.ndarray:
+# ) -> NDArray[Any]:
 #     # Input validation
 #     assert ct.ndim == 2, "ct must be 2D array (n_bins, n_cells)"
 #     assert tc.ndim >= 2, "tc must be at least 2D array (n_xbins, ..., n_cells)"
@@ -292,12 +294,12 @@ def decode_with_prior_fallback(
 
 # @njit(parallel=True, fastmath=True, cache=True, boundscheck=False)
 # def decode_with_prior_fallback(
-#     ct: np.ndarray,
-#     tc: np.ndarray,
-#     occupancy: np.ndarray,
+#     ct: NDArray[Any],
+#     tc: NDArray[Any],
+#     occupancy: NDArray[Any],
 #     bin_size_s: float,
 #     uniform_prior: bool = False,
-# ) -> np.ndarray:
+# ) -> NDArray[Any]:
 #     # Input dimensions
 #     n_bins, n_cells = ct.shape
 #     spatial_shape = tc.shape[:-1]

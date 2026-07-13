@@ -1,10 +1,12 @@
 import copy
 import logging
 from typing import Optional, Tuple, Union
+from typing import Any
 
 import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
 from scipy import stats
@@ -183,7 +185,7 @@ class AssemblyReact:
         cross_group_threshold_mode: str = "absolute",
         cross_group_threshold_percentile: float = 95.0,
         cross_svd_threshold_mode: str = "per_rank",
-        cross_structural: Optional[np.ndarray] = None,
+        cross_structural: Optional[NDArray[Any]] = None,
     ):
         self.basepath = basepath
         self.brainRegion = brainRegion
@@ -286,7 +288,7 @@ class AssemblyReact:
         """
         self.st_resticted = self.st[epoch]
 
-    def get_z_mat(self, st: nel.SpikeTrainArray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_z_mat(self, st: nel.SpikeTrainArray) -> Tuple[NDArray[Any], NDArray[Any]]:
         """
         Get z matrix.
 
@@ -422,7 +424,7 @@ class AssemblyReact:
         markersize: float = 4,
         x_padding: float = 0.2,
         figsize: Union[tuple, None] = None,
-    ) -> Union[Tuple[plt.Figure, np.ndarray], str, None]:
+    ) -> Union[Tuple[plt.Figure, NDArray[Any]], str, None]:
         """
         Plots basic stem plot to display assembly weights.
 
@@ -568,7 +570,7 @@ class AssemblyReact:
             dstr = f"of length {self.st.support.length}"
             return "<%s: %s> %s" % (self.type_name, n_units, dstr)
 
-    def find_members(self) -> np.ndarray:
+    def find_members(self) -> NDArray[Any]:
         """
         Finds significant assembly patterns and significant assembly members.
 
@@ -584,7 +586,7 @@ class AssemblyReact:
         self.valid_assembly: a ndarray of booleans indicating an assembly has members with the same sign (Boucly et al. 2022)
         """
 
-        def Otsu(vector: np.ndarray) -> Tuple[np.ndarray, float, float]:
+        def Otsu(vector: NDArray[Any]) -> Tuple[NDArray[Any], float, float]:
             """
             The Otsu method for splitting data into two groups.
 

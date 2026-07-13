@@ -1,6 +1,8 @@
 from typing import Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import sklearn.metrics
 from scipy.stats import binned_statistic_dd
 
@@ -10,7 +12,7 @@ from ..util.array import (
 )
 
 
-def cosine_similarity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
+def cosine_similarity(pv1: NDArray[Any], pv2: NDArray[Any]) -> NDArray[Any]:
     """Cosine similarity between temporal difference vectors of two firing rate
     vector trajectories.
 
@@ -45,10 +47,10 @@ def cosine_similarity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
 
 
 def potential_landscape(
-    X_dyn: np.ndarray,
-    projbins: Union[int, np.ndarray],
-    domainbins: Union[int, np.ndarray, None] = None,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    X_dyn: NDArray[Any],
+    projbins: Union[int, NDArray[Any]],
+    domainbins: Union[int, NDArray[Any], None] = None,
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
     """Compute numerical approximation of potential energy landscape across
     1D state and domain (e.g. time, position, etc.).
 
@@ -157,11 +159,11 @@ def potential_landscape(
 
 
 def potential_landscape_nd(
-    X_dyn: np.ndarray,
-    projbins: Union[int, np.ndarray],
-    domainbins: Union[int, np.ndarray, None] = None,
+    X_dyn: NDArray[Any],
+    projbins: Union[int, NDArray[Any]],
+    domainbins: Union[int, NDArray[Any], None] = None,
     nanborderempty: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
     """Compute numerical approximation of potential energy landscape across
     n-dimensional state and domain (e.g. time, position, etc.).
 

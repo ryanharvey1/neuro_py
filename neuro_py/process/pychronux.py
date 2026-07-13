@@ -1,12 +1,14 @@
 from typing import List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from joblib import Parallel, delayed
 from scipy.signal.windows import dpss
 
 
-def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.ndarray]:
+def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Get frequency grid for evaluation.
 
@@ -40,8 +42,8 @@ def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.nda
 
 
 def dpsschk(
-    tapers: Union[np.ndarray, Tuple[float, int]], N: int, Fs: float
-) -> np.ndarray:
+    tapers: Union[NDArray[Any], Tuple[float, int]], N: int, Fs: float
+) -> NDArray[Any]:
     """
     Check and generate DPSS tapers.
 
@@ -78,7 +80,7 @@ def get_tapers(
     fs: float = 1.0,
     min_lambda: float = 0.95,
     n_tapers: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Compute tapers and associated energy concentrations for the Thomson
     multitaper method.
@@ -143,13 +145,13 @@ def get_tapers(
 
 
 def mtfftpt(
-    data: np.ndarray,
-    tapers: np.ndarray,
+    data: NDArray[Any],
+    tapers: NDArray[Any],
     nfft: int,
-    t: np.ndarray,
-    f: np.ndarray,
-    findx: np.ndarray,
-) -> Tuple[np.ndarray, float, float]:
+    t: NDArray[Any],
+    f: NDArray[Any],
+    findx: NDArray[Any],
+) -> Tuple[NDArray[Any], float, float]:
     """
     Multitaper FFT for point process times.
 
@@ -226,14 +228,14 @@ def mtfftpt(
 
 
 def mtspectrumpt(
-    data: np.ndarray,
+    data: NDArray[Any],
     Fs: int,
     fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
     time_support: Union[list[float], None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -326,7 +328,7 @@ def mtspectrumpt(
     return spectrum_df
 
 
-def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarray:
+def mtfftc(data: NDArray[Any], tapers: NDArray[Any], nfft: int, Fs: int) -> NDArray[Any]:
     """
     Multi-taper Fourier Transform - Continuous Data (Single Signal)
 
@@ -366,7 +368,7 @@ def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarr
 
 
 def mtspectrumc(
-    data: np.ndarray, Fs: int, fpass: list[float], tapers: np.ndarray
+    data: NDArray[Any], Fs: int, fpass: list[float], tapers: NDArray[Any]
 ) -> pd.Series:
     """
     Compute the multitaper power spectrum for continuous data.
@@ -411,13 +413,13 @@ def mtspectrumc(
 
 
 def point_spectra(
-    times: np.ndarray,
+    times: NDArray[Any],
     Fs: int = 1250,
     freq_range: List[float] = [1, 20],
     tapers0: List[int] = [3, 5],
     pad: int = 0,
     nfft: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Compute multitaper power spectrum for point processes.
 
@@ -493,15 +495,15 @@ def point_spectra(
 
 
 def mtcsdpt(
-    data1: np.ndarray,
-    data2: np.ndarray,
+    data1: NDArray[Any],
+    data2: NDArray[Any],
     Fs: int,
     fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
     time_support: Union[list[float], None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -571,15 +573,15 @@ def mtcsdpt(
 
 
 def mtcoherencept(
-    data1: np.ndarray,
-    data2: np.ndarray,
+    data1: NDArray[Any],
+    data2: NDArray[Any],
     Fs: int,
     fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
     time_support: Union[list[float], None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """

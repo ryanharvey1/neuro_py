@@ -13,6 +13,7 @@ from xml.dom.minidom import Element
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import scipy.io as sio
 from joblib import Parallel, delayed
@@ -180,7 +181,7 @@ class VirtualConcatenatedDat:
 
         return NotImplemented
 
-    def _asarray(self) -> np.ndarray:
+    def _asarray(self) -> NDArray[Any]:
         """Materialize the concatenated DAT as a NumPy array (loads all data into memory)."""
         blocks = []
         for start, stop in self._row_blocks(slice(0, self.total_samples, 1)):
@@ -784,7 +785,7 @@ class LFPLoader(nel.AnalogSignalArray):
         basepath: str,
         channels: Union[int, list[int], None] = None,
         ext: str = "lfp",
-        epoch: Union[np.ndarray, nel.EpochArray, None] = None,
+        epoch: Union[NDArray[Any], nel.EpochArray, None] = None,
     ) -> None:
         self.basepath = basepath  # path to the recording folder
         self.channels = channels  # channel number or list of channel numbers
@@ -820,7 +821,7 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def _prepare_lfp_payload(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, float, nel.EpochArray]:
+    ) -> Tuple[NDArray[Any], NDArray[Any], float, nel.EpochArray]:
         fs = self.fs_dat if self.ext == "dat" else self.fs_lfp
 
         lfp, timestep = loadLFP(
@@ -944,7 +945,7 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def _get_bandpass_sos(
         self, band2filter: Sequence[float] = (6, 12), ford: int = 3
-    ) -> np.ndarray:
+    ) -> NDArray[Any]:
         """Create SOS coefficients for the requested bandpass filter."""
         band_array = np.asarray(band2filter, dtype=float)
         return signal.butter(
@@ -955,15 +956,15 @@ class LFPLoader(nel.AnalogSignalArray):
         self,
         band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return bandpass-filtered signal."""
         if sos is None:
             sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
         data = self.data.astype(np.float32, copy=False)
         return signal.sosfiltfilt(sos, data).astype(np.float32, copy=False)
 
-    def _get_analytic_signal(self, filt_sig: np.ndarray) -> np.ndarray:
+    def _get_analytic_signal(self, filt_sig: NDArray[Any]) -> NDArray[Any]:
         """Return analytic signal via Hilbert transform along time axis."""
         return signal.hilbert(filt_sig, axis=-1).astype(np.complex64, copy=False)
 
@@ -971,10 +972,10 @@ class LFPLoader(nel.AnalogSignalArray):
         self,
         band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return instantaneous phase (radians)."""
         if analytic_sig is not None:
             return np.angle(analytic_sig).astype(np.float32, copy=False)
@@ -988,10 +989,10 @@ class LFPLoader(nel.AnalogSignalArray):
         self,
         band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return instantaneous amplitude envelope."""
         if analytic_sig is not None:
             return np.abs(analytic_sig).astype(np.float32, copy=False)
@@ -1005,11 +1006,11 @@ class LFPLoader(nel.AnalogSignalArray):
         self,
         band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        amplitude: Union[np.ndarray, None] = None,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        amplitude: Union[NDArray[Any], None] = None,
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return smoothed amplitude envelope."""
         if sos is None:
             sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
@@ -1025,9 +1026,9 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def get_frequency(
         self,
-        phase: np.ndarray,
+        phase: NDArray[Any],
         kernel_size: int = 13,
-    ) -> np.ndarray:
+    ) -> NDArray[Any]:
         """Return instantaneous frequency (Hz) from phase."""
         from scipy.ndimage import median_filter
 
@@ -1060,7 +1061,7 @@ class LFPLoader(nel.AnalogSignalArray):
         band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
         kernel_size: int = 13,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Get the filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
 
@@ -2911,7 +2912,7 @@ def load_spikes(
 
 def load_deepSuperficialfromRipple(
     basepath: str, bypass_mismatch_exception: bool = False
-) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+) -> Tuple[pd.DataFrame, NDArray[Any], NDArray[Any]]:
     """
     Load deepSuperficialfromRipple file created by classification_DeepSuperficial.m.
 

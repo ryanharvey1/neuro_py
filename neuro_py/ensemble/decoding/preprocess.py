@@ -1,13 +1,15 @@
 from typing import List, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 
 
 def split_data(
-    trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0.8, seed: int = 0
-) -> List[np.ndarray]:
+    trial_nsvs: NDArray[Any], splitby: NDArray[Any], trainsize: float = 0.8, seed: int = 0
+) -> List[NDArray[Any]]:
     """
     Split data into stratified folds.
 
@@ -34,8 +36,8 @@ def split_data(
 
 
 def partition_indices(
-    folds: List[np.ndarray],
-) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    folds: List[NDArray[Any]],
+) -> List[Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]]:
     """
     Partition indices into train, validation, and test sets.
 
@@ -65,9 +67,9 @@ def partition_indices(
 
 
 def partition_sets(
-    partitions_indices: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
-    nsv_trial_segs: Union[np.ndarray, pd.DataFrame],
-    bv_trial_segs: Union[np.ndarray, pd.DataFrame],
+    partitions_indices: List[Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]],
+    nsv_trial_segs: Union[NDArray[Any], pd.DataFrame],
+    bv_trial_segs: Union[NDArray[Any], pd.DataFrame],
 ) -> List[
     Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 ]:

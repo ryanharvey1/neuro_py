@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Union
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 from joblib import Parallel, delayed
 from scipy.io import savemat
 from scipy.spatial.distance import pdist
@@ -32,7 +33,7 @@ class NDimensionalBinner:
         self,
         st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
         pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
-        bin_edges: List[np.ndarray],
+        bin_edges: List[NDArray[Any]],
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
         tuning_curve_sigma: Optional[
@@ -144,8 +145,8 @@ class NDimensionalBinner:
     def _compute_occupancy_nd(
         self,
         pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
-        bin_edges: List[np.ndarray],
-    ) -> np.ndarray:
+        bin_edges: List[NDArray[Any]],
+    ) -> NDArray[Any]:
         """
         Compute N-dimensional occupancy.
 
@@ -184,9 +185,9 @@ class NDimensionalBinner:
         self,
         st_data: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
         pos_data: Union[nel.AnalogSignalArray, nel.PositionArray],
-        occupancy: np.ndarray,
-        bin_edges: List[np.ndarray],
-    ) -> np.ndarray:
+        occupancy: NDArray[Any],
+        bin_edges: List[NDArray[Any]],
+    ) -> NDArray[Any]:
         """
         Compute N-dimensional ratemap.
 
@@ -416,8 +417,8 @@ class SpatialMap(NDimensionalBinner):
         dim: Optional[int] = None,  # deprecated
         dir_epoch: Optional[object] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
-        s_binsize: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
-        tuning_curve_sigma: Union[int, float, List[Union[int, float]], np.ndarray] = 3,
+        s_binsize: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
+        tuning_curve_sigma: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
         x_minmax: Optional[List[Union[int, float]]] = None,
         y_minmax: Optional[List[Union[int, float]]] = None,
         dim_minmax: Optional[List[List[Union[int, float]]]] = None,
@@ -712,7 +713,7 @@ class SpatialMap(NDimensionalBinner):
 
         return tc, st_run
 
-    def compute_occupancy_1d(self, pos_run: object) -> np.ndarray:
+    def compute_occupancy_1d(self, pos_run: object) -> NDArray[Any]:
         """Computes the occupancy for 1D position data.
 
         Parameters
@@ -729,8 +730,8 @@ class SpatialMap(NDimensionalBinner):
         return occupancy / pos_run.fs
 
     def compute_ratemap_1d(
-        self, st_run: object, pos_run: object, occupancy: np.ndarray
-    ) -> np.ndarray:
+        self, st_run: object, pos_run: object, occupancy: NDArray[Any]
+    ) -> NDArray[Any]:
         """Computes the ratemap for 1D data.
 
         Parameters
@@ -897,7 +898,7 @@ class SpatialMap(NDimensionalBinner):
 
         return tc, st_run
 
-    def compute_occupancy_2d(self, pos_run: object) -> np.ndarray:
+    def compute_occupancy_2d(self, pos_run: object) -> NDArray[Any]:
         """Computes the occupancy for 2D position data.
 
         Parameters
@@ -916,8 +917,8 @@ class SpatialMap(NDimensionalBinner):
         return occupancy / pos_run.fs
 
     def compute_ratemap_2d(
-        self, st_run: object, pos_run: object, occupancy: np.ndarray
-    ) -> np.ndarray:
+        self, st_run: object, pos_run: object, occupancy: NDArray[Any]
+    ) -> NDArray[Any]:
         """Computes the ratemap for 2D data.
 
         Parameters
@@ -1044,7 +1045,7 @@ class SpatialMap(NDimensionalBinner):
 
         return tc, st_run
 
-    def shuffle_spatial_information(self) -> np.ndarray:
+    def shuffle_spatial_information(self) -> NDArray[Any]:
         """Shuffle spatial information and compute p-values for observed vs. null.
 
         This method creates shuffled coordinates of the position data and computes
@@ -1058,8 +1059,8 @@ class SpatialMap(NDimensionalBinner):
         """
 
         def create_shuffled_coordinates(
-            X: np.ndarray, n_shuff: int = 500
-        ) -> List[np.ndarray]:
+            X: NDArray[Any], n_shuff: int = 500
+        ) -> List[NDArray[Any]]:
             """Create shuffled coordinates by rolling the original coordinates.
 
             Parameters
@@ -1088,7 +1089,7 @@ class SpatialMap(NDimensionalBinner):
 
             return x_temp
 
-        def get_spatial_infos(pos_shuff: np.ndarray, ts: np.ndarray, dim: int) -> float:
+        def get_spatial_infos(pos_shuff: NDArray[Any], ts: NDArray[Any], dim: int) -> float:
             """Get spatial information for shuffled position data.
 
             Parameters

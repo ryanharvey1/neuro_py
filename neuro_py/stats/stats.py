@@ -1,18 +1,20 @@
 import warnings
 from typing import Callable, Optional, Tuple, Union
+from typing import Any
 
 import bottleneck as bn
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import scipy.stats as stats
 
 
 def get_significant_events(
-    scores: Union[list[float], np.ndarray],
-    shuffled_scores: np.ndarray,
+    scores: Union[list[float], NDArray[Any]],
+    shuffled_scores: NDArray[Any],
     q: float = 95,
     tail: str = "both",
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Return the significant events based on percentiles,
     the p-values, and the standard deviation of the scores
@@ -89,12 +91,12 @@ def get_significant_events(
 
 
 def confidence_intervals(
-    X: np.ndarray,
+    X: NDArray[Any],
     conf: float = 0.95,
-    estimator: Callable[..., np.ndarray | float] = np.nanmean,
+    estimator: Callable[..., NDArray[Any] | float] = np.nanmean,
     n_boot: int = 1000,
     random_state: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Calculate upper and lower confidence intervals on a matrix using a specified estimator.
 
@@ -175,7 +177,7 @@ def reindex_df(df: pd.DataFrame, weight_col: str) -> pd.DataFrame:
     return df
 
 
-def regress_out(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def regress_out(a: NDArray[Any], b: NDArray[Any]) -> NDArray[Any]:
     """
     Regress b from a while keeping a's original mean.
 

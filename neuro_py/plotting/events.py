@@ -5,6 +5,7 @@ import bottleneck as bn
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
 from nelpy.core import EpochArray
@@ -180,8 +181,8 @@ def plot_peth(
 
 
 def plot_peth_fast(
-    peth: Union[pd.DataFrame, np.ndarray],
-    ts: Union[np.ndarray, None] = None,
+    peth: Union[pd.DataFrame, NDArray[Any]],
+    ts: Union[NDArray[Any], None] = None,
     ax: Union[plt.Axes, None] = None,
     ci: float = 0.95,
     smooth: bool = False,
@@ -189,7 +190,7 @@ def plot_peth_fast(
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
     alpha: float = 0.2,
-    estimator: Callable[..., np.ndarray] = np.nanmean,
+    estimator: Callable[..., NDArray[Any]] = np.nanmean,
     n_boot: int = 1000,
     random_state: Optional[int] = None,
     **kwargs,

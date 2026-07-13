@@ -1,9 +1,11 @@
 import os
 import sys
 from typing import Optional, Tuple
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 from scipy.signal import find_peaks
 
 import neuro_py as npy
@@ -485,7 +487,7 @@ if __name__ == "__main__":
 
 
 def hartigan_diptest(
-    data: np.ndarray, n_boot: int = 100, seed: Optional[int] = None
+    data: NDArray[Any], n_boot: int = 100, seed: Optional[int] = None
 ) -> Tuple[float, float]:
     """
     Dependency-free approximation of Hartigan's dip test with bootstrap p-value.

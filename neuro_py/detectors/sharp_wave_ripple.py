@@ -3,9 +3,11 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from typing import Mapping, Optional, Union
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from scipy import ndimage, signal
 from scipy.io import savemat
@@ -25,7 +27,7 @@ def _sanitize_for_matlab(value: object) -> object:
     return value
 
 
-def _zscore(values: np.ndarray) -> np.ndarray:
+def _zscore(values: NDArray[Any]) -> NDArray[Any]:
     """Z-score a 1-D array while preserving NaNs."""
     values = np.asarray(values, dtype=float)
     mean = np.nanmean(values)
@@ -35,7 +37,7 @@ def _zscore(values: np.ndarray) -> np.ndarray:
     return (values - mean) / std
 
 
-def _fill_nonfinite_for_filter(values: np.ndarray) -> np.ndarray:
+def _fill_nonfinite_for_filter(values: NDArray[Any]) -> NDArray[Any]:
     """Fill non-finite samples so filtering does not poison the full trace."""
     values = np.asarray(values, dtype=float)
     if np.all(np.isfinite(values)):
@@ -51,7 +53,7 @@ def _fill_nonfinite_for_filter(values: np.ndarray) -> np.ndarray:
     return filled
 
 
-def _find_true_bounds(mask: np.ndarray) -> list[tuple[int, int]]:
+def _find_true_bounds(mask: NDArray[Any]) -> list[tuple[int, int]]:
     """Return inclusive bounds for contiguous True segments."""
     mask = np.asarray(mask, dtype=bool)
     if mask.size == 0:
@@ -64,7 +66,7 @@ def _find_true_bounds(mask: np.ndarray) -> list[tuple[int, int]]:
     return list(zip(starts.tolist(), stops.tolist()))
 
 
-def _bounds_to_array(bounds: Optional[list[tuple[int, int]]]) -> np.ndarray:
+def _bounds_to_array(bounds: Optional[list[tuple[int, int]]]) -> NDArray[Any]:
     """Convert interval bounds to an ``(n_bounds, 2)`` integer array."""
     if not bounds:
         return np.empty((0, 2), dtype=int)
@@ -72,7 +74,7 @@ def _bounds_to_array(bounds: Optional[list[tuple[int, int]]]) -> np.ndarray:
 
 
 def _bound_containing_index(
-    bounds: np.ndarray,
+    bounds: NDArray[Any],
     index: int,
 ) -> Optional[tuple[int, int]]:
     """Return the interval that contains ``index`` using binary search."""
@@ -90,8 +92,8 @@ def _bound_containing_index(
 
 
 def _coerce_interval_array(
-    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]],
-) -> np.ndarray:
+    detection_epochs: Optional[Union[nel.EpochArray, NDArray[Any]]],
+) -> NDArray[Any]:
     """Normalize interval inputs to an ``(n_intervals, 2)`` array."""
     if detection_epochs is None:
         return np.empty((0, 2), dtype=float)
@@ -116,7 +118,7 @@ def _coerce_interval_array(
 
 def _filter_events_to_detection_epochs(
     events: pd.DataFrame,
-    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]],
+    detection_epochs: Optional[Union[nel.EpochArray, NDArray[Any]]],
 ) -> pd.DataFrame:
     """Keep events fully contained within one detection epoch."""
     intervals = _coerce_interval_array(detection_epochs)
@@ -215,8 +217,8 @@ def _load_signals(
     ripple_channel: Optional[int],
     sharp_wave_channel: Optional[int],
     noise_channel: Optional[int],
-    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]],
-) -> tuple[np.ndarray, np.ndarray, float, int, dict[str, Optional[np.ndarray]]]:
+    detection_epochs: Optional[Union[nel.EpochArray, NDArray[Any]]],
+) -> tuple[NDArray[Any], NDArray[Any], float, int, dict[str, Optional[NDArray[Any]]]]:
     """Load one or more LFP channels for ripple detection."""
     if ripple_channel is None:
         ripple_channel = _get_ripple_channel(basepath)
@@ -259,12 +261,12 @@ def _load_signals(
 
 
 def _compute_envelope(
-    signal_in: np.ndarray,
+    signal_in: NDArray[Any],
     fs: float,
     ripple_band: tuple[float, float],
     smooth_sigma: float,
     filter_order: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """Return filtered ripple-band signal, smoothed envelope, and unwrapped phase."""
     sos = signal.butter(
         filter_order,
@@ -288,11 +290,11 @@ def _compute_envelope(
 
 
 def _filter_signal(
-    signal_in: np.ndarray,
+    signal_in: NDArray[Any],
     fs: float,
     passband: tuple[float, float],
     filter_order: int,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """Apply a zero-phase band-pass filter and return the filtered trace."""
     sos = signal.butter(
         filter_order,
@@ -305,14 +307,14 @@ def _filter_signal(
 
 
 def _compute_sharp_wave_difference(
-    ripple_signal: np.ndarray,
-    sharp_wave_signal: np.ndarray,
+    ripple_signal: NDArray[Any],
+    sharp_wave_signal: NDArray[Any],
     fs: float,
     sharp_wave_band: tuple[float, float],
     filter_order: int,
     smooth_sigma: float,
     sharp_wave_polarity: str,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[NDArray[Any], NDArray[Any]]:
     """Return a filtered sharp-wave difference trace and its z-scored feature."""
     ripple_low = _filter_signal(
         signal_in=ripple_signal,
@@ -365,7 +367,7 @@ def _merge_bounds(
 
 
 def _nearest_trough(
-    filtered_signal: np.ndarray,
+    filtered_signal: NDArray[Any],
     center_idx: int,
     fs: float,
     window: float = 0.010,
@@ -384,7 +386,7 @@ def _nearest_trough(
 
 
 def _median_frequency_from_phase(
-    phase: np.ndarray,
+    phase: NDArray[Any],
     start_idx: int,
     stop_idx: int,
     fs: float,
@@ -397,7 +399,7 @@ def _median_frequency_from_phase(
 
 
 def _local_zscore_at(
-    values: np.ndarray,
+    values: NDArray[Any],
     index: int,
     fs: float,
     local_window: float,
@@ -427,14 +429,14 @@ def _edge_rejects_event(
 
 
 def _window_has_artifact(
-    signals: list[np.ndarray],
+    signals: list[NDArray[Any]],
     start_idx: int,
     stop_idx: int,
     saturation_fraction: float,
     flat_std_threshold: float,
 ) -> bool:
     """Return True if any signal window is non-finite, saturated, or flat."""
-    def _longest_run(mask: np.ndarray) -> int:
+    def _longest_run(mask: NDArray[Any]) -> int:
         if mask.size == 0:
             return 0
         bounds = _find_true_bounds(mask)
@@ -467,10 +469,10 @@ def _window_has_artifact(
 
 
 def _find_local_peaks(
-    values: np.ndarray,
+    values: NDArray[Any],
     start_idx: int,
     stop_idx: int,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """Return local peak indices, falling back to the window maximum."""
     if stop_idx < start_idx:
         return np.empty((0,), dtype=int)
@@ -487,7 +489,7 @@ def _find_local_peaks(
 
 
 def _localize_sharp_wave_interval(
-    sharp_wave_power: np.ndarray,
+    sharp_wave_power: NDArray[Any],
     parent_start: int,
     parent_stop: int,
     peak_idx: int,
@@ -535,8 +537,8 @@ def _localize_sharp_wave_interval(
 
 
 def _select_sharp_wave_partner(
-    sharp_wave_power: np.ndarray,
-    sharp_wave_bounds: np.ndarray,
+    sharp_wave_power: NDArray[Any],
+    sharp_wave_bounds: NDArray[Any],
     ripple_start: int,
     ripple_stop: int,
     ripple_peak_idx: int,
@@ -598,30 +600,30 @@ def _select_sharp_wave_partner(
 
 def _events_to_dataframe(
     ripple_bounds: list[tuple[int, int]],
-    ripple_power: np.ndarray,
-    ripple_envelope: np.ndarray,
-    ripple_filtered: np.ndarray,
-    ripple_phase: np.ndarray,
-    ripple_signal: np.ndarray,
-    timestamps: np.ndarray,
+    ripple_power: NDArray[Any],
+    ripple_envelope: NDArray[Any],
+    ripple_filtered: NDArray[Any],
+    ripple_phase: NDArray[Any],
+    ripple_signal: NDArray[Any],
+    timestamps: NDArray[Any],
     fs: float,
     ripple_min_duration: float,
     ripple_max_duration: float,
     ripple_high_threshold: float,
     ripple_channel: Optional[int],
     sharp_wave_bounds: Optional[list[tuple[int, int]]] = None,
-    sharp_wave_power: Optional[np.ndarray] = None,
-    sharp_wave_trace: Optional[np.ndarray] = None,
+    sharp_wave_power: Optional[NDArray[Any]] = None,
+    sharp_wave_trace: Optional[NDArray[Any]] = None,
     sharp_wave_low_threshold: float = 0.5,
     sharp_wave_high_threshold: Optional[float] = None,
     sharp_wave_min_duration: Optional[float] = None,
     sharp_wave_max_duration: Optional[float] = None,
     search_window: float = 0.050,
     boundary_mode: str = "sharp_wave",
-    noise_power: Optional[np.ndarray] = None,
-    noise_signal: Optional[np.ndarray] = None,
+    noise_power: Optional[NDArray[Any]] = None,
+    noise_signal: Optional[NDArray[Any]] = None,
     noise_threshold: Optional[float] = None,
-    sharp_wave_signal: Optional[np.ndarray] = None,
+    sharp_wave_signal: Optional[NDArray[Any]] = None,
     threshold_mode: str = "global",
     local_window: float = 5.0,
     reject_edge_events: bool = True,
@@ -854,7 +856,7 @@ def save_ripple_events(
     detection_name: str = "detect_sharp_wave_ripples",
     detection_params: Optional[Mapping[str, object]] = None,
     ripple_channel: Optional[int] = None,
-    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]] = None,
+    detection_epochs: Optional[Union[nel.EpochArray, NDArray[Any]]] = None,
     event_name: str = "ripples",
     amplitude_units: str = "a.u.",
 ) -> str:
@@ -941,15 +943,15 @@ def save_ripple_events(
 
 def detect_sharp_wave_ripples(
     basepath: Optional[str] = None,
-    ripple_signal: Optional[np.ndarray] = None,
+    ripple_signal: Optional[NDArray[Any]] = None,
     fs: Optional[float] = None,
-    timestamps: Optional[np.ndarray] = None,
+    timestamps: Optional[NDArray[Any]] = None,
     ripple_channel: Optional[int] = None,
-    sharp_wave_signal: Optional[np.ndarray] = None,
+    sharp_wave_signal: Optional[NDArray[Any]] = None,
     sharp_wave_channel: Optional[int] = None,
-    noise_signal: Optional[np.ndarray] = None,
+    noise_signal: Optional[NDArray[Any]] = None,
     noise_channel: Optional[int] = None,
-    detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]] = None,
+    detection_epochs: Optional[Union[nel.EpochArray, NDArray[Any]]] = None,
     ripple_band: tuple[float, float] = (80.0, 250.0),
     sharp_wave_band: tuple[float, float] = (2.0, 50.0),
     smooth_sigma: float = 0.004,

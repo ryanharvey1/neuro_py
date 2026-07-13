@@ -10,8 +10,10 @@ from concurrent.futures import ThreadPoolExecutor
 from numbers import Integral
 from os import cpu_count
 from typing import List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy import stats
 from sklearn.decomposition import PCA, FastICA
 
@@ -24,7 +26,7 @@ def toyExample(
     nneurons: int = 10,
     nbins: int = 1000,
     rate: float = 1.0,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Generate a toy example activity matrix with assemblies.
 
@@ -115,7 +117,7 @@ def marcenkopastur(significance: object) -> float:
 
 
 def getlambdacontrol(
-    zactmat_: np.ndarray, cross_structural: Optional[np.ndarray] = None
+    zactmat_: NDArray[Any], cross_structural: Optional[NDArray[Any]] = None
 ) -> float:
     """
     Get the maximum eigenvalue from PCA.
@@ -184,9 +186,9 @@ def _spawn_shuffle_seeds(nshu: int, random_state: Optional[int] = None) -> List[
 
 
 def _bin_shuffle_lambdamax(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     nbins: int,
-    cross_structural: Optional[np.ndarray],
+    cross_structural: Optional[NDArray[Any]],
     seed: int,
 ) -> float:
     """Compute one bin-shuffle control lambda max."""
@@ -197,9 +199,9 @@ def _bin_shuffle_lambdamax(
 
 
 def _circ_shuffle_lambdamax(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     nbins: int,
-    cross_structural: Optional[np.ndarray],
+    cross_structural: Optional[NDArray[Any]],
     seed: int,
 ) -> float:
     """Compute one circular-shuffle control lambda max."""
@@ -212,9 +214,9 @@ def _circ_shuffle_lambdamax(
 
 
 def binshuffling(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     significance: object,
-    cross_structural: Optional[np.ndarray] = None,
+    cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
 ) -> float:
@@ -273,9 +275,9 @@ def binshuffling(
 
 
 def circshuffling(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     significance: object,
-    cross_structural: Optional[np.ndarray] = None,
+    cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
 ) -> float:
@@ -334,9 +336,9 @@ def circshuffling(
 
 
 def runSignificance(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     significance: object,
-    cross_structural: Optional[np.ndarray] = None,
+    cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
 ) -> object:
@@ -388,12 +390,12 @@ def runSignificance(
 
 
 def extractPatterns(
-    zactmat: np.ndarray,
+    zactmat: NDArray[Any],
     significance: object,
     method: str,
     whiten: str = "unit-variance",
-    cross_structural: Optional[np.ndarray] = None,
-) -> np.ndarray:
+    cross_structural: Optional[NDArray[Any]] = None,
+) -> NDArray[Any]:
     """
     Extract co-activation patterns (assemblies).
 
@@ -475,8 +477,8 @@ def extractPatterns(
 
 
 def _normalize_by_group(
-    zactmat: np.ndarray, cross_structural: np.ndarray
-) -> np.ndarray:
+    zactmat: NDArray[Any], cross_structural: NDArray[Any]
+) -> NDArray[Any]:
     """
     Normalize activity within each group by the square root of group size.
 
@@ -504,8 +506,8 @@ def _normalize_by_group(
 
 
 def _compute_cross_structural_covariance(
-    zactmat: np.ndarray, cross_structural: np.ndarray
-) -> np.ndarray:
+    zactmat: NDArray[Any], cross_structural: NDArray[Any]
+) -> NDArray[Any]:
     """
     Compute a block-structured cross-group covariance matrix.
 
@@ -559,19 +561,19 @@ def _compute_cross_structural_covariance(
 
 
 def _compute_cross_structural_correlation(
-    zactmat: np.ndarray, cross_structural: np.ndarray
-) -> np.ndarray:
+    zactmat: NDArray[Any], cross_structural: NDArray[Any]
+) -> NDArray[Any]:
     """Backward-compatible alias for :func:`_compute_cross_structural_covariance`."""
     return _compute_cross_structural_covariance(zactmat, cross_structural)
 
 
 def _filter_cross_group_patterns(
-    patterns: np.ndarray,
-    cross_structural: np.ndarray,
+    patterns: NDArray[Any],
+    cross_structural: NDArray[Any],
     threshold: float = 1e-12,
     threshold_mode: str = "absolute",
     threshold_percentile: float = 95.0,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """Keep only patterns with above-threshold weights in at least two groups.
 
     Parameters
@@ -639,10 +641,10 @@ def _filter_cross_group_patterns(
 
 
 def _compute_cross_svd(
-    zactmat: np.ndarray,
-    cross_structural: np.ndarray,
+    zactmat: NDArray[Any],
+    cross_structural: NDArray[Any],
     n_components: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Compute cross-area SVD on a two-group activity matrix.
 
@@ -685,8 +687,8 @@ def _compute_cross_svd(
 
 
 def _cross_svd_significance(
-    zactmat: np.ndarray,
-    cross_structural: np.ndarray,
+    zactmat: NDArray[Any],
+    cross_structural: NDArray[Any],
     nshu: int,
     percentile: int,
     n_components: Optional[int] = None,
@@ -755,7 +757,7 @@ def _cross_svd_significance(
 
     T = X1.shape[1]
 
-    def _single_cross_svd_shuffle(seed: int) -> np.ndarray:
+    def _single_cross_svd_shuffle(seed: int) -> NDArray[Any]:
         rng = np.random.default_rng(seed)
         # Apply one permutation to all neurons in group 1 and an independent
         # permutation to all neurons in group 2.  This is symmetric across
@@ -802,10 +804,10 @@ def _cross_svd_significance(
 
 
 def computeCrossAreaActivity(
-    patterns: np.ndarray,
-    zactmat: np.ndarray,
-    cross_structural: np.ndarray,
-) -> Optional[np.ndarray]:
+    patterns: NDArray[Any],
+    zactmat: NDArray[Any],
+    cross_structural: NDArray[Any],
+) -> Optional[NDArray[Any]]:
     """
     Compute time-resolved cross-area coactivation for cross-SVD assemblies.
 
@@ -864,7 +866,7 @@ def computeCrossAreaActivity(
 
 
 def runPatterns(
-    actmat: np.ndarray,
+    actmat: NDArray[Any],
     method: str = "ica",
     nullhyp: str = "mp",
     nshu: int = 1000,
@@ -872,14 +874,14 @@ def runPatterns(
     tracywidom: bool = False,
     whiten: str = "unit-variance",
     nassemblies: int = None,
-    cross_structural: Optional[np.ndarray] = None,
+    cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     cross_group_threshold: float = 1e-12,
     cross_group_threshold_mode: str = "absolute",
     cross_group_threshold_percentile: float = 95.0,
     cross_svd_threshold_mode: str = "per_rank",
     random_state: Optional[int] = None,
-) -> Union[Tuple[Union[np.ndarray, None], object, Union[np.ndarray, None]], None]:
+) -> Union[Tuple[Union[NDArray[Any], None], object, Union[NDArray[Any], None]], None]:
     """
     Run pattern detection to identify cell assemblies.
 
@@ -1141,10 +1143,10 @@ def runPatterns(
 
 
 def computeAssemblyActivity(
-    patterns: np.ndarray,
-    zactmat: np.ndarray,
+    patterns: NDArray[Any],
+    zactmat: NDArray[Any],
     zerodiag: bool = True,
-) -> Optional[np.ndarray]:
+) -> Optional[NDArray[Any]]:
     """
     Compute assembly activity.
 

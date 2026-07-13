@@ -13,6 +13,7 @@ from typing import (
 )
 
 import numpy as np
+from numpy.typing import NDArray
 from decorator import decorator
 from scipy import stats
 
@@ -22,11 +23,11 @@ CI = namedtuple("confidence_interval", ["lower", "upper"])
 
 
 def nd_bootstrap(
-    data: Iterable[np.ndarray],
+    data: Iterable[NDArray[Any]],
     iterations: int,
     axis: Union[int, None] = None,
     strip_tuple_if_one: bool = True,
-) -> Generator[Union[np.ndarray, Tuple[np.ndarray, ...]], None, None]:
+) -> Generator[Union[NDArray[Any], Tuple[NDArray[Any], ...]], None, None]:
     """
     Bootstrap iterator for several n-dimensional data arrays.
 
@@ -259,11 +260,11 @@ def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
 
 
 def _complex_mean(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     axis: Optional[int] = None,
     axial_correction: float = 1,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Compute the weighted mean of complex values.
 
@@ -302,8 +303,8 @@ def _complex_mean(
 
 @bootstrap(1, "linear")
 def resultant_vector_length(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
     axial_correction: int = 1,
@@ -369,12 +370,12 @@ vector_strength = resultant_vector_length
 
 
 def mean_ci_limits(
-    alpha: np.ndarray,
+    alpha: NDArray[Any],
     ci: float = 0.95,
-    w: Optional[np.ndarray] = None,
+    w: Optional[NDArray[Any]] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Computes the confidence limits on the mean for circular data.
 
@@ -439,8 +440,8 @@ def mean_ci_limits(
 
 @mod2pi
 def mean(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     ci: Optional[float] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
@@ -495,7 +496,7 @@ def mean(
 
 
 @mod2pi
-def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...]:
+def center(*args: NDArray[Any], **kwargs: Optional[dict]) -> Tuple[NDArray[Any], ...]:
     """
     Centers the data on its circular mean.
 
@@ -681,7 +682,7 @@ class swap2zeroaxis:
 
 @swap2zeroaxis(["alpha", "w"], [0, 1])
 def rayleigh(
-    alpha: np.ndarray, w: np.ndarray = None, d: float = None, axis: int = None
+    alpha: NDArray[Any], w: NDArray[Any] = None, d: float = None, axis: int = None
 ) -> Tuple[float, float]:
     """
     Computes Rayleigh test for non-uniformity of circular data.

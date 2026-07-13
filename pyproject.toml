@@ -118,7 +118,6 @@ exclude = [
     "neuro_py/ensemble/decoding/pipeline.py",
     "neuro_py/ensemble/decoding/transformer.py",
     "neuro_py/ensemble/explained_variance.py",
-    "neuro_py/ensemble/pairwise_bias_correlation.py",
     "neuro_py/ensemble/replay.py",
     "neuro_py/lfp/spectral.py",
     "neuro_py/lfp/theta_cycles.py",

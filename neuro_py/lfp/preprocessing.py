@@ -1,18 +1,20 @@
 from typing import Tuple, Union, cast
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 
 from neuro_py.process import intervals
 
 
 def clean_lfp(
-    lfp: Union[nel.AnalogSignalArray, np.ndarray],
-    t: np.ndarray | None = None,
+    lfp: Union[nel.AnalogSignalArray, NDArray[Any]],
+    t: NDArray[Any] | None = None,
     thresholds: Tuple[float, float] = (5, 10),
     artifact_time_expand: Tuple[float, float] = (0.25, 0.1),
     return_bad_intervals: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, nel.EpochArray]]:
+) -> Union[NDArray[Any], Tuple[NDArray[Any], nel.EpochArray]]:
     """
     Remove artefacts and noise from a local field potential (LFP) signal.
 

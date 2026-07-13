@@ -1,12 +1,14 @@
+from typing import Any
 from collections.abc import Sequence
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 
 
 def plot_2d_replay(
-    replay_matrix: np.ndarray,
+    replay_matrix: NDArray[Any],
     ax=None,
     cmap="cool",
     extent: Sequence[float] | None = None,

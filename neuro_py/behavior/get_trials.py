@@ -1,9 +1,11 @@
 import logging
 import os
 from typing import List, Tuple, Union
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import scipy.io as sio
 from scipy.signal import medfilt
 
@@ -523,7 +525,7 @@ def get_openfield_trials(
 
     def compute_occupancy_2d(
         pos_run: object, x_edges: list, y_edges: list
-    ) -> np.ndarray:
+    ) -> NDArray[Any]:
         """Compute occupancy of 2D position
 
         Parameters

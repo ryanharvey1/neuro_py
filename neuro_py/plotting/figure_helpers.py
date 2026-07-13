@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
@@ -624,12 +625,12 @@ def adjust_box_widths(g: sns.axisgrid.FacetGrid, fac: float) -> None:
 
 
 def plot_joint_peth(
-    peth_1: np.ndarray,
-    peth_2: np.ndarray,
-    ts: np.ndarray,
+    peth_1: NDArray[Any],
+    peth_2: NDArray[Any],
+    ts: NDArray[Any],
     smooth_std: float = 2,
     labels: list[str] = ["peth_1", "peth_2", "event"],
-) -> Tuple[plt.Figure, np.ndarray]:
+) -> Tuple[plt.Figure, NDArray[Any]]:
     """
     Plot joint peri-event time histograms (PETHs) and the difference between the observed and expected responses.
 

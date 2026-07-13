@@ -3,12 +3,13 @@ import re
 from typing import Any, List, Tuple, Union, cast
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 
 def find_pre_task_post(
-    env: Union[List[str], np.ndarray], pre_post_label: str = "sleep"
-) -> Tuple[Union[np.ndarray, None], Union[List[int], None]]:
+    env: Union[List[str], NDArray[Any]], pre_post_label: str = "sleep"
+) -> Tuple[Union[NDArray[Any], None], Union[List[int], None]]:
     """
     Finds the first contiguous epochs that meet the pre/task/post pattern in the environment list.
 
@@ -230,7 +231,7 @@ def find_multitask_pre_post(
 
 def find_epoch_pattern(
     env: Union[List[str], pd.Series], pattern: List[str]
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[None, None]]:
+) -> Union[Tuple[NDArray[Any], NDArray[Any]], Tuple[None, None]]:
     """
     Finds the first occurrence of a contiguous pattern of epochs in the environment list.
 
@@ -277,7 +278,7 @@ def find_epoch_pattern(
 
 def find_env_paradigm_pre_task_post(
     epoch_df: pd.DataFrame, env: str = "sleep", paradigm: str = "memory"
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Find indices of epochs that match a sequence of environment and paradigm
     patterns, specifically looking for a pre-task-post structure.

@@ -1,12 +1,14 @@
 from typing import List, Tuple
+from typing import Any
 
 import nelpy as nel
 import numba
 import numpy as np
+from numpy.typing import NDArray
 import sklearn
 import sklearn.metrics
 from joblib import Parallel, delayed
-from numba import njit
+from numba import njit, typed
 
 from neuro_py.io import loading
 from neuro_py.process import intervals
@@ -18,11 +20,11 @@ from neuro_py.spikes import spike_tools
 
 @njit
 def skew_bias_matrix(
-    spike_times: np.ndarray,
-    neuron_ids: np.ndarray,
+    spike_times: NDArray[Any],
+    neuron_ids: NDArray[Any],
     total_neurons: int,
     fillneutral: float = 0,
-) -> np.ndarray:
+) -> NDArray[Any]:
     r"""
     Compute the pairwise skew-bias matrix for a given sequence of spikes.
 
@@ -75,9 +77,9 @@ def skew_bias_matrix(
     nrn_spk_rindices = np.empty(total_neurons + 1, dtype=np.int64)
     nrn_spk_rindices[0] = 0
 
-    nrns_st = numba.typed.List()
+    nrns_st = typed.List()
     for _ in range(total_neurons):
-        nrns_st.append(numba.typed.List.empty_list(np.float64))
+        nrns_st.append(typed.List.empty_list(np.float64))
     for i, nrn_id in enumerate(neuron_ids):
         nrns_st[nrn_id].append(spike_times[i])
     for nnrn in range(total_neurons):
@@ -112,7 +114,7 @@ def skew_bias_matrix(
     return bias
 
 
-def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
+def cosine_similarity_matrices(matrix1: NDArray[Any], matrix2: NDArray[Any]) -> float:
     """
     Compute the cosine similarity between two flattened matrices
 
@@ -146,11 +148,11 @@ def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> floa
 
 
 def observed_and_shuffled_correlation(
-    post_spikes: np.ndarray,
-    post_neurons: np.ndarray,
+    post_spikes: NDArray[Any],
+    post_neurons: NDArray[Any],
     total_neurons: int,
-    task_normalized: np.ndarray,
-    post_intervals: np.ndarray,
+    task_normalized: NDArray[Any],
+    post_intervals: NDArray[Any],
     interval_i: int,
     num_shuffles: int = 100,
 ) -> Tuple[float, List[float]]:
@@ -215,12 +217,12 @@ def observed_and_shuffled_correlation(
 
 
 def shuffled_significance(
-    task_spikes: np.ndarray,
-    task_neurons: np.ndarray,
-    post_spikes: np.ndarray,
-    post_neurons: np.ndarray,
+    task_spikes: NDArray[Any],
+    task_neurons: NDArray[Any],
+    post_spikes: NDArray[Any],
+    post_neurons: NDArray[Any],
     total_neurons: int,
-    post_intervals: np.ndarray = np.array([[-np.inf, np.inf]]),
+    post_intervals: NDArray[Any] = np.array([[-np.inf, np.inf]]),
     num_shuffles: int = 100,
     n_jobs: int = -1,
 ):
@@ -327,6 +329,8 @@ def shuffled_significance(
 if __name__ == "__main__":
     basepath = r"/run/user/1000/gvfs/smb-share:server=ayadatab.local,share=ayadatab1/data/HMC/HMC1/day8"
     epoch_df = loading.load_epoch(basepath)
+    if epoch_df is None:
+        raise FileNotFoundError(f"Could not load epoch metadata from {basepath}")
     # get session bounds to provide support
     session_bounds = nel.EpochArray(
         [epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]
@@ -338,9 +342,14 @@ if __name__ == "__main__":
     st, cell_metrics = loading.load_spikes(
         basepath, putativeCellType="Pyr", brainRegion="CA1"
     )
+    if st is None:
+        raise FileNotFoundError(f"Could not load spikes from {basepath}")
     swr = loading.load_ripples_events(basepath, return_epoch_array=True)
 
-    theta = nel.EpochArray(loading.load_SleepState_states(basepath)["THETA"])
+    sleep_states = loading.load_SleepState_states(basepath)
+    if sleep_states is None:
+        raise FileNotFoundError(f"Could not load sleep-state metadata from {basepath}")
+    theta = nel.EpochArray(sleep_states["THETA"])
 
     spike_spindices = spike_tools.get_spindices(st.data)
 

@@ -1,8 +1,10 @@
 from typing import List, Optional, Tuple, Union
+from typing import Any
 
 import nelpy as nel
 import numba
 import numpy as np
+from numpy.typing import NDArray
 from nelpy import core
 from nelpy.core import EpochArray
 from numba import jit
@@ -11,7 +13,7 @@ from numba import jit
 def randomize_epochs(
     epoch: EpochArray,
     randomize_each: bool = True,
-    start_stop: Optional[np.ndarray] = None,
+    start_stop: Optional[NDArray[Any]] = None,
 ) -> EpochArray:
     """
     Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
@@ -86,7 +88,7 @@ def randomize_epochs(
 
 def split_epoch_by_width(
     intervals: List[Tuple[float, float]], bin_width: float = 0.001
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Generate combined intervals (start, stop) at a specified width within given intervals.
 
@@ -114,8 +116,8 @@ def split_epoch_by_width(
 
 
 def split_epoch_equal_parts(
-    intervals: np.ndarray, n_parts: int, return_epoch_array: bool = True
-) -> Union[np.ndarray, nel.EpochArray]:
+    intervals: NDArray[Any], n_parts: int, return_epoch_array: bool = True
+) -> Union[NDArray[Any], nel.EpochArray]:
     """
     Split multiple intervals into equal parts.
 
@@ -192,7 +194,7 @@ def overlap_intersect(
 
 
 @jit(nopython=True)
-def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[float]:
+def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List[float]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
@@ -226,7 +228,7 @@ def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[flo
 
 def find_intersecting_intervals(
     set1: nel.EpochArray, set2: nel.EpochArray, return_indices: bool = True
-) -> Union[np.ndarray, List[bool]]:
+) -> Union[NDArray[Any], List[bool]]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each intersection.
 
@@ -337,8 +339,8 @@ def find_interval(logical: List[bool]) -> List[Tuple[int, int]]:
 
 # @njit(parallel=True)
 def in_intervals(
-    timestamps: np.ndarray,
-    intervals: np.ndarray,
+    timestamps: NDArray[Any],
+    intervals: NDArray[Any],
     return_interval: bool = False,
     shift: bool = False,
 ) -> Union[
@@ -433,7 +435,7 @@ def in_intervals(
 
 
 @jit(nopython=True, parallel=True)
-def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
+def in_intervals_interval(timestamps: NDArray[Any], intervals: NDArray[Any]) -> NDArray[Any]:
     """
     for each timestamps value, the index of the interval to which it belongs (nan = none)
 
@@ -632,7 +634,7 @@ def shift_epoch_array(
 
 def get_overlapping_intervals(
     start: float, stop: float, interval_width: float, slideby: float
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Generate overlapping intervals within a specified time range.
 

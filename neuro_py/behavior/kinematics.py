@@ -1,11 +1,13 @@
 from typing import Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def get_velocity(
-    position: np.ndarray, time: Union[np.ndarray, None] = None
-) -> np.ndarray:
+    position: NDArray[Any], time: Union[NDArray[Any], None] = None
+) -> NDArray[Any]:
     """
     Computes the velocity from position data.
 
@@ -48,7 +50,7 @@ def get_velocity(
     return np.gradient(position, time, axis=0)
 
 
-def get_speed(position: np.ndarray, time: Union[np.ndarray, None] = None) -> np.ndarray:
+def get_speed(position: NDArray[Any], time: Union[NDArray[Any], None] = None) -> NDArray[Any]:
     """
     Computes the speed from position data.
 

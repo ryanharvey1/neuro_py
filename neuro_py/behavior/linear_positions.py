@@ -1,13 +1,15 @@
 import sys
 from typing import Tuple
+from typing import Any
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from sklearn.decomposition import PCA
 
 
-def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def linearize_position(x: NDArray[Any], y: NDArray[Any]) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Use PCA (a dimensionality reduction technique) to find the direction of maximal variance
     in our position data, and use this as the new 1D linear track axis.
@@ -65,8 +67,8 @@ def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def __find_laps(
-    Vts: np.ndarray,
-    Vdata: np.ndarray,
+    Vts: NDArray[Any],
+    Vdata: NDArray[Any],
     newLapThreshold: float = 15,
     good_laps: bool = True,
     edgethresh: float = 0.1,
@@ -189,7 +191,7 @@ def __find_laps(
 
 
 def __peakdetz(
-    v: np.ndarray, delta: float, lookformax: int = 1, backwards: int = 0
+    v: NDArray[Any], delta: float, lookformax: int = 1, backwards: int = 0
 ) -> Tuple[list[Tuple[int, float]], list[Tuple[int, float]]]:
     """
     Detect peaks in a vector.
@@ -273,8 +275,8 @@ def __peakdetz(
 
 
 def __find_good_laps(
-    ts: np.ndarray,
-    V_rest: np.ndarray,
+    ts: NDArray[Any],
+    V_rest: NDArray[Any],
     laps: pd.DataFrame,
     edgethresh: float = 0.1,
     completeprop: float = 0.2,
@@ -481,8 +483,8 @@ def __find_good_laps(
 
 
 def get_linear_track_lap_epochs(
-    ts: np.ndarray,
-    x: np.ndarray,
+    ts: NDArray[Any],
+    x: NDArray[Any],
     newLapThreshold: float = 15,
     good_laps: bool = False,
     edgethresh: float = 0.1,

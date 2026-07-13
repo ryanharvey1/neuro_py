@@ -1,12 +1,13 @@
 from typing import Any, Tuple, cast
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 
 def find_terminal_masked_indices(
-    mask: np.ndarray, axis: int
-) -> Tuple[np.ndarray, np.ndarray]:
+    mask: NDArray[Any], axis: int
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Find the first and last indices of non-masked values along an axis.
 
@@ -52,7 +53,7 @@ def find_terminal_masked_indices(
     return first_idx, last_idx
 
 
-def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
+def replace_border_zeros_with_nan(arr: NDArray[Any]) -> NDArray[Any]:
     """Replace zero values at the borders of each dimension of a n-dimensional
     array with NaN.
 
@@ -110,7 +111,7 @@ def replace_border_zeros_with_nan(arr: np.ndarray) -> np.ndarray:
     return arr
 
 
-def is_nested(array: np.ndarray) -> bool:
+def is_nested(array: NDArray[Any]) -> bool:
     """
     Check if an array is nested.
 
@@ -143,7 +144,7 @@ def is_nested(array: np.ndarray) -> bool:
     return any(isinstance(item, np.ndarray) for item in array)
 
 
-def circular_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+def circular_interp(x: NDArray[Any], xp: NDArray[Any], fp: NDArray[Any]) -> NDArray[Any]:
     """
     Circular interpolation of data.
     This function performs interpolation on circular data, such as angles, using sine and cosine.
@@ -185,8 +186,8 @@ def circular_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray
 
 
 def interp_max_gap(
-    x: np.ndarray, xp: np.ndarray, fp: np.ndarray, max_gap: float, fallback=np.nan
-) -> np.ndarray:
+    x: NDArray[Any], xp: NDArray[Any], fp: NDArray[Any], max_gap: float, fallback=np.nan
+) -> NDArray[Any]:
     """
     Interpolate with gap-aware masking.
 
@@ -246,7 +247,7 @@ def interp_max_gap(
     return y_interpolated
 
 
-def shrink(matrix: np.ndarray, row_bin_size: int, column_bin_size: int) -> np.ndarray:
+def shrink(matrix: NDArray[Any], row_bin_size: int, column_bin_size: int) -> NDArray[Any]:
     """
     Shrink a 2D matrix by averaging non-overlapping blocks.
 
@@ -404,11 +405,11 @@ def zscore_columns(df: pd.DataFrame, ddof: int = 0) -> pd.DataFrame:
 
 
 def smooth_peth(
-    peth: np.ndarray | pd.Series | pd.DataFrame,
+    peth: NDArray[Any] | pd.Series | pd.DataFrame,
     smooth_window: float = 0.1,
     smooth_std: float = 1.0,
     dt: float | None = None,
-) -> np.ndarray | pd.Series | pd.DataFrame:
+) -> NDArray[Any] | pd.Series | pd.DataFrame:
     """
     Fast Gaussian smoothing for PETH-like data.
 

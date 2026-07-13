@@ -1,8 +1,10 @@
 import multiprocessing
 import warnings
 from typing import List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from joblib import Parallel, delayed
 from nelpy import TuningCurve1D
 from nelpy.analysis import replay
@@ -19,11 +21,11 @@ from neuro_py.process.peri_event import crossCorr
 
 @njit(parallel=True, fastmath=False, cache=True)
 def __weighted_corr_2d_jit(
-    weights: np.ndarray,
-    x_coords: np.ndarray,
-    y_coords: np.ndarray,
-    time_coords: np.ndarray,
-) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
+    weights: NDArray[Any],
+    x_coords: NDArray[Any],
+    y_coords: NDArray[Any],
+    time_coords: NDArray[Any],
+) -> Tuple[float, NDArray[Any], NDArray[Any], float, float, float, float]:
     # Handle NaN weights
     weights = np.nan_to_num(weights, nan=0.0)
 
@@ -151,11 +153,11 @@ weighted_corr_2d_jit = __weighted_corr_2d_jit
 
 
 def weighted_corr_2d(
-    weights: np.ndarray,
-    x_coords: Optional[np.ndarray] = None,
-    y_coords: Optional[np.ndarray] = None,
-    time_coords: Optional[np.ndarray] = None,
-) -> Tuple[float, np.ndarray, np.ndarray, float, float, float, float]:
+    weights: NDArray[Any],
+    x_coords: Optional[NDArray[Any]] = None,
+    y_coords: Optional[NDArray[Any]] = None,
+    time_coords: Optional[NDArray[Any]] = None,
+) -> Tuple[float, NDArray[Any], NDArray[Any], float, float, float, float]:
     """
     Calculate the weighted correlation between the X and Y dimensions of the matrix.
 
@@ -209,7 +211,7 @@ def weighted_corr_2d(
 
 
 def _position_estimator_1d(
-    posterior_prob: np.ndarray, bin_centers: np.ndarray, method: str, n_time_bins: int
+    posterior_prob: NDArray[Any], bin_centers: NDArray[Any], method: str, n_time_bins: int
 ):
     """Helper function for 1D position decoding."""
     if posterior_prob.shape[1] != len(bin_centers):
@@ -237,9 +239,9 @@ def _position_estimator_1d(
 
 
 def _position_estimator_2d(
-    posterior_prob: np.ndarray,
-    ybin_centers: np.ndarray,
-    xbin_centers: np.ndarray,
+    posterior_prob: NDArray[Any],
+    ybin_centers: NDArray[Any],
+    xbin_centers: NDArray[Any],
     method: str,
     n_time_bins: int,
 ):
@@ -279,8 +281,8 @@ def _position_estimator_2d(
 
 
 def position_estimator(
-    posterior_prob: np.ndarray, *bin_centers: np.ndarray, method: str = "com"
-) -> np.ndarray:
+    posterior_prob: NDArray[Any], *bin_centers: NDArray[Any], method: str = "com"
+) -> NDArray[Any]:
     """
     Decode 1D or 2D position from posterior probability distributions.
 
@@ -364,7 +366,7 @@ def position_estimator(
 
 
 def WeightedCorr(
-    weights: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None
+    weights: NDArray[Any], x: Optional[NDArray[Any]] = None, y: Optional[NDArray[Any]] = None
 ) -> float:
     """
     Calculate the weighted correlation between the X and Y dimensions of the matrix.
@@ -418,9 +420,9 @@ def WeightedCorr(
 
 
 def WeightedCorrCirc(
-    weights: np.ndarray,
-    x: Optional[np.ndarray] = None,
-    alpha: Optional[np.ndarray] = None,
+    weights: NDArray[Any],
+    x: Optional[NDArray[Any]] = None,
+    alpha: Optional[NDArray[Any]] = None,
 ) -> float:
     """
     Compute the correlation between x and y dimensions of a matrix with angular (circular) values.
@@ -464,11 +466,11 @@ def WeightedCorrCirc(
 
 
 def weighted_correlation(
-    posterior: np.ndarray,
-    time: Optional[np.ndarray] = None,
-    place_bin_centers: Optional[np.ndarray] = None,
+    posterior: NDArray[Any],
+    time: Optional[NDArray[Any]] = None,
+    place_bin_centers: Optional[NDArray[Any]] = None,
     return_full_output: bool = False,
-) -> Union[float, Tuple[float, np.ndarray, float, float, float, float]]:
+) -> Union[float, Tuple[float, NDArray[Any], float, float, float, float]]:
     """
     Calculate the weighted correlation between time and place bin centers using a posterior probability matrix.
 
@@ -623,13 +625,13 @@ def weighted_correlation(
 
 
 def shuffle_and_score(
-    posterior_array: np.ndarray,
-    w: np.ndarray,
+    posterior_array: NDArray[Any],
+    w: NDArray[Any],
     normalize: bool,
     tc: float,
     ds: float,
     dp: float,
-) -> Tuple[np.ndarray, np.ndarray, float, float]:
+) -> Tuple[NDArray[Any], NDArray[Any], float, float]:
     """
     Shuffle the posterior array and compute scores and weighted correlations.
 
@@ -670,9 +672,9 @@ def shuffle_and_score(
 
 
 def _shuffle_and_score(
-    posterior_array: np.ndarray,
-    tuningcurve: np.ndarray,
-    w: np.ndarray,
+    posterior_array: NDArray[Any],
+    tuningcurve: NDArray[Any],
+    w: NDArray[Any],
     normalize: bool,
     ds: float,
     dp: float,
@@ -736,7 +738,7 @@ def trajectory_score_bst(
     tuningcurve: TuningCurve1D,
     w: Optional[int] = None,
     n_shuffles: int = 1000,
-    weights: Optional[np.ndarray] = None,
+    weights: Optional[NDArray[Any]] = None,
     normalize: bool = False,
     parallel: bool = True,
 ) -> Union[
@@ -930,11 +932,11 @@ class PairwiseBias(object):
 
     @staticmethod
     def bias_matrix(
-        spike_times: np.ndarray,
-        neuron_ids: np.ndarray,
+        spike_times: NDArray[Any],
+        neuron_ids: NDArray[Any],
         total_neurons: int,
         fillneutral: float = np.nan,
-    ) -> np.ndarray:
+    ) -> NDArray[Any]:
         """
         Optimized computation of the bias matrix B_k for a given sequence of spikes using vectorized operations.
 
@@ -958,7 +960,7 @@ class PairwiseBias(object):
         return skew_bias_matrix(spike_times, neuron_ids, total_neurons, fillneutral)
 
     @staticmethod
-    def cosine_similarity_matrices(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
+    def cosine_similarity_matrices(matrix1: NDArray[Any], matrix2: NDArray[Any]) -> float:
         """
         Computes the cosine similarity between two flattened bias matrices.
 
@@ -978,10 +980,10 @@ class PairwiseBias(object):
 
     def observed_and_shuffled_correlation(
         self,
-        post_spikes: np.ndarray,
-        post_neurons: np.ndarray,
-        task_skew_bias: np.ndarray,
-        post_intervals: np.ndarray,
+        post_spikes: NDArray[Any],
+        post_neurons: NDArray[Any],
+        task_skew_bias: NDArray[Any],
+        post_intervals: NDArray[Any],
         interval_i: int,
     ) -> Tuple[float, List[float]]:
         """
@@ -1042,9 +1044,9 @@ class PairwiseBias(object):
 
     def fit(
         self,
-        task_spikes: np.ndarray,
-        task_neurons: np.ndarray,
-        task_intervals: np.ndarray = None,
+        task_spikes: NDArray[Any],
+        task_neurons: NDArray[Any],
+        task_intervals: NDArray[Any] = None,
     ) -> "PairwiseBias":
         """
         Fit the model using the task spike data.
@@ -1111,12 +1113,12 @@ class PairwiseBias(object):
 
     def transform(
         self,
-        post_spikes: np.ndarray,
-        post_neurons: np.ndarray,
-        post_intervals: np.ndarray,
+        post_spikes: NDArray[Any],
+        post_neurons: NDArray[Any],
+        post_intervals: NDArray[Any],
         allow_reverse_replay: bool = False,
         parallel: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Transform the post-task data to compute z-scores and p-values.
 
@@ -1200,15 +1202,15 @@ class PairwiseBias(object):
 
     def fit_transform(
         self,
-        task_spikes: np.ndarray,
-        task_neurons: np.ndarray,
-        task_intervals: np.ndarray,
-        post_spikes: np.ndarray,
-        post_neurons: np.ndarray,
-        post_intervals: np.ndarray,
+        task_spikes: NDArray[Any],
+        task_neurons: NDArray[Any],
+        task_intervals: NDArray[Any],
+        post_spikes: NDArray[Any],
+        post_neurons: NDArray[Any],
+        post_intervals: NDArray[Any],
         allow_reverse_replay: bool = False,
         parallel: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Fit the model with task data and transform the post-task data.
 
@@ -1245,11 +1247,11 @@ class PairwiseBias(object):
 
 
 def bottom_up_replay_detection(
-    posterior: np.ndarray,
-    time_centers: np.ndarray,
-    bin_centers: np.ndarray,
-    speed_times: np.ndarray,
-    speed_values: np.ndarray,
+    posterior: NDArray[Any],
+    time_centers: NDArray[Any],
+    bin_centers: NDArray[Any],
+    speed_times: NDArray[Any],
+    speed_values: NDArray[Any],
     window_dt: Optional[float] = None,
     speed_thresh: float = 5.0,
     spread_thresh: float = 10.0,
@@ -1259,7 +1261,7 @@ def bottom_up_replay_detection(
     min_duration: float = 0.1,
     dispersion_thresh: float = 12.0,
     method: str = "com",
-) -> Tuple[np.ndarray, dict]:
+) -> Tuple[NDArray[Any], dict]:
     """
     Bottom-up replay detector following Widloski & Foster (2022) "Replay detection and analysis".
 
@@ -1593,7 +1595,7 @@ def bottom_up_replay_detection(
     return replays, meta
 
 
-def _posterior_trajectory_nd(posterior: np.ndarray, method: str = "com") -> np.ndarray:
+def _posterior_trajectory_nd(posterior: NDArray[Any], method: str = "com") -> NDArray[Any]:
     """Decode an N-dimensional posterior into a trajectory with time on the last axis."""
     posterior = np.asarray(posterior)
 

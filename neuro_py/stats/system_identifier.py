@@ -16,8 +16,10 @@ This is a linear dynamical system.
 """
 
 from typing import Tuple, Union
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 import scipy as sp
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
@@ -25,7 +27,7 @@ from scipy.sparse import linalg as sparse_linalg
 
 def ideal_data(
     num: int, dimU: int, dimY: int, dimX: int, noise: float = 1.0
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Generate linear system data.
 
@@ -118,8 +120,8 @@ class SystemIdentifier(object):
 
     def __init__(
         self,
-        U: np.ndarray,
-        Y: np.ndarray,
+        U: NDArray[Any],
+        Y: NDArray[Any],
         statedim: int,
         reg: Union[float, None] = None,
     ):
@@ -193,7 +195,7 @@ class SystemIdentifier(object):
     def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Linear Dynamical System"
 
-    def predict(self, U: np.ndarray) -> np.ndarray:
+    def predict(self, U: NDArray[Any]) -> NDArray[Any]:
         """
         Predict output given the control inputs.
 
