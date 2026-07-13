@@ -105,7 +105,6 @@ exclude = [
     "tutorials/**",
     "neuro_py/behavior/circle_maze.py",
     "neuro_py/behavior/get_trials.py",
-    "neuro_py/behavior/linear_positions.py",
     "neuro_py/behavior/linearization.py",
     "neuro_py/behavior/linearization_pipeline.py",
     "neuro_py/detectors/dentate_spike.py",

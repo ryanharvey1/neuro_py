@@ -214,13 +214,10 @@ def __peakdetz(
         the form (index, value).
     """
 
-    maxtab = []
-    mintab = []
+    maxtab: list[Tuple[int, float]] = []
+    mintab: list[Tuple[int, float]] = []
 
-    v = np.asarray(v)
-
-    if not np.isscalar(delta):
-        sys.exit("Input argument delta must be a scalar")
+    v = np.asarray(v, dtype=float)
 
     if delta <= 0:
         sys.exit("Input argument delta must be positive")
@@ -230,19 +227,19 @@ def __peakdetz(
         first = 0
         last = len(v)
         iter_ = np.arange(first, last, inc)
-    elif backwards:
+    else:
         inc = -1
         first = len(v)
         last = 0
         iter_ = np.arange(first, last, inc)
 
-    mn = np.inf
-    mx = -np.inf
-    mnpos = np.nan
-    mxpos = np.nan
+    mn = float("inf")
+    mx = float("-inf")
+    mnpos = 0
+    mxpos = 0
 
     for ii in iter_:
-        this = v[ii]
+        this = float(v[ii])
         if this > mx:
             mx = this
             mxpos = ii
@@ -328,11 +325,11 @@ def __find_good_laps(
     )
     # % threshold for peak/trough detection
     delta = (topend - bottomend) * edgethresh
-    startgoodlaps = []
-    stopgoodlaps = []
+    startgoodlaps: list[float] = []
+    stopgoodlaps: list[float] = []
 
     lap = 0
-    lastlapend = np.nan
+    lastlapend = float("nan")
     while lap < len(laps) - 1:
         # % select out just this lap
         if lap == len(laps):
@@ -451,9 +448,9 @@ def __find_good_laps(
                 laps = laps.drop(laps.index[lap - 1])
                 # % change goodlaps markers to delete previous lap from laps
                 if len(stopgoodlaps) > 0:
-                    if np.isnan(lastlapend).all() | (startgoodlaps[-1] > lastlapend):
-                        startgoodlaps[-1] = []
-                        stopgoodlaps[-1] = []
+                    if np.isnan(lastlapend) | (startgoodlaps[-1] > lastlapend):
+                        startgoodlaps[-1] = np.nan
+                        stopgoodlaps[-1] = np.nan
                     else:
                         stopgoodlaps[-1] = lastlapend
 
