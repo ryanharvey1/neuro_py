@@ -103,7 +103,6 @@ exclude = [
     "site/**",
     "tests/**",
     "tutorials/**",
-    "neuro_py/behavior/circle_maze.py",
     "neuro_py/behavior/get_trials.py",
     "neuro_py/behavior/linearization.py",
     "neuro_py/behavior/linearization_pipeline.py",
@@ -118,7 +117,6 @@ exclude = [
     "neuro_py/ensemble/decoding/transformer.py",
     "neuro_py/ensemble/explained_variance.py",
     "neuro_py/ensemble/replay.py",
-    "neuro_py/lfp/theta_cycles.py",
     "neuro_py/stats/circ_stats.py",
     "neuro_py/tuning/maps.py",
 ]
@@ -134,4 +132,4 @@ all = "error"
 
 [tool.ty.analysis]
 # `track_linearization` is an optional dependency used by the linearization pipeline.
-allowed-unresolved-imports = ["track_linearization"]
+allowed-unresolved-imports = ["bycycle", "track_linearization"]
