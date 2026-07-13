@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from ...util._dependencies import _check_dependency
 
@@ -42,9 +42,9 @@ class MLP(L.LightningModule):
         self,
         in_dim: int = 100,
         out_dim: int = 2,
-        hidden_dims: List[Union[int, float]] = (),
+        hidden_dims: Sequence[Union[int, float]] = (),
         use_bias: bool = True,
-        args: Optional[Dict] = None,
+        args: Optional[Dict[str, Any]] = None,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -65,7 +65,7 @@ class MLP(L.LightningModule):
         self,
         in_dim: int,
         out_dim: int,
-        hidden_dims: List[Union[int, float]],
+        hidden_dims: Sequence[Union[int, float]],
         use_bias: bool,
         activations: nn.Module,
     ) -> List[nn.Module]:
@@ -94,7 +94,7 @@ class MLP(L.LightningModule):
             return [nn.Linear(in_dim, out_dim, bias=use_bias)]
 
         layers = []
-        hidden_dims = [in_dim] + hidden_dims
+        hidden_dims = [in_dim, *hidden_dims]
 
         for i, hidden_dim in enumerate(hidden_dims[:-1]):
             if isinstance(hidden_dim, float):
@@ -150,7 +150,7 @@ class MLP(L.LightningModule):
         """
         return self.main(x)
 
-    def _step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def _step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Perform a single step (forward pass + loss calculation).
 
@@ -171,7 +171,7 @@ class MLP(L.LightningModule):
         loss = self.args["criterion"](outs, ys)
         return loss
 
-    def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for training step.
 
@@ -191,7 +191,7 @@ class MLP(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def validation_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for validation step.
 
@@ -211,7 +211,7 @@ class MLP(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
-    def test_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def test_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for test step.
 

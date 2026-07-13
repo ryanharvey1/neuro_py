@@ -110,9 +110,6 @@ exclude = [
     "neuro_py/detectors/up_down_state.py",
     "neuro_py/ensemble/assembly.py",
     "neuro_py/ensemble/assembly_reactivation.py",
-    "neuro_py/ensemble/decoding/lstm.py",
-    "neuro_py/ensemble/decoding/m2mlstm.py",
-    "neuro_py/ensemble/decoding/mlp.py",
     "neuro_py/ensemble/decoding/pipeline.py",
     "neuro_py/ensemble/decoding/transformer.py",
     "neuro_py/ensemble/explained_variance.py",
@@ -132,4 +129,10 @@ all = "error"
 
 [tool.ty.analysis]
 # `track_linearization` is an optional dependency used by the linearization pipeline.
-allowed-unresolved-imports = ["bycycle", "track_linearization"]
+allowed-unresolved-imports = [
+    "bycycle",
+    "lightning",
+    "torch",
+    "torch.nn.functional",
+    "track_linearization",
+]
