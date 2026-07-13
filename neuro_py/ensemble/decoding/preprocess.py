@@ -94,18 +94,27 @@ def partition_sets(
         state vectors and behavioral variables.
     """
     partitions = []
-    is_2D = nsv_trial_segs[0].ndim == 1
+    if isinstance(nsv_trial_segs, pd.DataFrame):
+        is_2D = nsv_trial_segs.iloc[0].ndim == 1
+    else:
+        is_2D = nsv_trial_segs[0].ndim == 1
     for train_indices, val_indices, test_indices in partitions_indices:
         if is_2D:
             if isinstance(nsv_trial_segs, pd.DataFrame):
-                nsv_trial_segs = nsv_trial_segs.loc
-                bv_trial_segs = bv_trial_segs.loc
-            train = nsv_trial_segs[train_indices]
-            val = nsv_trial_segs[val_indices]
-            test = nsv_trial_segs[test_indices]
-            train_bv = bv_trial_segs[train_indices]
-            val_bv = bv_trial_segs[val_indices]
-            test_bv = bv_trial_segs[test_indices]
+                assert isinstance(bv_trial_segs, pd.DataFrame)
+                train = nsv_trial_segs.loc[train_indices]
+                val = nsv_trial_segs.loc[val_indices]
+                test = nsv_trial_segs.loc[test_indices]
+                train_bv = bv_trial_segs.loc[train_indices]
+                val_bv = bv_trial_segs.loc[val_indices]
+                test_bv = bv_trial_segs.loc[test_indices]
+            else:
+                train = nsv_trial_segs[train_indices]
+                val = nsv_trial_segs[val_indices]
+                test = nsv_trial_segs[test_indices]
+                train_bv = bv_trial_segs[train_indices]
+                val_bv = bv_trial_segs[val_indices]
+                test_bv = bv_trial_segs[test_indices]
         else:
             train = np.take(nsv_trial_segs, train_indices, axis=0)
             val = np.take(nsv_trial_segs, val_indices, axis=0)

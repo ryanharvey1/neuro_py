@@ -96,7 +96,7 @@ def decode(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # prange for parallel loop
+    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
         log_likelihood = log_p1 + log_p2 + np.sum(log_tc_flat * ct[i, :], axis=1)
         p[i, :] = np.exp(
             log_likelihood - np.max(log_likelihood)
@@ -206,7 +206,7 @@ def decode_with_prior_fallback(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # prange for parallel loop
+    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
         if not np.any(ct[i, :]):
             p[i, :] = occupancy_flat / occupancy_flat.sum()
             continue

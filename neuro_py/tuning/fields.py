@@ -628,7 +628,7 @@ def find_fields_1d(
     min_length: int = 1,
     max_length: int = 20,
     max_mean_firing: float = 10,
-) -> dict:
+) -> dict[int, list[np.ndarray]]:
     """
     Finds the location of maximum spiking.
 
@@ -843,7 +843,7 @@ def _validate_2d_field_component(
 
 def find_field(
     firing_rate: np.ndarray, threshold: float
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Optional[Tuple[np.ndarray, np.ndarray]]:
     """
     Find the field in the firing rate that exceeds the threshold.
 
@@ -960,7 +960,10 @@ def map_stats2(
         peak = np.max(firing_rate)
         if peak < min_peak:
             break
-        field_buffer, field = find_field(firing_rate, threshold)
+        field_result = find_field(firing_rate, threshold)
+        if field_result is None:
+            break
+        field_buffer, field = field_result
         field_size = np.sum(field)
         if (
             (field_size > min_size)

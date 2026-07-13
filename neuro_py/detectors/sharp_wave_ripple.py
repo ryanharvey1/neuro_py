@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Optional, Union
+from typing import Mapping, Optional, Union
 
 import nelpy as nel
 import numpy as np
@@ -678,6 +678,8 @@ def _events_to_dataframe(
         event_start_idx, event_stop_idx = ripple_start, ripple_stop
 
         if sharp_wave_power is not None:
+            if sharp_wave_trace is None:
+                continue
             if sharp_wave_bounds_array.size == 0:
                 continue
 
@@ -850,7 +852,7 @@ def save_ripple_events(
     events: pd.DataFrame,
     basepath: str,
     detection_name: str = "detect_sharp_wave_ripples",
-    detection_params: Optional[dict] = None,
+    detection_params: Optional[Mapping[str, object]] = None,
     ripple_channel: Optional[int] = None,
     detection_epochs: Optional[Union[nel.EpochArray, np.ndarray]] = None,
     event_name: str = "ripples",
@@ -1201,6 +1203,8 @@ def detect_sharp_wave_ripples(
             return existing
 
     if ripple_signal is None:
+        if basepath is None:
+            raise ValueError("`basepath` is required when `ripple_signal` is not provided.")
         ripple_signal, timestamps, fs, ripple_channel, loaded_signals = _load_signals(
             basepath=basepath,
             ripple_channel=ripple_channel,

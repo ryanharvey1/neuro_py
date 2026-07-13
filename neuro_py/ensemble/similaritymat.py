@@ -10,7 +10,7 @@ def similaritymat(
     patternsY: Optional[np.ndarray] = None,
     method: str = "cosine",
     findpairs: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray], None]:
     """
     Calculate the similarity matrix of co-activation patterns (assemblies).
 
