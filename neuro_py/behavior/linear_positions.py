@@ -105,7 +105,9 @@ def __find_laps(
 
     # Handle empty input
     if len(Vdata) == 0 or len(Vts) == 0:
-        return pd.DataFrame(columns=["start_ts", "pos", "start_idx", "direction"])
+        return pd.DataFrame(
+            columns=np.array(["start_ts", "pos", "start_idx", "direction"], dtype=object)
+        )
 
     TL = np.abs(np.nanmax(Vdata) - np.nanmin(Vdata))  # % track length
     th1 = (

@@ -566,7 +566,7 @@ def _load_dataframe_from_hdf5(h5_group: h5py.Group) -> pd.DataFrame:
     else:
         index = None
 
-    return pd.DataFrame(data, index=index, columns=columns)
+    return pd.DataFrame(data, index=index, columns=pd.Index(tuple(columns)))
 
 
 def main_loop(

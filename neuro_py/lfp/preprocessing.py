@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Union, cast
+from typing import Any, Tuple, Union
 
 import nelpy as nel
 import numpy as np
@@ -96,7 +96,7 @@ def clean_lfp(
         return values
 
     # Find timestamps within intervals for artefacts and noise
-    in_interval = cast(np.ndarray, intervals.in_intervals(t, bad.data))
+    in_interval = np.asarray(intervals.in_intervals(t, bad.data), dtype=bool)
 
     # Interpolate values for timestamps within intervals for artefacts and noise
     values[in_interval] = np.interp(
