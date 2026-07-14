@@ -238,14 +238,10 @@ def get_w_maze_trials(
 
     Returns
     -------
-    pos : PositionArray or None
+    pos : nelpy.PositionArray
         The position data for the W maze trials.
-    trials : ndarray or None
-        The indices of the trials.
-    right_trials : ndarray or None
-        The indices of the right trials.
-    left_trials : ndarray or None
-        The indices of the left trials.
+    trajectories : dict[str, nelpy.EpochArray]
+        Trial epochs keyed by trajectory label.
 
     Notes
     -----

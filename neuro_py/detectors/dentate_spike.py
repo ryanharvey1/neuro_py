@@ -39,7 +39,8 @@ class DetectDS(object):
     primary_threshold : float, optional
         Primary threshold for detecting the dentate spikes (difference method only)
     secondary_threshold : float, optional
-        Secondary threshold for detecting the dentate spikes (difference method only)
+        Secondary threshold for detecting the dentate spikes (difference method only).
+        If None, uses ``primary_threshold``.
     primary_thres_mol : float, optional
         Primary threshold for detecting the dentate spikes in the mol signal
     primary_thres_hilus : float, optional
@@ -135,6 +136,7 @@ class DetectDS(object):
         method: str = "seperately",
         clean_lfp: bool = False,
         emg_threshold: float = 0.9,
+        secondary_threshold: Union[int, float, None] = None,
     ) -> None:
         self.basepath = basepath
         self.hilus_ch = hilus_ch
@@ -144,7 +146,9 @@ class DetectDS(object):
         self.highcut = highcut
         self.filter_signal_bool = filter_signal_bool
         self.primary_threshold = primary_threshold
-        self.secondary_threshold = primary_threshold
+        self.secondary_threshold = (
+            primary_threshold if secondary_threshold is None else secondary_threshold
+        )
         self.primary_thres_mol = primary_thres_mol
         self.primary_thres_hilus = primary_thres_hilus
         self.min_duration = min_duration

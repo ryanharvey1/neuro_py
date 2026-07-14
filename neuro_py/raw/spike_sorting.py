@@ -44,7 +44,13 @@ def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
 
     # dark mode plotting
     plt.style.use("dark_background")
-    ipython_display = import_module("IPython.display")
+    try:
+        ipython_display = import_module("IPython.display")
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "spike_sorting_progress requires IPython for notebook display support. "
+            "Install it with `pip install ipython`."
+        ) from exc
     clear_output = ipython_display.clear_output
     display = ipython_display.display
 

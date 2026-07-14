@@ -311,7 +311,7 @@ def resultant_vector_length(
     axial_correction: int = 1,
     ci: Optional[float] = None,
     bootstrap_iter: Optional[int] = None,
-) -> NDArray[Any]:
+) -> float | NDArray[Any]:
     """
     Computes the mean resultant vector length for circular data.
 
