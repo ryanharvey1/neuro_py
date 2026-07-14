@@ -121,8 +121,8 @@ class ExplainedVariance(object):
         matching: EpochArray,
         control: EpochArray,
         bin_size: float = 0.2,
-        window: int = 900,
-        slideby: int = None,
+        window: int | None = 900,
+        slideby: int | None = None,
     ):
         """Explained variance measure for assessing reactivation of neuronal activity using pairwise correlations.
 
@@ -144,8 +144,13 @@ class ExplainedVariance(object):
         slideby : int, optional
             slide window by this much, in seconds, by default None
         """
-        self.__dict__.update(locals())
-        del self.__dict__["self"]
+        self.st = st
+        self.template = template
+        self.matching = matching
+        self.control = control
+        self.bin_size = bin_size
+        self.window = window
+        self.slideby = slideby
 
         self.__validate_input()
         self.__calculate()

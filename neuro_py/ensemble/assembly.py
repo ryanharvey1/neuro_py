@@ -1,16 +1,8 @@
-"""
-Codes for PCA/ICA methods described in Detecting cell assemblies in large neuronal populations, Lopes-dos-Santos et al (2013).
-https://doi.org/10.1016/j.jneumeth.2013.04.010
-This implementation was written in Feb 2019.
-Please e-mail me if you have comments, doubts, bug reports or criticism (Vítor, vtlsantos@gmail.com /  vitor.lopesdossantos@pharm.ox.ac.uk).
-"""
-
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from numbers import Integral
 from os import cpu_count
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -67,6 +59,8 @@ def toyExample(
 
 
 class ToyAssemblies:
+    actbins: List[Optional[NDArray[Any]]]
+
     def __init__(
         self,
         membership: List[List[int]],
@@ -90,7 +84,24 @@ class ToyAssemblies:
         self.actstrength = actstrength
 
 
-def marcenkopastur(significance: object) -> float:
+class _AssemblySignificance(PCA):
+    """PCA result enriched with assembly-significance metadata."""
+
+    nneurons: int
+    nbins: int
+    nshu: int
+    percentile: int
+    tracywidom: bool
+    nullhyp: str
+    nassemblies: int
+    cross_svd_null_thresholds_: NDArray[Any]
+    cross_svd_keep_mask_: NDArray[Any]
+    cross_svd_u_: NDArray[Any]
+    cross_svd_vt_: NDArray[Any]
+    cross_svd_threshold_mode_: str
+
+
+def marcenkopastur(significance: _AssemblySignificance) -> float:
     """
     Calculate statistical threshold from Marcenko-Pastur distribution.
 
@@ -215,7 +226,7 @@ def _circ_shuffle_lambdamax(
 
 def binshuffling(
     zactmat: NDArray[Any],
-    significance: object,
+    significance: _AssemblySignificance,
     cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
@@ -276,7 +287,7 @@ def binshuffling(
 
 def circshuffling(
     zactmat: NDArray[Any],
-    significance: object,
+    significance: _AssemblySignificance,
     cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
@@ -337,11 +348,11 @@ def circshuffling(
 
 def runSignificance(
     zactmat: NDArray[Any],
-    significance: object,
+    significance: _AssemblySignificance,
     cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     random_state: Optional[int] = None,
-) -> object:
+) -> _AssemblySignificance:
     """
     Run significance tests to estimate the number of assemblies.
 
@@ -391,7 +402,7 @@ def runSignificance(
 
 def extractPatterns(
     zactmat: NDArray[Any],
-    significance: object,
+    significance: _AssemblySignificance,
     method: str,
     whiten: str = "unit-variance",
     cross_structural: Optional[NDArray[Any]] = None,
@@ -696,7 +707,13 @@ def _cross_svd_significance(
     threshold_mode: str = "per_rank",
     random_state: Optional[int] = None,
 ) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
 ]:
     """
     Estimate significant cross-area SVD components via symmetric group-level shuffles.
@@ -788,7 +805,9 @@ def _cross_svd_significance(
         null_thresholds = np.percentile(null_singular_values, percentile, axis=0)
         keep_components = S > null_thresholds
     else:  # threshold_mode == "max_stat"
-        global_threshold = np.percentile(np.max(null_singular_values, axis=1), percentile)
+        global_threshold = np.percentile(
+            np.max(null_singular_values, axis=1), percentile
+        )
         null_thresholds = np.full(n_components_eval, global_threshold)
         keep_components = S > global_threshold
 
@@ -873,7 +892,7 @@ def runPatterns(
     percentile: int = 99,
     tracywidom: bool = False,
     whiten: str = "unit-variance",
-    nassemblies: int = None,
+    nassemblies: Optional[int] = None,
     cross_structural: Optional[NDArray[Any]] = None,
     n_jobs: Optional[int] = 1,
     cross_group_threshold: float = 1e-12,
@@ -881,7 +900,14 @@ def runPatterns(
     cross_group_threshold_percentile: float = 95.0,
     cross_svd_threshold_mode: str = "per_rank",
     random_state: Optional[int] = None,
-) -> Union[Tuple[Union[NDArray[Any], None], object, Union[NDArray[Any], None]], None]:
+) -> Union[
+    Tuple[
+        Union[NDArray[Any], None],
+        Union[_AssemblySignificance, None],
+        Union[NDArray[Any], None],
+    ],
+    None,
+]:
     """
     Run pattern detection to identify cell assemblies.
 
@@ -999,7 +1025,7 @@ def runPatterns(
     zactmat_ = stats.zscore(actmat_, axis=1)
 
     # running significance (estimating number of assemblies)
-    significance = PCA()
+    significance = _AssemblySignificance()
 
     effective_nullhyp = nullhyp
     if cross_structural_ is not None and nullhyp == "mp":
