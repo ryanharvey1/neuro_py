@@ -4,6 +4,7 @@ import multiprocessing
 import os
 import warnings
 from typing import Any, List, Optional, Union
+from typing_extensions import override
 
 import nelpy as nel
 import numpy as np
@@ -40,7 +41,7 @@ class NDimensionalBinner:
             Union[int, float, List[Union[int, float]], np.ndarray]
         ] = None,
         smooth_mode: str = "reflect",
-    ) -> tuple:
+    ) -> tuple[Any, NDArray[Any], NDArray[Any]]:
         """
         Create an N-dimensional tuning curve from spike and position data.
 
@@ -125,8 +126,11 @@ class NDimensionalBinner:
             # Handle array or scalar sigma values
             if np.isscalar(tuning_curve_sigma):
                 # Single value: use for all dimensions
-                if tuning_curve_sigma > 0 and hasattr(tc, "smooth"):
-                    tc.smooth(sigma=tuning_curve_sigma, inplace=True, mode=smooth_mode)
+                scalar_sigma: Any = tuning_curve_sigma
+                if scalar_sigma > 0 and hasattr(tc, "smooth"):
+                    tc.smooth(
+                        sigma=scalar_sigma, inplace=True, mode=smooth_mode
+                    )
             else:
                 # Array/list: convert to numpy array
                 sigma_array = np.asarray(tuning_curve_sigma)
@@ -411,11 +415,11 @@ class SpatialMap(NDimensionalBinner):
 
     def __init__(
         self,
-        pos: object,
-        st: object,
-        speed: Optional[object] = None,
+        pos: Union[nel.AnalogSignalArray, nel.PositionArray],
+        st: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        speed: Optional[nel.AnalogSignalArray] = None,
         dim: Optional[int] = None,  # deprecated
-        dir_epoch: Optional[object] = None,  # deprecated
+        dir_epoch: Optional[nel.EpochArray] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         s_binsize: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
         tuning_curve_sigma: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
@@ -437,9 +441,24 @@ class SpatialMap(NDimensionalBinner):
         # Initialize the parent class
         super().__init__()
 
-        # add all the inputs to self
-        self.__dict__.update(locals())
-        del self.__dict__["self"]
+        self.pos = pos
+        self.st = st
+        self.speed = speed
+        self.dir_epoch = dir_epoch
+        self.speed_thres = speed_thres
+        self.smooth_mode = smooth_mode
+        self.min_duration = min_duration
+        self.minbgrate = minbgrate
+        self.n_shuff = n_shuff
+        self.parallel_shuff = parallel_shuff
+        self.place_field_thres = place_field_thres
+        self.place_field_min_size = place_field_min_size
+        self.place_field_max_size = place_field_max_size
+        self.place_field_min_peak = place_field_min_peak
+        self.place_field_sigma = place_field_sigma
+        self.max_gap = max_gap
+        self.x_minmax = x_minmax
+        self.y_minmax = y_minmax
 
         # Handle s_binsize input: normalize to array format
         self.dim = pos.n_signals
@@ -457,7 +476,7 @@ class SpatialMap(NDimensionalBinner):
 
         # Keep original s_binsize for backward compatibility in some methods
         if np.isscalar(s_binsize):
-            self.s_binsize = s_binsize
+            self.s_binsize: Any = s_binsize
         else:
             # For backward compatibility, use the first dimension's bin size
             self.s_binsize = self.s_binsize_array[0]
@@ -508,7 +527,7 @@ class SpatialMap(NDimensionalBinner):
 
         # Keep original tuning_curve_sigma for backward compatibility in some methods
         if np.isscalar(tuning_curve_sigma):
-            self.tuning_curve_sigma = tuning_curve_sigma
+            self.tuning_curve_sigma: Any = tuning_curve_sigma
         else:
             # For backward compatibility, use the first dimension's sigma
             self.tuning_curve_sigma = self.tuning_curve_sigma_array[0]
@@ -619,7 +638,7 @@ class SpatialMap(NDimensionalBinner):
         self,
         pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
         use_base_class: bool = False,
-    ) -> tuple:
+    ) -> tuple[Any, Any]:
         """Maps 1D data for the spatial tuning curve.
 
         Parameters
@@ -713,7 +732,9 @@ class SpatialMap(NDimensionalBinner):
 
         return tc, st_run
 
-    def compute_occupancy_1d(self, pos_run: object) -> NDArray[Any]:
+    def compute_occupancy_1d(
+        self, pos_run: Union[nel.AnalogSignalArray, nel.PositionArray]
+    ) -> NDArray[Any]:
         """Computes the occupancy for 1D position data.
 
         Parameters
@@ -730,7 +751,10 @@ class SpatialMap(NDimensionalBinner):
         return occupancy / pos_run.fs
 
     def compute_ratemap_1d(
-        self, st_run: object, pos_run: object, occupancy: NDArray[Any]
+        self,
+        st_run: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_run: Union[nel.AnalogSignalArray, nel.PositionArray],
+        occupancy: NDArray[Any],
     ) -> NDArray[Any]:
         """Computes the ratemap for 1D data.
 
@@ -804,7 +828,7 @@ class SpatialMap(NDimensionalBinner):
         self,
         pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None,
         use_base_class: bool = False,
-    ) -> tuple:
+    ) -> tuple[Any, Any]:
         """Maps 2D data for the spatial tuning curve.
 
         Parameters
@@ -898,7 +922,9 @@ class SpatialMap(NDimensionalBinner):
 
         return tc, st_run
 
-    def compute_occupancy_2d(self, pos_run: object) -> NDArray[Any]:
+    def compute_occupancy_2d(
+        self, pos_run: Union[nel.AnalogSignalArray, nel.PositionArray]
+    ) -> NDArray[Any]:
         """Computes the occupancy for 2D position data.
 
         Parameters
@@ -917,7 +943,10 @@ class SpatialMap(NDimensionalBinner):
         return occupancy / pos_run.fs
 
     def compute_ratemap_2d(
-        self, st_run: object, pos_run: object, occupancy: NDArray[Any]
+        self,
+        st_run: Union[nel.SpikeTrainArray, nel.AnalogSignalArray],
+        pos_run: Union[nel.AnalogSignalArray, nel.PositionArray],
+        occupancy: NDArray[Any],
     ) -> NDArray[Any]:
         """Computes the ratemap for 2D data.
 
@@ -987,7 +1016,7 @@ class SpatialMap(NDimensionalBinner):
 
     def map_nd(
         self, pos: Optional[Union[nel.AnalogSignalArray, nel.PositionArray]] = None
-    ) -> tuple:
+    ) -> tuple[Any, Any]:
         """Maps N-dimensional data for the spatial tuning curve using the base class.
 
         Parameters
@@ -1106,18 +1135,18 @@ class SpatialMap(NDimensionalBinner):
             float
                 Spatial information calculated from the tuning curve.
             """
-            pos_shuff = nel.AnalogSignalArray(
+            shuffled_pos: Any = nel.AnalogSignalArray(
                 data=pos_shuff,
                 timestamps=ts,
             )
             if dim == 1:
-                tc, _ = self.map_1d(pos_shuff)
+                tc, _ = self.map_1d(shuffled_pos)
                 return tc.spatial_information()
             elif dim == 2:
-                tc, _ = self.map_2d(pos_shuff)
+                tc, _ = self.map_2d(shuffled_pos)
                 return tc.spatial_information()
             else:
-                tc, _ = self.map_nd(pos_shuff)
+                tc, _ = self.map_nd(shuffled_pos)
                 return tc.spatial_information()
 
         # Restrict position data to running epochs before creating shuffles so
@@ -1324,6 +1353,8 @@ class SpatialMap(NDimensionalBinner):
         firingRateMap["spatial_sparsity"] = self.tc.spatial_sparsity().tolist()
 
         # store position speed and timestamps
+        if self.speed is None:
+            raise RuntimeError("Speed data is unavailable")
         firingRateMap["timestamps"] = self.speed.abscissa_vals.tolist()
         firingRateMap["pos"] = self.pos.data
         firingRateMap["speed"] = self.speed.data.tolist()
@@ -1366,7 +1397,8 @@ class SpatialMap(NDimensionalBinner):
     def shape(self):
         return self.tc.shape
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return self.tc.__repr__()
 
     @property

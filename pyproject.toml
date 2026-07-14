@@ -103,7 +103,6 @@ exclude = [
     "site/**",
     "tests/**",
     "tutorials/**",
-    "neuro_py/tuning/maps.py",
 ]
 
 [tool.ty.environment]
