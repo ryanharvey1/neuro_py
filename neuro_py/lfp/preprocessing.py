@@ -1,5 +1,4 @@
-from typing import Tuple, Union, cast
-from typing import Any
+from typing import Any, Tuple, Union, cast
 
 import nelpy as nel
 import numpy as np
@@ -22,6 +21,8 @@ def clean_lfp(
     ----------
     lfp : nel.AnalogSignalArray
         The LFP signal to be cleaned. Single signal only.
+    t : np.ndarray, optional
+        The timestamps corresponding to the LFP signal. Required if `lfp` is a numpy array. If `lfp` is a `nel.AnalogSignalArray`, this parameter is ignored.
     thresholds : tuple of float, optional
         A tuple of two thresholds for detecting artefacts and noise. The first threshold is used to detect large global
         artefacts by finding values in the z-scored LFP signal that deviate by more than the threshold number of sigmas
