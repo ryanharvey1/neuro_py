@@ -131,8 +131,5 @@ all = "error"
 # `track_linearization` is an optional dependency used by the linearization pipeline.
 allowed-unresolved-imports = [
     "bycycle",
-    "lightning",
-    "torch",
-    "torch.nn.functional",
     "track_linearization",
 ]

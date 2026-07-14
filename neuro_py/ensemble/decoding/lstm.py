@@ -1,4 +1,6 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+
+from typing_extensions import override
 
 from ...util._dependencies import _check_dependency
 
@@ -89,6 +91,7 @@ class LSTM(L.LightningModule):
 
         init_params(self.fc)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the LSTM model.
@@ -145,6 +148,8 @@ class LSTM(L.LightningModule):
         torch.Tensor
             Predicted output
         """
+        if self.hidden_state is None or self.cell_state is None:
+            raise RuntimeError("Call init_hidden before predict")
         self.hidden_state = self.hidden_state.to(x.device)
         self.cell_state = self.cell_state.to(x.device)
         preds = []
@@ -185,6 +190,7 @@ class LSTM(L.LightningModule):
         loss = self.args["criterion"](outs, ys)
         return loss
 
+    @override
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -207,11 +213,15 @@ class LSTM(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
+    @override
     def on_after_backward(self) -> None:
         """Lightning method called after backpropagation."""
-        self.hidden_state.detach_()
-        self.cell_state.detach_()
+        if self.hidden_state is not None:
+            self.hidden_state.detach_()
+        if self.cell_state is not None:
+            self.cell_state.detach_()
 
+    @override
     def validation_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -234,6 +244,7 @@ class LSTM(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    @override
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -256,7 +267,8 @@ class LSTM(L.LightningModule):
         self.log("test_loss", loss)
         return loss
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict]]:
+    @override
+    def configure_optimizers(self) -> Any:
         """
         Configure optimizers and learning rate schedulers.
 
@@ -272,9 +284,7 @@ class LSTM(L.LightningModule):
             optimizer,
             max_lr=self.args["lr"],
             epochs=self.args["epochs"],
-            steps_per_epoch=len(
-                self.trainer._data_connector._train_dataloader_source.dataloader()
-            ),
+            steps_per_epoch=int(self.trainer.num_training_batches),
         )
         lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]

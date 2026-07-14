@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from typing_extensions import override
+
 from ...util._dependencies import _check_dependency
 
 _check_dependency("torch", "dl")
@@ -67,7 +69,7 @@ class MLP(L.LightningModule):
         out_dim: int,
         hidden_dims: Sequence[Union[int, float]],
         use_bias: bool,
-        activations: nn.Module,
+        activations: type[nn.Module],
     ) -> List[nn.Module]:
         """
         Build the layers of the MLP.
@@ -100,22 +102,33 @@ class MLP(L.LightningModule):
             if isinstance(hidden_dim, float):
                 continue
             if isinstance(hidden_dims[i + 1], float):
+                next_hidden_dim = hidden_dims[i + 2]
+                if not isinstance(next_hidden_dim, int):
+                    raise ValueError(
+                        "A dropout probability must be followed by a layer size"
+                    )
                 layers.extend(
                     [
-                        nn.Linear(hidden_dim, hidden_dims[i + 2], bias=use_bias),
+                        nn.Linear(hidden_dim, next_hidden_dim, bias=use_bias),
                         nn.Dropout(p=hidden_dims[i + 1]),
                         activations() if i < len(hidden_dims) - 1 else nn.Tanh(),
                     ]
                 )
             else:
+                next_hidden_dim = hidden_dims[i + 1]
+                if not isinstance(next_hidden_dim, int):
+                    raise ValueError("Hidden layer sizes must be integers")
                 layers.extend(
                     [
-                        nn.Linear(hidden_dim, hidden_dims[i + 1], bias=use_bias),
+                        nn.Linear(hidden_dim, next_hidden_dim, bias=use_bias),
                         activations() if i < len(hidden_dims) - 1 else nn.Tanh(),
                     ]
                 )
 
-        layers.append(nn.Linear(hidden_dims[-1], out_dim, bias=use_bias))
+        last_hidden_dim = hidden_dims[-1]
+        if not isinstance(last_hidden_dim, int):
+            raise ValueError("Hidden layer sizes must be integers")
+        layers.append(nn.Linear(last_hidden_dim, out_dim, bias=use_bias))
         if self.args.get("clf", False):
             layers.append(nn.LogSoftmax(dim=1))
 
@@ -134,6 +147,7 @@ class MLP(L.LightningModule):
 
         self.main.apply(init_params)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Defines the network structure and flow from input to output.
@@ -171,6 +185,7 @@ class MLP(L.LightningModule):
         loss = self.args["criterion"](outs, ys)
         return loss
 
+    @override
     def training_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for training step.
@@ -191,6 +206,7 @@ class MLP(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
+    @override
     def validation_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for validation step.
@@ -211,6 +227,7 @@ class MLP(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    @override
     def test_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for test step.
@@ -231,7 +248,8 @@ class MLP(L.LightningModule):
         self.log("test_loss", loss)
         return loss
 
-    def configure_optimizers(self):
+    @override
+    def configure_optimizers(self) -> Any:
         """
         Configure optimizers and learning rate schedulers.
 
