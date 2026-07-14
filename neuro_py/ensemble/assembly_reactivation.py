@@ -2,6 +2,7 @@ import copy
 import logging
 from typing import Optional, Tuple, Union
 from typing import Any
+from typing_extensions import override
 
 import matplotlib.pyplot as plt
 import nelpy as nel
@@ -207,6 +208,17 @@ class AssemblyReact:
         self.cross_structural = cross_structural
         self.type_name = self.__class__.__name__
 
+    def _require_basepath(self) -> str:
+        if self.basepath is None:
+            raise ValueError("basepath is required to load session data")
+        return self.basepath
+
+    def _require_st(self) -> nel.SpikeTrainArray:
+        st = getattr(self, "st", None)
+        if st is None:
+            raise RuntimeError("Load or add spike data before this operation")
+        return st
+
     def add_st(self, st: nel.SpikeTrainArray) -> None:
         self.st = st
 
@@ -221,7 +233,7 @@ class AssemblyReact:
         loads spikes from the session folder
         """
         self.st, self.cell_metrics = loading.load_spikes(
-            self.basepath,
+            self._require_basepath(),
             brainRegion=self.brainRegion,
             putativeCellType=self.putativeCellType,
             support=self.time_support,
@@ -231,7 +243,7 @@ class AssemblyReact:
         """
         loads ripples from the session folder
         """
-        ripples = loading.load_ripples_events(self.basepath)
+        ripples = loading.load_ripples_events(self._require_basepath())
         self.ripples = nel.EpochArray(
             [np.array([ripples.start, ripples.stop]).T], domain=self.time_support
         )
@@ -240,7 +252,7 @@ class AssemblyReact:
         """
         loads epochs from the session folder
         """
-        epoch_df = loading.load_epoch(self.basepath)
+        epoch_df = loading.load_epoch(self._require_basepath())
         epoch_df = compress_repeated_epochs(epoch_df)
         self.time_support = nel.EpochArray(
             [epoch_df.iloc[0].startTime, epoch_df.iloc[-1].stopTime]
@@ -264,7 +276,7 @@ class AssemblyReact:
         Restricts the epochs to the specified epochs
         """
         # fetch data
-        epoch_df = loading.load_epoch(self.basepath)
+        epoch_df = loading.load_epoch(self._require_basepath())
         # compress back to back sleep epochs (an issue further up the pipeline)
         epoch_df = compress_repeated_epochs(epoch_df)
         # restrict to pre task post epochs
@@ -286,7 +298,7 @@ class AssemblyReact:
         epoch : nel.EpochArray
             The epoch to restrict to.
         """
-        self.st_resticted = self.st[epoch]
+        self.st_resticted = self._require_st()[epoch]
 
     def get_z_mat(self, st: nel.SpikeTrainArray) -> Tuple[NDArray[Any], NDArray[Any]]:
         """
@@ -325,20 +337,21 @@ class AssemblyReact:
         """
 
         # check if st has any neurons
-        if self.st.isempty:
+        st = self._require_st()
+        if st.isempty:
             self.patterns = None
             return
 
         if epoch is not None:
-            bst = self.st[epoch].bin(ds=self.weight_dt).data
+            bst = st[epoch].bin(ds=self.weight_dt).data
         else:
-            bst = self.st.bin(ds=self.weight_dt).data
+            bst = st.bin(ds=self.weight_dt).data
 
         if (bst == 0).all():
             self.patterns = None
             return
         else:
-            patterns, _, _ = assembly.runPatterns(
+            result = assembly.runPatterns(
                 bst,
                 method=self.method,
                 nullhyp=self.nullhyp,
@@ -355,6 +368,10 @@ class AssemblyReact:
                 cross_structural=self.cross_structural,
             )
 
+            if result is None:
+                self.patterns = None
+                return
+            patterns, _, _ = result
             if patterns is None:
                 self.patterns = None
                 return
@@ -388,23 +405,28 @@ class AssemblyReact:
             Assembly activity.
         """
         # check for num of assemblies first
+        st = self._require_st()
         if self.n_assemblies() == 0:
             return nel.AnalogSignalArray(empty=True)
 
         if epoch is not None:
-            zactmat, ts = self.get_z_mat(self.st[epoch])
+            zactmat, ts = self.get_z_mat(st[epoch])
         else:
-            zactmat, ts = self.get_z_mat(self.st)
+            zactmat, ts = self.get_z_mat(st)
+
+        patterns = getattr(self, "patterns", None)
+        if patterns is None:
+            raise RuntimeError("Compute assembly weights before computing activity")
 
         if self.method == "cross_svd" and self.cross_structural is not None:
             assembly_activity_data = assembly.computeCrossAreaActivity(
-                self.patterns,
+                patterns,
                 zactmat,
                 self.cross_structural,
             )
         else:
             assembly_activity_data = assembly.computeAssemblyActivity(
-                self.patterns, zactmat
+                patterns, zactmat
             )
 
         assembly_act = nel.AnalogSignalArray(
@@ -419,12 +441,12 @@ class AssemblyReact:
         plot_members: bool = True,
         central_line_color: str = "grey",
         marker_color: str = "k",
-        member_color: Union[str, list] = "#6768ab",
+        member_color: Union[str, list[str]] = "#6768ab",
         line_width: float = 1.25,
         markersize: float = 4,
         x_padding: float = 0.2,
-        figsize: Union[tuple, None] = None,
-    ) -> Union[Tuple[plt.Figure, NDArray[Any]], str, None]:
+        figsize: Optional[Tuple[float, float]] = None,
+    ) -> Union[Tuple[plt.Figure, NDArray[Any]], Tuple[None, None], str, None]:
         """
         Plots basic stem plot to display assembly weights.
 
@@ -525,6 +547,7 @@ class AssemblyReact:
             if self.patterns is None:
                 return 0
             return self.patterns.shape[0]
+        return 0
 
     @property
     def isempty(self) -> bool:
@@ -536,10 +559,7 @@ class AssemblyReact:
         bool
             True if empty, False otherwise.
         """
-        if hasattr(self, "st"):
-            return False
-        elif not hasattr(self, "st"):
-            return True
+        return not hasattr(self, "st")
 
     def copy(self) -> "AssemblyReact":
         """
@@ -553,22 +573,25 @@ class AssemblyReact:
         newcopy = copy.deepcopy(self)
         return newcopy
 
+    @override
     def __repr__(self) -> str:
         if self.isempty:
             return f"<{self.type_name}: empty>"
 
         # if st data as been loaded and patterns have been computed
+        st = self._require_st()
         if hasattr(self, "patterns"):
-            n_units = f"{self.st.n_active} units"
+            n_units = f"{st.n_active} units"
             n_patterns = f"{self.n_assemblies()} assemblies"
-            dstr = f"of length {self.st.support.length}"
+            dstr = f"of length {st.support.length}"
             return "<%s: %s, %s> %s" % (self.type_name, n_units, n_patterns, dstr)
 
         # if st data as been loaded
         if hasattr(self, "st"):
-            n_units = f"{self.st.n_active} units"
-            dstr = f"of length {self.st.support.length}"
+            n_units = f"{st.n_active} units"
+            dstr = f"of length {st.support.length}"
             return "<%s: %s> %s" % (self.type_name, n_units, dstr)
+        return f"<{self.type_name}: empty>"
 
     def find_members(self) -> NDArray[Any]:
         """
@@ -585,6 +608,9 @@ class AssemblyReact:
 
         self.valid_assembly: a ndarray of booleans indicating an assembly has members with the same sign (Boucly et al. 2022)
         """
+
+        if not hasattr(self, "patterns") or self.patterns is None:
+            raise RuntimeError("Compute assembly weights before finding members")
 
         def Otsu(vector: NDArray[Any]) -> Tuple[NDArray[Any], float, float]:
             """
