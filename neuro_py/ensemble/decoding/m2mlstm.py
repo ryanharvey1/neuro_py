@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
+
 from typing_extensions import override
 
 from ...util._dependencies import _check_dependency
@@ -8,9 +9,9 @@ _check_dependency("lightning", "dl")
 
 import lightning as L
 import numpy as np
-from numpy.typing import NDArray
 import torch
 import torch.nn.functional as F
+from numpy.typing import NDArray
 from torch import nn
 
 
@@ -269,7 +270,9 @@ class M2MLSTM(L.LightningModule):
         return [optimizer], [lr_scheduler]
 
 
-class NSVDataset(torch.utils.data.Dataset[Tuple[NDArray[np.float32], NDArray[np.float32]]]):
+class NSVDataset(
+    torch.utils.data.Dataset[Tuple[NDArray[np.float32], NDArray[np.float32]]]
+):
     """
     Custom Dataset for neural state vector (binned spike train) data.
 
