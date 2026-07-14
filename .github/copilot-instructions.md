@@ -127,6 +127,15 @@ def load_spikes(basepath: str, putativeCellType: list | None = None) -> nel.Spik
 - Avoid `Any` unless there is no reasonable alternative.
 - Keep signatures explicit enough that the intended return type is obvious.
 
+## Type Checking
+
+- `ty==0.0.55` is the required static type checker. `pyproject.toml` is the source of truth, with Python 3.10 as its analysis target.
+- All production code under `neuro_py/` is in scope. Do not add production modules to `tool.ty.src.exclude` or introduce broad rule suppressions to make a check pass.
+- Fix the root cause with explicit types, state initialization, or control-flow narrowing. Use an error-specific, local suppression only when a third-party or generated boundary cannot be represented accurately, and explain why in a nearby comment.
+- Type NumPy arrays with `numpy.typing.NDArray[...]`; do not add bare `np.ndarray` annotations.
+- Keep optional integrations optional: add dependency declarations or narrow, documented unresolved-import allowances only for the integration that requires them. Do not create global allowances for optional packages.
+- For a behavior-affecting type fix, run the narrowest matching pytest target. Before completing a type-migration change, run the pinned full gate: `ty check --python <environment>`.
+
 ## Test Placement
 
 - Put tests in the matching module folder under `tests/`.
