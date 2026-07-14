@@ -8,6 +8,7 @@ import nelpy as nel
 import numpy as np
 from scipy.io import savemat
 from scipy.signal import cheby2, filtfilt, find_peaks
+from typing_extensions import override
 
 from neuro_py.io import loading
 from neuro_py.lfp.preprocessing import clean_lfp
@@ -161,7 +162,10 @@ class DetectDS(object):
         """
         Load the XML file to get the number of channels, sampling frequency and shank to channel mapping
         """
-        nChannels, fs, fs_dat, shank_to_channel = loading.loadXML(self.basepath)
+        xml_data = loading.loadXML(self.basepath)
+        if xml_data is None:
+            raise FileNotFoundError(f"Could not load XML metadata from {self.basepath}")
+        nChannels, fs, fs_dat, shank_to_channel = xml_data
         self.nChannels = nChannels
         self.fs = fs
         self.fs_dat = fs_dat
@@ -236,6 +240,8 @@ class DetectDS(object):
         else:
             if not hasattr(self, "lfp"):
                 self.load_lfp()
+            if self.lfp is None:
+                raise RuntimeError("LFP data could not be loaded")
             y = self.lfp.data
 
         if self.lfp is None:
@@ -282,7 +288,9 @@ class DetectDS(object):
         # remove ds in high emg
         _, high_emg_epoch, _ = loading.load_emg(self.basepath, self.emg_threshold)
         if not high_emg_epoch.isempty:
-            idx = find_intersecting_intervals(self.ds_epoch, high_emg_epoch)
+            idx = np.asarray(
+                find_intersecting_intervals(self.ds_epoch, high_emg_epoch), dtype=bool
+            )
             self.ds_epoch._data = self.ds_epoch.data[~idx]
             self.peak_val = self.peak_val[~idx]
 
@@ -316,17 +324,17 @@ class DetectDS(object):
         # create EpochArray with bounds
         hilus_epoch = nel.EpochArray(
             np.array([properties["left_ips"], properties["right_ips"]]).T
-            / self.filtered_lfp.fs
+            / filtered_lfp.fs
         )
 
         # detect ds in mol
         PrimaryThreshold = (
-            self.filtered_lfp.data[1, :].mean()
-            + self.primary_thres_mol * self.filtered_lfp.data[1, :].std()
+            filtered_lfp.data[1, :].mean()
+            + self.primary_thres_mol * filtered_lfp.data[1, :].std()
         )
 
         peaks, properties = find_peaks(
-            -self.filtered_lfp.data[1, :],
+            -filtered_lfp.data[1, :],
             height=PrimaryThreshold,
             width=time_widths,
         )
@@ -334,18 +342,19 @@ class DetectDS(object):
         # create EpochArray with bounds
         mol_epoch = nel.EpochArray(
             np.array([properties["left_ips"], properties["right_ips"]]).T
-            / self.filtered_lfp.fs
+            / filtered_lfp.fs
         )
 
         # detect ds in noise channel
+        noise_epoch = None
         if self.noise_ch is not None:
             PrimaryThreshold = (
-                self.filtered_lfp.data[2, :].mean()
-                + self.primary_thres_hilus * self.filtered_lfp.data[2, :].std()
+                filtered_lfp.data[2, :].mean()
+                + self.primary_thres_hilus * filtered_lfp.data[2, :].std()
             )
 
             peaks, properties = find_peaks(
-                self.filtered_lfp.data[2, :],
+                filtered_lfp.data[2, :],
                 height=PrimaryThreshold,
                 width=time_widths,
             )
@@ -353,7 +362,7 @@ class DetectDS(object):
             # create EpochArray with bounds
             noise_epoch = nel.EpochArray(
                 np.array([properties["left_ips"], properties["right_ips"]]).T
-                / self.filtered_lfp.fs
+                / filtered_lfp.fs
             )
 
         # remove hilus spikes that are not overlapping with mol spikes
@@ -369,9 +378,12 @@ class DetectDS(object):
         self.peaks = self.peaks[overlap]
 
         # remove dentate spikes that are overlapping with noise spikes
-        if self.noise_ch is not None:
-            overlap = find_intersecting_intervals(
-                self.ds_epoch, noise_epoch, return_indices=True
+        if noise_epoch is not None:
+            overlap = np.asarray(
+                find_intersecting_intervals(
+                    self.ds_epoch, noise_epoch, return_indices=True
+                ),
+                dtype=bool,
             )
             self.ds_epoch = nel.EpochArray(self.ds_epoch.data[~overlap])
             self.peak_val = self.peak_val[~overlap]
@@ -380,7 +392,9 @@ class DetectDS(object):
         # remove ds in high emg
         _, high_emg_epoch, _ = loading.load_emg(self.basepath, self.emg_threshold)
         if not high_emg_epoch.isempty:
-            idx = find_intersecting_intervals(self.ds_epoch, high_emg_epoch)
+            idx = np.asarray(
+                find_intersecting_intervals(self.ds_epoch, high_emg_epoch), dtype=bool
+            )
             self.ds_epoch._data = self.ds_epoch.data[~idx]
             self.peak_val = self.peak_val[~idx]
             self.peaks = self.peaks[~idx]
@@ -458,6 +472,8 @@ class DetectDS(object):
             hilus_shank = [
                 k for k, v in self.shank_to_channel.items() if self.hilus_ch in v
             ][0]
+        else:
+            hilus_shank = shank
 
         ds_average, time_lags = event_triggered_average_fast(
             signal=lfp[:, self.shank_to_channel[hilus_shank]].T,
@@ -544,6 +560,7 @@ class DetectDS(object):
         with open(filename, "rb") as f:
             return pickle.load(f)
 
+    @override
     def __repr__(self) -> str:
         address_str = " at " + str(hex(id(self)))
 
@@ -558,6 +575,7 @@ class DetectDS(object):
 
         return "<%s%s: %s> %s" % (self.type_name, address_str, dentate_spikes, dstr)
 
+    @override
     def __str__(self) -> str:
         return self.__repr__()
 

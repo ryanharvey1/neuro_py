@@ -103,7 +103,6 @@ exclude = [
     "site/**",
     "tests/**",
     "tutorials/**",
-    "neuro_py/detectors/dentate_spike.py",
     "neuro_py/ensemble/decoding/pipeline.py",
     "neuro_py/stats/circ_stats.py",
     "neuro_py/tuning/maps.py",
