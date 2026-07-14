@@ -135,9 +135,24 @@ class DetectDS(object):
         clean_lfp: bool = False,
         emg_threshold: float = 0.9,
     ) -> None:
-        # adding all the parameters to the class
-        self.__dict__.update(locals())
-        del self.__dict__["self"]
+        self.basepath = basepath
+        self.hilus_ch = hilus_ch
+        self.mol_ch = mol_ch
+        self.noise_ch = noise_ch
+        self.lowcut = lowcut
+        self.highcut = highcut
+        self.filter_signal_bool = filter_signal_bool
+        self.primary_threshold = primary_threshold
+        self.secondary_threshold = primary_threshold
+        self.primary_thres_mol = primary_thres_mol
+        self.primary_thres_hilus = primary_thres_hilus
+        self.min_duration = min_duration
+        self.max_duration = max_duration
+        self.filter_order = filter_order
+        self.filter_rs = filter_rs
+        self.method = method
+        self.clean_lfp = clean_lfp
+        self.emg_threshold = emg_threshold
         # setting the type name
         self.type_name = self.__class__.__name__
         self.get_xml_data()
@@ -202,6 +217,8 @@ class DetectDS(object):
             fs=self.fs,
             btype="bandpass",
         )
+        if self.lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
         return filtfilt(b, a, self.lfp.data)
 
     def get_filtered_lfp(self):
@@ -209,6 +226,8 @@ class DetectDS(object):
             self.load_lfp()
 
         self.filtered_lfp = deepcopy(self.lfp)
+        if self.filtered_lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
         self.filtered_lfp._data = self.filter_signal()
 
     def get_lfp_diff(self):
@@ -219,29 +238,33 @@ class DetectDS(object):
                 self.load_lfp()
             y = self.lfp.data
 
+        if self.lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
+        lfp = self.lfp
         self.mol_hilus_diff = nel.AnalogSignalArray(
             data=y[0, :] - y[1, :],
-            timestamps=self.lfp.abscissa_vals,
+            timestamps=lfp.abscissa_vals,
             fs=self.fs,
             support=nel.EpochArray(
-                np.array([min(self.lfp.abscissa_vals), max(self.lfp.abscissa_vals)])
+                np.array([min(lfp.abscissa_vals), max(lfp.abscissa_vals)])
             ),
         )
 
     def detect_ds_difference(self):
         if not hasattr(self, "mol_hilus_diff"):
             self.get_lfp_diff()
+        if self.mol_hilus_diff is None:
+            raise RuntimeError("LFP difference could not be calculated")
+        mol_hilus_diff = self.mol_hilus_diff
 
         PrimaryThreshold = (
-            self.mol_hilus_diff.mean()
-            + self.primary_threshold * self.mol_hilus_diff.std()
+            mol_hilus_diff.mean() + self.primary_threshold * mol_hilus_diff.std()
         )
         SecondaryThreshold = (
-            self.mol_hilus_diff.mean()
-            + self.secondary_threshold * self.mol_hilus_diff.std()
+            mol_hilus_diff.mean() + self.secondary_threshold * mol_hilus_diff.std()
         )
         bounds, self.peak_val, _ = nel.utils.get_events_boundaries(
-            x=self.mol_hilus_diff.data,
+            x=mol_hilus_diff.data,
             PrimaryThreshold=PrimaryThreshold,
             SecondaryThreshold=SecondaryThreshold,
             minThresholdLength=0,
@@ -266,25 +289,28 @@ class DetectDS(object):
     def detect_ds_seperately(self):
         if not hasattr(self, "filtered_lfp"):
             self.get_filtered_lfp()
+        if self.filtered_lfp is None:
+            raise RuntimeError("Filtered LFP data could not be calculated")
+        filtered_lfp = self.filtered_lfp
 
         # min and max time width of ds (converted to samples for find_peaks)
         time_widths = [
-            int(self.min_duration * self.filtered_lfp.fs),
-            int(self.max_duration * self.filtered_lfp.fs),
+            int(self.min_duration * filtered_lfp.fs),
+            int(self.max_duration * filtered_lfp.fs),
         ]
 
         # detect ds in hilus
         PrimaryThreshold = (
-            self.filtered_lfp.data[0, :].mean()
-            + self.primary_thres_hilus * self.filtered_lfp.data[0, :].std()
+            filtered_lfp.data[0, :].mean()
+            + self.primary_thres_hilus * filtered_lfp.data[0, :].std()
         )
 
         peaks, properties = find_peaks(
-            self.filtered_lfp.data[0, :],
+            filtered_lfp.data[0, :],
             height=PrimaryThreshold,
             width=time_widths,
         )
-        self.peaks = peaks / self.filtered_lfp.fs
+        self.peaks = peaks / filtered_lfp.fs
         self.peak_val = properties["peak_heights"]
 
         # create EpochArray with bounds

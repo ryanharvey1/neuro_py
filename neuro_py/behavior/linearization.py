@@ -68,7 +68,7 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
     # Log normalization constant
     log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
 
-    for t in prange(n_observations):
+    for t in prange(n_observations):  # ty: ignore[not-iterable]  # Numba range
         obs = observations[t]
         for i in range(n_states):
             center = emission_centers[i]
@@ -164,7 +164,7 @@ def _build_sparse_transition_matrix_numba(
         (n_states, n_states), -np.inf
     )  # Initialize with log(0) = -inf
 
-    for i in prange(n_states):
+    for i in prange(n_states):  # ty: ignore[not-iterable]  # Numba range
         seg1 = state_to_segment[i]
         pos1 = state_to_position[i]
 
@@ -263,7 +263,7 @@ def _project_positions_parallel(positions, node_positions, edges, n_positions):
     track_segment_ids = np.full(n_positions, -1, dtype=np.int32)
     projected_positions = np.full((n_positions, 2), np.nan)
 
-    for i in prange(n_positions):
+    for i in prange(n_positions):  # ty: ignore[not-iterable]  # Numba range
         pos = positions[i]
 
         # Find closest edge
@@ -397,7 +397,7 @@ class TrackGraph:
             (data, (row_indices, col_indices)), shape=(self.n_nodes, self.n_nodes)
         )
 
-    def _calculate_edge_distances(self) -> dict:
+    def _calculate_edge_distances(self) -> dict[Any, Any]:
         """Calculate distances between connected nodes."""
         distances = {}
         for edge in self.edges:
@@ -767,7 +767,7 @@ class HMMLinearizer:
         nodes2 = set(edge2)
         return len(nodes1.intersection(nodes2)) > 0
 
-    def _auto_tune_parameters(self, positions: NDArray[Any]) -> dict:
+    def _auto_tune_parameters(self, positions: NDArray[Any]) -> dict[str, Any]:
         """
         Automatically tune HMM parameters based on data characteristics.
         Optimized for real rat tracking data from DeepLabCut.
@@ -927,7 +927,7 @@ class HMMLinearizer:
         projected_positions = np.full((n_positions, 2), np.nan)
 
         # Handle NaN positions
-        valid_mask = ~np.isnan(positions).any(axis=1)
+        valid_mask = np.asarray(~np.isnan(positions).any(axis=1), dtype=bool)
         if not np.any(valid_mask):
             return linear_positions, track_segment_ids, projected_positions
 
@@ -1865,7 +1865,10 @@ class NodePicker:
         if ax is None:
             ax = plt.gca()
         self.ax = ax
-        self.canvas = ax.get_figure().canvas
+        figure = ax.get_figure()
+        if figure is None or figure.canvas is None:
+            raise RuntimeError("NodePicker requires axes attached to a figure canvas")
+        self.canvas = figure.canvas
         self.cid = None
         self._nodes = []
         self.node_color = node_color
@@ -1982,7 +1985,7 @@ class NodePicker:
             self.ax.text(
                 x,
                 y,
-                ind,
+                str(ind),
                 zorder=6,
                 fontsize=10,
                 horizontalalignment="center",
@@ -2023,10 +2026,13 @@ class NodePicker:
 
     def format_and_save(self) -> None:
         """Format the data and save it to disk."""
-        behave_df = load_animal_behavior(self.basepath)
+        if self.basepath is None:
+            raise ValueError("basepath is required to save linearization results")
+        basepath = self.basepath
+        behave_df = load_animal_behavior(basepath)
 
         if self.epoch is not None:
-            epochs = load_epoch(self.basepath)
+            epochs = load_epoch(basepath)
 
             cur_epoch = (
                 ~np.isnan(behave_df.x)
@@ -2077,7 +2083,7 @@ class NodePicker:
         )
 
         filename = os.path.join(
-            self.basepath, os.path.basename(self.basepath) + ".animal.behavior.mat"
+            basepath, os.path.basename(basepath) + ".animal.behavior.mat"
         )
 
         data = loadmat(filename, simplify_cells=True)
@@ -2101,12 +2107,14 @@ class NodePicker:
 
     def save_nodes_edges(self) -> None:
         """Save the nodes and edges to a pickle file."""
+        if self.basepath is None:
+            raise ValueError("basepath is required to save nodes and edges")
         results = {"node_positions": self.node_positions, "edges": self.edges}
         save_file = os.path.join(self.basepath, "linearization_nodes_edges.pkl")
         with open(save_file, "wb") as f:
             pickle.dump(results, f)
 
-    def save_nodes_edges_to_behavior(self, data: dict, behave_df: pd.DataFrame) -> dict:
+    def save_nodes_edges_to_behavior(self, data: dict[str, Any], behave_df: pd.DataFrame) -> dict[str, Any]:
         """
         Store nodes and edges into behavior file.
         Searches to find epochs with valid linearized coords.
@@ -2124,7 +2132,7 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
-        def validate_epoch_entry(epoch_entry: object, epoch_index: int) -> MutableMapping:
+        def validate_epoch_entry(epoch_entry: object, epoch_index: int) -> MutableMapping[Any, Any]:
             if not isinstance(epoch_entry, MutableMapping):
                 raise TypeError(
                     "behavior['epochs'] entries must be mutable mapping types, "
@@ -2132,7 +2140,7 @@ class NodePicker:
                 )
             return epoch_entry
 
-        def get_epoch_entry(epoch_index: int) -> MutableMapping:
+        def get_epoch_entry(epoch_index: int) -> MutableMapping[Any, Any]:
             behavior_epochs = data["behavior"].get("epochs")
 
             if behavior_epochs is None:
@@ -2160,11 +2168,13 @@ class NodePicker:
 
         if self.epoch is None and self.interval is None:
             # load epochs
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
             # iter over each epoch
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # locate index for given epoch
-                idx = behave_df.time.between(ep.startTime, ep.stopTime)
+                idx = behave_df.time.between(ep["startTime"], ep["stopTime"])
                 # if linearized is not all nan, add nodes and edges
                 if behave_df[idx].shape[0] != 0 and not np.all(
                     np.isnan(behave_df[idx].linearized)
@@ -2175,11 +2185,13 @@ class NodePicker:
                     epoch_entry["edges"] = self.edges
         elif self.interval is not None:
             # if interval was used, add nodes and edges just the epochs within that interval
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # amount of overlap between interval and epoch
-                start_overlap = max(self.interval[0], ep.startTime)
-                end_overlap = min(self.interval[1], ep.stopTime)
+                start_overlap = max(self.interval[0], ep["startTime"])
+                end_overlap = min(self.interval[1], ep["stopTime"])
                 overlap = max(0, end_overlap - start_overlap)
 
                 # if overlap is greater than 1 second, add nodes and edges
@@ -2189,6 +2201,7 @@ class NodePicker:
                     epoch_entry["edges"] = self.edges
         else:
             # if epoch was used, add nodes and edges just that that epoch
+            assert self.epoch is not None
             epoch_entry = get_epoch_entry(self.epoch)
             epoch_entry["node_positions"] = self.node_positions
             epoch_entry["edges"] = self.edges
