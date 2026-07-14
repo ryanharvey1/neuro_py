@@ -812,7 +812,13 @@ def evaluate_model(
     bv_preds_fold = copy.deepcopy(bv_preds_fold)
 
     logits = bv_preds_fold
-    labels = np.concatenate([np.asarray(y) for y in y_test], axis=0)
+    # Dense decoder targets are already shaped (n_samples, n_outputs), while
+    # sequence models retain one array per trial segment.
+    labels = (
+        np.asarray(y_test)
+        if isinstance(y_test, np.ndarray)
+        else np.concatenate([np.asarray(y) for y in y_test], axis=0)
+    )
     if hyperparams["model_args"]["args"]["clf"]:
         logits = ohe.inverse_transform(logits)
         labels = ohe.inverse_transform(labels)
