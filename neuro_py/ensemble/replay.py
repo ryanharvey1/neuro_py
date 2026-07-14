@@ -25,7 +25,7 @@ def __weighted_corr_2d_jit(
     x_coords: NDArray[Any],
     y_coords: NDArray[Any],
     time_coords: NDArray[Any],
-) -> Tuple[float, NDArray[Any], NDArray[Any], float, float, float, float]:
+) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
     # Handle NaN weights
     weights = np.nan_to_num(weights, nan=0.0)
 
@@ -52,7 +52,7 @@ def __weighted_corr_2d_jit(
     mean_y = 0.0
     mean_t = 0.0
 
-    for i in prange(x_dim):
+    for i in prange(x_dim):  # ty: ignore[not-iterable]  # Numba parallel range
         for j in range(y_dim):
             for k in range(t_dim):
                 w = weights[i, j, k]
@@ -71,7 +71,7 @@ def __weighted_corr_2d_jit(
     cov_xx = 0.0
     cov_yy = 0.0
 
-    for i in prange(x_dim):
+    for i in prange(x_dim):  # ty: ignore[not-iterable]  # Numba parallel range
         for j in range(y_dim):
             for k in range(t_dim):
                 w = weights[i, j, k]
@@ -115,7 +115,7 @@ def __weighted_corr_2d_jit(
     x_traj = np.empty(t_dim, dtype=dtype)
     y_traj = np.empty(t_dim, dtype=dtype)
 
-    for k in prange(t_dim):
+    for k in prange(t_dim):  # ty: ignore[not-iterable]  # Numba parallel range
         x_traj[k] = mean_x + slope_x * (time_coords[k] - mean_t)
         y_traj[k] = mean_y + slope_y * (time_coords[k] - mean_t)
 
@@ -157,7 +157,7 @@ def weighted_corr_2d(
     x_coords: Optional[NDArray[Any]] = None,
     y_coords: Optional[NDArray[Any]] = None,
     time_coords: Optional[NDArray[Any]] = None,
-) -> Tuple[float, NDArray[Any], NDArray[Any], float, float, float, float]:
+) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
     """
     Calculate the weighted correlation between the X and Y dimensions of the matrix.
 
@@ -628,10 +628,10 @@ def shuffle_and_score(
     posterior_array: NDArray[Any],
     w: NDArray[Any],
     normalize: bool,
-    tc: float,
+    tc: NDArray[Any],
     ds: float,
     dp: float,
-) -> Tuple[NDArray[Any], NDArray[Any], float, float]:
+) -> tuple[Any, Any, Any, Any]:
     """
     Shuffle the posterior array and compute scores and weighted correlations.
 
@@ -679,9 +679,7 @@ def _shuffle_and_score(
     ds: float,
     dp: float,
     n_shuffles: int,
-) -> Tuple[
-    np.ndarray, float, List[np.ndarray], List[np.ndarray], List[float], List[float]
-]:
+) -> tuple[Any, Any, Any, Any, Any, Any]:
     """
     Shuffle the posterior array and compute scores and weighted correlations.
 
@@ -741,10 +739,7 @@ def trajectory_score_bst(
     weights: Optional[NDArray[Any]] = None,
     normalize: bool = False,
     parallel: bool = True,
-) -> Union[
-    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-]:
+) -> tuple[Any, ...]:
     """
     Calculate trajectory scores and weighted correlations for Bayesian spike train decoding.
 
@@ -923,8 +918,8 @@ class PairwiseBias(object):
         self.num_shuffles = num_shuffles
         self.n_jobs = n_jobs
         self.fillneutral = fillneutral
-        self.total_neurons = None
-        self.task_skew_bias = None
+        self.total_neurons: Optional[int] = None
+        self.task_skew_bias: Optional[NDArray[Any]] = None
         self.observed_correlation_ = None
         self.shuffled_correlations_ = None
         self.z_score_ = None
@@ -1007,6 +1002,8 @@ class PairwiseBias(object):
         Tuple[float, List[float]]
             The observed correlation and a list of shuffled correlations.
         """
+        if self.total_neurons is None:
+            raise RuntimeError("Fit PairwiseBias before transforming data")
         post_neurons = np.asarray(post_neurons, dtype=int)
 
         start, end = post_intervals[interval_i]
@@ -1046,7 +1043,7 @@ class PairwiseBias(object):
         self,
         task_spikes: NDArray[Any],
         task_neurons: NDArray[Any],
-        task_intervals: NDArray[Any] = None,
+        task_intervals: Optional[NDArray[Any]] = None,
     ) -> "PairwiseBias":
         """
         Fit the model using the task spike data.
@@ -1143,6 +1140,8 @@ class PairwiseBias(object):
             observed_correlation_: The observed correlation for each interval.
         """
         # Check if the number of jobs is less than the number of intervals
+        if self.task_skew_bias is None:
+            raise RuntimeError("Fit PairwiseBias before transforming data")
         if post_intervals.shape[0] < self.n_jobs:
             self.n_jobs = post_intervals.shape[0]
 
@@ -1261,7 +1260,7 @@ def bottom_up_replay_detection(
     min_duration: float = 0.1,
     dispersion_thresh: float = 12.0,
     method: str = "com",
-) -> Tuple[NDArray[Any], dict]:
+) -> Tuple[NDArray[Any], dict[str, Any]]:
     """
     Bottom-up replay detector following Widloski & Foster (2022) "Replay detection and analysis".
 
