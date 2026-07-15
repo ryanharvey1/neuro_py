@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4190,11 +4190,12 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Secondary threshold for detecting the dentate spikes (difference method only)</p>
+                <p>Secondary threshold for detecting the dentate spikes (difference method only).
+If None, uses <code>primary_threshold</code>.</p>
               </div>
             </td>
             <td>
-                <em>required</em>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4513,8 +4514,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 18</span>
-<span class="normal"> 19</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
 <span class="normal"> 20</span>
 <span class="normal"> 21</span>
 <span class="normal"> 22</span>
@@ -5051,7 +5051,55 @@
 <span class="normal">553</span>
 <span class="normal">554</span>
 <span class="normal">555</span>
-<span class="normal">556</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DetectDS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DetectDS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for detecting dentate spikes</span>
 
@@ -5074,7 +5122,8 @@
 <span class="sd">    primary_threshold : float, optional</span>
 <span class="sd">        Primary threshold for detecting the dentate spikes (difference method only)</span>
 <span class="sd">    secondary_threshold : float, optional</span>
-<span class="sd">        Secondary threshold for detecting the dentate spikes (difference method only)</span>
+<span class="sd">        Secondary threshold for detecting the dentate spikes (difference method only).</span>
+<span class="sd">        If None, uses ``primary_threshold``.</span>
 <span class="sd">    primary_thres_mol : float, optional</span>
 <span class="sd">        Primary threshold for detecting the dentate spikes in the mol signal</span>
 <span class="sd">    primary_thres_hilus : float, optional</span>
@@ -5170,10 +5219,28 @@
         <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;seperately&quot;</span><span class="p">,</span>
         <span class="n">clean_lfp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">emg_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">secondary_threshold</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># adding all the parameters to the class</span>
-        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="o">=</span> <span class="n">basepath</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hilus_ch</span> <span class="o">=</span> <span class="n">hilus_ch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol_ch</span> <span class="o">=</span> <span class="n">mol_ch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_ch</span> <span class="o">=</span> <span class="n">noise_ch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lowcut</span> <span class="o">=</span> <span class="n">lowcut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">highcut</span> <span class="o">=</span> <span class="n">highcut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_signal_bool</span> <span class="o">=</span> <span class="n">filter_signal_bool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_threshold</span> <span class="o">=</span> <span class="n">primary_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secondary_threshold</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">primary_threshold</span> <span class="k">if</span> <span class="n">secondary_threshold</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">secondary_threshold</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_mol</span> <span class="o">=</span> <span class="n">primary_thres_mol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_hilus</span> <span class="o">=</span> <span class="n">primary_thres_hilus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_duration</span> <span class="o">=</span> <span class="n">min_duration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_duration</span> <span class="o">=</span> <span class="n">max_duration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_order</span> <span class="o">=</span> <span class="n">filter_order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_rs</span> <span class="o">=</span> <span class="n">filter_rs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean_lfp</span> <span class="o">=</span> <span class="n">clean_lfp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emg_threshold</span> <span class="o">=</span> <span class="n">emg_threshold</span>
         <span class="c1"># setting the type name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_xml_data</span><span class="p">()</span>
@@ -5182,7 +5249,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load the XML file to get the number of channels, sampling frequency and shank to channel mapping</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">fs_dat</span><span class="p">,</span> <span class="n">shank_to_channel</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="n">xml_data</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xml_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not load XML metadata from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">fs_dat</span><span class="p">,</span> <span class="n">shank_to_channel</span> <span class="o">=</span> <span class="n">xml_data</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nChannels</span> <span class="o">=</span> <span class="n">nChannels</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs_dat</span> <span class="o">=</span> <span class="n">fs_dat</span>
@@ -5238,6 +5308,8 @@
             <span class="n">fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
             <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP data could not be loaded&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_filtered_lfp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5245,6 +5317,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">load_lfp</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP data could not be loaded&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_signal</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_lfp_diff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5253,31 +5327,37 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;lfp&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">load_lfp</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP data could not be loaded&quot;</span><span class="p">)</span>
             <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">data</span>
 
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP data could not be loaded&quot;</span><span class="p">)</span>
+        <span class="n">lfp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">(</span>
             <span class="n">data</span><span class="o">=</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
-            <span class="n">timestamps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span>
+            <span class="n">timestamps</span><span class="o">=</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span>
             <span class="n">fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
             <span class="n">support</span><span class="o">=</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">)])</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">)])</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">detect_ds_difference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;mol_hilus_diff&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_lfp_diff</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP difference could not be calculated&quot;</span><span class="p">)</span>
+        <span class="n">mol_hilus_diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span>
 
         <span class="n">PrimaryThreshold</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_threshold</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+            <span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_threshold</span> <span class="o">*</span> <span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="n">SecondaryThreshold</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_threshold</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+            <span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_threshold</span> <span class="o">*</span> <span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="n">bounds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_events_boundaries</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">mol_hilus_diff</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
             <span class="n">PrimaryThreshold</span><span class="o">=</span><span class="n">PrimaryThreshold</span><span class="p">,</span>
             <span class="n">SecondaryThreshold</span><span class="o">=</span><span class="n">SecondaryThreshold</span><span class="p">,</span>
             <span class="n">minThresholdLength</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -5295,48 +5375,53 @@
         <span class="c1"># remove ds in high emg</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_emg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">emg_threshold</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">high_emg_epoch</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">find_intersecting_intervals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="n">find_intersecting_intervals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">idx</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span><span class="p">[</span><span class="o">~</span><span class="n">idx</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">detect_ds_seperately</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;filtered_lfp&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_filtered_lfp</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Filtered LFP data could not be calculated&quot;</span><span class="p">)</span>
+        <span class="n">filtered_lfp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span>
 
         <span class="c1"># min and max time width of ds (converted to samples for find_peaks)</span>
         <span class="n">time_widths</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_duration</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span><span class="p">),</span>
-            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_duration</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_duration</span> <span class="o">*</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_duration</span> <span class="o">*</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span><span class="p">),</span>
         <span class="p">]</span>
 
         <span class="c1"># detect ds in hilus</span>
         <span class="n">PrimaryThreshold</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_hilus</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+            <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_hilus</span> <span class="o">*</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
         <span class="p">)</span>
 
         <span class="n">peaks</span><span class="p">,</span> <span class="n">properties</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
             <span class="n">height</span><span class="o">=</span><span class="n">PrimaryThreshold</span><span class="p">,</span>
             <span class="n">width</span><span class="o">=</span><span class="n">time_widths</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">peaks</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">peaks</span> <span class="o">/</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span> <span class="o">=</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;peak_heights&quot;</span><span class="p">]</span>
 
         <span class="c1"># create EpochArray with bounds</span>
         <span class="n">hilus_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;left_ips&quot;</span><span class="p">],</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;right_ips&quot;</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
+            <span class="o">/</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
         <span class="p">)</span>
 
         <span class="c1"># detect ds in mol</span>
         <span class="n">PrimaryThreshold</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_mol</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+            <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_mol</span> <span class="o">*</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
         <span class="p">)</span>
 
         <span class="n">peaks</span><span class="p">,</span> <span class="n">properties</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span>
-            <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="o">-</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
             <span class="n">height</span><span class="o">=</span><span class="n">PrimaryThreshold</span><span class="p">,</span>
             <span class="n">width</span><span class="o">=</span><span class="n">time_widths</span><span class="p">,</span>
         <span class="p">)</span>
@@ -5344,18 +5429,19 @@
         <span class="c1"># create EpochArray with bounds</span>
         <span class="n">mol_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;left_ips&quot;</span><span class="p">],</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;right_ips&quot;</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
+            <span class="o">/</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
         <span class="p">)</span>
 
         <span class="c1"># detect ds in noise channel</span>
+        <span class="n">noise_epoch</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_ch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">PrimaryThreshold</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_hilus</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+                <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">primary_thres_hilus</span> <span class="o">*</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
             <span class="p">)</span>
 
             <span class="n">peaks</span><span class="p">,</span> <span class="n">properties</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span>
                 <span class="n">height</span><span class="o">=</span><span class="n">PrimaryThreshold</span><span class="p">,</span>
                 <span class="n">width</span><span class="o">=</span><span class="n">time_widths</span><span class="p">,</span>
             <span class="p">)</span>
@@ -5363,7 +5449,7 @@
             <span class="c1"># create EpochArray with bounds</span>
             <span class="n">noise_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;left_ips&quot;</span><span class="p">],</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;right_ips&quot;</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-                <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
+                <span class="o">/</span> <span class="n">filtered_lfp</span><span class="o">.</span><span class="n">fs</span>
             <span class="p">)</span>
 
         <span class="c1"># remove hilus spikes that are not overlapping with mol spikes</span>
@@ -5379,9 +5465,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="n">overlap</span><span class="p">]</span>
 
         <span class="c1"># remove dentate spikes that are overlapping with noise spikes</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_ch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">overlap</span> <span class="o">=</span> <span class="n">find_intersecting_intervals</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">noise_epoch</span><span class="p">,</span> <span class="n">return_indices</span><span class="o">=</span><span class="kc">True</span>
+        <span class="k">if</span> <span class="n">noise_epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="n">find_intersecting_intervals</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">noise_epoch</span><span class="p">,</span> <span class="n">return_indices</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">overlap</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span><span class="p">[</span><span class="o">~</span><span class="n">overlap</span><span class="p">]</span>
@@ -5390,7 +5479,9 @@
         <span class="c1"># remove ds in high emg</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_emg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">emg_threshold</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">high_emg_epoch</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">find_intersecting_intervals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="n">find_intersecting_intervals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="p">,</span> <span class="n">high_emg_epoch</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds_epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">idx</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_val</span><span class="p">[</span><span class="o">~</span><span class="n">idx</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="o">~</span><span class="n">idx</span><span class="p">]</span>
@@ -5468,6 +5559,8 @@
             <span class="n">hilus_shank</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shank_to_channel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilus_ch</span> <span class="ow">in</span> <span class="n">v</span>
             <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hilus_shank</span> <span class="o">=</span> <span class="n">shank</span>
 
         <span class="n">ds_average</span><span class="p">,</span> <span class="n">time_lags</span> <span class="o">=</span> <span class="n">event_triggered_average_fast</span><span class="p">(</span>
             <span class="n">signal</span><span class="o">=</span><span class="n">lfp</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shank_to_channel</span><span class="p">[</span><span class="n">hilus_shank</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
@@ -5554,6 +5647,7 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
+    <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">address_str</span> <span class="o">=</span> <span class="s2">&quot; at &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
 
@@ -5568,6 +5662,7 @@
 
         <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">%s%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&gt; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="n">address_str</span><span class="p">,</span> <span class="n">dentate_spikes</span><span class="p">,</span> <span class="n">dstr</span><span class="p">)</span>
 
+    <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span>
 
@@ -5622,18 +5717,18 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_ds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_ds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Detect the dentate spikes based on the method provided</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -5690,26 +5785,28 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Filter the LFP signal</span>
 
@@ -5728,6 +5825,8 @@
         <span class="n">fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
         <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;LFP data could not be loaded&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfp</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -5831,45 +5930,47 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
-<span class="normal">409</span>
-<span class="normal">410</span>
-<span class="normal">411</span>
-<span class="normal">412</span>
-<span class="normal">413</span>
-<span class="normal">414</span>
-<span class="normal">415</span>
-<span class="normal">416</span>
-<span class="normal">417</span>
-<span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
-<span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_average_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">]):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_average_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the average LFP trace around the dentate spikes</span>
 
@@ -5899,6 +6000,8 @@
         <span class="n">hilus_shank</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shank_to_channel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilus_ch</span> <span class="ow">in</span> <span class="n">v</span>
         <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hilus_shank</span> <span class="o">=</span> <span class="n">shank</span>
 
     <span class="n">ds_average</span><span class="p">,</span> <span class="n">time_lags</span> <span class="o">=</span> <span class="n">event_triggered_average_fast</span><span class="p">(</span>
         <span class="n">signal</span><span class="o">=</span><span class="n">lfp</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shank_to_channel</span><span class="p">[</span><span class="n">hilus_shank</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
@@ -5930,19 +6033,25 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_xml_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_xml_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load the XML file to get the number of channels, sampling frequency and shank to channel mapping</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">fs_dat</span><span class="p">,</span> <span class="n">shank_to_channel</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="n">xml_data</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">xml_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not load XML metadata from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">fs_dat</span><span class="p">,</span> <span class="n">shank_to_channel</span> <span class="o">=</span> <span class="n">xml_data</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">nChannels</span> <span class="o">=</span> <span class="n">nChannels</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">fs_dat</span> <span class="o">=</span> <span class="n">fs_dat</span>
@@ -6027,24 +6136,24 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
-<span class="normal">518</span>
-<span class="normal">519</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a DetectDS object from a pickle file</span>
@@ -6084,36 +6193,36 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
 <span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
-<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_lfp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_lfp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load the LFP signal</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -6251,38 +6360,38 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
-<span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
-<span class="normal">456</span>
-<span class="normal">457</span>
-<span class="normal">458</span>
-<span class="normal">459</span>
-<span class="normal">460</span>
-<span class="normal">461</span>
-<span class="normal">462</span>
-<span class="normal">463</span>
-<span class="normal">464</span>
-<span class="normal">465</span>
-<span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">],</span> <span class="n">channel_offset</span><span class="o">=</span><span class="mf">9e4</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">],</span> <span class="n">channel_offset</span><span class="o">=</span><span class="mf">9e4</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot the average LFP trace around the dentate spikes</span>
 
@@ -6390,23 +6499,23 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">484</span>
-<span class="normal">485</span>
-<span class="normal">486</span>
-<span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
-<span class="normal">490</span>
-<span class="normal">491</span>
-<span class="normal">492</span>
-<span class="normal">493</span>
-<span class="normal">494</span>
-<span class="normal">495</span>
-<span class="normal">496</span>
-<span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save the DetectDS object as a pickle file</span>
 
@@ -6445,35 +6554,35 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/dentate_spike.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_ds_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_ds_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save the dentate spikes as a cellexplorer mat file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -6631,7 +6740,7 @@
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       

@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4116,34 +4116,7 @@ thresh, cross, bihist, diptest_result = bimodal_thresh(data)</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/up_down_state.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">603</span>
-<span class="normal">604</span>
-<span class="normal">605</span>
-<span class="normal">606</span>
-<span class="normal">607</span>
-<span class="normal">608</span>
-<span class="normal">609</span>
-<span class="normal">610</span>
-<span class="normal">611</span>
-<span class="normal">612</span>
-<span class="normal">613</span>
-<span class="normal">614</span>
-<span class="normal">615</span>
-<span class="normal">616</span>
-<span class="normal">617</span>
-<span class="normal">618</span>
-<span class="normal">619</span>
-<span class="normal">620</span>
-<span class="normal">621</span>
-<span class="normal">622</span>
-<span class="normal">623</span>
-<span class="normal">624</span>
-<span class="normal">625</span>
-<span class="normal">626</span>
-<span class="normal">627</span>
-<span class="normal">628</span>
-<span class="normal">629</span>
-<span class="normal">630</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">630</span>
 <span class="normal">631</span>
 <span class="normal">632</span>
 <span class="normal">633</span>
@@ -4323,7 +4296,37 @@ thresh, cross, bihist, diptest_result = bimodal_thresh(data)</p>
 <span class="normal">807</span>
 <span class="normal">808</span>
 <span class="normal">809</span>
-<span class="normal">810</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">bimodal_thresh</span><span class="p">(</span>
+<span class="normal">810</span>
+<span class="normal">811</span>
+<span class="normal">812</span>
+<span class="normal">813</span>
+<span class="normal">814</span>
+<span class="normal">815</span>
+<span class="normal">816</span>
+<span class="normal">817</span>
+<span class="normal">818</span>
+<span class="normal">819</span>
+<span class="normal">820</span>
+<span class="normal">821</span>
+<span class="normal">822</span>
+<span class="normal">823</span>
+<span class="normal">824</span>
+<span class="normal">825</span>
+<span class="normal">826</span>
+<span class="normal">827</span>
+<span class="normal">828</span>
+<span class="normal">829</span>
+<span class="normal">830</span>
+<span class="normal">831</span>
+<span class="normal">832</span>
+<span class="normal">833</span>
+<span class="normal">834</span>
+<span class="normal">835</span>
+<span class="normal">836</span>
+<span class="normal">837</span>
+<span class="normal">838</span>
+<span class="normal">839</span>
+<span class="normal">840</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">bimodal_thresh</span><span class="p">(</span>
     <span class="n">bimodal_data</span><span class="p">,</span>
     <span class="n">max_thresh</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
     <span class="n">schmidt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -4407,6 +4410,9 @@ thresh, cross, bihist, diptest_result = bimodal_thresh(data)</p>
     <span class="c1"># Find histogram with exactly 2 peaks</span>
     <span class="n">num_peaks</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">num_bins</span> <span class="o">=</span> <span class="n">start_bins</span>
+    <span class="n">hist_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">bin_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 
     <span class="k">while</span> <span class="n">num_peaks</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">hist_counts</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">bimodal_data</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">num_bins</span><span class="p">)</span>
@@ -4849,8 +4855,7 @@ $ python up_down_state.py /path/to/data</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/up_down_state.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
-<span class="normal"> 16</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 16</span>
 <span class="normal"> 17</span>
 <span class="normal"> 18</span>
 <span class="normal"> 19</span>
@@ -5064,7 +5069,21 @@ $ python up_down_state.py /path/to/data</p>
 <span class="normal">227</span>
 <span class="normal">228</span>
 <span class="normal">229</span>
-<span class="normal">230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_up_down_states</span><span class="p">(</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_up_down_states</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">st</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">SpikeTrainArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nrem_epochs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -5181,7 +5200,7 @@ $ python up_down_state.py /path/to/data</p>
         <span class="k">return</span> <span class="n">down_state_epochs</span><span class="p">,</span> <span class="n">up_state_epochs</span>
 
     <span class="c1"># check for existence of event files</span>
-    <span class="k">if</span> <span class="n">save_mat</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">save_mat</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
         <span class="n">filename_downstate</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="s2">&quot;down_state&quot;</span> <span class="o">+</span> <span class="s2">&quot;.events.mat&quot;</span>
         <span class="p">)</span>
@@ -5191,11 +5210,18 @@ $ python up_down_state.py /path/to/data</p>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename_downstate</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename_upstate</span><span class="p">):</span>
             <span class="n">down_state</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_events</span><span class="p">(</span><span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="o">=</span><span class="s2">&quot;down_state&quot;</span><span class="p">)</span>
             <span class="n">up_state</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_events</span><span class="p">(</span><span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="o">=</span><span class="s2">&quot;up_state&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">down_state</span><span class="p">,</span> <span class="n">up_state</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">down_state</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">up_state</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="n">down_state</span><span class="p">,</span> <span class="n">up_state</span>
 
     <span class="c1"># load brain states</span>
     <span class="k">if</span> <span class="n">nrem_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when nrem_epochs is not provided&quot;</span><span class="p">)</span>
         <span class="n">state_dict</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_SleepState_states</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="n">nrem_epochs</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;NREMstate&quot;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">nrem_epochs</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
@@ -5204,6 +5230,8 @@ $ python up_down_state.py /path/to/data</p>
 
     <span class="c1"># load spikes</span>
     <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when st is not provided&quot;</span><span class="p">)</span>
         <span class="n">st</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_spikes</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">brainRegion</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
 
     <span class="c1"># check if there are enough cells</span>
@@ -5219,6 +5247,8 @@ $ python up_down_state.py /path/to/data</p>
 
     <span class="k">if</span> <span class="n">epoch_by_epoch</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">beh_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when beh_epochs is not provided&quot;</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">compress_repeated_epochs</span><span class="p">(</span><span class="n">epoch_df</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">epoch_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;environment == &#39;sleep&#39;&quot;</span><span class="p">)</span>
@@ -5256,6 +5286,8 @@ $ python up_down_state.py /path/to/data</p>
 
     <span class="c1"># save to cell explorer mat file</span>
     <span class="k">if</span> <span class="n">save_mat</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when save_mat is True&quot;</span><span class="p">)</span>
         <span class="n">epoch_to_mat</span><span class="p">(</span><span class="n">down_state_epochs</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="s2">&quot;down_state&quot;</span><span class="p">,</span> <span class="s2">&quot;detect_up_down_states&quot;</span><span class="p">)</span>
         <span class="n">epoch_to_mat</span><span class="p">(</span><span class="n">up_state_epochs</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="s2">&quot;up_state&quot;</span><span class="p">,</span> <span class="s2">&quot;detect_up_down_states&quot;</span><span class="p">)</span>
 
@@ -5587,21 +5619,7 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/up_down_state.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">247</span>
 <span class="normal">248</span>
 <span class="normal">249</span>
 <span class="normal">250</span>
@@ -5832,7 +5850,34 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 <span class="normal">475</span>
 <span class="normal">476</span>
 <span class="normal">477</span>
-<span class="normal">478</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_up_down_states_bimodal_thresh</span><span class="p">(</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_up_down_states_bimodal_thresh</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">st</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">SpikeTrainArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nrem_epochs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -5900,7 +5945,7 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># check for existence of event files</span>
-    <span class="k">if</span> <span class="n">save_mat</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">save_mat</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
         <span class="n">filename_downstate</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">basepath</span><span class="p">,</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="s2">&quot;down_state&quot;</span> <span class="o">+</span> <span class="s2">&quot;.events.mat&quot;</span><span class="p">,</span>
@@ -5912,11 +5957,18 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename_downstate</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename_upstate</span><span class="p">):</span>
             <span class="n">down_state</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_events</span><span class="p">(</span><span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="o">=</span><span class="s2">&quot;down_state&quot;</span><span class="p">)</span>
             <span class="n">up_state</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_events</span><span class="p">(</span><span class="n">basepath</span><span class="o">=</span><span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="o">=</span><span class="s2">&quot;up_state&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">down_state</span><span class="p">,</span> <span class="n">up_state</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">down_state</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">up_state</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="n">down_state</span><span class="p">,</span> <span class="n">up_state</span>
 
     <span class="c1"># load brain states</span>
     <span class="k">if</span> <span class="n">nrem_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when nrem_epochs is not provided&quot;</span><span class="p">)</span>
         <span class="n">state_dict</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_SleepState_states</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="n">nrem_epochs</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;NREMstate&quot;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">nrem_epochs</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
@@ -5925,6 +5977,8 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 
     <span class="c1"># load spikes</span>
     <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when st is not provided&quot;</span><span class="p">)</span>
         <span class="n">st</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_spikes</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">brainRegion</span><span class="o">=</span><span class="n">region</span><span class="p">)</span>
 
     <span class="c1"># check if there are enough cells</span>
@@ -6003,6 +6057,8 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 
     <span class="k">if</span> <span class="n">epoch_by_epoch</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">beh_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when beh_epochs is not provided&quot;</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">compress_repeated_epochs</span><span class="p">(</span><span class="n">epoch_df</span><span class="p">)</span>
             <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">epoch_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;environment == &#39;sleep&#39;&quot;</span><span class="p">)</span>
@@ -6044,6 +6100,8 @@ Returns (None, None) if no suitable states are found or insufficient data is ava
 
     <span class="c1"># save to cell explorer mat file</span>
     <span class="k">if</span> <span class="n">save_mat</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required when save_mat is True&quot;</span><span class="p">)</span>
         <span class="n">epoch_to_mat</span><span class="p">(</span>
             <span class="n">down_state_epochs</span><span class="p">,</span>
             <span class="n">basepath</span><span class="p">,</span>
@@ -6208,34 +6266,7 @@ caps bootstrap sample size at 2000 to maintain computational efficiency.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/detectors/up_down_state.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
-<span class="normal">490</span>
-<span class="normal">491</span>
-<span class="normal">492</span>
-<span class="normal">493</span>
-<span class="normal">494</span>
-<span class="normal">495</span>
-<span class="normal">496</span>
-<span class="normal">497</span>
-<span class="normal">498</span>
-<span class="normal">499</span>
-<span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">514</span>
 <span class="normal">515</span>
 <span class="normal">516</span>
 <span class="normal">517</span>
@@ -6321,8 +6352,35 @@ caps bootstrap sample size at 2000 to maintain computational efficiency.</p>
 <span class="normal">597</span>
 <span class="normal">598</span>
 <span class="normal">599</span>
-<span class="normal">600</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">hartigan_diptest</span><span class="p">(</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_boot</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span>
+<span class="normal">616</span>
+<span class="normal">617</span>
+<span class="normal">618</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span>
+<span class="normal">623</span>
+<span class="normal">624</span>
+<span class="normal">625</span>
+<span class="normal">626</span>
+<span class="normal">627</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">hartigan_diptest</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_boot</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Dependency-free approximation of Hartigan&#39;s dip test with bootstrap p-value.</span>
@@ -6555,7 +6613,7 @@ caps bootstrap sample size at 2000 to maintain computational efficiency.</p>
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       

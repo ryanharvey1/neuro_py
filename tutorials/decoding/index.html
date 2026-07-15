@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4589,7 +4589,7 @@ activity can be decoded to predict behavioral outcomes.</p>
 
 <span class="n">SEED</span> <span class="o">=</span> <span class="n">set_seed</span><span class="p">(</span><span class="mi">2025</span><span class="p">)</span>
 <span class="n">DEVICE</span> <span class="o">=</span> <span class="n">set_device</span><span class="p">()</span>
-<span class="n">torch</span><span class="o">.</span><span class="n">set_float32_matmul_precision</span><span class="p">(</span><span class="s1">&#39;medium&#39;</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">set_float32_matmul_precision</span><span class="p">(</span><span class="s2">&quot;medium&quot;</span><span class="p">)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>Random seed 2025 has been set.
 GPU is enabled.
@@ -4598,6 +4598,7 @@ GPU is enabled.
 <p>Don't worry about the details of these functions; they are provided to streamline
 our workflow.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># @title Helper Functions</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_cheeseboard_maze</span><span class="p">(</span>
     <span class="n">radius</span><span class="o">=</span><span class="mf">6.8</span><span class="p">,</span> <span class="n">nrewards</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">nwellsonaxis</span><span class="o">=</span><span class="mi">17</span><span class="p">,</span> <span class="n">nseparationunits</span><span class="o">=</span><span class="mi">4</span>
@@ -4652,6 +4653,7 @@ our workflow.</p>
         <span class="n">environment</span><span class="o">.</span><span class="n">add_object</span><span class="p">(</span><span class="n">gp</span> <span class="o">/</span> <span class="p">(</span><span class="n">radius</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">environment</span><span class="p">,</span> <span class="n">reward_indices</span>
+
 
 <span class="c1"># Plotting</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">visualize_predicted_trial</span><span class="p">(</span>
@@ -4739,6 +4741,7 @@ our workflow.</p>
     <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">fig</span>
 
+
 <span class="c1"># GPyTorch model for multi-output GP regression (GPU/CPU parallelized)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MultitaskGPModel</span><span class="p">(</span><span class="n">gpytorch</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ExactGP</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">likelihood</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">):</span>
@@ -4754,6 +4757,7 @@ our workflow.</p>
         <span class="n">mean_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">covar_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">covar_module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">gpytorch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">MultitaskMultivariateNormal</span><span class="p">(</span><span class="n">mean_x</span><span class="p">,</span> <span class="n">covar_x</span><span class="p">)</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">train_gp_decoder</span><span class="p">(</span>
     <span class="n">train_neural</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
@@ -4794,17 +4798,37 @@ our workflow.</p>
     <span class="c1"># Convert data to torch tensors</span>
     <span class="c1"># check if train_neural is dataframe</span>
     <span class="n">train_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">train_neural</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_neural</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-         <span class="k">else</span> <span class="n">train_neural</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">train_neural</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_neural</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">train_neural</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">train_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">train_trajectory</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-         <span class="k">else</span> <span class="n">train_trajectory</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">train_trajectory</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">train_trajectory</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">test_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">test_neural</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_neural</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-         <span class="k">else</span> <span class="n">test_neural</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">test_neural</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_neural</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">test_neural</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">test_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">test_trajectory</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-         <span class="k">else</span> <span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">test_trajectory</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">num_tasks</span> <span class="o">=</span> <span class="n">train_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Number of output dimensions</span>
 
@@ -4814,7 +4838,9 @@ our workflow.</p>
     <span class="n">test_x</span> <span class="o">=</span> <span class="n">test_x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="c1"># Initialize model</span>
-    <span class="n">likelihood_gp</span> <span class="o">=</span> <span class="n">gpytorch</span><span class="o">.</span><span class="n">likelihoods</span><span class="o">.</span><span class="n">MultitaskGaussianLikelihood</span><span class="p">(</span><span class="n">num_tasks</span><span class="o">=</span><span class="n">num_tasks</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">likelihood_gp</span> <span class="o">=</span> <span class="n">gpytorch</span><span class="o">.</span><span class="n">likelihoods</span><span class="o">.</span><span class="n">MultitaskGaussianLikelihood</span><span class="p">(</span>
+        <span class="n">num_tasks</span><span class="o">=</span><span class="n">num_tasks</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">model_gp</span> <span class="o">=</span> <span class="n">MultitaskGPModel</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">likelihood_gp</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="c1"># Training mode</span>
@@ -4833,7 +4859,7 @@ our workflow.</p>
         <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
         <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Iter </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_iter</span><span class="si">}</span><span class="s2"> - Loss: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Iter </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_iter</span><span class="si">}</span><span class="s2"> - Loss: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="c1"># Evaluation</span>
     <span class="n">model_gp</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
@@ -4847,12 +4873,16 @@ our workflow.</p>
 
     <span class="c1"># Calculate R² score</span>
     <span class="n">r2</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">r2_score</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">test_trajectory</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-         <span class="k">else</span> <span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span><span class="p">),</span>
-        <span class="n">pred_mean</span>
+        <span class="p">(</span>
+            <span class="n">test_trajectory</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_trajectory</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">),</span>
+        <span class="n">pred_mean</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pred_mean</span><span class="p">,</span> <span class="n">r2</span><span class="p">,</span> <span class="n">model</span>
+
 
 <span class="c1"># Widgets</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_trial_visualization_widget</span><span class="p">(</span>
@@ -4916,9 +4946,9 @@ agent:</p>
     <span class="n">agent</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
     <span class="n">placecells</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
 
-<span class="n">agent</span><span class="o">.</span><span class="n">plot_trajectory</span><span class="p">();</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">plot_trajectory</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reward Indices: </span><span class="si">{</span><span class="n">reward_indices</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Number of time bins: </span><span class="si">{</span><span class="n">bins</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of time bins: </span><span class="si">{</span><span class="n">bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>WARNING: This figure has not been saved.
     • To AUTOMATICALLY save all plots (recommended), set  `ratinabox.autosave_plots = True`
@@ -4991,8 +5021,13 @@ exploiting idiosyncrasies of the dataset.</p>
 <h4 id="section-132-gaussian-process-gp-decoder">Section 1.3.2: Gaussian Process (GP) Decoder<a class="headerlink" href="#section-132-gaussian-process-gp-decoder" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><span class="c1"># Train GP decoder using Lightning</span>
 <span class="n">pred_mean_gp</span><span class="p">,</span> <span class="n">r2_gp</span><span class="p">,</span> <span class="n">gp_model</span> <span class="o">=</span> <span class="n">train_gp_decoder</span><span class="p">(</span>
-    <span class="n">train_neural</span><span class="p">,</span> <span class="n">train_trajectory</span><span class="p">,</span> <span class="n">test_neural</span><span class="p">,</span> <span class="n">test_trajectory</span><span class="p">,</span>
-    <span class="n">n_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">DEVICE</span>
+    <span class="n">train_neural</span><span class="p">,</span>
+    <span class="n">train_trajectory</span><span class="p">,</span>
+    <span class="n">test_neural</span><span class="p">,</span>
+    <span class="n">test_trajectory</span><span class="p">,</span>
+    <span class="n">n_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">DEVICE</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GP R² Score: </span><span class="si">{</span><span class="n">r2_gp</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -5182,14 +5217,16 @@ train_model(partitions: List[Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, 
 <span class="p">)</span>
 </code></pre></div>
 <p>Train the decoder using the <code>train_model</code> function:</p>
-<div class="highlight"><pre><span></span><code><span class="n">partitions</span> <span class="o">=</span> <span class="p">[(</span>
-    <span class="n">train_neural</span><span class="p">,</span>
-    <span class="n">train_trajectory</span><span class="p">,</span>
-    <span class="n">test_neural</span><span class="p">,</span>
-    <span class="n">test_trajectory</span><span class="p">,</span>
-    <span class="n">test_neural</span><span class="p">,</span>
-    <span class="n">test_trajectory</span><span class="p">,</span>
-<span class="p">)]</span>
+<div class="highlight"><pre><span></span><code><span class="n">partitions</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span>
+        <span class="n">train_neural</span><span class="p">,</span>
+        <span class="n">train_trajectory</span><span class="p">,</span>
+        <span class="n">test_neural</span><span class="p">,</span>
+        <span class="n">test_trajectory</span><span class="p">,</span>
+        <span class="n">test_neural</span><span class="p">,</span>
+        <span class="n">test_trajectory</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">]</span>
 
 <span class="c1"># Train the model using the pipeline function from your decoder module</span>
 <span class="n">results_path</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># checkpoints will be saved to this path, optimizing reruns</span>
@@ -5245,10 +5282,10 @@ RMSE: 0.09318435872837166
 <span class="p">}</span>
 
 <span class="n">fig</span> <span class="o">=</span> <span class="n">visualize_predicted_trial</span><span class="p">(</span>
-        <span class="n">trial</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">actual_trials</span><span class="o">=</span><span class="p">[</span><span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span><span class="p">],</span>
-        <span class="n">predictions</span><span class="o">=</span><span class="n">predictions_dict</span><span class="p">,</span>
-        <span class="n">environment</span><span class="o">=</span><span class="n">environment</span><span class="p">,</span>
+    <span class="n">trial</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">actual_trials</span><span class="o">=</span><span class="p">[</span><span class="n">test_trajectory</span><span class="o">.</span><span class="n">values</span><span class="p">],</span>
+    <span class="n">predictions</span><span class="o">=</span><span class="n">predictions_dict</span><span class="p">,</span>
+    <span class="n">environment</span><span class="o">=</span><span class="n">environment</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </code></pre></div>
@@ -5687,10 +5724,12 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
 RMSE: 0.03673899145029244
 </code></pre></div>
 <h3 id="section-25-visualize-results">Section 2.5: Visualize Results<a class="headerlink" href="#section-25-visualize-results" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">bv_preds_dnn_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
-    <span class="n">bv_preds_fold</span> <span class="o">+</span> <span class="n">norm_params_folds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;y_train_mean&quot;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bv_preds_fold</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bv_preds_folds</span><span class="p">)</span>
-<span class="p">])</span>
+<div class="highlight"><pre><span></span><code><span class="n">bv_preds_dnn_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">bv_preds_fold</span> <span class="o">+</span> <span class="n">norm_params_folds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;y_train_mean&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bv_preds_fold</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bv_preds_folds</span><span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span>
 <span class="n">bv_preds_ridge_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">bv_test_pred_ridge</span><span class="p">)</span>
 <span class="n">bv_preds_bayesian_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">bv_test_pred_bayesian</span><span class="p">)</span>
 <span class="n">bv_actual_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">partitions</span><span class="p">])</span>
@@ -5753,7 +5792,7 @@ RMSE: 0.03673899145029244
 <span class="p">)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">position_df</span> <span class="o">=</span> <span class="n">npy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
-<span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+<span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">)</span>
 <span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">position_df</span><span class="p">[[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span><span class="o">.</span><span class="n">bfill</span><span class="p">()</span>
 
 <span class="c1"># put position into a nelpy position array for ease of use</span>
@@ -5782,11 +5821,9 @@ RMSE: 0.03673899145029244
 <span class="n">bst_trials</span> <span class="o">=</span> <span class="n">bst_trials_inbound</span> <span class="o">+</span> <span class="n">bst_trials_outbound</span>
 <span class="n">nsv_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bst_trials</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="n">pos_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span>
-    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">posxy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">at</span><span class="o">=</span><span class="n">bst</span><span class="o">.</span><span class="n">bin_centers</span><span class="p">)</span><span class="o">.</span><span class="n">yvals</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">bst</span> <span class="ow">in</span> <span class="n">bst_trials</span>
-    <span class="p">],</span>
-    <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span>
+<div class="highlight"><pre><span></span><code><span class="n">pos_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">posxy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">at</span><span class="o">=</span><span class="n">bst</span><span class="o">.</span><span class="n">bin_centers</span><span class="p">)</span><span class="o">.</span><span class="n">yvals</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="k">for</span> <span class="n">bst</span> <span class="ow">in</span> <span class="n">bst_trials</span><span class="p">],</span>
+    <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="c1"># Format partitions for the decoder pipeline</span>
@@ -5807,7 +5844,9 @@ RMSE: 0.03673899145029244
     <span class="n">bv_test_pred_ridge</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bv_test_pred</span><span class="p">)</span>
 
 <span class="n">sklearn</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">r2_score</span><span class="p">(</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">partitions</span><span class="p">])[:,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># x dimension is only where linear track extends</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">partitions</span><span class="p">])[</span>
+        <span class="p">:,</span> <span class="mi">0</span>
+    <span class="p">],</span>  <span class="c1"># x dimension is only where linear track extends</span>
     <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">bv_test_pred_ridge</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -6086,10 +6125,12 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
 RMSE: 18.114129665695852
 </code></pre></div>
 <h3 id="section-35-visualize-results">Section 3.5: Visualize Results<a class="headerlink" href="#section-35-visualize-results" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">bv_preds_dnn_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
-    <span class="n">bv_preds_fold</span> <span class="o">+</span> <span class="n">norm_params_folds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;y_train_mean&quot;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bv_preds_fold</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bv_preds_folds</span><span class="p">)</span>
-<span class="p">])</span>
+<div class="highlight"><pre><span></span><code><span class="n">bv_preds_dnn_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">bv_preds_fold</span> <span class="o">+</span> <span class="n">norm_params_folds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;y_train_mean&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bv_preds_fold</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bv_preds_folds</span><span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span>
 <span class="n">bv_preds_bayesian_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">bv_test_pred_bayesian</span><span class="p">)</span>
 <span class="n">bv_actual_trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">partitions</span><span class="p">])</span>
 <span class="n">trial_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">partitions</span> <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
@@ -6218,7 +6259,7 @@ RMSE: 18.114129665695852
       <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../javascripts/extra.js"></script>
       

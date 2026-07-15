@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4284,10 +4284,10 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">neuro_py</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.ensemble.assembly_reactivation</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssemblyReact</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">loading</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.process.peri_event</span><span class="w"> </span><span class="kn">import</span> <span class="n">event_triggered_average_fast</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">neuro_py</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npy</span>
 </code></pre></div>
 <h2 id="section-1-pick-basepath-and-initialize-assemblyreact-class">Section 1: Pick basepath and initialize AssemblyReact class<a class="headerlink" href="#section-1-pick-basepath-and-initialize-assemblyreact-class" title="Permanent link">&para;</a></h2>
 <p>Here we will use CA1 pyramidal cells.</p>
@@ -5382,7 +5382,7 @@ With 56 testable components and a loose threshold, almost every component can ex
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Note: with </span><span class="si">{</span><span class="n">percentile_test</span><span class="si">}</span><span class="s2">th percentile and only </span><span class="si">{</span><span class="n">nshu_test</span><span class="si">}</span><span class="s2"> shuffles,&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span>
     <span class="sa">f</span><span class="s2">&quot;      the null threshold for each rank is estimated from only &quot;</span>
-    <span class="sa">f</span><span class="s2">&quot;~</span><span class="si">{</span><span class="nb">int</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">percentile_test</span><span class="o">/</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="n">nshu_test</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples — very noisy.&quot;</span>
+    <span class="sa">f</span><span class="s2">&quot;~</span><span class="si">{</span><span class="nb">int</span><span class="p">((</span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">percentile_test</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nshu_test</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples — very noisy.&quot;</span>
 <span class="p">)</span>
 </code></pre></div>
 <p><img alt="png" src="../reactivation_files/reactivation_41_0.png" /></p>
@@ -5452,7 +5452,7 @@ Note: with 95th percentile and only 100 shuffles,
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Take-home: with </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">n_ca1</span><span class="p">,</span><span class="n">n_pfc</span><span class="p">)</span><span class="si">}</span><span class="s2"> testable components and loose settings,&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Take-home: with </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">n_ca1</span><span class="p">,</span><span class="w"> </span><span class="n">n_pfc</span><span class="p">)</span><span class="si">}</span><span class="s2"> testable components and loose settings,&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;almost all singular values exceed a noisy null threshold.&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Only high nshu + high percentile recovers the true assembly count.&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -5586,7 +5586,7 @@ Only high nshu + high percentile recovers the true assembly count.
       <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../javascripts/extra.js"></script>
       

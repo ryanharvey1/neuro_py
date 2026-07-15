@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4596,8 +4596,7 @@ along track segments, and observations are 2D coordinates.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 439</span>
-<span class="normal"> 440</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 440</span>
 <span class="normal"> 441</span>
 <span class="normal"> 442</span>
 <span class="normal"> 443</span>
@@ -5458,7 +5457,12 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1298</span>
 <span class="normal">1299</span>
 <span class="normal">1300</span>
-<span class="normal">1301</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">HMMLinearizer</span><span class="p">:</span>
+<span class="normal">1301</span>
+<span class="normal">1302</span>
+<span class="normal">1303</span>
+<span class="normal">1304</span>
+<span class="normal">1305</span>
+<span class="normal">1306</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">HMMLinearizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Hidden Markov Model for track linearization.</span>
 
@@ -5551,7 +5555,9 @@ along track segments, and observations are 2D coordinates.</p>
             <span class="c1"># Reduce bins per segment to keep total states manageable</span>
             <span class="n">max_bins_per_segment</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_total_states</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_segments</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_bins_per_segment</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins_per_segment</span><span class="p">,</span> <span class="n">max_bins_per_segment</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adaptive binning: reduced to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins_per_segment</span><span class="si">}</span><span class="s2"> bins per segment for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_segments</span><span class="si">}</span><span class="s2"> segments&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Adaptive binning: reduced to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins_per_segment</span><span class="si">}</span><span class="s2"> bins per segment for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_segments</span><span class="si">}</span><span class="s2"> segments&quot;</span>
+            <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_lengths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_positions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -5604,7 +5610,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="c1"># Build emission model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_build_emission_model</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_interpolate_along_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_interpolate_along_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Interpolate position along a track segment.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
@@ -5746,7 +5752,7 @@ along track segments, and observations are 2D coordinates.</p>
                         <span class="bp">self</span><span class="o">.</span><span class="n">transition_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">uniform_log_prob</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_transition_probability</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">seg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pos1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">seg2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pos2</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">seg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pos1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">seg2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pos2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate transition log-probability between two states.&quot;&quot;&quot;</span>
         <span class="c1"># Distance-based probability</span>
@@ -5770,7 +5776,7 @@ along track segments, and observations are 2D coordinates.</p>
                     <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_smoothness</span><span class="o">**</span><span class="mi">2</span>
                 <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">log_prob</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">log_prob</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_segments_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">seg2</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if two segments are connected in the track graph.&quot;&quot;&quot;</span>
@@ -5788,7 +5794,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="n">nodes2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">edge2</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes1</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">nodes2</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_auto_tune_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_auto_tune_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Automatically tune HMM parameters based on data characteristics.</span>
 <span class="sd">        Optimized for real rat tracking data from DeepLabCut.</span>
@@ -5868,7 +5874,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="c1"># For real tracking data, we need to ensure positions can be assigned to states</span>
         <span class="c1"># even if they&#39;re not exactly on the track due to tracking noise</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_emission_probability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_emission_probability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate emission probability P(observation | state).&quot;&quot;&quot;</span>
         <span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_centers</span><span class="p">[</span><span class="n">state</span><span class="p">]</span>
 
@@ -5877,8 +5883,8 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="k">return</span> <span class="n">rv</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">observation</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_emission_probabilities_vectorized</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate emission log-probabilities for all observations and states at once.</span>
 <span class="sd">        Much faster than calling _emission_probability repeatedly.</span>
@@ -5921,8 +5927,8 @@ along track segments, and observations are 2D coordinates.</p>
             <span class="k">return</span> <span class="n">log_emission_probs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">linearize_with_hmm</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Linearize positions using HMM inference.</span>
 
@@ -5948,7 +5954,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="n">projected_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_positions</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
 
         <span class="c1"># Handle NaN positions</span>
-        <span class="n">valid_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span>
 
@@ -5956,7 +5962,9 @@ along track segments, and observations are 2D coordinates.</p>
 
         <span class="c1"># Check if we should use fast approximate method for very large track graphs</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_states</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">500</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using fast approximate HMM for large track graph (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_states</span><span class="si">}</span><span class="s2"> states, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Using fast approximate HMM for large track graph (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_states</span><span class="si">}</span><span class="s2"> states, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linearize_with_fast_approximate_hmm</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">valid_mask</span><span class="p">)</span>
 
         <span class="c1"># Subsample positions if requested for speed</span>
@@ -6007,8 +6015,8 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="k">return</span> <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_linearize_with_fast_approximate_hmm</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">valid_mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">valid_mask</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fast approximate HMM linearization for very large track graphs.</span>
 <span class="sd">        Uses simplified approach: project to nearest state and apply temporal smoothing.</span>
@@ -6047,7 +6055,7 @@ along track segments, and observations are 2D coordinates.</p>
 
         <span class="k">return</span> <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_temporal_smoothing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_temporal_smoothing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply simple temporal smoothing to state sequence.</span>
 <span class="sd">        Uses a moving average approach to reduce noise.</span>
@@ -6070,7 +6078,7 @@ along track segments, and observations are 2D coordinates.</p>
 
         <span class="k">return</span> <span class="n">smoothed</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_viterbi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_viterbi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run Viterbi algorithm to find most likely state sequence.</span>
 <span class="sd">        Uses log-probabilities for numerical stability.</span>
@@ -6138,7 +6146,7 @@ along track segments, and observations are 2D coordinates.</p>
             <span class="k">return</span> <span class="n">state_sequence</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_linear_position</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate linear position along the track for a given segment and position.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">segment_id</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">track_graph</span><span class="o">.</span><span class="n">edges</span><span class="p">):</span>
@@ -6189,12 +6197,12 @@ along track segments, and observations are 2D coordinates.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_interpolate_missing_values</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">linear_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">track_segment_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">projected_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">original_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">valid_mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="n">linear_positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">track_segment_ids</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">projected_positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">original_indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">valid_mask</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Interpolate missing values in subsampled linearization results.</span>
 
@@ -6427,10 +6435,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">901</span>
-<span class="normal">902</span>
-<span class="normal">903</span>
-<span class="normal">904</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">904</span>
 <span class="normal">905</span>
 <span class="normal">906</span>
 <span class="normal">907</span>
@@ -6511,9 +6516,14 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">982</span>
 <span class="normal">983</span>
 <span class="normal">984</span>
-<span class="normal">985</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">linearize_with_hmm</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="normal">985</span>
+<span class="normal">986</span>
+<span class="normal">987</span>
+<span class="normal">988</span>
+<span class="normal">989</span>
+<span class="normal">990</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">linearize_with_hmm</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Linearize positions using HMM inference.</span>
 
@@ -6539,7 +6549,7 @@ along track segments, and observations are 2D coordinates.</p>
     <span class="n">projected_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_positions</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
 
     <span class="c1"># Handle NaN positions</span>
-    <span class="n">valid_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span>
 
@@ -6547,7 +6557,9 @@ along track segments, and observations are 2D coordinates.</p>
 
     <span class="c1"># Check if we should use fast approximate method for very large track graphs</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_states</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">500</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using fast approximate HMM for large track graph (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_states</span><span class="si">}</span><span class="s2"> states, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Using fast approximate HMM for large track graph (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_states</span><span class="si">}</span><span class="s2"> states, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linearize_with_fast_approximate_hmm</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">valid_mask</span><span class="p">)</span>
 
     <span class="c1"># Subsample positions if requested for speed</span>
@@ -6988,32 +7000,7 @@ along track segments, and observations are 2D coordinates.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1758</span>
-<span class="normal">1759</span>
-<span class="normal">1760</span>
-<span class="normal">1761</span>
-<span class="normal">1762</span>
-<span class="normal">1763</span>
-<span class="normal">1764</span>
-<span class="normal">1765</span>
-<span class="normal">1766</span>
-<span class="normal">1767</span>
-<span class="normal">1768</span>
-<span class="normal">1769</span>
-<span class="normal">1770</span>
-<span class="normal">1771</span>
-<span class="normal">1772</span>
-<span class="normal">1773</span>
-<span class="normal">1774</span>
-<span class="normal">1775</span>
-<span class="normal">1776</span>
-<span class="normal">1777</span>
-<span class="normal">1778</span>
-<span class="normal">1779</span>
-<span class="normal">1780</span>
-<span class="normal">1781</span>
-<span class="normal">1782</span>
-<span class="normal">1783</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1783</span>
 <span class="normal">1784</span>
 <span class="normal">1785</span>
 <span class="normal">1786</span>
@@ -7425,7 +7412,54 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">2192</span>
 <span class="normal">2193</span>
 <span class="normal">2194</span>
-<span class="normal">2195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NodePicker</span><span class="p">:</span>
+<span class="normal">2195</span>
+<span class="normal">2196</span>
+<span class="normal">2197</span>
+<span class="normal">2198</span>
+<span class="normal">2199</span>
+<span class="normal">2200</span>
+<span class="normal">2201</span>
+<span class="normal">2202</span>
+<span class="normal">2203</span>
+<span class="normal">2204</span>
+<span class="normal">2205</span>
+<span class="normal">2206</span>
+<span class="normal">2207</span>
+<span class="normal">2208</span>
+<span class="normal">2209</span>
+<span class="normal">2210</span>
+<span class="normal">2211</span>
+<span class="normal">2212</span>
+<span class="normal">2213</span>
+<span class="normal">2214</span>
+<span class="normal">2215</span>
+<span class="normal">2216</span>
+<span class="normal">2217</span>
+<span class="normal">2218</span>
+<span class="normal">2219</span>
+<span class="normal">2220</span>
+<span class="normal">2221</span>
+<span class="normal">2222</span>
+<span class="normal">2223</span>
+<span class="normal">2224</span>
+<span class="normal">2225</span>
+<span class="normal">2226</span>
+<span class="normal">2227</span>
+<span class="normal">2228</span>
+<span class="normal">2229</span>
+<span class="normal">2230</span>
+<span class="normal">2231</span>
+<span class="normal">2232</span>
+<span class="normal">2233</span>
+<span class="normal">2234</span>
+<span class="normal">2235</span>
+<span class="normal">2236</span>
+<span class="normal">2237</span>
+<span class="normal">2238</span>
+<span class="normal">2239</span>
+<span class="normal">2240</span>
+<span class="normal">2241</span>
+<span class="normal">2242</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NodePicker</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interactive creation of track graph by looking at video frames.</span>
 
@@ -7534,7 +7568,10 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">ax</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">canvas</span>
+        <span class="n">figure</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">figure</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">figure</span><span class="o">.</span><span class="n">canvas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;NodePicker requires axes attached to a figure canvas&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="o">=</span> <span class="n">figure</span><span class="o">.</span><span class="n">canvas</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cid</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node_color</span> <span class="o">=</span> <span class="n">node_color</span>
@@ -7559,7 +7596,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">node_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the positions of the nodes.</span>
 
@@ -7651,7 +7688,7 @@ along track segments, and observations are 2D coordinates.</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
                 <span class="n">x</span><span class="p">,</span>
                 <span class="n">y</span><span class="p">,</span>
-                <span class="n">ind</span><span class="p">,</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">ind</span><span class="p">),</span>
                 <span class="n">zorder</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
                 <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
@@ -7692,10 +7729,13 @@ along track segments, and observations are 2D coordinates.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">format_and_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Format the data and save it to disk.&quot;&quot;&quot;</span>
-        <span class="n">behave_df</span> <span class="o">=</span> <span class="n">load_animal_behavior</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to save linearization results&quot;</span><span class="p">)</span>
+        <span class="n">basepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span>
+        <span class="n">behave_df</span> <span class="o">=</span> <span class="n">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+            <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
 
             <span class="n">cur_epoch</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
@@ -7746,7 +7786,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="p">)</span>
 
         <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.animal.behavior.mat&quot;</span>
+            <span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.animal.behavior.mat&quot;</span>
         <span class="p">)</span>
 
         <span class="n">data</span> <span class="o">=</span> <span class="n">loadmat</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">simplify_cells</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -7770,12 +7810,16 @@ along track segments, and observations are 2D coordinates.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the nodes and edges to a pickle file.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to save nodes and edges&quot;</span><span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;node_positions&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span><span class="p">,</span> <span class="s2">&quot;edges&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">}</span>
         <span class="n">save_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="s2">&quot;linearization_nodes_edges.pkl&quot;</span><span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Store nodes and edges into behavior file.</span>
 <span class="sd">        Searches to find epochs with valid linearized coords.</span>
@@ -7793,7 +7837,10 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="sd">        dict</span>
 <span class="sd">            The updated behavior data dictionary.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span>
+            <span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                     <span class="s2">&quot;behavior[&#39;epochs&#39;] entries must be mutable mapping types, &quot;</span>
@@ -7801,7 +7848,7 @@ along track segments, and observations are 2D coordinates.</p>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">epoch_entry</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
             <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epochs&quot;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">behavior_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -7815,7 +7862,11 @@ along track segments, and observations are 2D coordinates.</p>
                 <span class="k">return</span> <span class="n">behavior_epochs</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-                <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">behavior_epochs</span>
+                <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="n">behavior_epochs</span>
+                <span class="p">)</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
                 <span class="n">behavior_epochs</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>
@@ -7829,11 +7880,13 @@ along track segments, and observations are 2D coordinates.</p>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># load epochs</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to load epochs&quot;</span><span class="p">)</span>
             <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
             <span class="c1"># iter over each epoch</span>
-            <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">itertuples</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">ep</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
                 <span class="c1"># locate index for given epoch</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="p">[</span><span class="s2">&quot;startTime&quot;</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;stopTime&quot;</span><span class="p">])</span>
                 <span class="c1"># if linearized is not all nan, add nodes and edges</span>
                 <span class="k">if</span> <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">)</span>
@@ -7844,11 +7897,13 @@ along track segments, and observations are 2D coordinates.</p>
                     <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># if interval was used, add nodes and edges just the epochs within that interval</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to load epochs&quot;</span><span class="p">)</span>
             <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">itertuples</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">ep</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
                 <span class="c1"># amount of overlap between interval and epoch</span>
-                <span class="n">start_overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">)</span>
-                <span class="n">end_overlap</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
+                <span class="n">start_overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;startTime&quot;</span><span class="p">])</span>
+                <span class="n">end_overlap</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;stopTime&quot;</span><span class="p">])</span>
                 <span class="n">overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_overlap</span> <span class="o">-</span> <span class="n">start_overlap</span><span class="p">)</span>
 
                 <span class="c1"># if overlap is greater than 1 second, add nodes and edges</span>
@@ -7858,6 +7913,7 @@ along track segments, and observations are 2D coordinates.</p>
                     <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># if epoch was used, add nodes and edges just that that epoch</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
             <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
             <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
@@ -7940,11 +7996,11 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2017</span>
-<span class="normal">2018</span>
-<span class="normal">2019</span>
-<span class="normal">2020</span>
-<span class="normal">2021</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2045</span>
+<span class="normal">2046</span>
+<span class="normal">2047</span>
+<span class="normal">2048</span>
+<span class="normal">2049</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Clear all nodes and edges.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="p">[[]]</span>
@@ -8002,35 +8058,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1929</span>
-<span class="normal">1930</span>
-<span class="normal">1931</span>
-<span class="normal">1932</span>
-<span class="normal">1933</span>
-<span class="normal">1934</span>
-<span class="normal">1935</span>
-<span class="normal">1936</span>
-<span class="normal">1937</span>
-<span class="normal">1938</span>
-<span class="normal">1939</span>
-<span class="normal">1940</span>
-<span class="normal">1941</span>
-<span class="normal">1942</span>
-<span class="normal">1943</span>
-<span class="normal">1944</span>
-<span class="normal">1945</span>
-<span class="normal">1946</span>
-<span class="normal">1947</span>
-<span class="normal">1948</span>
-<span class="normal">1949</span>
-<span class="normal">1950</span>
-<span class="normal">1951</span>
-<span class="normal">1952</span>
-<span class="normal">1953</span>
-<span class="normal">1954</span>
-<span class="normal">1955</span>
-<span class="normal">1956</span>
-<span class="normal">1957</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1957</span>
 <span class="normal">1958</span>
 <span class="normal">1959</span>
 <span class="normal">1960</span>
@@ -8042,7 +8070,35 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">1966</span>
 <span class="normal">1967</span>
 <span class="normal">1968</span>
-<span class="normal">1969</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">click_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1969</span>
+<span class="normal">1970</span>
+<span class="normal">1971</span>
+<span class="normal">1972</span>
+<span class="normal">1973</span>
+<span class="normal">1974</span>
+<span class="normal">1975</span>
+<span class="normal">1976</span>
+<span class="normal">1977</span>
+<span class="normal">1978</span>
+<span class="normal">1979</span>
+<span class="normal">1980</span>
+<span class="normal">1981</span>
+<span class="normal">1982</span>
+<span class="normal">1983</span>
+<span class="normal">1984</span>
+<span class="normal">1985</span>
+<span class="normal">1986</span>
+<span class="normal">1987</span>
+<span class="normal">1988</span>
+<span class="normal">1989</span>
+<span class="normal">1990</span>
+<span class="normal">1991</span>
+<span class="normal">1992</span>
+<span class="normal">1993</span>
+<span class="normal">1994</span>
+<span class="normal">1995</span>
+<span class="normal">1996</span>
+<span class="normal">1997</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">click_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process mouse click events.</span>
 
@@ -8105,13 +8161,13 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1903</span>
-<span class="normal">1904</span>
-<span class="normal">1905</span>
-<span class="normal">1906</span>
-<span class="normal">1907</span>
-<span class="normal">1908</span>
-<span class="normal">1909</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1931</span>
+<span class="normal">1932</span>
+<span class="normal">1933</span>
+<span class="normal">1934</span>
+<span class="normal">1935</span>
+<span class="normal">1936</span>
+<span class="normal">1937</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Connect the event handlers.&quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connecting to events&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -8140,11 +8196,11 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1911</span>
-<span class="normal">1912</span>
-<span class="normal">1913</span>
-<span class="normal">1914</span>
-<span class="normal">1915</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1939</span>
+<span class="normal">1940</span>
+<span class="normal">1941</span>
+<span class="normal">1942</span>
+<span class="normal">1943</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Disconnect the event handlers.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cid</span><span class="p">)</span>
@@ -8171,35 +8227,7 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2023</span>
-<span class="normal">2024</span>
-<span class="normal">2025</span>
-<span class="normal">2026</span>
-<span class="normal">2027</span>
-<span class="normal">2028</span>
-<span class="normal">2029</span>
-<span class="normal">2030</span>
-<span class="normal">2031</span>
-<span class="normal">2032</span>
-<span class="normal">2033</span>
-<span class="normal">2034</span>
-<span class="normal">2035</span>
-<span class="normal">2036</span>
-<span class="normal">2037</span>
-<span class="normal">2038</span>
-<span class="normal">2039</span>
-<span class="normal">2040</span>
-<span class="normal">2041</span>
-<span class="normal">2042</span>
-<span class="normal">2043</span>
-<span class="normal">2044</span>
-<span class="normal">2045</span>
-<span class="normal">2046</span>
-<span class="normal">2047</span>
-<span class="normal">2048</span>
-<span class="normal">2049</span>
-<span class="normal">2050</span>
-<span class="normal">2051</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2051</span>
 <span class="normal">2052</span>
 <span class="normal">2053</span>
 <span class="normal">2054</span>
@@ -8247,12 +8275,46 @@ along track segments, and observations are 2D coordinates.</p>
 <span class="normal">2096</span>
 <span class="normal">2097</span>
 <span class="normal">2098</span>
-<span class="normal">2099</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">format_and_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2099</span>
+<span class="normal">2100</span>
+<span class="normal">2101</span>
+<span class="normal">2102</span>
+<span class="normal">2103</span>
+<span class="normal">2104</span>
+<span class="normal">2105</span>
+<span class="normal">2106</span>
+<span class="normal">2107</span>
+<span class="normal">2108</span>
+<span class="normal">2109</span>
+<span class="normal">2110</span>
+<span class="normal">2111</span>
+<span class="normal">2112</span>
+<span class="normal">2113</span>
+<span class="normal">2114</span>
+<span class="normal">2115</span>
+<span class="normal">2116</span>
+<span class="normal">2117</span>
+<span class="normal">2118</span>
+<span class="normal">2119</span>
+<span class="normal">2120</span>
+<span class="normal">2121</span>
+<span class="normal">2122</span>
+<span class="normal">2123</span>
+<span class="normal">2124</span>
+<span class="normal">2125</span>
+<span class="normal">2126</span>
+<span class="normal">2127</span>
+<span class="normal">2128</span>
+<span class="normal">2129</span>
+<span class="normal">2130</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">format_and_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Format the data and save it to disk.&quot;&quot;&quot;</span>
-    <span class="n">behave_df</span> <span class="o">=</span> <span class="n">load_animal_behavior</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to save linearization results&quot;</span><span class="p">)</span>
+    <span class="n">basepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span>
+    <span class="n">behave_df</span> <span class="o">=</span> <span class="n">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
 
         <span class="n">cur_epoch</span> <span class="o">=</span> <span class="p">(</span>
             <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
@@ -8303,7 +8365,7 @@ along track segments, and observations are 2D coordinates.</p>
     <span class="p">)</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.animal.behavior.mat&quot;</span>
+        <span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.animal.behavior.mat&quot;</span>
     <span class="p">)</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="n">loadmat</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">simplify_cells</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -8377,17 +8439,17 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1917</span>
-<span class="normal">1918</span>
-<span class="normal">1919</span>
-<span class="normal">1920</span>
-<span class="normal">1921</span>
-<span class="normal">1922</span>
-<span class="normal">1923</span>
-<span class="normal">1924</span>
-<span class="normal">1925</span>
-<span class="normal">1926</span>
-<span class="normal">1927</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1945</span>
+<span class="normal">1946</span>
+<span class="normal">1947</span>
+<span class="normal">1948</span>
+<span class="normal">1949</span>
+<span class="normal">1950</span>
+<span class="normal">1951</span>
+<span class="normal">1952</span>
+<span class="normal">1953</span>
+<span class="normal">1954</span>
+<span class="normal">1955</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process key press events.</span>
 
@@ -8420,37 +8482,37 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1971</span>
-<span class="normal">1972</span>
-<span class="normal">1973</span>
-<span class="normal">1974</span>
-<span class="normal">1975</span>
-<span class="normal">1976</span>
-<span class="normal">1977</span>
-<span class="normal">1978</span>
-<span class="normal">1979</span>
-<span class="normal">1980</span>
-<span class="normal">1981</span>
-<span class="normal">1982</span>
-<span class="normal">1983</span>
-<span class="normal">1984</span>
-<span class="normal">1985</span>
-<span class="normal">1986</span>
-<span class="normal">1987</span>
-<span class="normal">1988</span>
-<span class="normal">1989</span>
-<span class="normal">1990</span>
-<span class="normal">1991</span>
-<span class="normal">1992</span>
-<span class="normal">1993</span>
-<span class="normal">1994</span>
-<span class="normal">1995</span>
-<span class="normal">1996</span>
-<span class="normal">1997</span>
-<span class="normal">1998</span>
-<span class="normal">1999</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1999</span>
 <span class="normal">2000</span>
-<span class="normal">2001</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">2001</span>
+<span class="normal">2002</span>
+<span class="normal">2003</span>
+<span class="normal">2004</span>
+<span class="normal">2005</span>
+<span class="normal">2006</span>
+<span class="normal">2007</span>
+<span class="normal">2008</span>
+<span class="normal">2009</span>
+<span class="normal">2010</span>
+<span class="normal">2011</span>
+<span class="normal">2012</span>
+<span class="normal">2013</span>
+<span class="normal">2014</span>
+<span class="normal">2015</span>
+<span class="normal">2016</span>
+<span class="normal">2017</span>
+<span class="normal">2018</span>
+<span class="normal">2019</span>
+<span class="normal">2020</span>
+<span class="normal">2021</span>
+<span class="normal">2022</span>
+<span class="normal">2023</span>
+<span class="normal">2024</span>
+<span class="normal">2025</span>
+<span class="normal">2026</span>
+<span class="normal">2027</span>
+<span class="normal">2028</span>
+<span class="normal">2029</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Redraw the nodes and edges.&quot;&quot;&quot;</span>
     <span class="c1"># Draw Node Circles</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -8463,7 +8525,7 @@ along track segments, and observations are 2D coordinates.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
             <span class="n">x</span><span class="p">,</span>
             <span class="n">y</span><span class="p">,</span>
-            <span class="n">ind</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">ind</span><span class="p">),</span>
             <span class="n">zorder</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
             <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
             <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
@@ -8534,19 +8596,19 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2003</span>
-<span class="normal">2004</span>
-<span class="normal">2005</span>
-<span class="normal">2006</span>
-<span class="normal">2007</span>
-<span class="normal">2008</span>
-<span class="normal">2009</span>
-<span class="normal">2010</span>
-<span class="normal">2011</span>
-<span class="normal">2012</span>
-<span class="normal">2013</span>
-<span class="normal">2014</span>
-<span class="normal">2015</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2031</span>
+<span class="normal">2032</span>
+<span class="normal">2033</span>
+<span class="normal">2034</span>
+<span class="normal">2035</span>
+<span class="normal">2036</span>
+<span class="normal">2037</span>
+<span class="normal">2038</span>
+<span class="normal">2039</span>
+<span class="normal">2040</span>
+<span class="normal">2041</span>
+<span class="normal">2042</span>
+<span class="normal">2043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove a point from the nodes.</span>
 
@@ -8581,13 +8643,17 @@ along track segments, and observations are 2D coordinates.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2101</span>
-<span class="normal">2102</span>
-<span class="normal">2103</span>
-<span class="normal">2104</span>
-<span class="normal">2105</span>
-<span class="normal">2106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2132</span>
+<span class="normal">2133</span>
+<span class="normal">2134</span>
+<span class="normal">2135</span>
+<span class="normal">2136</span>
+<span class="normal">2137</span>
+<span class="normal">2138</span>
+<span class="normal">2139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Save the nodes and edges to a pickle file.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to save nodes and edges&quot;</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;node_positions&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span><span class="p">,</span> <span class="s2">&quot;edges&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">}</span>
     <span class="n">save_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">,</span> <span class="s2">&quot;linearization_nodes_edges.pkl&quot;</span><span class="p">)</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -8686,40 +8752,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2108</span>
-<span class="normal">2109</span>
-<span class="normal">2110</span>
-<span class="normal">2111</span>
-<span class="normal">2112</span>
-<span class="normal">2113</span>
-<span class="normal">2114</span>
-<span class="normal">2115</span>
-<span class="normal">2116</span>
-<span class="normal">2117</span>
-<span class="normal">2118</span>
-<span class="normal">2119</span>
-<span class="normal">2120</span>
-<span class="normal">2121</span>
-<span class="normal">2122</span>
-<span class="normal">2123</span>
-<span class="normal">2124</span>
-<span class="normal">2125</span>
-<span class="normal">2126</span>
-<span class="normal">2127</span>
-<span class="normal">2128</span>
-<span class="normal">2129</span>
-<span class="normal">2130</span>
-<span class="normal">2131</span>
-<span class="normal">2132</span>
-<span class="normal">2133</span>
-<span class="normal">2134</span>
-<span class="normal">2135</span>
-<span class="normal">2136</span>
-<span class="normal">2137</span>
-<span class="normal">2138</span>
-<span class="normal">2139</span>
-<span class="normal">2140</span>
-<span class="normal">2141</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2141</span>
 <span class="normal">2142</span>
 <span class="normal">2143</span>
 <span class="normal">2144</span>
@@ -8773,7 +8806,56 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">2192</span>
 <span class="normal">2193</span>
 <span class="normal">2194</span>
-<span class="normal">2195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">2195</span>
+<span class="normal">2196</span>
+<span class="normal">2197</span>
+<span class="normal">2198</span>
+<span class="normal">2199</span>
+<span class="normal">2200</span>
+<span class="normal">2201</span>
+<span class="normal">2202</span>
+<span class="normal">2203</span>
+<span class="normal">2204</span>
+<span class="normal">2205</span>
+<span class="normal">2206</span>
+<span class="normal">2207</span>
+<span class="normal">2208</span>
+<span class="normal">2209</span>
+<span class="normal">2210</span>
+<span class="normal">2211</span>
+<span class="normal">2212</span>
+<span class="normal">2213</span>
+<span class="normal">2214</span>
+<span class="normal">2215</span>
+<span class="normal">2216</span>
+<span class="normal">2217</span>
+<span class="normal">2218</span>
+<span class="normal">2219</span>
+<span class="normal">2220</span>
+<span class="normal">2221</span>
+<span class="normal">2222</span>
+<span class="normal">2223</span>
+<span class="normal">2224</span>
+<span class="normal">2225</span>
+<span class="normal">2226</span>
+<span class="normal">2227</span>
+<span class="normal">2228</span>
+<span class="normal">2229</span>
+<span class="normal">2230</span>
+<span class="normal">2231</span>
+<span class="normal">2232</span>
+<span class="normal">2233</span>
+<span class="normal">2234</span>
+<span class="normal">2235</span>
+<span class="normal">2236</span>
+<span class="normal">2237</span>
+<span class="normal">2238</span>
+<span class="normal">2239</span>
+<span class="normal">2240</span>
+<span class="normal">2241</span>
+<span class="normal">2242</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_nodes_edges_to_behavior</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">behave_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Store nodes and edges into behavior file.</span>
 <span class="sd">    Searches to find epochs with valid linearized coords.</span>
@@ -8791,7 +8873,10 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="sd">    dict</span>
 <span class="sd">        The updated behavior data dictionary.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_epoch_entry</span><span class="p">(</span>
+        <span class="n">epoch_entry</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_entry</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="s2">&quot;behavior[&#39;epochs&#39;] entries must be mutable mapping types, &quot;</span>
@@ -8799,7 +8884,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">epoch_entry</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_epoch_entry</span><span class="p">(</span><span class="n">epoch_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;behavior&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epochs&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">behavior_epochs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -8813,7 +8898,11 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="k">return</span> <span class="n">behavior_epochs</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-            <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">behavior_epochs</span>
+            <span class="n">behavior_epochs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">behavior_epochs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="k">else</span> <span class="n">behavior_epochs</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">behavior_epochs</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
             <span class="n">behavior_epochs</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>
@@ -8827,11 +8916,13 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># load epochs</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to load epochs&quot;</span><span class="p">)</span>
         <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
         <span class="c1"># iter over each epoch</span>
-        <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">itertuples</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">ep</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
             <span class="c1"># locate index for given epoch</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">behave_df</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">ep</span><span class="p">[</span><span class="s2">&quot;startTime&quot;</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;stopTime&quot;</span><span class="p">])</span>
             <span class="c1"># if linearized is not all nan, add nodes and edges</span>
             <span class="k">if</span> <span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">behave_df</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">linearized</span><span class="p">)</span>
@@ -8842,11 +8933,13 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
                 <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># if interval was used, add nodes and edges just the epochs within that interval</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;basepath is required to load epochs&quot;</span><span class="p">)</span>
         <span class="n">epochs</span> <span class="o">=</span> <span class="n">load_epoch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basepath</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">itertuples</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">epoch_i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">ep</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">epochs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
             <span class="c1"># amount of overlap between interval and epoch</span>
-            <span class="n">start_overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ep</span><span class="o">.</span><span class="n">startTime</span><span class="p">)</span>
-            <span class="n">end_overlap</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ep</span><span class="o">.</span><span class="n">stopTime</span><span class="p">)</span>
+            <span class="n">start_overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;startTime&quot;</span><span class="p">])</span>
+            <span class="n">end_overlap</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;stopTime&quot;</span><span class="p">])</span>
             <span class="n">overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_overlap</span> <span class="o">-</span> <span class="n">start_overlap</span><span class="p">)</span>
 
             <span class="c1"># if overlap is greater than 1 second, add nodes and edges</span>
@@ -8856,6 +8949,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
                 <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># if epoch was used, add nodes and edges just that that epoch</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">epoch_entry</span> <span class="o">=</span> <span class="n">get_epoch_entry</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
         <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;node_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span>
         <span class="n">epoch_entry</span><span class="p">[</span><span class="s2">&quot;edges&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span>
@@ -8948,8 +9042,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
-<span class="normal">358</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
 <span class="normal">361</span>
@@ -9027,7 +9120,8 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">433</span>
 <span class="normal">434</span>
 <span class="normal">435</span>
-<span class="normal">436</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TrackGraph</span><span class="p">:</span>
+<span class="normal">436</span>
+<span class="normal">437</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TrackGraph</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simple track graph implementation for linearization.</span>
 
@@ -9039,7 +9133,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="sd">        List of edge connections between nodes</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">node_positions</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">node_positions</span><span class="p">)</span>
@@ -9069,7 +9163,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">row_indices</span><span class="p">,</span> <span class="n">col_indices</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_edge_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_edge_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate distances between connected nodes.&quot;&quot;&quot;</span>
         <span class="n">distances</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
@@ -9083,7 +9177,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
                     <span class="n">distances</span><span class="p">[(</span><span class="n">node2</span><span class="p">,</span> <span class="n">node1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dist</span>
         <span class="k">return</span> <span class="n">distances</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_cumulative_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_cumulative_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate cumulative distances along the track.&quot;&quot;&quot;</span>
         <span class="c1"># Find the main path through the track</span>
         <span class="c1"># For simplicity, we&#39;ll use the first edge as the starting point</span>
@@ -9394,8 +9488,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1603</span>
-<span class="normal">1604</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1604</span>
 <span class="normal">1605</span>
 <span class="normal">1606</span>
 <span class="normal">1607</span>
@@ -9527,8 +9620,31 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1733</span>
 <span class="normal">1734</span>
 <span class="normal">1735</span>
-<span class="normal">1736</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linearized_position</span><span class="p">(</span>
-    <span class="n">position</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="normal">1736</span>
+<span class="normal">1737</span>
+<span class="normal">1738</span>
+<span class="normal">1739</span>
+<span class="normal">1740</span>
+<span class="normal">1741</span>
+<span class="normal">1742</span>
+<span class="normal">1743</span>
+<span class="normal">1744</span>
+<span class="normal">1745</span>
+<span class="normal">1746</span>
+<span class="normal">1747</span>
+<span class="normal">1748</span>
+<span class="normal">1749</span>
+<span class="normal">1750</span>
+<span class="normal">1751</span>
+<span class="normal">1752</span>
+<span class="normal">1753</span>
+<span class="normal">1754</span>
+<span class="normal">1755</span>
+<span class="normal">1756</span>
+<span class="normal">1757</span>
+<span class="normal">1758</span>
+<span class="normal">1759</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linearized_position</span><span class="p">(</span>
+    <span class="n">position</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span><span class="p">,</span>
     <span class="n">edge_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_HMM</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -9588,13 +9704,17 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
         <span class="c1"># For large track graphs, use more aggressive optimization</span>
         <span class="k">if</span> <span class="n">n_bins_per_segment</span> <span class="o">&gt;</span> <span class="mi">30</span><span class="p">:</span>
             <span class="n">n_bins_per_segment</span> <span class="o">=</span> <span class="mi">30</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reduced bins per segment to </span><span class="si">{</span><span class="n">n_bins_per_segment</span><span class="si">}</span><span class="s2"> for large track graph (</span><span class="si">{</span><span class="n">n_segments</span><span class="si">}</span><span class="s2"> segments)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reduced bins per segment to </span><span class="si">{</span><span class="n">n_bins_per_segment</span><span class="si">}</span><span class="s2"> for large track graph (</span><span class="si">{</span><span class="n">n_segments</span><span class="si">}</span><span class="s2"> segments)&quot;</span>
+            <span class="p">)</span>
 
         <span class="c1"># Enable subsampling for very large datasets</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">position</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">subsample_positions</span><span class="p">:</span>
             <span class="n">subsample_positions</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">subsample_factor</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">position</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2000</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Enabled subsampling with factor </span><span class="si">{</span><span class="n">subsample_factor</span><span class="si">}</span><span class="s2"> for large dataset (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">position</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Enabled subsampling with factor </span><span class="si">{</span><span class="n">subsample_factor</span><span class="si">}</span><span class="s2"> for large dataset (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">position</span><span class="p">)</span><span class="si">}</span><span class="s2"> positions)&quot;</span>
+            <span class="p">)</span>
 
         <span class="c1"># Enable batch processing for large track graphs</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">use_batch_processing</span><span class="p">:</span>
@@ -9613,7 +9733,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="n">use_batch_processing</span><span class="o">=</span><span class="n">use_batch_processing</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="n">adaptive_binning</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable adaptive binning for large track graphs</span>
-            <span class="n">max_total_states</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>   <span class="c1"># Limit total states for performance</span>
+            <span class="n">max_total_states</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>  <span class="c1"># Limit total states for performance</span>
         <span class="p">)</span>
 
         <span class="c1"># Auto-tune parameters if requested</span>
@@ -9621,43 +9741,61 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="n">tuned_params</span> <span class="o">=</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">_auto_tune_parameters</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-tuned HMM parameters: </span><span class="si">{</span><span class="n">tuned_params</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="c1"># Apply tuned parameters</span>
-            <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">emission_noise</span> <span class="o">=</span> <span class="n">tuned_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;emission_noise&quot;</span><span class="p">,</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">emission_noise</span><span class="p">)</span>
-            <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">transition_smoothness</span> <span class="o">=</span> <span class="n">tuned_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;transition_smoothness&quot;</span><span class="p">,</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">transition_smoothness</span><span class="p">)</span>
+            <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">emission_noise</span> <span class="o">=</span> <span class="n">tuned_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;emission_noise&quot;</span><span class="p">,</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">emission_noise</span>
+            <span class="p">)</span>
+            <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">transition_smoothness</span> <span class="o">=</span> <span class="n">tuned_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;transition_smoothness&quot;</span><span class="p">,</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">transition_smoothness</span>
+            <span class="p">)</span>
 
         <span class="c1"># Perform HMM linearization</span>
-        <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span> <span class="o">=</span> <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">linearize_with_hmm</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hmm_linearizer</span><span class="o">.</span><span class="n">linearize_with_hmm</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Create DataFrame</span>
-        <span class="n">result_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-            <span class="s2">&quot;linear_position&quot;</span><span class="p">:</span> <span class="n">linear_positions</span><span class="p">,</span>
-            <span class="s2">&quot;track_segment_id&quot;</span><span class="p">:</span> <span class="n">track_segment_ids</span><span class="p">,</span>
-            <span class="s2">&quot;projected_x_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="s2">&quot;projected_y_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="p">})</span>
+        <span class="n">result_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;linear_position&quot;</span><span class="p">:</span> <span class="n">linear_positions</span><span class="p">,</span>
+                <span class="s2">&quot;track_segment_id&quot;</span><span class="p">:</span> <span class="n">track_segment_ids</span><span class="p">,</span>
+                <span class="s2">&quot;projected_x_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;projected_y_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
         <span class="c1"># Show confirmation plot if requested</span>
         <span class="k">if</span> <span class="n">show_confirmation_plot</span><span class="p">:</span>
             <span class="n">plot_linearization_confirmation</span><span class="p">(</span>
-                <span class="n">position</span><span class="p">,</span> <span class="n">result_df</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Linearization Confirmation (HMM)&quot;</span>
+                <span class="n">position</span><span class="p">,</span>
+                <span class="n">result_df</span><span class="p">,</span>
+                <span class="n">track_graph</span><span class="p">,</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Linearization Confirmation (HMM)&quot;</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">result_df</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Use standard linearization</span>
-        <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span> <span class="o">=</span> <span class="n">project_position_to_track</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">)</span>
+        <span class="n">linear_positions</span><span class="p">,</span> <span class="n">track_segment_ids</span><span class="p">,</span> <span class="n">projected_positions</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">project_position_to_track</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Create DataFrame</span>
-        <span class="n">result_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-            <span class="s2">&quot;linear_position&quot;</span><span class="p">:</span> <span class="n">linear_positions</span><span class="p">,</span>
-            <span class="s2">&quot;track_segment_id&quot;</span><span class="p">:</span> <span class="n">track_segment_ids</span><span class="p">,</span>
-            <span class="s2">&quot;projected_x_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="s2">&quot;projected_y_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="p">})</span>
+        <span class="n">result_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;linear_position&quot;</span><span class="p">:</span> <span class="n">linear_positions</span><span class="p">,</span>
+                <span class="s2">&quot;track_segment_id&quot;</span><span class="p">:</span> <span class="n">track_segment_ids</span><span class="p">,</span>
+                <span class="s2">&quot;projected_x_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;projected_y_position&quot;</span><span class="p">:</span> <span class="n">projected_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
         <span class="c1"># Show confirmation plot if requested</span>
         <span class="k">if</span> <span class="n">show_confirmation_plot</span><span class="p">:</span>
             <span class="n">plot_linearization_confirmation</span><span class="p">(</span>
-                <span class="n">position</span><span class="p">,</span> <span class="n">result_df</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Linearization Confirmation (Standard)&quot;</span>
+                <span class="n">position</span><span class="p">,</span>
+                <span class="n">result_df</span><span class="p">,</span>
+                <span class="n">track_graph</span><span class="p">,</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Linearization Confirmation (Standard)&quot;</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">result_df</span>
@@ -9737,36 +9875,36 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2198</span>
-<span class="normal">2199</span>
-<span class="normal">2200</span>
-<span class="normal">2201</span>
-<span class="normal">2202</span>
-<span class="normal">2203</span>
-<span class="normal">2204</span>
-<span class="normal">2205</span>
-<span class="normal">2206</span>
-<span class="normal">2207</span>
-<span class="normal">2208</span>
-<span class="normal">2209</span>
-<span class="normal">2210</span>
-<span class="normal">2211</span>
-<span class="normal">2212</span>
-<span class="normal">2213</span>
-<span class="normal">2214</span>
-<span class="normal">2215</span>
-<span class="normal">2216</span>
-<span class="normal">2217</span>
-<span class="normal">2218</span>
-<span class="normal">2219</span>
-<span class="normal">2220</span>
-<span class="normal">2221</span>
-<span class="normal">2222</span>
-<span class="normal">2223</span>
-<span class="normal">2224</span>
-<span class="normal">2225</span>
-<span class="normal">2226</span>
-<span class="normal">2227</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2245</span>
+<span class="normal">2246</span>
+<span class="normal">2247</span>
+<span class="normal">2248</span>
+<span class="normal">2249</span>
+<span class="normal">2250</span>
+<span class="normal">2251</span>
+<span class="normal">2252</span>
+<span class="normal">2253</span>
+<span class="normal">2254</span>
+<span class="normal">2255</span>
+<span class="normal">2256</span>
+<span class="normal">2257</span>
+<span class="normal">2258</span>
+<span class="normal">2259</span>
+<span class="normal">2260</span>
+<span class="normal">2261</span>
+<span class="normal">2262</span>
+<span class="normal">2263</span>
+<span class="normal">2264</span>
+<span class="normal">2265</span>
+<span class="normal">2266</span>
+<span class="normal">2267</span>
+<span class="normal">2268</span>
+<span class="normal">2269</span>
+<span class="normal">2270</span>
+<span class="normal">2271</span>
+<span class="normal">2272</span>
+<span class="normal">2273</span>
+<span class="normal">2274</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load animal behavior data from a .mat file.</span>
 
@@ -9872,26 +10010,26 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2230</span>
-<span class="normal">2231</span>
-<span class="normal">2232</span>
-<span class="normal">2233</span>
-<span class="normal">2234</span>
-<span class="normal">2235</span>
-<span class="normal">2236</span>
-<span class="normal">2237</span>
-<span class="normal">2238</span>
-<span class="normal">2239</span>
-<span class="normal">2240</span>
-<span class="normal">2241</span>
-<span class="normal">2242</span>
-<span class="normal">2243</span>
-<span class="normal">2244</span>
-<span class="normal">2245</span>
-<span class="normal">2246</span>
-<span class="normal">2247</span>
-<span class="normal">2248</span>
-<span class="normal">2249</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2277</span>
+<span class="normal">2278</span>
+<span class="normal">2279</span>
+<span class="normal">2280</span>
+<span class="normal">2281</span>
+<span class="normal">2282</span>
+<span class="normal">2283</span>
+<span class="normal">2284</span>
+<span class="normal">2285</span>
+<span class="normal">2286</span>
+<span class="normal">2287</span>
+<span class="normal">2288</span>
+<span class="normal">2289</span>
+<span class="normal">2290</span>
+<span class="normal">2291</span>
+<span class="normal">2292</span>
+<span class="normal">2293</span>
+<span class="normal">2294</span>
+<span class="normal">2295</span>
+<span class="normal">2296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load epoch info from cell explorer basename.session and store in a DataFrame.</span>
 
@@ -10003,23 +10141,27 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1739</span>
-<span class="normal">1740</span>
-<span class="normal">1741</span>
-<span class="normal">1742</span>
-<span class="normal">1743</span>
-<span class="normal">1744</span>
-<span class="normal">1745</span>
-<span class="normal">1746</span>
-<span class="normal">1747</span>
-<span class="normal">1748</span>
-<span class="normal">1749</span>
-<span class="normal">1750</span>
-<span class="normal">1751</span>
-<span class="normal">1752</span>
-<span class="normal">1753</span>
-<span class="normal">1754</span>
-<span class="normal">1755</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_track_graph</span><span class="p">(</span><span class="n">node_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">TrackGraph</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1762</span>
+<span class="normal">1763</span>
+<span class="normal">1764</span>
+<span class="normal">1765</span>
+<span class="normal">1766</span>
+<span class="normal">1767</span>
+<span class="normal">1768</span>
+<span class="normal">1769</span>
+<span class="normal">1770</span>
+<span class="normal">1771</span>
+<span class="normal">1772</span>
+<span class="normal">1773</span>
+<span class="normal">1774</span>
+<span class="normal">1775</span>
+<span class="normal">1776</span>
+<span class="normal">1777</span>
+<span class="normal">1778</span>
+<span class="normal">1779</span>
+<span class="normal">1780</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_track_graph</span><span class="p">(</span>
+    <span class="n">node_positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrackGraph</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a track graph from node positions and edges.</span>
 
@@ -10153,12 +10295,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1387</span>
-<span class="normal">1388</span>
-<span class="normal">1389</span>
-<span class="normal">1390</span>
-<span class="normal">1391</span>
-<span class="normal">1392</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1392</span>
 <span class="normal">1393</span>
 <span class="normal">1394</span>
 <span class="normal">1395</span>
@@ -10366,8 +10503,9 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1597</span>
 <span class="normal">1598</span>
 <span class="normal">1599</span>
-<span class="normal">1600</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_linearization_confirmation</span><span class="p">(</span>
-    <span class="n">original_positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="normal">1600</span>
+<span class="normal">1601</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot_linearization_confirmation</span><span class="p">(</span>
+    <span class="n">original_positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">linearized_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span><span class="p">,</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Linearization Confirmation&quot;</span><span class="p">,</span>
@@ -10395,7 +10533,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
     <span class="c1"># Create color map for segments</span>
     <span class="n">unique_segments</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;track_segment_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_segments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">colors</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_segments</span><span class="p">)))</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;tab10&quot;</span><span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_segments</span><span class="p">)))</span>
         <span class="n">segment_colors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">unique_segments</span><span class="p">,</span> <span class="n">colors</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">segment_colors</span> <span class="o">=</span> <span class="p">{}</span>
@@ -10427,7 +10565,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
                 <span class="n">original_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
                 <span class="n">original_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span> 
+                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span>
                 <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
             <span class="p">)</span>
@@ -10435,16 +10573,14 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
         <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
             <span class="n">original_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
             <span class="n">original_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span> 
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span>
             <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># Plot track graph nodes and edges with color coding</span>
     <span class="n">node_positions</span> <span class="o">=</span> <span class="n">track_graph</span><span class="o">.</span><span class="n">node_positions</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
-        <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span>
-    <span class="p">)</span> 
+    <span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 
     <span class="c1"># Draw edges with color coding</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">track_graph</span><span class="o">.</span><span class="n">edges</span><span class="p">):</span>
@@ -10484,7 +10620,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
             <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
                 <span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;projected_x_position&quot;</span><span class="p">],</span>
                 <span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;projected_y_position&quot;</span><span class="p">],</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span> 
+                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span>
                 <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
             <span class="p">)</span>
@@ -10492,15 +10628,13 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
         <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
             <span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;projected_x_position&quot;</span><span class="p">],</span>
             <span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;projected_y_position&quot;</span><span class="p">],</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span> 
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span>
             <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># Plot track graph nodes and edges with color coding</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
-        <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span>
-    <span class="p">)</span> 
+    <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">node_positions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 
     <span class="c1"># Draw edges with color coding</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">track_graph</span><span class="o">.</span><span class="n">edges</span><span class="p">):</span>
@@ -10540,7 +10674,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
                     <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
                         <span class="n">segment_times</span><span class="p">,</span>
                         <span class="n">segment_positions</span><span class="p">,</span>
-                        <span class="n">color</span><span class="o">=</span><span class="n">segment_color</span><span class="p">,</span> 
+                        <span class="n">color</span><span class="o">=</span><span class="n">segment_color</span><span class="p">,</span>
                         <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                         <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
                     <span class="p">)</span>
@@ -10548,7 +10682,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
         <span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
             <span class="n">time_points</span><span class="p">,</span>
             <span class="n">linearized_df</span><span class="p">[</span><span class="s2">&quot;linear_position&quot;</span><span class="p">],</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span> 
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
             <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
         <span class="p">)</span>
@@ -10692,12 +10826,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1304</span>
-<span class="normal">1305</span>
-<span class="normal">1306</span>
-<span class="normal">1307</span>
-<span class="normal">1308</span>
-<span class="normal">1309</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1309</span>
 <span class="normal">1310</span>
 <span class="normal">1311</span>
 <span class="normal">1312</span>
@@ -10772,9 +10901,14 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 <span class="normal">1381</span>
 <span class="normal">1382</span>
 <span class="normal">1383</span>
-<span class="normal">1384</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">project_position_to_track</span><span class="p">(</span>
-    <span class="n">position</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="normal">1384</span>
+<span class="normal">1385</span>
+<span class="normal">1386</span>
+<span class="normal">1387</span>
+<span class="normal">1388</span>
+<span class="normal">1389</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">project_position_to_track</span><span class="p">(</span>
+    <span class="n">position</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">track_graph</span><span class="p">:</span> <span class="n">TrackGraph</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Project 2D positions onto the track graph.</span>
 
@@ -10961,60 +11095,60 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/linearization.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2252</span>
-<span class="normal">2253</span>
-<span class="normal">2254</span>
-<span class="normal">2255</span>
-<span class="normal">2256</span>
-<span class="normal">2257</span>
-<span class="normal">2258</span>
-<span class="normal">2259</span>
-<span class="normal">2260</span>
-<span class="normal">2261</span>
-<span class="normal">2262</span>
-<span class="normal">2263</span>
-<span class="normal">2264</span>
-<span class="normal">2265</span>
-<span class="normal">2266</span>
-<span class="normal">2267</span>
-<span class="normal">2268</span>
-<span class="normal">2269</span>
-<span class="normal">2270</span>
-<span class="normal">2271</span>
-<span class="normal">2272</span>
-<span class="normal">2273</span>
-<span class="normal">2274</span>
-<span class="normal">2275</span>
-<span class="normal">2276</span>
-<span class="normal">2277</span>
-<span class="normal">2278</span>
-<span class="normal">2279</span>
-<span class="normal">2280</span>
-<span class="normal">2281</span>
-<span class="normal">2282</span>
-<span class="normal">2283</span>
-<span class="normal">2284</span>
-<span class="normal">2285</span>
-<span class="normal">2286</span>
-<span class="normal">2287</span>
-<span class="normal">2288</span>
-<span class="normal">2289</span>
-<span class="normal">2290</span>
-<span class="normal">2291</span>
-<span class="normal">2292</span>
-<span class="normal">2293</span>
-<span class="normal">2294</span>
-<span class="normal">2295</span>
-<span class="normal">2296</span>
-<span class="normal">2297</span>
-<span class="normal">2298</span>
-<span class="normal">2299</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2299</span>
 <span class="normal">2300</span>
 <span class="normal">2301</span>
 <span class="normal">2302</span>
 <span class="normal">2303</span>
 <span class="normal">2304</span>
-<span class="normal">2305</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
+<span class="normal">2305</span>
+<span class="normal">2306</span>
+<span class="normal">2307</span>
+<span class="normal">2308</span>
+<span class="normal">2309</span>
+<span class="normal">2310</span>
+<span class="normal">2311</span>
+<span class="normal">2312</span>
+<span class="normal">2313</span>
+<span class="normal">2314</span>
+<span class="normal">2315</span>
+<span class="normal">2316</span>
+<span class="normal">2317</span>
+<span class="normal">2318</span>
+<span class="normal">2319</span>
+<span class="normal">2320</span>
+<span class="normal">2321</span>
+<span class="normal">2322</span>
+<span class="normal">2323</span>
+<span class="normal">2324</span>
+<span class="normal">2325</span>
+<span class="normal">2326</span>
+<span class="normal">2327</span>
+<span class="normal">2328</span>
+<span class="normal">2329</span>
+<span class="normal">2330</span>
+<span class="normal">2331</span>
+<span class="normal">2332</span>
+<span class="normal">2333</span>
+<span class="normal">2334</span>
+<span class="normal">2335</span>
+<span class="normal">2336</span>
+<span class="normal">2337</span>
+<span class="normal">2338</span>
+<span class="normal">2339</span>
+<span class="normal">2340</span>
+<span class="normal">2341</span>
+<span class="normal">2342</span>
+<span class="normal">2343</span>
+<span class="normal">2344</span>
+<span class="normal">2345</span>
+<span class="normal">2346</span>
+<span class="normal">2347</span>
+<span class="normal">2348</span>
+<span class="normal">2349</span>
+<span class="normal">2350</span>
+<span class="normal">2351</span>
+<span class="normal">2352</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">epoch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -11188,7 +11322,7 @@ Nodes and edges are stored within behavior.epochs{n}.{node_positions and edges}<
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       

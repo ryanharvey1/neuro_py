@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -4085,7 +4085,10 @@ Default is 6.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/get_trials.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">329</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
 <span class="normal">330</span>
 <span class="normal">331</span>
 <span class="normal">332</span>
@@ -4197,10 +4200,7 @@ Default is 6.</p>
 <span class="normal">438</span>
 <span class="normal">439</span>
 <span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_cheeseboard_trials</span><span class="p">(</span>
+<span class="normal">441</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_cheeseboard_trials</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">min_distance_from_home</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
     <span class="n">max_trial_time</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span>  <span class="c1"># Default is 60 * 10</span>
@@ -4435,91 +4435,91 @@ outputs.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/get_trials.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span>
-<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linear_maze_trials</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_linear_maze_trials</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epoch_input</span><span class="p">:</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
     <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
@@ -4875,7 +4875,10 @@ from the specified base path.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/get_trials.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">447</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
 <span class="normal">448</span>
 <span class="normal">449</span>
 <span class="normal">450</span>
@@ -5106,7 +5109,10 @@ from the specified base path.</p>
 <span class="normal">675</span>
 <span class="normal">676</span>
 <span class="normal">677</span>
-<span class="normal">678</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_openfield_trials</span><span class="p">(</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_openfield_trials</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">epoch_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;epochs&quot;</span><span class="p">,</span>
     <span class="n">spatial_binsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
@@ -5184,8 +5190,8 @@ from the specified base path.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">compute_occupancy_2d</span><span class="p">(</span>
-        <span class="n">pos_run</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">:</span> <span class="nb">list</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">pos_run</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">y_edges</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute occupancy of 2D position</span>
 
 <span class="sd">        Parameters</span>
@@ -5219,6 +5225,9 @@ from the specified base path.</p>
         <span class="k">return</span> <span class="n">pos</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">([],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;session_epochs&quot;</span><span class="p">)</span>
 
     <span class="c1"># load epochs and place in array</span>
+    <span class="n">epoch_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">openfield_idx</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="n">trialsID</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
     <span class="k">if</span> <span class="n">epoch_type</span> <span class="o">==</span> <span class="s2">&quot;trials&quot;</span><span class="p">:</span>
         <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_trials</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
         <span class="n">openfield_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
@@ -5229,13 +5238,14 @@ from the specified base path.</p>
         <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
         <span class="c1"># find epochs that are these environments</span>
         <span class="n">openfield_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">epoch_df</span><span class="o">.</span><span class="n">environment</span><span class="p">,</span> <span class="n">environments</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;epoch_type must be &#39;trials&#39; or &#39;epochs&#39;&quot;</span><span class="p">)</span>
 
     <span class="n">epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">epoch_df</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span> <span class="n">epoch_df</span><span class="o">.</span><span class="n">stopTime</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">])</span>
 
     <span class="c1"># find epochs that are these environments</span>
-    <span class="n">trials</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">epoch_type</span> <span class="o">==</span> <span class="s2">&quot;trials&quot;</span><span class="p">:</span>
-        <span class="n">trial_ID</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">trial_intervals</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">trial_ID</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="c1"># loop through epochs</span>
     <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">openfield_idx</span><span class="p">:</span>
@@ -5267,6 +5277,7 @@ from the specified base path.</p>
         <span class="c1"># these will be iterated over to find trials that are sampled enough</span>
         <span class="n">duration</span> <span class="o">=</span> <span class="n">epoch_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">stopTime</span> <span class="o">-</span> <span class="n">epoch_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">startTime</span>
 
+        <span class="n">bins</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">bin_method</span> <span class="o">==</span> <span class="s2">&quot;dynamic&quot;</span><span class="p">:</span>
             <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
                 <span class="n">epoch_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">startTime</span><span class="p">,</span>
@@ -5279,9 +5290,10 @@ from the specified base path.</p>
                 <span class="n">epoch_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">stopTime</span><span class="p">,</span>
                 <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">epoch</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span><span class="o">.</span><span class="n">duration</span> <span class="o">/</span> <span class="n">n_time_bins</span><span class="p">)),</span>
             <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bin_method must be &#39;dynamic&#39; or &#39;fixed&#39;&quot;</span><span class="p">)</span>
         <span class="n">trials_temp</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">epoch_type</span> <span class="o">==</span> <span class="s2">&quot;trials&quot;</span><span class="p">:</span>
-            <span class="n">temp_ID</span> <span class="o">=</span> <span class="n">trialsID</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">temp_ID</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">trialsID</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="k">if</span> <span class="n">epoch_type</span> <span class="o">==</span> <span class="s2">&quot;trials&quot;</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
 
         <span class="n">trial_i</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="c1"># loop through possible trials and find when sampled enough</span>
@@ -5302,7 +5314,7 @@ from the specified base path.</p>
 
                 <span class="c1"># if sampled enough, add to trials</span>
                 <span class="k">if</span> <span class="n">r</span> <span class="o">&gt;</span> <span class="n">minimum_correlation</span><span class="p">:</span>
-                    <span class="n">trials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">trial_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="p">[</span>
                             <span class="n">trials_temp</span><span class="p">[</span><span class="n">trial_i</span> <span class="p">:</span> <span class="n">i_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
                             <span class="n">trials_temp</span><span class="p">[</span><span class="n">trial_i</span> <span class="p">:</span> <span class="n">i_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span>
@@ -5318,7 +5330,7 @@ from the specified base path.</p>
                     <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">trial_prop_sampled</span> <span class="o">&gt;</span> <span class="n">prop_trial_sampled</span> <span class="o">*</span> <span class="n">overall_prop_sampled</span><span class="p">:</span>
-                    <span class="n">trials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">trial_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="p">[</span>
                             <span class="n">trials_temp</span><span class="p">[</span><span class="n">trial_i</span> <span class="p">:</span> <span class="n">i_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
                             <span class="n">trials_temp</span><span class="p">[</span><span class="n">trial_i</span> <span class="p">:</span> <span class="n">i_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span>
@@ -5333,9 +5345,9 @@ from the specified base path.</p>
 
     <span class="c1"># concatenate trials and place in EpochArray</span>
     <span class="k">if</span> <span class="n">epoch_type</span> <span class="o">==</span> <span class="s2">&quot;trials&quot;</span><span class="p">:</span>
-        <span class="n">trials</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trials</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trial_ID</span><span class="p">))</span>
+        <span class="n">trials</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trial_intervals</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trial_ID</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">trials</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trials</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;session_epochs&quot;</span><span class="p">)</span>
+        <span class="n">trials</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">trial_intervals</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;session_epochs&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pos</span><span class="p">,</span> <span class="n">trials</span>
 </code></pre></div></td></tr></table></div>
@@ -5498,9 +5510,7 @@ for all outputs.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/get_trials.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">104</span>
 <span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
@@ -5608,7 +5618,9 @@ for all outputs.</p>
 <span class="normal">209</span>
 <span class="normal">210</span>
 <span class="normal">211</span>
-<span class="normal">212</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_t_maze_trials</span><span class="p">(</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_t_maze_trials</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">bypass_standard_behavior</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
     <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
@@ -5815,7 +5827,7 @@ based on specified distance criteria.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>pos</code></td>            <td>
-                  <code><span title="PositionArray">PositionArray</span> or None</code>
+                  <code><span title="nelpy.PositionArray">PositionArray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5824,32 +5836,12 @@ based on specified distance criteria.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-<td><code>trials</code></td>            <td>
-                  <code><span title="ndarray">ndarray</span> or None</code>
+<td><code>trajectories</code></td>            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="nelpy.EpochArray">EpochArray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The indices of the trials.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-<td><code>right_trials</code></td>            <td>
-                  <code><span title="ndarray">ndarray</span> or None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The indices of the right trials.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-<td><code>left_trials</code></td>            <td>
-                  <code><span title="ndarray">ndarray</span> or None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The indices of the left trials.</p>
+                <p>Trial epochs keyed by trajectory label.</p>
               </div>
             </td>
           </tr>
@@ -5868,9 +5860,7 @@ based on specified distance criteria.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/behavior/get_trials.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
 <span class="normal">220</span>
@@ -5976,16 +5966,11 @@ based on specified distance criteria.</p>
 <span class="normal">320</span>
 <span class="normal">321</span>
 <span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_w_maze_trials</span><span class="p">(</span>
+<span class="normal">323</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_w_maze_trials</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_distance_from_well</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">min_distance_traveled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
-    <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-    <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-    <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-    <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">,</span>
+    <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">],</span>
 <span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get trials for W maze.</span>
@@ -6004,14 +5989,10 @@ based on specified distance criteria.</p>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    pos : PositionArray or None</span>
+<span class="sd">    pos : nelpy.PositionArray</span>
 <span class="sd">        The position data for the W maze trials.</span>
-<span class="sd">    trials : ndarray or None</span>
-<span class="sd">        The indices of the trials.</span>
-<span class="sd">    right_trials : ndarray or None</span>
-<span class="sd">        The indices of the right trials.</span>
-<span class="sd">    left_trials : ndarray or None</span>
-<span class="sd">        The indices of the left trials.</span>
+<span class="sd">    trajectories : dict[str, nelpy.EpochArray]</span>
+<span class="sd">        Trial epochs keyed by trajectory label.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
@@ -6032,6 +6013,7 @@ based on specified distance criteria.</p>
     <span class="n">epoch_df</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_epoch</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
 
     <span class="c1"># load position and place in array</span>
+    <span class="n">trajectories</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">position_df</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_animal_behavior</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
     <span class="n">position_df_no_nan</span> <span class="o">=</span> <span class="n">position_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;not x.isnull() &amp; not y.isnull()&quot;</span><span class="p">)</span>
 
@@ -6082,7 +6064,7 @@ based on specified distance criteria.</p>
             <span class="s2">&quot;center_right&quot;</span><span class="p">,</span>
             <span class="s2">&quot;right_center&quot;</span><span class="p">,</span>
         <span class="p">]</span>
-        <span class="n">trajectories</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">trajectories</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">con</span><span class="p">,</span> <span class="n">con_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">conditions</span><span class="p">,</span> <span class="n">condition_labels</span><span class="p">):</span>
             <span class="n">trajectories</span><span class="p">[</span><span class="n">con_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -6211,7 +6193,7 @@ based on specified distance criteria.</p>
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       

@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.46">
+      <meta name="generator" content="zensical-0.0.50">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.19d3147f.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -3892,6 +3892,22 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>t</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The timestamps corresponding to the LFP signal. Required if <code>lfp</code> is a numpy array. If <code>lfp</code> is a <code>nel.AnalogSignalArray</code>, this parameter is ignored.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>thresholds</code>
             </td>
             <td>
@@ -3985,8 +4001,7 @@ representing the intervals of artefacts and noise.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/preprocessing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  9</span>
-<span class="normal"> 10</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 10</span>
 <span class="normal"> 11</span>
 <span class="normal"> 12</span>
 <span class="normal"> 13</span>
@@ -4079,13 +4094,16 @@ representing the intervals of artefacts and noise.</p>
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clean_lfp</span><span class="p">(</span>
-    <span class="n">lfp</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
-    <span class="n">t</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clean_lfp</span><span class="p">(</span>
+    <span class="n">lfp</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+    <span class="n">t</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">thresholds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
     <span class="n">artifact_time_expand</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
     <span class="n">return_bad_intervals</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove artefacts and noise from a local field potential (LFP) signal.</span>
 
@@ -4093,6 +4111,8 @@ representing the intervals of artefacts and noise.</p>
 <span class="sd">    ----------</span>
 <span class="sd">    lfp : nel.AnalogSignalArray</span>
 <span class="sd">        The LFP signal to be cleaned. Single signal only.</span>
+<span class="sd">    t : np.ndarray, optional</span>
+<span class="sd">        The timestamps corresponding to the LFP signal. Required if `lfp` is a numpy array. If `lfp` is a `nel.AnalogSignalArray`, this parameter is ignored.</span>
 <span class="sd">    thresholds : tuple of float, optional</span>
 <span class="sd">        A tuple of two thresholds for detecting artefacts and noise. The first threshold is used to detect large global</span>
 <span class="sd">        artefacts by finding values in the z-scored LFP signal that deviate by more than the threshold number of sigmas</span>
@@ -4145,7 +4165,7 @@ representing the intervals of artefacts and noise.</p>
 
     <span class="c1"># Detect large global artefacts [0]</span>
     <span class="n">artefactInterval</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intervals</span><span class="o">.</span><span class="n">find_interval</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intervals</span><span class="o">.</span><span class="n">find_interval</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="n">artefactInterval</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">artefactInterval</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">artefactInterval</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
@@ -4153,7 +4173,7 @@ representing the intervals of artefacts and noise.</p>
 
     <span class="c1"># Find noise using the derivative of the z-scored signal [1]</span>
     <span class="n">noisyInterval</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intervals</span><span class="o">.</span><span class="n">find_interval</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intervals</span><span class="o">.</span><span class="n">find_interval</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold2</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="n">noisyInterval</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">noisyInterval</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">noisyInterval</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
@@ -4166,7 +4186,7 @@ representing the intervals of artefacts and noise.</p>
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="c1"># Find timestamps within intervals for artefacts and noise</span>
-    <span class="n">in_interval</span> <span class="o">=</span> <span class="n">intervals</span><span class="o">.</span><span class="n">in_intervals</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">bad</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">in_interval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">intervals</span><span class="o">.</span><span class="n">in_intervals</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">bad</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
     <span class="c1"># Interpolate values for timestamps within intervals for artefacts and noise</span>
     <span class="n">values</span><span class="p">[</span><span class="n">in_interval</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
@@ -4534,25 +4554,7 @@ representing the intervals of artefacts and noise.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/spectral.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">291</span>
-<span class="normal">292</span>
-<span class="normal">293</span>
-<span class="normal">294</span>
-<span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
-<span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">309</span>
 <span class="normal">310</span>
 <span class="normal">311</span>
 <span class="normal">312</span>
@@ -4730,10 +4732,28 @@ representing the intervals of artefacts and noise.</p>
 <span class="normal">484</span>
 <span class="normal">485</span>
 <span class="normal">486</span>
-<span class="normal">487</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_wavelet</span><span class="p">(</span>
-    <span class="n">signal</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">timestamps</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">events</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_wavelet</span><span class="p">(</span>
+    <span class="n">signal</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">timestamps</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">max_lag</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">freq_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
     <span class="n">freq_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
@@ -4745,7 +4765,7 @@ representing the intervals of artefacts and noise.</p>
     <span class="n">fs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
-    <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
     <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span>
 <span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5150,8 +5170,7 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/spectral.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 13</span>
-<span class="normal"> 14</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 14</span>
 <span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -5297,17 +5316,34 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span>
-<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_signal</span><span class="p">(</span>
-    <span class="n">sig</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_signal</span><span class="p">(</span>
+    <span class="n">sig</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">pass_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">f_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+    <span class="n">f_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
     <span class="n">filter_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;fir&quot;</span><span class="p">,</span>
     <span class="n">n_cycles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
     <span class="n">n_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">butterworth_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
     <span class="n">remove_edges</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Filter a neural signal using an FIR or IIR filter.</span>
 
@@ -5374,9 +5410,21 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
                 <span class="s2">&quot;`f_range` must be a tuple for &#39;bandpass&#39; or &#39;bandstop&#39; filters.&quot;</span>
             <span class="p">)</span>
 
+    <span class="n">low_cutoff</span><span class="p">,</span> <span class="n">high_cutoff</span> <span class="o">=</span> <span class="n">f_range</span>
+    <span class="k">if</span> <span class="n">low_cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">high_cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one cutoff frequency must be specified.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;lowpass&quot;</span> <span class="ow">and</span> <span class="n">high_cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A high cutoff frequency must be specified for &#39;lowpass&#39;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;highpass&quot;</span> <span class="ow">and</span> <span class="n">low_cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A low cutoff frequency must be specified for &#39;highpass&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="n">low_cutoff_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">low_cutoff</span><span class="p">)</span> <span class="k">if</span> <span class="n">low_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">0.0</span>
+    <span class="n">high_cutoff_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">high_cutoff</span><span class="p">)</span> <span class="k">if</span> <span class="n">high_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">0.0</span>
+
     <span class="c1"># Validate bandpass/bandstop filters</span>
     <span class="k">if</span> <span class="n">pass_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span> <span class="s2">&quot;bandstop&quot;</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f_range</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">low_cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">high_cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Both frequencies must be specified for &#39;bandpass&#39; and &#39;bandstop&#39; filters.&quot;</span>
             <span class="p">)</span>
@@ -5385,15 +5433,17 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
     <span class="n">nyquist</span> <span class="o">=</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">2</span>
 
     <span class="c1"># FIR filter implementation</span>
+    <span class="n">kernel_len</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">fir_coefs</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
     <span class="k">if</span> <span class="n">filter_type</span> <span class="o">==</span> <span class="s2">&quot;fir&quot;</span><span class="p">:</span>
         <span class="c1"># Compute filter kernel length</span>
         <span class="k">if</span> <span class="n">n_seconds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">kernel_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_seconds</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kernel_len</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="nb">int</span><span class="p">((</span><span class="n">n_cycles</span> <span class="o">/</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="k">else</span> <span class="nb">int</span><span class="p">((</span><span class="n">n_cycles</span> <span class="o">/</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
+                <span class="nb">int</span><span class="p">((</span><span class="n">n_cycles</span> <span class="o">/</span> <span class="n">low_cutoff_value</span><span class="p">)</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">low_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="nb">int</span><span class="p">((</span><span class="n">n_cycles</span> <span class="o">/</span> <span class="n">high_cutoff_value</span><span class="p">)</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">kernel_len</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">kernel_len</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># Ensure kernel length is odd</span>
@@ -5402,13 +5452,13 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
         <span class="k">if</span> <span class="n">pass_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span> <span class="s2">&quot;bandstop&quot;</span><span class="p">]:</span>
             <span class="n">fir_coefs</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span>
                 <span class="n">kernel_len</span><span class="p">,</span>
-                <span class="p">[</span><span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">low_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">high_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">],</span>
                 <span class="n">pass_zero</span><span class="o">=</span><span class="p">(</span><span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;bandstop&quot;</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;lowpass&quot;</span><span class="p">:</span>
-            <span class="n">fir_coefs</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span><span class="n">kernel_len</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">pass_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">fir_coefs</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span><span class="n">kernel_len</span><span class="p">,</span> <span class="n">high_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">pass_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;highpass&quot;</span><span class="p">:</span>
-            <span class="n">fir_coefs</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span><span class="n">kernel_len</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">pass_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">fir_coefs</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span><span class="n">kernel_len</span><span class="p">,</span> <span class="n">low_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">pass_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="c1"># Apply the FIR filter</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -5420,17 +5470,19 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 
     <span class="c1"># IIR filter implementation</span>
     <span class="k">elif</span> <span class="n">filter_type</span> <span class="o">==</span> <span class="s2">&quot;iir&quot;</span><span class="p">:</span>
+        <span class="n">b</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">a</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
         <span class="c1"># Design a Butterworth filter</span>
         <span class="k">if</span> <span class="n">pass_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;bandpass&quot;</span><span class="p">,</span> <span class="s2">&quot;bandstop&quot;</span><span class="p">]:</span>
             <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span>
                 <span class="n">butterworth_order</span><span class="p">,</span>
-                <span class="p">[</span><span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">low_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">high_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">],</span>
                 <span class="n">btype</span><span class="o">=</span><span class="n">pass_type</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;lowpass&quot;</span><span class="p">:</span>
-            <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">butterworth_order</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">)</span>
+            <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">butterworth_order</span><span class="p">,</span> <span class="n">high_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">pass_type</span> <span class="o">==</span> <span class="s2">&quot;highpass&quot;</span><span class="p">:</span>
-            <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">butterworth_order</span><span class="p">,</span> <span class="n">f_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;high&quot;</span><span class="p">)</span>
+            <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">butterworth_order</span><span class="p">,</span> <span class="n">low_cutoff_value</span> <span class="o">/</span> <span class="n">nyquist</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s2">&quot;high&quot;</span><span class="p">)</span>
 
         <span class="c1"># Apply the IIR filter</span>
         <span class="n">sig_filt</span> <span class="o">=</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
@@ -5537,11 +5589,7 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/CSD.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
 <span class="normal">18</span>
@@ -5567,7 +5615,11 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 <span class="normal">38</span>
 <span class="normal">39</span>
 <span class="normal">40</span>
-<span class="normal">41</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the coordinates of the channels from the probe layout.</span>
 
@@ -5583,10 +5635,10 @@ For 'bandpass' and 'bandstop', a tuple specifying (f_low, f_high) is required.</
 <span class="sd">    np.ndarray</span>
 <span class="sd">        Coordinates of the channels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">quantities</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pq</span>
+    <span class="n">pq</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;quantities&quot;</span><span class="p">)</span>
 
     <span class="c1"># load the probe layout</span>
-    <span class="n">probe_layout</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="n">probe_layout</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">))</span>
 
     <span class="c1"># get the coordinates of the channels</span>
     <span class="n">coords</span> <span class="o">=</span> <span class="n">probe_layout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">shank</span> <span class="o">==</span> <span class="n">probe_layout</span><span class="o">.</span><span class="n">shank</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -5749,11 +5801,7 @@ http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/CSD.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 44</span>
-<span class="normal"> 45</span>
-<span class="normal"> 46</span>
-<span class="normal"> 47</span>
-<span class="normal"> 48</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 48</span>
 <span class="normal"> 49</span>
 <span class="normal"> 50</span>
 <span class="normal"> 51</span>
@@ -5833,9 +5881,25 @@ http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.</p>
 <span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
-<span class="normal">128</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_csd</span><span class="p">(</span>
-    <span class="n">basepath</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">shank</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">1250</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="mf">0.015</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span> <span class="n">channel_offset</span><span class="o">=</span><span class="mf">0.046</span>
-<span class="p">):</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_csd</span><span class="p">(</span>
+    <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1250</span><span class="p">,</span>
+    <span class="n">diam</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.015</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;StandardCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;KD1CSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span>
+    <span class="n">channel_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.046</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    compute the CSD for a given basepath and data using elephant estimate_csd.</span>
 
@@ -5869,9 +5933,9 @@ http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.</p>
 <span class="sd">    get_coords, estimate_csd (Elephant), neo, quantities</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">quantities</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pq</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">elephant.current_source_density</span><span class="w"> </span><span class="kn">import</span> <span class="n">estimate_csd</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">neo</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalogSignal</span>
+    <span class="n">pq</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;quantities&quot;</span><span class="p">)</span>
+    <span class="n">estimate_csd</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;elephant.current_source_density&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">estimate_csd</span>
+    <span class="n">AnalogSignal</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;neo&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">AnalogSignal</span>
 
     <span class="n">coords</span> <span class="o">=</span> <span class="n">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">shank</span><span class="o">=</span><span class="n">shank</span><span class="p">)</span>
 
@@ -6011,8 +6075,7 @@ If not found or all channels are bad, returns None.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/theta_cycles.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
-<span class="normal">16</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
 <span class="normal">17</span>
 <span class="normal">18</span>
 <span class="normal">19</span>
@@ -6068,7 +6131,10 @@ If not found or all channels are bad, returns None.</p>
 <span class="normal">69</span>
 <span class="normal">70</span>
 <span class="normal">71</span>
-<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_theta_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CA1so&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_theta_channel</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CA1so&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the theta channel for the specified brain region. First looks in channel_tags, then in brain regions.</span>
 <span class="sd">    If not found or all channels are bad, returns None.</span>
@@ -6087,6 +6153,8 @@ If not found or all channels are bad, returns None.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">brain_region</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_brain_regions</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
     <span class="n">channel_tags</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">brain_region</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
 
     <span class="c1"># First, check in channel_tags</span>
     <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">channel_tags</span><span class="p">:</span>
@@ -6136,7 +6204,7 @@ If not found or all channels are bad, returns None.</p>
 
 
 <h2 id="neuro_py.lfp.get_theta_cycles" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_theta_cycles</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">theta_freq</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">lowpass</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">detection_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;CA1so&#39;</span><span class="p">,</span> <span class="s1">&#39;CA1sp&#39;</span><span class="p">])</span></code>
+            <code class="highlight language-python"><span class="n">get_theta_cycles</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">theta_freq</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">lowpass</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">detection_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;CA1so&#39;</span><span class="p">,</span> <span class="s1">&#39;CA1sp&#39;</span><span class="p">))</span></code>
 
 <a href="#neuro_py.lfp.get_theta_cycles" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -6251,7 +6319,7 @@ The function will first try to find the channel using the first tag, then the se
               </div>
             </td>
             <td>
-                  <code>[&#39;CA1so&#39;, &#39;CA1sp&#39;]</code>
+                  <code>(&#39;CA1so&#39;, &#39;CA1sp&#39;)</code>
             </td>
           </tr>
       </tbody>
@@ -6283,13 +6351,7 @@ The function will first try to find the channel using the first tag, then the se
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/theta_cycles.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">222</span>
 <span class="normal">223</span>
 <span class="normal">224</span>
 <span class="normal">225</span>
@@ -6350,14 +6412,20 @@ The function will first try to find the channel using the first tag, then the se
 <span class="normal">280</span>
 <span class="normal">281</span>
 <span class="normal">282</span>
-<span class="normal">283</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_theta_cycles</span><span class="p">(</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_theta_cycles</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">theta_freq</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
     <span class="n">lowpass</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">48</span><span class="p">,</span>
-    <span class="n">detection_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">detection_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CA1so&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sp&quot;</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+    <span class="n">tag</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;CA1so&quot;</span><span class="p">,</span> <span class="s2">&quot;CA1sp&quot;</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Detect theta cycles in LFP data and save the results.</span>
 
@@ -6494,26 +6562,29 @@ The function will first try to find the channel using the first tag, then the se
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/theta_cycles.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_lfp</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_lfp</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process and load Local Field Potential (LFP) data.</span>
 
@@ -6527,7 +6598,10 @@ The function will first try to find the channel using the first tag, then the se
 <span class="sd">    tuple</span>
 <span class="sd">        A tuple containing the LFP data, timestamps, and sampling frequency.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="n">xml_data</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadXML</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">xml_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not load XML metadata from </span><span class="si">{</span><span class="n">basepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">nChannels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xml_data</span>
 
     <span class="n">lfp</span><span class="p">,</span> <span class="n">ts</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadLFP</span><span class="p">(</span>
         <span class="n">basepath</span><span class="p">,</span> <span class="n">n_channels</span><span class="o">=</span><span class="n">nChannels</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="n">fs</span>
@@ -6682,13 +6756,7 @@ The function will first try to find the channel using the first tag, then the se
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/theta_cycles.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">140</span>
 <span class="normal">141</span>
 <span class="normal">142</span>
 <span class="normal">143</span>
@@ -6761,11 +6829,17 @@ The function will first try to find the channel using the first tag, then the se
 <span class="normal">210</span>
 <span class="normal">211</span>
 <span class="normal">212</span>
-<span class="normal">213</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_theta_cycles</span><span class="p">(</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_theta_cycles</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-    <span class="n">ts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">ts</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">detection_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">detection_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">ch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;thetacycles&quot;</span><span class="p">,</span>
     <span class="n">detection_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -6793,7 +6867,7 @@ The function will first try to find the channel using the first tag, then the se
     <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">event_name</span> <span class="o">+</span> <span class="s2">&quot;.events.mat&quot;</span>
     <span class="p">)</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">data</span><span class="p">[</span><span class="n">event_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="c1"># create variables that will be saved</span>
@@ -6935,24 +7009,7 @@ and using the model to remove temporal correlations, resulting in a 'whitened' s
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/spectral.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
-<span class="normal">280</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">280</span>
 <span class="normal">281</span>
 <span class="normal">282</span>
 <span class="normal">283</span>
@@ -6960,7 +7017,25 @@ and using the model to remove temporal correlations, resulting in a 'whitened' s
 <span class="normal">285</span>
 <span class="normal">286</span>
 <span class="normal">287</span>
-<span class="normal">288</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">whiten_lfp</span><span class="p">(</span><span class="n">lfp</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">whiten_lfp</span><span class="p">(</span><span class="n">lfp</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Perform temporal whitening of Local Field Potential (LFP) data using an Autoregressive (AR) model.</span>
 
@@ -6980,7 +7055,8 @@ and using the model to remove temporal correlations, resulting in a 'whitened' s
 <span class="sd">        The temporally whitened LFP data as a 1D numpy array.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">rho</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">yule_walker</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+    <span class="n">yule_walker_result</span> <span class="o">=</span> <span class="n">yule_walker</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">yule_walker_result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">1.0</span><span class="p">],</span> <span class="o">-</span><span class="n">rho</span><span class="p">))</span>
 
@@ -7106,7 +7182,7 @@ and using the model to remove temporal correlations, resulting in a 'whitened' s
       <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.ee611ef6.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
         <script src="../../../javascripts/extra.js"></script>
       
