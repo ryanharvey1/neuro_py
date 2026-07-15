@@ -1,9 +1,10 @@
 import os
 import sys
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 from scipy.signal import find_peaks
 
 import neuro_py as npy
@@ -129,7 +130,7 @@ def detect_up_down_states(
         return down_state_epochs, up_state_epochs
 
     # check for existence of event files
-    if save_mat and not overwrite:
+    if basepath is not None and save_mat and not overwrite:
         filename_downstate = os.path.join(
             basepath, os.path.basename(basepath) + "." + "down_state" + ".events.mat"
         )
@@ -139,11 +140,18 @@ def detect_up_down_states(
         if os.path.exists(filename_downstate) & os.path.exists(filename_upstate):
             down_state = loading.load_events(basepath=basepath, epoch_name="down_state")
             up_state = loading.load_events(basepath=basepath, epoch_name="up_state")
-            return down_state, up_state
+            if isinstance(down_state, nel.EpochArray) and isinstance(
+                up_state, nel.EpochArray
+            ):
+                return down_state, up_state
 
     # load brain states
     if nrem_epochs is None:
+        if basepath is None:
+            raise ValueError("basepath is required when nrem_epochs is not provided")
         state_dict = loading.load_SleepState_states(basepath)
+        if state_dict is None:
+            return None, None
         nrem_epochs = nel.EpochArray(state_dict["NREMstate"])
 
     if nrem_epochs.isempty:
@@ -152,6 +160,8 @@ def detect_up_down_states(
 
     # load spikes
     if st is None:
+        if basepath is None:
+            raise ValueError("basepath is required when st is not provided")
         st, _ = loading.load_spikes(basepath, brainRegion=region)
 
     # check if there are enough cells
@@ -167,6 +177,8 @@ def detect_up_down_states(
 
     if epoch_by_epoch:
         if beh_epochs is None:
+            if basepath is None:
+                raise ValueError("basepath is required when beh_epochs is not provided")
             epoch_df = npy.io.load_epoch(basepath)
             epoch_df = npy.session.compress_repeated_epochs(epoch_df)
             epoch_df = epoch_df.query("environment == 'sleep'")
@@ -204,6 +216,8 @@ def detect_up_down_states(
 
     # save to cell explorer mat file
     if save_mat:
+        if basepath is None:
+            raise ValueError("basepath is required when save_mat is True")
         epoch_to_mat(down_state_epochs, basepath, "down_state", "detect_up_down_states")
         epoch_to_mat(up_state_epochs, basepath, "up_state", "detect_up_down_states")
 
@@ -298,7 +312,7 @@ def detect_up_down_states_bimodal_thresh(
     """
 
     # check for existence of event files
-    if save_mat and not overwrite:
+    if basepath is not None and save_mat and not overwrite:
         filename_downstate = os.path.join(
             basepath,
             os.path.basename(basepath) + "." + "down_state" + ".events.mat",
@@ -310,11 +324,18 @@ def detect_up_down_states_bimodal_thresh(
         if os.path.exists(filename_downstate) & os.path.exists(filename_upstate):
             down_state = loading.load_events(basepath=basepath, epoch_name="down_state")
             up_state = loading.load_events(basepath=basepath, epoch_name="up_state")
-            return down_state, up_state
+            if isinstance(down_state, nel.EpochArray) and isinstance(
+                up_state, nel.EpochArray
+            ):
+                return down_state, up_state
 
     # load brain states
     if nrem_epochs is None:
+        if basepath is None:
+            raise ValueError("basepath is required when nrem_epochs is not provided")
         state_dict = loading.load_SleepState_states(basepath)
+        if state_dict is None:
+            return None, None
         nrem_epochs = nel.EpochArray(state_dict["NREMstate"])
 
     if nrem_epochs.isempty:
@@ -323,6 +344,8 @@ def detect_up_down_states_bimodal_thresh(
 
     # load spikes
     if st is None:
+        if basepath is None:
+            raise ValueError("basepath is required when st is not provided")
         st, _ = loading.load_spikes(basepath, brainRegion=region)
 
     # check if there are enough cells
@@ -401,6 +424,8 @@ def detect_up_down_states_bimodal_thresh(
 
     if epoch_by_epoch:
         if beh_epochs is None:
+            if basepath is None:
+                raise ValueError("basepath is required when beh_epochs is not provided")
             epoch_df = npy.io.load_epoch(basepath)
             epoch_df = npy.session.compress_repeated_epochs(epoch_df)
             epoch_df = epoch_df.query("environment == 'sleep'")
@@ -442,6 +467,8 @@ def detect_up_down_states_bimodal_thresh(
 
     # save to cell explorer mat file
     if save_mat:
+        if basepath is None:
+            raise ValueError("basepath is required when save_mat is True")
         epoch_to_mat(
             down_state_epochs,
             basepath,
@@ -485,7 +512,7 @@ if __name__ == "__main__":
 
 
 def hartigan_diptest(
-    data: np.ndarray, n_boot: int = 100, seed: Optional[int] = None
+    data: NDArray[Any], n_boot: int = 100, seed: Optional[int] = None
 ) -> Tuple[float, float]:
     """
     Dependency-free approximation of Hartigan's dip test with bootstrap p-value.
@@ -684,6 +711,9 @@ def bimodal_thresh(
     # Find histogram with exactly 2 peaks
     num_peaks = 1
     num_bins = start_bins
+    hist_counts = np.array([])
+    bin_centers = np.array([])
+    peaks = np.array([], dtype=int)
 
     while num_peaks != 2:
         hist_counts, bin_edges = np.histogram(bimodal_data, bins=num_bins)

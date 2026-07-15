@@ -1,7 +1,8 @@
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import sklearn.metrics
+from numpy.typing import NDArray
 from scipy.stats import binned_statistic_dd
 
 from ..util.array import (
@@ -10,7 +11,7 @@ from ..util.array import (
 )
 
 
-def cosine_similarity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
+def cosine_similarity(pv1: NDArray[Any], pv2: NDArray[Any]) -> NDArray[Any]:
     """Cosine similarity between temporal difference vectors of two firing rate
     vector trajectories.
 
@@ -45,10 +46,10 @@ def cosine_similarity(pv1: np.ndarray, pv2: np.ndarray) -> np.ndarray:
 
 
 def potential_landscape(
-    X_dyn: np.ndarray,
-    projbins: Union[int, np.ndarray],
-    domainbins: Union[int, np.ndarray, None] = None,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    X_dyn: NDArray[Any],
+    projbins: Union[int, NDArray[Any]],
+    domainbins: Union[int, NDArray[Any], None] = None,
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
     """Compute numerical approximation of potential energy landscape across
     1D state and domain (e.g. time, position, etc.).
 
@@ -157,11 +158,13 @@ def potential_landscape(
 
 
 def potential_landscape_nd(
-    X_dyn: np.ndarray,
-    projbins: Union[int, np.ndarray],
-    domainbins: Union[int, np.ndarray, None] = None,
+    X_dyn: NDArray[Any],
+    projbins: Union[int, NDArray[Any]],
+    domainbins: Union[int, NDArray[Any], None] = None,
     nanborderempty: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[
+    NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]
+]:
     """Compute numerical approximation of potential energy landscape across
     n-dimensional state and domain (e.g. time, position, etc.).
 
@@ -267,7 +270,7 @@ def potential_landscape_nd(
             nonzero_mask = H != 0
 
             for t in range(nbins_domain):
-                nrndimslices = [slice(None)] * nnrns
+                nrndimslices: list[slice[Any, Any, Any] | int] = [slice(None)] * nnrns
                 nrndimslices.append(t)
                 peripheral_zeros_nanmask = ~np.isnan(
                     replace_border_zeros_with_nan(nonzero_mask[tuple(nrndimslices)])
@@ -292,7 +295,7 @@ def potential_landscape_nd(
     hist = np.stack(hist_nrns, axis=-1)  # projbins x domainbins x nnrns
     latentedges_nrns = np.stack(latentedges_nrns, axis=-1)  # projbins x nnrns
     domainedges_nrns = np.stack(domainedges_nrns, axis=-1)  # domainbins x nnrns
-    nrndimslices = [slice(None)] * (nnrns + 1)
+    nrndimslices: list[slice[Any, Any, Any] | int] = [slice(None)] * (nnrns + 1)
     nrndimslices.append(0)
     potential_nrns_pos = []
     for nrn in range(nnrns):

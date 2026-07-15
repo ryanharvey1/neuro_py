@@ -1,10 +1,11 @@
-from typing import List, Union
+from typing import Any, List, Union
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 
-def get_spindices(data: np.ndarray) -> pd.DataFrame:
+def get_spindices(data: NDArray[Any]) -> pd.DataFrame:
     """
     Spike timestamps and IDs from each spike train in a time-sorted DataFrame.
 
@@ -32,8 +33,8 @@ def get_spindices(data: np.ndarray) -> pd.DataFrame:
 
 
 def spindices_to_ndarray(
-    spikes: pd.DataFrame, spike_id: Union[List[int], np.ndarray, None] = None
-) -> List[np.ndarray]:
+    spikes: pd.DataFrame, spike_id: Union[List[int], NDArray[Any], None] = None
+) -> List[NDArray[Any]]:
     """
     Convert spike times and spike IDs from a DataFrame into a list of arrays,
     where each array contains the spike times for a given spike train.
@@ -63,7 +64,7 @@ def spindices_to_ndarray(
     return data
 
 
-def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
+def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list[float]:
     """
     Calculate the burst index from Royer et al. (2012).
     The burst index ranges from -1 to 1, where:
@@ -112,11 +113,11 @@ def BurstIndex_Royer_2012(autocorrs: pd.DataFrame) -> list:
 
 
 def select_burst_spikes(
-    spikes: np.ndarray,
+    spikes: NDArray[Any],
     mode: str = "bursts",
     isiBursts: float = 0.006,
     isiSpikes: float = 0.020,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Discriminate bursts versus single spikes based on inter-spike intervals.
 

@@ -1,14 +1,16 @@
 # https://github.com/Eden-Kramer-Lab/loren_frank_data_processing/blob/master/loren_frank_data_processing/well_traversal_classification.py
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.ndimage.measurements import label
 
 
 def paired_distances(
-    x: Union[np.ndarray, list], y: Union[np.ndarray, list]
-) -> np.ndarray:
+    x: Union[NDArray[Any], list[float], list[list[float]]],
+    y: Union[NDArray[Any], list[float], list[list[float]]],
+) -> NDArray[Any]:
     """
     Euclidean distance between x and y at each time point.
 
@@ -31,10 +33,10 @@ def paired_distances(
 
 
 def enter_exit_target(
-    position: Union[np.ndarray, list],
-    target: Union[np.ndarray, list],
+    position: Union[NDArray[Any], list[float], list[list[float]]],
+    target: Union[NDArray[Any], list[float], list[list[float]]],
     max_distance: float = 1.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Marks when a position has reached a target ("enter") and when it has left a target ("exit").
 
@@ -70,7 +72,9 @@ def enter_exit_target(
     return enter_exit, at_target
 
 
-def enter_exit_target_dio(dio_indicator: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def enter_exit_target_dio(
+    dio_indicator: NDArray[Any],
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Marks when a digital input/output (DIO) indicator has entered or exited a target state.
 
@@ -93,7 +97,7 @@ def enter_exit_target_dio(dio_indicator: np.ndarray) -> Tuple[np.ndarray, np.nda
     return enter_exit, at_target
 
 
-def shift_well_enters(enter_exit: np.ndarray) -> np.ndarray:
+def shift_well_enters(enter_exit: NDArray[Any]) -> NDArray[Any]:
     """
     Shifts the enter times back one time point.
 
@@ -116,9 +120,9 @@ def shift_well_enters(enter_exit: np.ndarray) -> np.ndarray:
 
 
 def segment_path(
-    time: np.ndarray,
-    position: np.ndarray,
-    well_locations: np.ndarray,
+    time: NDArray[Any],
+    position: NDArray[Any],
+    well_locations: NDArray[Any],
     max_distance_from_well: float = 10,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """

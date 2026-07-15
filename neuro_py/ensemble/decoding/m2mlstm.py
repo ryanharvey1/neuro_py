@@ -1,4 +1,6 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from typing_extensions import override
 
 from ...util._dependencies import _check_dependency
 
@@ -9,6 +11,7 @@ import lightning as L
 import numpy as np
 import torch
 import torch.nn.functional as F
+from numpy.typing import NDArray
 from torch import nn
 
 
@@ -90,6 +93,7 @@ class M2MLSTM(L.LightningModule):
 
         init_params(self.fc)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the LSTM model.
@@ -105,6 +109,8 @@ class M2MLSTM(L.LightningModule):
             Output tensor of shape (batch_size, sequence_length, output_dim)
         """
         B, L, N = x.shape
+        if self.hidden_state is None or self.cell_state is None:
+            raise RuntimeError("Call init_hidden before forward")
         self.hidden_state = self.hidden_state.to(x.device)
         self.cell_state = self.cell_state.to(x.device)
         self.hidden_state.data.fill_(0.0)
@@ -164,6 +170,7 @@ class M2MLSTM(L.LightningModule):
         loss = self.args["criterion"](outs, ys)
         return loss
 
+    @override
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -186,11 +193,15 @@ class M2MLSTM(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
+    @override
     def on_after_backward(self) -> None:
         """Lightning method called after backpropagation."""
-        self.hidden_state = self.hidden_state.detach()
-        self.cell_state = self.cell_state.detach()
+        if self.hidden_state is not None:
+            self.hidden_state = self.hidden_state.detach()
+        if self.cell_state is not None:
+            self.cell_state = self.cell_state.detach()
 
+    @override
     def validation_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -213,6 +224,7 @@ class M2MLSTM(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    @override
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
@@ -235,7 +247,8 @@ class M2MLSTM(L.LightningModule):
         self.log("test_loss", loss)
         return loss
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[Dict]]:
+    @override
+    def configure_optimizers(self) -> Any:
         """
         Configure optimizers and learning rate schedulers.
 
@@ -251,13 +264,15 @@ class M2MLSTM(L.LightningModule):
             optimizer,
             max_lr=self.args["lr"],
             epochs=self.args["epochs"],
-            total_steps=self.trainer.estimated_stepping_batches,
+            total_steps=int(self.trainer.estimated_stepping_batches),
         )
         lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]
 
 
-class NSVDataset(torch.utils.data.Dataset):
+class NSVDataset(
+    torch.utils.data.Dataset[Tuple[NDArray[np.float32], NDArray[np.float32]]]
+):
     """
     Custom Dataset for neural state vector (binned spike train) data.
 
@@ -276,7 +291,7 @@ class NSVDataset(torch.utils.data.Dataset):
         List of trial-segmented behavioral state vector arrays as float32
     """
 
-    def __init__(self, nsv: List[np.ndarray], dv: List[np.ndarray]):
+    def __init__(self, nsv: List[NDArray[Any]], dv: List[NDArray[Any]]):
         self.nsv = [i.astype(np.float32) for i in nsv]
         self.dv = [i.astype(np.float32) for i in dv]
 
@@ -291,7 +306,10 @@ class NSVDataset(torch.utils.data.Dataset):
         """
         return len(self.nsv)
 
-    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    @override
+    def __getitem__(
+        self, index: Any
+    ) -> Tuple[NDArray[np.float32], NDArray[np.float32]]:
         """
         Get a sample from the dataset.
 
@@ -305,5 +323,5 @@ class NSVDataset(torch.utils.data.Dataset):
         Tuple[np.ndarray, np.ndarray]
             Tuple containing NSV and DV arrays
         """
-        nsv, dv = self.nsv[idx], self.dv[idx]
+        nsv, dv = self.nsv[index], self.dv[index]
         return nsv, dv

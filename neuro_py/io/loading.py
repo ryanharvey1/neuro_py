@@ -7,14 +7,17 @@ import os
 import sys
 import warnings
 from itertools import chain
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Sequence, Tuple, Union, cast
 from xml.dom import minidom
+from xml.dom.minidom import Element
 
 import nelpy as nel
 import numpy as np
 import pandas as pd
 import scipy.io as sio
 from joblib import Parallel, delayed
+from numpy.exceptions import AxisError
+from numpy.typing import DTypeLike, NDArray
 from scipy import signal
 
 import neuro_py as npy
@@ -22,10 +25,17 @@ from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 from neuro_py.util.array import is_nested
-from numpy.exceptions import AxisError
 
 
-def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]:
+def _get_xml_text(element: Element) -> str:
+    """Extract text from a minidom element's first child."""
+    first_child = element.firstChild
+    if first_child is None or not hasattr(first_child, "data"):
+        raise ValueError("XML element is missing text content.")
+    return str(first_child.data)
+
+
+def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list[int]]], None]:
     """
     Load XML file and extract relevant information.
 
@@ -36,7 +46,7 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
 
     Returns
     -------
-    Union[Tuple[int, int, int, Dict[int, list]], None]
+    Union[Tuple[int, int, int, Dict[int, list[int]]], None]
         A tuple containing:
         - The number of channels (int)
         - The sampling frequency of the dat file (int)
@@ -52,23 +62,23 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
         return
 
     xmldoc = minidom.parse(filename)
-    nChannels = (
-        xmldoc.getElementsByTagName("acquisitionSystem")[0]
-        .getElementsByTagName("nChannels")[0]
-        .firstChild.data
+    nChannels = _get_xml_text(
+        xmldoc.getElementsByTagName("acquisitionSystem")[0].getElementsByTagName(
+            "nChannels"
+        )[0]
     )
-    fs_dat = (
-        xmldoc.getElementsByTagName("acquisitionSystem")[0]
-        .getElementsByTagName("samplingRate")[0]
-        .firstChild.data
+    fs_dat = _get_xml_text(
+        xmldoc.getElementsByTagName("acquisitionSystem")[0].getElementsByTagName(
+            "samplingRate"
+        )[0]
     )
-    fs = (
-        xmldoc.getElementsByTagName("fieldPotentials")[0]
-        .getElementsByTagName("lfpSamplingRate")[0]
-        .firstChild.data
+    fs = _get_xml_text(
+        xmldoc.getElementsByTagName("fieldPotentials")[0].getElementsByTagName(
+            "lfpSamplingRate"
+        )[0]
     )
 
-    shank_to_channel = {}
+    shank_to_channel: Dict[int, list[int]] = {}
     groups = (
         xmldoc.getElementsByTagName("anatomicalDescription")[0]
         .getElementsByTagName("channelGroups")[0]
@@ -76,7 +86,7 @@ def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list]], None]
     )
     for i in range(len(groups)):
         shank_to_channel[i] = [
-            int(child.firstChild.data)
+            int(_get_xml_text(child))
             for child in groups[i].getElementsByTagName("channel")
         ]
     return int(nChannels), int(fs), int(fs_dat), shank_to_channel
@@ -89,7 +99,7 @@ class VirtualConcatenatedDat:
         self,
         segments: List[Tuple[str, int]],
         n_channels: int,
-        dtype: Union[str, np.dtype],
+        dtype: DTypeLike,
     ) -> None:
         self.segments = segments
         self.n_channels = int(n_channels)
@@ -171,7 +181,7 @@ class VirtualConcatenatedDat:
 
         return NotImplemented
 
-    def _asarray(self) -> np.ndarray:
+    def _asarray(self) -> NDArray[Any]:
         """Materialize the concatenated DAT as a NumPy array (loads all data into memory)."""
         blocks = []
         for start, stop in self._row_blocks(slice(0, self.total_samples, 1)):
@@ -326,8 +336,9 @@ class VirtualConcatenatedDat:
             # Copy slice into RAM so Windows can release file locks immediately.
             return np.array(mm[start:stop, col_idx], copy=True)
         finally:
-            if hasattr(mm, "_mmap") and mm._mmap is not None:
-                mm._mmap.close()
+            mmap_obj = getattr(mm, "_mmap", None)
+            if mmap_obj is not None:
+                mmap_obj.close()
             del mm
 
     def __getitem__(self, idx):
@@ -387,7 +398,7 @@ class VirtualConcatenatedDatView:
         return 2
 
     @property
-    def dtype(self) -> np.dtype:
+    def dtype(self) -> np.dtype[Any]:
         return self._base.dtype
 
     @property
@@ -511,7 +522,7 @@ DatTransposeView = VirtualConcatenatedDatView
 VirtualConcatenatedDatTranspose = VirtualConcatenatedDatView
 
 
-def _load_session_epochs_metadata(basepath: str) -> List[dict]:
+def _load_session_epochs_metadata(basepath: str) -> list[dict[str, Any]]:
     session_path = os.path.join(basepath, os.path.basename(basepath) + ".session.mat")
     if not os.path.exists(session_path):
         raise FileNotFoundError(
@@ -544,7 +555,7 @@ def _load_session_epochs_metadata(basepath: str) -> List[dict]:
     return epoch_list
 
 
-def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype) -> int:
+def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype[Any]) -> int:
     if not os.path.exists(path):
         raise FileNotFoundError(f"Per-epoch dat file not found at {path}")
     file_size = os.path.getsize(path)
@@ -589,7 +600,7 @@ def _resolve_epoch_dat_path(basepath: str, epoch_name: str) -> str:
 
 
 def _resolve_epoch_segments(
-    basepath: str, n_channels: int, dtype: np.dtype
+    basepath: str, n_channels: int, dtype: DTypeLike
 ) -> List[Tuple[str, int]]:
     epochs = _load_session_epochs_metadata(basepath)
     segments: List[Tuple[str, int]] = []
@@ -599,7 +610,7 @@ def _resolve_epoch_segments(
         # If the session omits an epoch name, fall back to sequential 1-based labels.
         epoch_name = epoch.get("name", f"epoch{idx + 1}")
         dat_path = _resolve_epoch_dat_path(basepath, str(epoch_name))
-        n_samples = _validate_dat_file(dat_path, n_channels, dtype)
+        n_samples = _validate_dat_file(dat_path, n_channels, np.dtype(dtype))
         segments.append((dat_path, n_samples))
     return segments
 
@@ -607,9 +618,9 @@ def _resolve_epoch_segments(
 def _load_dat_from_epochs(
     basepath: str,
     n_channels: int,
-    channel: Union[int, list, None],
+    channel: Union[int, list[int], None],
     frequency: float,
-    dtype: np.dtype,
+    dtype: DTypeLike,
 ):
     segments = _resolve_epoch_segments(
         basepath, n_channels=int(n_channels), dtype=dtype
@@ -630,11 +641,11 @@ def _load_dat_from_epochs(
 def loadLFP(
     basepath: str,
     n_channels: int = 90,
-    channel: Union[int, list, None] = None,
+    channel: Union[int, list[int], None] = None,
     frequency: float = 1250.0,
     precision: str = "int16",
     ext: str = "lfp",
-    filename: str = None,  # name of file to load, located in basepath
+    filename: Union[str, None] = None,  # name of file to load, located in basepath
 ):
     """
     Load LFP data from a specified file.
@@ -680,7 +691,9 @@ def loadLFP(
     # dtype is required for both direct loads and DAT fallback validation
     dtype = np.dtype(precision)
 
-    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype) -> int:
+    def _calc_n_samples(
+        file_path: str, channels: int, sample_dtype: np.dtype[Any]
+    ) -> int:
         file_size = os.path.getsize(file_path)
         bytes_per_sample = int(channels) * int(sample_dtype.itemsize)
         if bytes_per_sample <= 0:
@@ -721,8 +734,9 @@ def loadLFP(
     try:
         data = np.array(mm[:, channel], copy=True)
     finally:
-        if hasattr(mm, "_mmap") and mm._mmap is not None:
-            mm._mmap.close()
+        mmap_obj = getattr(mm, "_mmap", None)
+        if mmap_obj is not None:
+            mmap_obj.close()
         del mm
 
     timestep = np.arange(0, len(data)) / frequency
@@ -771,9 +785,9 @@ class LFPLoader(nel.AnalogSignalArray):
     def __init__(
         self,
         basepath: str,
-        channels: Union[int, list, None] = None,
+        channels: Union[int, list[int], None] = None,
         ext: str = "lfp",
-        epoch: Union[np.ndarray, nel.EpochArray, None] = None,
+        epoch: Union[NDArray[Any], nel.EpochArray, None] = None,
     ) -> None:
         self.basepath = basepath  # path to the recording folder
         self.channels = channels  # channel number or list of channel numbers
@@ -798,7 +812,10 @@ class LFPLoader(nel.AnalogSignalArray):
         return self
 
     def get_xml_data(self) -> None:
-        nChannels, fs, fs_dat, shank_to_channel = loadXML(self.basepath)
+        xml_data = loadXML(self.basepath)
+        if xml_data is None:
+            raise FileNotFoundError(f"XML file does not exist for {self.basepath}")
+        nChannels, fs, fs_dat, shank_to_channel = xml_data
         self.nChannels = nChannels
         self.fs_lfp = fs
         self.fs_dat = fs_dat
@@ -806,7 +823,7 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def _prepare_lfp_payload(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, float, nel.EpochArray]:
+    ) -> Tuple[NDArray[Any], NDArray[Any], float, nel.EpochArray]:
         fs = self.fs_dat if self.ext == "dat" else self.fs_lfp
 
         lfp, timestep = loadLFP(
@@ -826,7 +843,9 @@ class LFPLoader(nel.AnalogSignalArray):
         else:
             intervals = np.array([timestep[0], timestep[-1]])[np.newaxis, :]
 
-        idx = in_intervals(timestep, intervals)
+        idx_result = in_intervals(timestep, intervals)
+        idx = idx_result[0] if isinstance(idx_result, tuple) else idx_result
+        idx = np.asarray(idx, dtype=bool)
 
         # Normalize channel selector once, then choose the first-pass indexing
         # order that reads fewer samples from disk.
@@ -923,42 +942,42 @@ class LFPLoader(nel.AnalogSignalArray):
             support=support,
         )
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # ty: ignore[missing-override-decorator]
         return super().__repr__()
 
     def _get_bandpass_sos(
-        self, band2filter: list = [6, 12], ford: int = 3
-    ) -> np.ndarray:
+        self, band2filter: Sequence[float] = (6, 12), ford: int = 3
+    ) -> NDArray[Any]:
         """Create SOS coefficients for the requested bandpass filter."""
-        band2filter = np.array(band2filter, dtype=float)
+        band_array = np.asarray(band2filter, dtype=float)
         return signal.butter(
-            ford, band2filter / (self.fs / 2), btype="bandpass", output="sos"
+            ford, band_array / (self.fs / 2), btype="bandpass", output="sos"
         )
 
     def get_filt_sig(
         self,
-        band2filter: list = [6, 12],
+        band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return bandpass-filtered signal."""
         if sos is None:
             sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
         data = self.data.astype(np.float32, copy=False)
         return signal.sosfiltfilt(sos, data).astype(np.float32, copy=False)
 
-    def _get_analytic_signal(self, filt_sig: np.ndarray) -> np.ndarray:
+    def _get_analytic_signal(self, filt_sig: NDArray[Any]) -> NDArray[Any]:
         """Return analytic signal via Hilbert transform along time axis."""
         return signal.hilbert(filt_sig, axis=-1).astype(np.complex64, copy=False)
 
     def get_phase(
         self,
-        band2filter: list = [6, 12],
+        band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return instantaneous phase (radians)."""
         if analytic_sig is not None:
             return np.angle(analytic_sig).astype(np.float32, copy=False)
@@ -970,12 +989,12 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def get_amplitude(
         self,
-        band2filter: list = [6, 12],
+        band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return instantaneous amplitude envelope."""
         if analytic_sig is not None:
             return np.abs(analytic_sig).astype(np.float32, copy=False)
@@ -987,13 +1006,13 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def get_amplitude_filtered(
         self,
-        band2filter: list = [6, 12],
+        band2filter: Sequence[float] = (6, 12),
         ford: int = 3,
-        amplitude: Union[np.ndarray, None] = None,
-        filt_sig: Union[np.ndarray, None] = None,
-        analytic_sig: Union[np.ndarray, None] = None,
-        sos: Union[np.ndarray, None] = None,
-    ) -> np.ndarray:
+        amplitude: Union[NDArray[Any], None] = None,
+        filt_sig: Union[NDArray[Any], None] = None,
+        analytic_sig: Union[NDArray[Any], None] = None,
+        sos: Union[NDArray[Any], None] = None,
+    ) -> NDArray[Any]:
         """Return smoothed amplitude envelope."""
         if sos is None:
             sos = self._get_bandpass_sos(band2filter=band2filter, ford=ford)
@@ -1009,9 +1028,9 @@ class LFPLoader(nel.AnalogSignalArray):
 
     def get_frequency(
         self,
-        phase: np.ndarray,
+        phase: NDArray[Any],
         kernel_size: int = 13,
-    ) -> np.ndarray:
+    ) -> NDArray[Any]:
         """Return instantaneous frequency (Hz) from phase."""
         from scipy.ndimage import median_filter
 
@@ -1040,8 +1059,11 @@ class LFPLoader(nel.AnalogSignalArray):
         return (derivative / (2 * np.pi)).astype(np.float32, copy=False)
 
     def get_freq_phase_amp(
-        self, band2filter: list = [6, 12], ford: int = 3, kernel_size: int = 13
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self,
+        band2filter: Sequence[float] = (6, 12),
+        ford: int = 3,
+        kernel_size: int = 13,
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Get the filtered signal, phase, amplitude, and filtered amplitude of the LFP signal.
 
@@ -1193,7 +1215,12 @@ def load_all_cell_metrics(basepaths: List[str]) -> pd.DataFrame:
 
 def load_cell_metrics(
     basepath: str, only_metrics: bool = False
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, dict]]:
+) -> Union[
+    pd.DataFrame,
+    Tuple[pd.DataFrame, dict[str, Any]],
+    None,
+    Tuple[None, None],
+]:
     """
     Loader of cell-explorer cell_metrics.cellinfo.mat.
 
@@ -1485,7 +1512,7 @@ def load_SWRunitMetrics(basepath: str) -> pd.DataFrame:
     return df2
 
 
-def _add_manual_events(df: pd.DataFrame, added_ts: list) -> pd.DataFrame:
+def _add_manual_events(df: pd.DataFrame, added_ts: Sequence[float]) -> pd.DataFrame:
     """
     Add new rows to a dataframe representing manual events (from Neuroscope2)
     with durations equal to the mean duration of the existing events.
@@ -1525,6 +1552,25 @@ def _add_manual_events(df: pd.DataFrame, added_ts: list) -> pd.DataFrame:
     df.sort_values(by=["peaks"], ignore_index=True, inplace=True)
 
     return df
+
+
+def add_manual_events(df: pd.DataFrame, added_ts: Sequence[float]) -> pd.DataFrame:
+    """
+    Add manual events to an event dataframe.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Event dataframe with ``start``, ``stop``, and ``peaks`` columns.
+    added_ts : sequence of float
+        Peak timestamps for the manual events to add.
+
+    Returns
+    -------
+    pd.DataFrame
+        Event dataframe with the manual events added and sorted by ``peaks``.
+    """
+    return _add_manual_events(df, added_ts)
 
 
 def load_ripples_events(
@@ -1771,6 +1817,10 @@ def load_barrage_events(
     # restrict to NREM sleep
     if restrict_to_nrem:
         state_dict = load_SleepState_states(basepath)
+        if state_dict is None:
+            if return_epoch_array:
+                return nel.EpochArray()
+            return pd.DataFrame()
         nrem_epochs = nel.EpochArray(state_dict["NREMstate"]).expand(2)
         idx = in_intervals(df["start"].values, nrem_epochs.data)
         df = df[idx].reset_index(drop=True)
@@ -1781,6 +1831,10 @@ def load_barrage_events(
     # make sure each barrage has some ca2 activity
     # load ca2 pyr cells
     st, _ = load_spikes(basepath, putativeCellType="Pyr", brainRegion="CA2")
+    if st is None:
+        if return_epoch_array:
+            return nel.EpochArray([np.array([df.start, df.stop]).T], label="barrage")
+        return df
     # bin spikes into barrages
     bst = get_participation(st.data, df["start"].values, df["stop"].values)
     # keep only barrages with some activity
@@ -1945,12 +1999,13 @@ def load_dentate_spikes(
 
     # locate .mat file
     df = pd.DataFrame()
+    filename: Union[str, None] = None
     for s_type in dentate_spike_type:
-        filename = glob.glob(basepath + os.sep + "*" + s_type + ".events.mat")
-        if len(filename) == 0:
+        matching_files = glob.glob(basepath + os.sep + "*" + s_type + ".events.mat")
+        if len(matching_files) == 0:
             continue
         # load matfile
-        filename = filename[0]
+        filename = matching_files[0]
         data = sio.loadmat(filename, simplify_cells=True)
         # pull out data
         df = pd.concat(
@@ -1964,6 +2019,8 @@ def load_dentate_spikes(
         return nel.EpochArray([np.array([df.start, df.stop]).T], label="dentate_spike")
 
     # get basename and animal
+    if filename is None:
+        return df
     normalized_path = os.path.normpath(filename)
     path_components = normalized_path.split(os.sep)
     df["basepath"] = basepath
@@ -1973,7 +2030,9 @@ def load_dentate_spikes(
     return df
 
 
-def load_theta_rem_shift(basepath: str) -> Tuple[pd.DataFrame, dict]:
+def load_theta_rem_shift(
+    basepath: str,
+) -> Tuple[pd.DataFrame, Union[dict[str, dict[str, Any]], float]]:
     """
     Load theta REM shift data from get_rem_shift.m.
 
@@ -2077,8 +2136,14 @@ def load_theta_rem_shift(basepath: str) -> Tuple[pd.DataFrame, dict]:
 def load_SleepState_states(
     basepath: str,
     return_epoch_array: bool = False,
-    states_list: list = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"],
-) -> dict:
+    states_list: list[str] = [
+        "WAKEstate",
+        "NREMstate",
+        "REMstate",
+        "THETA",
+        "nonTHETA",
+    ],
+) -> Union[dict[str, Any], dict[str, nel.EpochArray], None]:
     """
     Loader of SleepState.states.mat.
 
@@ -2148,7 +2213,7 @@ def load_SleepState_states(
         session_domain = nel.EpochArray(
             [epoch_df.startTime.iloc[0], epoch_df.stopTime.iloc[-1]]
         )
-        states_dict = {}
+        states_dict: dict[str, nel.EpochArray] = {}
         for state in states_list:
             states_dict[state] = nel.EpochArray(
                 dict_.get(state, []), domain=session_domain
@@ -2502,7 +2567,7 @@ def load_trials(basepath: str) -> pd.DataFrame:
 
 def load_brain_regions(
     basepath: str, out_format: str = "dict"
-) -> Union[dict, pd.DataFrame]:
+) -> Union[dict[str, dict[str, Any]], pd.DataFrame, None]:
     """
     Loads brain region info from cell explorer basename.session and stores in dict (default) or DataFrame.
 
@@ -2551,7 +2616,7 @@ def load_brain_regions(
         else:
             return {}
 
-    brainRegions = {}
+    brainRegions: dict[str, dict[str, Any]] = {}
     for region in data["brainRegions"].keys():
         if len(data["brainRegions"][region]) == 0:
             continue
@@ -2583,7 +2648,7 @@ def load_brain_regions(
             channels = shank_to_channel
             shanks = np.zeros(len(channels))
 
-        mapped_df = pd.DataFrame(columns=["channels", "region"])
+        mapped_df = pd.DataFrame(columns=np.array(["channels", "region"], dtype=object))
         mapped_df["channels"] = channels
         mapped_df["region"] = "Unknown"
         mapped_df["shank"] = shanks
@@ -2597,11 +2662,13 @@ def load_brain_regions(
 
         return mapped_df.reset_index(drop=True)
 
-    elif out_format == "dict":
+    if out_format == "dict":
         return brainRegions
 
+    return None
 
-def get_animal_id(basepath: str) -> str:
+
+def get_animal_id(basepath: str) -> Union[str, pd.DataFrame]:
     """
     Return animal ID from basepath using basename.session.mat.
 
@@ -2626,7 +2693,7 @@ def get_animal_id(basepath: str) -> str:
     return data["session"][0][0]["animal"][0][0]["name"][0]
 
 
-def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+def add_animal_id(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add animal_id column to a dataframe based on the basepath column.
 
@@ -2646,7 +2713,9 @@ def add_animal_id(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
     return df
 
 
-def load_basic_data(basepath: str) -> Tuple[pd.DataFrame, dict, pd.DataFrame, float]:
+def load_basic_data(
+    basepath: str,
+) -> Tuple[pd.DataFrame | None, dict[str, Any] | None, pd.DataFrame, float | None]:
     """
     Load basic data from the specified basepath.
 
@@ -2664,24 +2733,32 @@ def load_basic_data(basepath: str) -> Tuple[pd.DataFrame, dict, pd.DataFrame, fl
         - fs_dat: Sampling rate of the data.
     """
     try:
-        nChannels, fs, fs_dat, shank_to_channel = loadXML(basepath)
+        xml_data = loadXML(basepath)
+        if xml_data is None:
+            raise ValueError("XML metadata unavailable")
+        _, _, fs_dat, _ = xml_data
     except Exception:
         fs_dat = load_extracellular_metadata(basepath).get("sr")
 
-    ripples = load_ripples_events(basepath)
-    cell_metrics, data = load_cell_metrics(basepath)
+    ripples = cast(pd.DataFrame, load_ripples_events(basepath))
+    cell_metrics_result = load_cell_metrics(basepath)
+    if not isinstance(cell_metrics_result, tuple):
+        return None, None, ripples, fs_dat
+    cell_metrics, data = cell_metrics_result
+    if cell_metrics is None or data is None:
+        return None, None, ripples, fs_dat
 
     return cell_metrics, data, ripples, fs_dat
 
 
 def load_spikes(
     basepath: str,
-    putativeCellType: List[str] = [],
-    brainRegion: List[str] = [],
+    putativeCellType: Union[str, list[str]] = [],
+    brainRegion: Union[str, list[str]] = [],
     remove_bad_unit: bool = True,
-    brain_state: List[str] = [],
-    other_metric: Union[str, None] = None,
-    other_metric_value: Union[str, None] = None,
+    brain_state: Union[str, list[str]] = [],
+    other_metric: Union[str, list[str], None] = None,
+    other_metric_value: Union[str, list[str], None] = None,
     support: Union[nel.EpochArray, None] = None,
     remove_unstable: bool = False,
     stable_interval_width: int = 600,
@@ -2721,6 +2798,8 @@ def load_spikes(
         putativeCellType = [putativeCellType]
     if not isinstance(brainRegion, list):
         brainRegion = [brainRegion]
+    if not isinstance(brain_state, list):
+        brain_state = [brain_state]
 
     # get sample rate from session
     fs_dat = load_extracellular_metadata(basepath).get("sr", None)
@@ -2729,8 +2808,10 @@ def load_spikes(
         return None, None
 
     # load cell metrics and spike data
-    cell_metrics, data = load_cell_metrics(basepath)
-
+    cell_metrics_result = load_cell_metrics(basepath)
+    if not isinstance(cell_metrics_result, tuple):
+        return None, None
+    cell_metrics, data = cell_metrics_result
     if cell_metrics is None or data is None:
         return None, None
 
@@ -2760,19 +2841,25 @@ def load_spikes(
 
     # restrict cell metrics by arbitrary metric
     if other_metric is not None:
+        other_metrics = (
+            other_metric if isinstance(other_metric, list) else [other_metric]
+        )
+        other_metric_values = (
+            other_metric_value
+            if isinstance(other_metric_value, list)
+            else [other_metric_value]
+        )
         # make other_metric_value a list if not already
-        if not isinstance(other_metric, list):
-            other_metric = [other_metric]
-        if not isinstance(other_metric_value, list):
-            other_metric_value = [other_metric_value]
         # check that other_metric_value is the same length as other_metric
-        if len(other_metric) != len(other_metric_value):
+        if len(other_metrics) != len(other_metric_values):
             raise ValueError(
                 "other_metric and other_metric_value must be of same length"
             )
+        if any(value is None for value in other_metric_values):
+            raise ValueError("other_metric_value cannot contain None")
 
         restrict_idx = []
-        for metric, value in zip(other_metric, other_metric_value):
+        for metric, value in zip(other_metrics, other_metric_values):
             restrict_idx.append(cell_metrics[metric].str.contains(value).values)
         restrict_idx = np.any(restrict_idx, axis=0)
         cell_metrics = cell_metrics[restrict_idx]
@@ -2785,9 +2872,10 @@ def load_spikes(
         st = st[restrict_idx]
 
     if remove_unstable and len(st) > 0:
+        concatenated_spikes = np.concatenate([np.asarray(spikes) for spikes in st])
         starts = np.arange(
-            np.hstack(st).min(),
-            np.hstack(st).max() - stable_interval_width,
+            concatenated_spikes.min(),
+            concatenated_spikes.max() - stable_interval_width,
             stable_interval_width,
         )
         stops = starts + stable_interval_width
@@ -2818,11 +2906,13 @@ def load_spikes(
     if len(brain_state) > 0:
         # get brain states
         brain_states = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"]
-        if brain_state not in brain_states:
+        if any(state not in brain_states for state in brain_state):
             assert print("not correct brain state. Pick one", brain_states)
         else:
             state_dict = load_SleepState_states(basepath)
-            state_epoch = nel.EpochArray(state_dict[brain_state])
+            if state_dict is None:
+                return st, cell_metrics
+            state_epoch = nel.EpochArray(state_dict[brain_state[0]])
             st = st[state_epoch]
 
     return st, cell_metrics
@@ -2830,7 +2920,7 @@ def load_spikes(
 
 def load_deepSuperficialfromRipple(
     basepath: str, bypass_mismatch_exception: bool = False
-) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+) -> Tuple[pd.DataFrame, NDArray[Any], NDArray[Any]]:
     """
     Load deepSuperficialfromRipple file created by classification_DeepSuperficial.m.
 
@@ -2926,9 +3016,9 @@ def load_deepSuperficialfromRipple(
 
     ripple_average[channel_sort_idx] = np.hstack(rip_map).T
 
-    brainRegions = load_brain_regions(basepath)
+    brainRegions = cast(dict[str, dict[str, Any]], load_brain_regions(basepath))
     for key, value in brainRegions.items():
-        if ("ca1" in key.lower()) | ("ca2" in key.lower()):
+        if isinstance(key, str) and (("ca1" in key.lower()) | ("ca2" in key.lower())):
             for shank in value["electrodeGroups"]:
                 channel_df.loc[channel_df.shank == shank, "ca1_shank"] = True
 
@@ -2937,7 +3027,7 @@ def load_deepSuperficialfromRipple(
     ):
         raise Exception(
             "size mismatch "
-            + str(np.hstack(ripple_average).shape[1])
+            + str(ripple_average.shape[0])
             + " and "
             + str(channel_df.shape[0])
         )
@@ -3003,7 +3093,7 @@ def load_manipulation(
     struct_name: Union[str, None] = None,
     return_epoch_array: bool = True,
     merge_gap: Union[int, None] = None,
-) -> Union[pd.DataFrame, nel.EpochArray]:
+) -> Union[pd.DataFrame, nel.EpochArray, dict[str, nel.EpochArray], None]:
     """
     Loads the data from the basename.eventName.manipulations.mat file and returns a pandas dataframe.
 
@@ -3126,7 +3216,7 @@ def load_manipulation(
         return df
 
 
-def load_channel_tags(basepath: str) -> dict:
+def load_channel_tags(basepath: str) -> dict[str, Any]:
     """
     Load channel tags from session file.
 
@@ -3145,7 +3235,7 @@ def load_channel_tags(basepath: str) -> dict:
     return data["session"]["channelTags"]
 
 
-def load_extracellular_metadata(basepath: str) -> dict:
+def load_extracellular_metadata(basepath: str) -> dict[str, Any]:
     """
     Load extracellular metadata from session file.
 
@@ -3167,7 +3257,7 @@ def load_extracellular_metadata(basepath: str) -> dict:
     return data["session"]["extracellular"]
 
 
-def load_probe_layout(basepath: str) -> pd.DataFrame:
+def load_probe_layout(basepath: str) -> Union[pd.DataFrame, None]:
     """
     Load electrode coordinates and grouping from the session.extracellular.mat file.
 
@@ -3312,7 +3402,8 @@ def load_events(
         n_events = data[epoch_name]["timestamps"].shape[0]
 
         event_df = pd.DataFrame(
-            data[epoch_name]["timestamps"], columns=["starts", "stops"]
+            data[epoch_name]["timestamps"],
+            columns=np.array(["starts", "stops"], dtype=object),
         )
         for key in data[epoch_name].keys():
             if (

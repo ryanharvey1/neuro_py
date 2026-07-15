@@ -1,11 +1,13 @@
 import os
 import tempfile
+from typing import Any
 
 import nelpy as nel
 import numpy as np
 import pandas as pd
 import pytest
 import scipy.io as sio
+from numpy.typing import NDArray
 
 from neuro_py.detectors.sharp_wave_ripple import (
     _bound_containing_index,
@@ -25,12 +27,12 @@ from neuro_py.io.loading import load_ripples_events
 
 
 def _make_ripple_burst(
-    timestamps: np.ndarray,
+    timestamps: NDArray[Any],
     center: float,
     frequency: float,
     duration: float,
     amplitude: float,
-) -> np.ndarray:
+) -> NDArray[Any]:
     mask = np.abs(timestamps - center) <= (duration / 2.0)
     burst = np.zeros_like(timestamps, dtype=float)
     n_samples = int(mask.sum())
@@ -50,7 +52,7 @@ def _make_synthetic_ripple_session(
     ripple_frequency: float = 150.0,
     ripple_duration: float = 0.04,
     ripple_amplitude: float = 120.0,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     timestamps = np.arange(0.0, duration, 1.0 / fs)
     rng = np.random.default_rng(0)
     ripple_signal = rng.normal(scale=5.0, size=timestamps.size)
@@ -429,9 +431,7 @@ def test_joint_detection_rejects_events_without_ripple_peak_in_final_boundary() 
         duration=0.04,
         amplitude=120.0,
     )
-    sharp_wave_signal += -60.0 * np.exp(
-        -((timestamps - 1.04) ** 2) / (2 * 0.006**2)
-    )
+    sharp_wave_signal += -60.0 * np.exp(-((timestamps - 1.04) ** 2) / (2 * 0.006**2))
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -563,12 +563,8 @@ def test_joint_detection_keeps_nearby_ripples_with_distinct_sharp_waves() -> Non
             amplitude=150.0,
         )
 
-    sharp_wave_signal += -90.0 * np.exp(
-        -((timestamps - 0.85) ** 2) / (2 * 0.035**2)
-    )
-    sharp_wave_signal += -55.0 * np.exp(
-        -((timestamps - 0.958) ** 2) / (2 * 0.025**2)
-    )
+    sharp_wave_signal += -90.0 * np.exp(-((timestamps - 0.85) ** 2) / (2 * 0.035**2))
+    sharp_wave_signal += -55.0 * np.exp(-((timestamps - 0.958) ** 2) / (2 * 0.025**2))
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -718,9 +714,7 @@ def test_detector_rejects_nonfinite_and_saturated_event_windows() -> None:
 
 
 def test_edge_events_are_rejected_by_default_and_can_be_allowed() -> None:
-    timestamps, ripple_signal, _ = _make_synthetic_ripple_session(
-        [0.08], duration=1.0
-    )
+    timestamps, ripple_signal, _ = _make_synthetic_ripple_session([0.08], duration=1.0)
 
     rejected = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,

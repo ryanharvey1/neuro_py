@@ -1,3 +1,5 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Arc
@@ -82,7 +84,7 @@ class AngleAnnotation(Arc):
         self.set_transform(IdentityTransform())
         self.ax.add_patch(self)
 
-        self.kw = dict(
+        self.kw: dict[str, Any] = dict(
             ha="center",
             va="center",
             xycoords=IdentityTransform(),
@@ -91,7 +93,7 @@ class AngleAnnotation(Arc):
             annotation_clip=True,
         )
         self.kw.update(text_kw or {})
-        self.text = ax.annotate(text, xy=self._center, **self.kw)
+        self.text = self.ax.annotate(text, xy=self._center, **self.kw)
 
     def get_size(self):
         factor = 1.0
@@ -115,7 +117,7 @@ class AngleAnnotation(Arc):
         """return center in pixels"""
         return self.ax.transData.transform(self._xydata)
 
-    def set_center(self, xy):
+    def set_center(self, xy):  # ty: ignore[missing-override-decorator]
         """set center in data coordinates"""
         self._xydata = xy
 
@@ -140,7 +142,7 @@ class AngleAnnotation(Arc):
     height = property(get_size, set_size)
 
     # The following two methods are needed to update the text position.
-    def draw(self, renderer):
+    def draw(self, renderer):  # ty: ignore[missing-override-decorator]
         self.update_text()
         super().draw(renderer)
 
@@ -175,4 +177,4 @@ class AngleAnnotation(Arc):
             X = R(angle, r, bbox.width, bbox.height)
             trans = self.ax.figure.dpi_scale_trans.inverted()
             offs = trans.transform(((X - s / 2), 0))[0] * 72
-            self.text.set_position([offs * np.cos(angle), offs * np.sin(angle)])
+            self.text.set_position((offs * np.cos(angle), offs * np.sin(angle)))

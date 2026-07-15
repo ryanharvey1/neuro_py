@@ -1,13 +1,13 @@
 import re
 import time
 import warnings
+from importlib import import_module
 
 import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from IPython.display import clear_output, display
 
 
 def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
@@ -44,6 +44,15 @@ def spike_sorting_progress(file: str, wait_time: float = 300, hue: str = "amp"):
 
     # dark mode plotting
     plt.style.use("dark_background")
+    try:
+        ipython_display = import_module("IPython.display")
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "spike_sorting_progress requires IPython for notebook display support. "
+            "Install it with `pip install ipython`."
+        ) from exc
+    clear_output = ipython_display.clear_output
+    display = ipython_display.display
 
     def safe_read_csv(file, retries=3):
         for _ in range(retries):
@@ -251,7 +260,7 @@ def phy_log_to_epocharray(filename: str, merge_gap: float = 30):
             timestamps.append(match.group(1))
 
     # Create a Pandas DataFrame
-    df = pd.DataFrame(timestamps, columns=["Timestamp"])
+    df = pd.DataFrame({"Timestamp": timestamps})
 
     # Convert the 'Timestamp' column to datetime format
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], format="%H:%M:%S.%f")

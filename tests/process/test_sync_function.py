@@ -15,7 +15,9 @@ def test_sync_unsorted_inputs_maps_indices_to_original_order():
     )
     sync_times = np.array([2.0, 1.0])
 
-    synchronized, Ie, Is = sync(samples, sync_times, durations=(-0.15, 0.15), fast=False)
+    synchronized, Ie, Is = sync(
+        samples, sync_times, durations=(-0.15, 0.15), fast=False
+    )
 
     expected_sync = np.array(
         [

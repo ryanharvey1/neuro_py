@@ -1,16 +1,17 @@
 import gc
 import os
 import warnings
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from tqdm import tqdm
 
 
 def remove_artifacts(
     filepath: str,
     n_channels: int,
-    zero_intervals: List[Tuple[int, int]],
+    zero_intervals: Union[NDArray[Any], Sequence[Tuple[int, int]]],
     precision: str = "int16",
     mode: str = "linear",
     channels_to_remove: Optional[List[int]] = None,
@@ -24,8 +25,8 @@ def remove_artifacts(
         Path to the binary file.
     n_channels : int
         Number of channels in the file.
-    zero_intervals : List[Tuple[int, int]]
-        List of intervals (start, end) in sample indices to zero out.
+    zero_intervals : numpy.ndarray or sequence of tuple[int, int]
+        Intervals (start, end) in sample indices to remove artifacts from.
     precision : str, optional
         Data precision, by default "int16".
     mode : str, optional
@@ -69,9 +70,10 @@ def remove_artifacts(
         filepath, dtype=precision, mode="r+", shape=(n_samples, n_channels)
     )
     try:
-        # if shape is (2,) then it is a single interval, then add dimension
-        if np.shape(zero_intervals) == (2,):
-            zero_intervals = np.expand_dims(zero_intervals, axis=0)
+        zero_intervals_array = np.asarray(zero_intervals)
+        # If shape is (2,), this is a single interval; promote it to 2D.
+        if zero_intervals_array.shape == (2,):
+            zero_intervals_array = np.expand_dims(zero_intervals_array, axis=0)
 
         # If no specific channels are provided, process all channels
         if channels_to_remove is None:
@@ -80,7 +82,7 @@ def remove_artifacts(
         # Zero out the specified intervals
         if mode == "zeros":
             zero_value = np.zeros((1, n_channels), dtype=precision)
-            for start, end in zero_intervals:
+            for start, end in zero_intervals_array:
                 if 0 <= start < n_samples and 0 < end <= n_samples:
                     data[start:end, channels_to_remove] = zero_value[
                         0, channels_to_remove
@@ -90,7 +92,7 @@ def remove_artifacts(
                         f"Interval ({start}, {end}) is out of bounds and was skipped."
                     )
         elif mode == "linear":
-            for start, end in zero_intervals:
+            for start, end in zero_intervals_array:
                 if 0 <= start < n_samples and 0 < end <= n_samples:
                     for ch in channels_to_remove:
                         # Compute float interpolation and round before casting
@@ -169,7 +171,7 @@ def remove_artifacts(
     log_file = os.path.splitext(filepath)[0] + "_zeroed_intervals.log"
     try:
         with open(log_file, "w") as f:
-            f.write(f"Zeroed intervals: {zero_intervals.tolist()}\n")
+            f.write(f"Zeroed intervals: {np.asarray(zero_intervals).tolist()}\n")
     except Exception as e:
         warnings.warn(f"Failed to create log file: {e}")
 

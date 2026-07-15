@@ -1,13 +1,16 @@
 import sys
-from typing import Tuple
+from typing import Any, Tuple
 
 import nelpy as nel
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.decomposition import PCA
 
 
-def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def linearize_position(
+    x: NDArray[Any], y: NDArray[Any]
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Use PCA (a dimensionality reduction technique) to find the direction of maximal variance
     in our position data, and use this as the new 1D linear track axis.
@@ -65,8 +68,8 @@ def linearize_position(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def __find_laps(
-    Vts: np.ndarray,
-    Vdata: np.ndarray,
+    Vts: NDArray[Any],
+    Vdata: NDArray[Any],
     newLapThreshold: float = 15,
     good_laps: bool = True,
     edgethresh: float = 0.1,
@@ -103,7 +106,11 @@ def __find_laps(
 
     # Handle empty input
     if len(Vdata) == 0 or len(Vts) == 0:
-        return pd.DataFrame(columns=["start_ts", "pos", "start_idx", "direction"])
+        return pd.DataFrame(
+            columns=np.array(
+                ["start_ts", "pos", "start_idx", "direction"], dtype=object
+            )
+        )
 
     TL = np.abs(np.nanmax(Vdata) - np.nanmin(Vdata))  # % track length
     th1 = (
@@ -189,7 +196,7 @@ def __find_laps(
 
 
 def __peakdetz(
-    v: np.ndarray, delta: float, lookformax: int = 1, backwards: int = 0
+    v: NDArray[Any], delta: float, lookformax: int = 1, backwards: int = 0
 ) -> Tuple[list[Tuple[int, float]], list[Tuple[int, float]]]:
     """
     Detect peaks in a vector.
@@ -212,13 +219,10 @@ def __peakdetz(
         the form (index, value).
     """
 
-    maxtab = []
-    mintab = []
+    maxtab: list[Tuple[int, float]] = []
+    mintab: list[Tuple[int, float]] = []
 
-    v = np.asarray(v)
-
-    if not np.isscalar(delta):
-        sys.exit("Input argument delta must be a scalar")
+    v = np.asarray(v, dtype=float)
 
     if delta <= 0:
         sys.exit("Input argument delta must be positive")
@@ -228,19 +232,19 @@ def __peakdetz(
         first = 0
         last = len(v)
         iter_ = np.arange(first, last, inc)
-    elif backwards:
+    else:
         inc = -1
         first = len(v)
         last = 0
         iter_ = np.arange(first, last, inc)
 
-    mn = np.inf
-    mx = -np.inf
-    mnpos = np.nan
-    mxpos = np.nan
+    mn = float("inf")
+    mx = float("-inf")
+    mnpos = 0
+    mxpos = 0
 
     for ii in iter_:
-        this = v[ii]
+        this = float(v[ii])
         if this > mx:
             mx = this
             mxpos = ii
@@ -273,8 +277,8 @@ def __peakdetz(
 
 
 def __find_good_laps(
-    ts: np.ndarray,
-    V_rest: np.ndarray,
+    ts: NDArray[Any],
+    V_rest: NDArray[Any],
     laps: pd.DataFrame,
     edgethresh: float = 0.1,
     completeprop: float = 0.2,
@@ -326,11 +330,11 @@ def __find_good_laps(
     )
     # % threshold for peak/trough detection
     delta = (topend - bottomend) * edgethresh
-    startgoodlaps = []
-    stopgoodlaps = []
+    startgoodlaps: list[float] = []
+    stopgoodlaps: list[float] = []
 
     lap = 0
-    lastlapend = np.nan
+    lastlapend = float("nan")
     while lap < len(laps) - 1:
         # % select out just this lap
         if lap == len(laps):
@@ -449,9 +453,9 @@ def __find_good_laps(
                 laps = laps.drop(laps.index[lap - 1])
                 # % change goodlaps markers to delete previous lap from laps
                 if len(stopgoodlaps) > 0:
-                    if np.isnan(lastlapend).all() | (startgoodlaps[-1] > lastlapend):
-                        startgoodlaps[-1] = []
-                        stopgoodlaps[-1] = []
+                    if np.isnan(lastlapend) | (startgoodlaps[-1] > lastlapend):
+                        startgoodlaps[-1] = np.nan
+                        stopgoodlaps[-1] = np.nan
                     else:
                         stopgoodlaps[-1] = lastlapend
 
@@ -481,8 +485,8 @@ def __find_good_laps(
 
 
 def get_linear_track_lap_epochs(
-    ts: np.ndarray,
-    x: np.ndarray,
+    ts: NDArray[Any],
+    x: NDArray[Any],
     newLapThreshold: float = 15,
     good_laps: bool = False,
     edgethresh: float = 0.1,

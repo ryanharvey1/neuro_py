@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
 from scipy.optimize import minimize
 from scipy.sparse import csr_matrix
@@ -67,7 +68,7 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
     # Log normalization constant
     log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
 
-    for t in prange(n_observations):
+    for t in prange(n_observations):  # ty: ignore[not-iterable]  # Numba range
         obs = observations[t]
         for i in range(n_states):
             center = emission_centers[i]
@@ -163,7 +164,7 @@ def _build_sparse_transition_matrix_numba(
         (n_states, n_states), -np.inf
     )  # Initialize with log(0) = -inf
 
-    for i in prange(n_states):
+    for i in prange(n_states):  # ty: ignore[not-iterable]  # Numba range
         seg1 = state_to_segment[i]
         pos1 = state_to_position[i]
 
@@ -262,7 +263,7 @@ def _project_positions_parallel(positions, node_positions, edges, n_positions):
     track_segment_ids = np.full(n_positions, -1, dtype=np.int32)
     projected_positions = np.full((n_positions, 2), np.nan)
 
-    for i in prange(n_positions):
+    for i in prange(n_positions):  # ty: ignore[not-iterable]  # Numba range
         pos = positions[i]
 
         # Find closest edge
@@ -366,7 +367,7 @@ class TrackGraph:
         List of edge connections between nodes
     """
 
-    def __init__(self, node_positions: np.ndarray, edges: List[List[int]]):
+    def __init__(self, node_positions: NDArray[Any], edges: List[List[int]]):
         self.node_positions = np.asarray(node_positions)
         self.edges = edges
         self.n_nodes = len(node_positions)
@@ -396,7 +397,7 @@ class TrackGraph:
             (data, (row_indices, col_indices)), shape=(self.n_nodes, self.n_nodes)
         )
 
-    def _calculate_edge_distances(self) -> dict:
+    def _calculate_edge_distances(self) -> dict[Any, Any]:
         """Calculate distances between connected nodes."""
         distances = {}
         for edge in self.edges:
@@ -410,7 +411,7 @@ class TrackGraph:
                     distances[(node2, node1)] = dist
         return distances
 
-    def _calculate_cumulative_distances(self) -> np.ndarray:
+    def _calculate_cumulative_distances(self) -> NDArray[Any]:
         """Calculate cumulative distances along the track."""
         # Find the main path through the track
         # For simplicity, we'll use the first edge as the starting point
@@ -515,7 +516,7 @@ class HMMLinearizer:
         self.use_adaptive_subsampling = use_adaptive_subsampling
         self.use_batch_processing = use_batch_processing
         self.batch_size = batch_size
-        
+
         # Performance optimization parameters
         self.adaptive_binning = adaptive_binning
         self.max_total_states = max_total_states
@@ -523,14 +524,16 @@ class HMMLinearizer:
 
         # Calculate track segment properties
         self.n_segments = len(track_graph.edges)
-        
+
         # Adaptive binning: reduce bins for large track graphs
         if self.adaptive_binning and self.n_segments > 5:
             # Reduce bins per segment to keep total states manageable
             max_bins_per_segment = max(10, self.max_total_states // self.n_segments)
             self.n_bins_per_segment = min(self.n_bins_per_segment, max_bins_per_segment)
-            print(f"Adaptive binning: reduced to {self.n_bins_per_segment} bins per segment for {self.n_segments} segments")
-        
+            print(
+                f"Adaptive binning: reduced to {self.n_bins_per_segment} bins per segment for {self.n_segments} segments"
+            )
+
         self.segment_lengths = []
         self.segment_positions = []
 
@@ -582,7 +585,7 @@ class HMMLinearizer:
         # Build emission model
         self._build_emission_model()
 
-    def _interpolate_along_segment(self, edge: List[int], t: float) -> np.ndarray:
+    def _interpolate_along_segment(self, edge: List[int], t: float) -> NDArray[Any]:
         """Interpolate position along a track segment."""
         if len(edge) < 2:
             return np.array([0, 0])
@@ -724,7 +727,7 @@ class HMMLinearizer:
                         self.transition_matrix[i, :] = uniform_log_prob
 
     def _calculate_transition_probability(
-        self, seg1: int, pos1: np.ndarray, seg2: int, pos2: np.ndarray
+        self, seg1: int, pos1: NDArray[Any], seg2: int, pos2: NDArray[Any]
     ) -> float:
         """Calculate transition log-probability between two states."""
         # Distance-based probability
@@ -748,7 +751,7 @@ class HMMLinearizer:
                     2 * self.transition_smoothness**2
                 )
 
-        return log_prob
+        return float(log_prob)
 
     def _segments_connected(self, seg1: int, seg2: int) -> bool:
         """Check if two segments are connected in the track graph."""
@@ -766,7 +769,7 @@ class HMMLinearizer:
         nodes2 = set(edge2)
         return len(nodes1.intersection(nodes2)) > 0
 
-    def _auto_tune_parameters(self, positions: np.ndarray) -> dict:
+    def _auto_tune_parameters(self, positions: NDArray[Any]) -> dict[str, Any]:
         """
         Automatically tune HMM parameters based on data characteristics.
         Optimized for real rat tracking data from DeepLabCut.
@@ -846,7 +849,7 @@ class HMMLinearizer:
         # For real tracking data, we need to ensure positions can be assigned to states
         # even if they're not exactly on the track due to tracking noise
 
-    def _emission_probability(self, observation: np.ndarray, state: int) -> float:
+    def _emission_probability(self, observation: NDArray[Any], state: int) -> float:
         """Calculate emission probability P(observation | state)."""
         center = self.emission_centers[state]
 
@@ -855,8 +858,8 @@ class HMMLinearizer:
         return rv.pdf(observation)
 
     def _emission_probabilities_vectorized(
-        self, observations: np.ndarray
-    ) -> np.ndarray:
+        self, observations: NDArray[Any]
+    ) -> NDArray[Any]:
         """
         Calculate emission log-probabilities for all observations and states at once.
         Much faster than calling _emission_probability repeatedly.
@@ -899,8 +902,8 @@ class HMMLinearizer:
             return log_emission_probs
 
     def linearize_with_hmm(
-        self, positions: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, positions: NDArray[Any]
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Linearize positions using HMM inference.
 
@@ -926,7 +929,7 @@ class HMMLinearizer:
         projected_positions = np.full((n_positions, 2), np.nan)
 
         # Handle NaN positions
-        valid_mask = ~np.isnan(positions).any(axis=1)
+        valid_mask = np.asarray(~np.isnan(positions).any(axis=1), dtype=bool)
         if not np.any(valid_mask):
             return linear_positions, track_segment_ids, projected_positions
 
@@ -934,7 +937,9 @@ class HMMLinearizer:
 
         # Check if we should use fast approximate method for very large track graphs
         if self.n_states > 1000 and len(valid_positions) > 500:
-            print(f"Using fast approximate HMM for large track graph ({self.n_states} states, {len(valid_positions)} positions)")
+            print(
+                f"Using fast approximate HMM for large track graph ({self.n_states} states, {len(valid_positions)} positions)"
+            )
             return self._linearize_with_fast_approximate_hmm(positions, valid_mask)
 
         # Subsample positions if requested for speed
@@ -985,8 +990,8 @@ class HMMLinearizer:
         return linear_positions, track_segment_ids, projected_positions
 
     def _linearize_with_fast_approximate_hmm(
-        self, positions: np.ndarray, valid_mask: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, positions: NDArray[Any], valid_mask: NDArray[Any]
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Fast approximate HMM linearization for very large track graphs.
         Uses simplified approach: project to nearest state and apply temporal smoothing.
@@ -997,58 +1002,58 @@ class HMMLinearizer:
         projected_positions = np.full((n_positions, 2), np.nan)
 
         valid_positions = positions[valid_mask]
-        
+
         # Step 1: Find nearest state for each position (much faster than full HMM)
         nearest_states = np.zeros(len(valid_positions), dtype=int)
         for i, pos in enumerate(valid_positions):
             # Find nearest emission center
             distances = np.linalg.norm(self.emission_centers - pos, axis=1)
             nearest_states[i] = np.argmin(distances)
-        
+
         # Step 2: Apply simple temporal smoothing (optional)
         if len(nearest_states) > 1:
             smoothed_states = self._apply_temporal_smoothing(nearest_states)
         else:
             smoothed_states = nearest_states
-        
+
         # Step 3: Convert states to positions
         for i, state in enumerate(smoothed_states):
             global_idx = np.where(valid_mask)[0][i]
-            
+
             seg_id = self.state_to_segment[state]
             projected_pos = self.state_to_position[state]
             linear_pos = self._calculate_linear_position(seg_id, projected_pos)
-            
+
             linear_positions[global_idx] = linear_pos
             track_segment_ids[global_idx] = seg_id
             projected_positions[global_idx] = projected_pos
-        
+
         return linear_positions, track_segment_ids, projected_positions
 
-    def _apply_temporal_smoothing(self, states: np.ndarray) -> np.ndarray:
+    def _apply_temporal_smoothing(self, states: NDArray[Any]) -> NDArray[Any]:
         """
         Apply simple temporal smoothing to state sequence.
         Uses a moving average approach to reduce noise.
         """
         smoothed = states.copy()
         window_size = min(5, len(states) // 10)  # Adaptive window size
-        
+
         if window_size < 2:
             return smoothed
-        
+
         # Apply moving average smoothing
         for i in range(len(states)):
             start = max(0, i - window_size // 2)
             end = min(len(states), i + window_size // 2 + 1)
             window_states = states[start:end]
-            
+
             # Use mode (most common state) in window
             unique, counts = np.unique(window_states, return_counts=True)
             smoothed[i] = unique[np.argmax(counts)]
-        
+
         return smoothed
 
-    def _viterbi(self, observations: np.ndarray) -> np.ndarray:
+    def _viterbi(self, observations: NDArray[Any]) -> NDArray[Any]:
         """
         Run Viterbi algorithm to find most likely state sequence.
         Uses log-probabilities for numerical stability.
@@ -1116,7 +1121,7 @@ class HMMLinearizer:
             return state_sequence
 
     def _calculate_linear_position(
-        self, segment_id: int, position: np.ndarray
+        self, segment_id: int, position: NDArray[Any]
     ) -> float:
         """Calculate linear position along the track for a given segment and position."""
         if segment_id >= len(self.track_graph.edges):
@@ -1167,12 +1172,12 @@ class HMMLinearizer:
 
     def _interpolate_missing_values(
         self,
-        linear_positions: np.ndarray,
-        track_segment_ids: np.ndarray,
-        projected_positions: np.ndarray,
-        original_indices: np.ndarray,
-        valid_mask: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        linear_positions: NDArray[Any],
+        track_segment_ids: NDArray[Any],
+        projected_positions: NDArray[Any],
+        original_indices: NDArray[Any],
+        valid_mask: NDArray[Any],
+    ) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
         """
         Interpolate missing values in subsampled linearization results.
 
@@ -1302,8 +1307,8 @@ class HMMLinearizer:
 
 
 def project_position_to_track(
-    position: np.ndarray, track_graph: TrackGraph
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    position: NDArray[Any], track_graph: TrackGraph
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Project 2D positions onto the track graph.
 
@@ -1385,7 +1390,7 @@ def project_position_to_track(
 
 
 def plot_linearization_confirmation(
-    original_positions: np.ndarray,
+    original_positions: NDArray[Any],
     linearized_df: pd.DataFrame,
     track_graph: TrackGraph,
     title: str = "Linearization Confirmation",
@@ -1413,7 +1418,7 @@ def plot_linearization_confirmation(
     # Create color map for segments
     unique_segments = sorted(linearized_df["track_segment_id"].unique())
     if len(unique_segments) > 0:
-        colors = plt.cm.tab10(np.linspace(0, 1, len(unique_segments)))
+        colors = plt.get_cmap("tab10")(np.linspace(0, 1, len(unique_segments)))
         segment_colors = dict(zip(unique_segments, colors))
     else:
         segment_colors = {}
@@ -1445,7 +1450,7 @@ def plot_linearization_confirmation(
             ax1.scatter(
                 original_positions[:, 0],
                 original_positions[:, 1],
-                color="lightblue", 
+                color="lightblue",
                 s=1,
                 alpha=0.6,
             )
@@ -1453,16 +1458,14 @@ def plot_linearization_confirmation(
         ax1.scatter(
             original_positions[:, 0],
             original_positions[:, 1],
-            color="lightblue", 
+            color="lightblue",
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
     node_positions = track_graph.node_positions
-    ax1.scatter(
-        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
-    ) 
+    ax1.scatter(node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5)
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1502,7 +1505,7 @@ def plot_linearization_confirmation(
             ax2.scatter(
                 linearized_df["projected_x_position"],
                 linearized_df["projected_y_position"],
-                color="green", 
+                color="green",
                 s=1,
                 alpha=0.6,
             )
@@ -1510,15 +1513,13 @@ def plot_linearization_confirmation(
         ax2.scatter(
             linearized_df["projected_x_position"],
             linearized_df["projected_y_position"],
-            color="green", 
+            color="green",
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
-    ax2.scatter(
-        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
-    ) 
+    ax2.scatter(node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5)
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1558,7 +1559,7 @@ def plot_linearization_confirmation(
                     ax3.scatter(
                         segment_times,
                         segment_positions,
-                        color=segment_color, 
+                        color=segment_color,
                         s=1,
                         alpha=0.7,
                     )
@@ -1566,7 +1567,7 @@ def plot_linearization_confirmation(
         ax3.scatter(
             time_points,
             linearized_df["linear_position"],
-            color="blue", 
+            color="blue",
             s=1,
             alpha=0.7,
         )
@@ -1601,7 +1602,7 @@ def plot_linearization_confirmation(
 
 
 def get_linearized_position(
-    position: np.ndarray,
+    position: NDArray[Any],
     track_graph: TrackGraph,
     edge_order: Optional[List[List[int]]] = None,
     use_HMM: bool = False,
@@ -1661,14 +1662,18 @@ def get_linearized_position(
         # For large track graphs, use more aggressive optimization
         if n_bins_per_segment > 30:
             n_bins_per_segment = 30
-            print(f"Reduced bins per segment to {n_bins_per_segment} for large track graph ({n_segments} segments)")
-        
+            print(
+                f"Reduced bins per segment to {n_bins_per_segment} for large track graph ({n_segments} segments)"
+            )
+
         # Enable subsampling for very large datasets
         if len(position) > 1000 and not subsample_positions:
             subsample_positions = True
             subsample_factor = max(3, len(position) // 2000)
-            print(f"Enabled subsampling with factor {subsample_factor} for large dataset ({len(position)} positions)")
-        
+            print(
+                f"Enabled subsampling with factor {subsample_factor} for large dataset ({len(position)} positions)"
+            )
+
         # Enable batch processing for large track graphs
         if not use_batch_processing:
             use_batch_processing = True
@@ -1686,7 +1691,7 @@ def get_linearized_position(
             use_batch_processing=use_batch_processing,
             batch_size=batch_size,
             adaptive_binning=True,  # Enable adaptive binning for large track graphs
-            max_total_states=500,   # Limit total states for performance
+            max_total_states=500,  # Limit total states for performance
         )
 
         # Auto-tune parameters if requested
@@ -1694,49 +1699,69 @@ def get_linearized_position(
             tuned_params = hmm_linearizer._auto_tune_parameters(position)
             print(f"Auto-tuned HMM parameters: {tuned_params}")
             # Apply tuned parameters
-            hmm_linearizer.emission_noise = tuned_params.get("emission_noise", hmm_linearizer.emission_noise)
-            hmm_linearizer.transition_smoothness = tuned_params.get("transition_smoothness", hmm_linearizer.transition_smoothness)
+            hmm_linearizer.emission_noise = tuned_params.get(
+                "emission_noise", hmm_linearizer.emission_noise
+            )
+            hmm_linearizer.transition_smoothness = tuned_params.get(
+                "transition_smoothness", hmm_linearizer.transition_smoothness
+            )
 
         # Perform HMM linearization
-        linear_positions, track_segment_ids, projected_positions = hmm_linearizer.linearize_with_hmm(position)
+        linear_positions, track_segment_ids, projected_positions = (
+            hmm_linearizer.linearize_with_hmm(position)
+        )
 
         # Create DataFrame
-        result_df = pd.DataFrame({
-            "linear_position": linear_positions,
-            "track_segment_id": track_segment_ids,
-            "projected_x_position": projected_positions[:, 0],
-            "projected_y_position": projected_positions[:, 1],
-        })
+        result_df = pd.DataFrame(
+            {
+                "linear_position": linear_positions,
+                "track_segment_id": track_segment_ids,
+                "projected_x_position": projected_positions[:, 0],
+                "projected_y_position": projected_positions[:, 1],
+            }
+        )
 
         # Show confirmation plot if requested
         if show_confirmation_plot:
             plot_linearization_confirmation(
-                position, result_df, track_graph, title="Linearization Confirmation (HMM)"
+                position,
+                result_df,
+                track_graph,
+                title="Linearization Confirmation (HMM)",
             )
 
         return result_df
     else:
         # Use standard linearization
-        linear_positions, track_segment_ids, projected_positions = project_position_to_track(position, track_graph)
+        linear_positions, track_segment_ids, projected_positions = (
+            project_position_to_track(position, track_graph)
+        )
 
         # Create DataFrame
-        result_df = pd.DataFrame({
-            "linear_position": linear_positions,
-            "track_segment_id": track_segment_ids,
-            "projected_x_position": projected_positions[:, 0],
-            "projected_y_position": projected_positions[:, 1],
-        })
+        result_df = pd.DataFrame(
+            {
+                "linear_position": linear_positions,
+                "track_segment_id": track_segment_ids,
+                "projected_x_position": projected_positions[:, 0],
+                "projected_y_position": projected_positions[:, 1],
+            }
+        )
 
         # Show confirmation plot if requested
         if show_confirmation_plot:
             plot_linearization_confirmation(
-                position, result_df, track_graph, title="Linearization Confirmation (Standard)"
+                position,
+                result_df,
+                track_graph,
+                title="Linearization Confirmation (Standard)",
             )
 
         return result_df
 
 
-def make_track_graph(node_positions: np.ndarray, edges: List[List[int]]) -> TrackGraph:
+def make_track_graph(
+    node_positions: NDArray[Any], edges: List[List[int]]
+) -> TrackGraph:
     """
     Create a track graph from node positions and edges.
 
@@ -1864,7 +1889,10 @@ class NodePicker:
         if ax is None:
             ax = plt.gca()
         self.ax = ax
-        self.canvas = ax.get_figure().canvas
+        figure = ax.get_figure()
+        if figure is None or figure.canvas is None:
+            raise RuntimeError("NodePicker requires axes attached to a figure canvas")
+        self.canvas = figure.canvas
         self.cid = None
         self._nodes = []
         self.node_color = node_color
@@ -1889,7 +1917,7 @@ class NodePicker:
         self.connect()
 
     @property
-    def node_positions(self) -> np.ndarray:
+    def node_positions(self) -> NDArray[Any]:
         """
         Get the positions of the nodes.
 
@@ -1981,7 +2009,7 @@ class NodePicker:
             self.ax.text(
                 x,
                 y,
-                ind,
+                str(ind),
                 zorder=6,
                 fontsize=10,
                 horizontalalignment="center",
@@ -2022,10 +2050,13 @@ class NodePicker:
 
     def format_and_save(self) -> None:
         """Format the data and save it to disk."""
-        behave_df = load_animal_behavior(self.basepath)
+        if self.basepath is None:
+            raise ValueError("basepath is required to save linearization results")
+        basepath = self.basepath
+        behave_df = load_animal_behavior(basepath)
 
         if self.epoch is not None:
-            epochs = load_epoch(self.basepath)
+            epochs = load_epoch(basepath)
 
             cur_epoch = (
                 ~np.isnan(behave_df.x)
@@ -2076,7 +2107,7 @@ class NodePicker:
         )
 
         filename = os.path.join(
-            self.basepath, os.path.basename(self.basepath) + ".animal.behavior.mat"
+            basepath, os.path.basename(basepath) + ".animal.behavior.mat"
         )
 
         data = loadmat(filename, simplify_cells=True)
@@ -2100,12 +2131,16 @@ class NodePicker:
 
     def save_nodes_edges(self) -> None:
         """Save the nodes and edges to a pickle file."""
+        if self.basepath is None:
+            raise ValueError("basepath is required to save nodes and edges")
         results = {"node_positions": self.node_positions, "edges": self.edges}
         save_file = os.path.join(self.basepath, "linearization_nodes_edges.pkl")
         with open(save_file, "wb") as f:
             pickle.dump(results, f)
 
-    def save_nodes_edges_to_behavior(self, data: dict, behave_df: pd.DataFrame) -> dict:
+    def save_nodes_edges_to_behavior(
+        self, data: dict[str, Any], behave_df: pd.DataFrame
+    ) -> dict[str, Any]:
         """
         Store nodes and edges into behavior file.
         Searches to find epochs with valid linearized coords.
@@ -2123,7 +2158,10 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
-        def validate_epoch_entry(epoch_entry: object, epoch_index: int) -> MutableMapping:
+
+        def validate_epoch_entry(
+            epoch_entry: object, epoch_index: int
+        ) -> MutableMapping[Any, Any]:
             if not isinstance(epoch_entry, MutableMapping):
                 raise TypeError(
                     "behavior['epochs'] entries must be mutable mapping types, "
@@ -2131,7 +2169,7 @@ class NodePicker:
                 )
             return epoch_entry
 
-        def get_epoch_entry(epoch_index: int) -> MutableMapping:
+        def get_epoch_entry(epoch_index: int) -> MutableMapping[Any, Any]:
             behavior_epochs = data["behavior"].get("epochs")
 
             if behavior_epochs is None:
@@ -2145,7 +2183,11 @@ class NodePicker:
                 return behavior_epochs
 
             if isinstance(behavior_epochs, np.ndarray):
-                behavior_epochs = behavior_epochs.item() if behavior_epochs.ndim == 0 else behavior_epochs
+                behavior_epochs = (
+                    behavior_epochs.item()
+                    if behavior_epochs.ndim == 0
+                    else behavior_epochs
+                )
 
             if isinstance(behavior_epochs, Sequence) and not isinstance(
                 behavior_epochs, (str, bytes, bytearray)
@@ -2159,11 +2201,13 @@ class NodePicker:
 
         if self.epoch is None and self.interval is None:
             # load epochs
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
             # iter over each epoch
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # locate index for given epoch
-                idx = behave_df.time.between(ep.startTime, ep.stopTime)
+                idx = behave_df.time.between(ep["startTime"], ep["stopTime"])
                 # if linearized is not all nan, add nodes and edges
                 if behave_df[idx].shape[0] != 0 and not np.all(
                     np.isnan(behave_df[idx].linearized)
@@ -2174,11 +2218,13 @@ class NodePicker:
                     epoch_entry["edges"] = self.edges
         elif self.interval is not None:
             # if interval was used, add nodes and edges just the epochs within that interval
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # amount of overlap between interval and epoch
-                start_overlap = max(self.interval[0], ep.startTime)
-                end_overlap = min(self.interval[1], ep.stopTime)
+                start_overlap = max(self.interval[0], ep["startTime"])
+                end_overlap = min(self.interval[1], ep["stopTime"])
                 overlap = max(0, end_overlap - start_overlap)
 
                 # if overlap is greater than 1 second, add nodes and edges
@@ -2188,6 +2234,7 @@ class NodePicker:
                     epoch_entry["edges"] = self.edges
         else:
             # if epoch was used, add nodes and edges just that that epoch
+            assert self.epoch is not None
             epoch_entry = get_epoch_entry(self.epoch)
             epoch_entry["node_positions"] = self.node_positions
             epoch_entry["edges"] = self.edges

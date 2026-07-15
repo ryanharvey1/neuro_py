@@ -458,7 +458,9 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
         captured["cross_svd_threshold_mode"] = kwargs["cross_svd_threshold_mode"]
         return np.array([[1.0, 0.0]]), object(), actmat
 
-    monkeypatch.setattr(assembly_reactivation.assembly, "runPatterns", fake_run_patterns)
+    monkeypatch.setattr(
+        assembly_reactivation.assembly, "runPatterns", fake_run_patterns
+    )
 
     assembly_react = assembly_reactivation.AssemblyReact(
         n_jobs=3,

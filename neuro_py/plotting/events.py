@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union, cast
 
 import bottleneck as bn
 import matplotlib
@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from nelpy.core import EpochArray
+from numpy.typing import NDArray
 
 from neuro_py.stats.stats import confidence_intervals
 
@@ -58,7 +59,7 @@ def plot_events(
     >>> plot_events(events, ['nrem', 'wake', 'rem'])
     """
     # get colormap
-    cmap = matplotlib.cm.get_cmap(cmap)
+    colormap = matplotlib.colormaps.get_cmap(cmap)
 
     # set up y axis
     y = np.linspace(0, 1, len(events) + 1)
@@ -81,11 +82,12 @@ def plot_events(
                 y[i],
                 y[i + 1],
                 alpha=alpha,
-                color=cmap(i * 0.1),
+                color=colormap(i * 0.1),
             )
 
     ax.set_yticks(y[:-1] + np.diff(y)[0] / 2)
     ax.set_yticklabels(labels)
+    return ax
 
 
 def plot_peth(
@@ -149,16 +151,16 @@ def plot_peth(
         # convert window to samples
         smooth_window = int(smooth_window / np.diff(peth.index)[0])
         # smooth the peth
-        peth = (
+        rolling_window = cast(
+            Any,
             peth.rolling(
                 window=smooth_window,
                 win_type=smooth_win_type,
                 center=True,
                 min_periods=1,
-            )
-            .mean(std=smooth_std)
-            .copy()
+            ),
         )
+        peth = rolling_window.mean(std=smooth_std).copy()
 
     # melt the dataframe so that the index is time and there is a column for each trial/cell/etc.
     peth_long = pd.melt(peth.reset_index(), id_vars=["index"], value_name="peth")
@@ -179,8 +181,8 @@ def plot_peth(
 
 
 def plot_peth_fast(
-    peth: Union[pd.DataFrame, np.ndarray],
-    ts: Union[np.ndarray, None] = None,
+    peth: Union[pd.DataFrame, NDArray[Any]],
+    ts: Union[NDArray[Any], None] = None,
     ax: Union[plt.Axes, None] = None,
     ci: float = 0.95,
     smooth: bool = False,
@@ -188,7 +190,7 @@ def plot_peth_fast(
     smooth_std: int = 5,
     smooth_win_type: str = "gaussian",
     alpha: float = 0.2,
-    estimator: Callable = np.nanmean,
+    estimator: Callable[..., NDArray[Any]] = np.nanmean,
     n_boot: int = 1000,
     random_state: Optional[int] = None,
     **kwargs,
@@ -259,16 +261,16 @@ def plot_peth_fast(
 
     if smooth:
         smooth_window = int(smooth_window / np.diff(peth.index)[0])
-        peth = (
+        rolling_window = cast(
+            Any,
             peth.rolling(
                 window=smooth_window,
                 win_type=smooth_win_type,
                 center=True,
                 min_periods=1,
-            )
-            .mean(std=smooth_std)
-            .copy()
+            ),
         )
+        peth = rolling_window.mean(std=smooth_std).copy()
 
     # Central tendency
     center = estimator(peth.values if hasattr(peth, "values") else peth, axis=1)

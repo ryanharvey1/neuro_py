@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 DL_MODULES = {"torch", "lightning", "tensorboard"}
 _ORIGINAL_IMPORT = builtins.__import__
 

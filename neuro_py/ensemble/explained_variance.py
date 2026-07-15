@@ -1,8 +1,11 @@
+from typing import Any
+
 import numpy as np
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
 from numba import jit
+from numpy.typing import NDArray
 
 
 class ExplainedVariance(object):
@@ -119,8 +122,8 @@ class ExplainedVariance(object):
         matching: EpochArray,
         control: EpochArray,
         bin_size: float = 0.2,
-        window: int = 900,
-        slideby: int = None,
+        window: int | None = 900,
+        slideby: int | None = None,
     ):
         """Explained variance measure for assessing reactivation of neuronal activity using pairwise correlations.
 
@@ -142,8 +145,13 @@ class ExplainedVariance(object):
         slideby : int, optional
             slide window by this much, in seconds, by default None
         """
-        self.__dict__.update(locals())
-        del self.__dict__["self"]
+        self.st = st
+        self.template = template
+        self.matching = matching
+        self.control = control
+        self.bin_size = bin_size
+        self.window = window
+        self.slideby = slideby
 
         self.__validate_input()
         self.__calculate()
@@ -415,9 +423,9 @@ class ExplainedVariance(object):
 
 
 def explained_variance(
-    task: np.ndarray,
-    post_task: np.ndarray,
-    pre_task: np.ndarray,
+    task: NDArray[Any],
+    post_task: NDArray[Any],
+    pre_task: NDArray[Any],
     return_full: bool = False,
 ) -> tuple[float, float] | tuple[float, float, float, float, float]:
     """

@@ -14,6 +14,7 @@ Working rules for Codex:
 - Preserve public APIs unless the task explicitly requires a breaking change.
 - Add or update a regression test in the matching `tests/` area when behavior changes.
 - Use type hints on function signatures and numpydoc docstrings for public functions.
+- Keep production code clean under the pinned `ty` checker; follow the detailed type-checking rules in `.github/copilot-instructions.md`.
 - Run the narrowest relevant pytest target you can before finishing, and clearly report if you could not run tests.
 - Preserve scientific behavior, units, shapes, and `nelpy` semantics unless the task explicitly requires a change.
 - For loader work, follow `.github/instructions/io-loading.instructions.md` and keep missing-data behavior aligned with nearby loaders.

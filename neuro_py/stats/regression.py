@@ -1,7 +1,8 @@
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, cast
 
 import numpy as np
 import scipy
+from numpy.typing import NDArray
 from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score
@@ -9,7 +10,7 @@ from sklearn.metrics import r2_score
 
 def ideal_data(
     num: int, dimX: int, dimY: int, rrank: int, noise: float = 1
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """Generate low-rank data.
 
     Parameters
@@ -63,7 +64,7 @@ class ReducedRankRegressor(object):
     """
 
     def __init__(
-        self, X: np.ndarray, Y: np.ndarray, rank: int, reg: Optional[float] = None
+        self, X: NDArray[Any], Y: NDArray[Any], rank: int, reg: Optional[float] = None
     ):
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
@@ -79,16 +80,16 @@ class ReducedRankRegressor(object):
         self.W = V[0:rank, :].T
         self.A = (np.linalg.pinv(CXX) @ (CXY @ self.W)).T
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Reduced Rank Regressor (rank = {})".format(self.rank)
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: NDArray[Any]) -> NDArray[Any]:
         """Predict Y from X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         return np.asarray(X @ (self.A.T @ self.W.T))
 
-    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
+    def score(self, X: NDArray[Any], Y: NDArray[Any]) -> float:
         """Score the model."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
@@ -113,7 +114,7 @@ class MultivariateRegressor(object):
         A regularization parameter (default is None).
     """
 
-    def __init__(self, X: np.ndarray, Y: np.ndarray, reg: Optional[float] = None):
+    def __init__(self, X: NDArray[Any], Y: NDArray[Any], reg: Optional[float] = None):
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         if np.size(np.shape(Y)) == 1:
@@ -125,16 +126,16 @@ class MultivariateRegressor(object):
         W2 = np.dot(X, W1)
         self.W = np.dot(Y.T, W2)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Multivariate Linear Regression"
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: NDArray[Any]) -> NDArray[Any]:
         """Return the predicted Y for input X."""
         if np.size(np.shape(X)) == 1:
             X = np.reshape(X, (-1, 1))
         return np.array(np.dot(X, self.W.T))
 
-    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
+    def score(self, X: NDArray[Any], Y: NDArray[Any]) -> float:
         """Return the coefficient of determination R^2 of the prediction."""
         y_pred = self.predict(X)
         return r2_score(Y, y_pred)
@@ -167,9 +168,9 @@ class kernelReducedRankRegressor(BaseEstimator):
         self,
         rank: int = 10,
         reg: float = 1,
-        P_rr: Optional[np.ndarray] = None,
-        Q_fr: Optional[np.ndarray] = None,
-        trainX: Optional[np.ndarray] = None,
+        P_rr: Optional[NDArray[Any]] = None,
+        Q_fr: Optional[NDArray[Any]] = None,
+        trainX: Optional[NDArray[Any]] = None,
     ):
         self.rank = rank
         self.reg = reg
@@ -177,12 +178,12 @@ class kernelReducedRankRegressor(BaseEstimator):
         self.Q_fr = Q_fr
         self.trainX = trainX
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "kernel Reduced Rank Ridge Regression by Mukherjee (rank = {})".format(
             self.rank
         )
 
-    def fit(self, X: np.ndarray, Y: np.ndarray) -> None:
+    def fit(self, X: NDArray[Any], Y: NDArray[Any]) -> None:
         # use try/except blog with exceptions!
         self.rank = int(self.rank)
 
@@ -196,20 +197,25 @@ class kernelReducedRankRegressor(BaseEstimator):
         self.P_rr = P_rr
         self.trainX = X
 
-    def predict(self, testX: np.ndarray) -> np.ndarray:
+    def predict(self, testX: NDArray[Any]) -> NDArray[Any]:
         # use try/except blog with exceptions!
 
-        K_Xx = np.dot(testX, self.trainX.T)
-        Yhat = np.dot(K_Xx, np.dot(self.Q_fr, self.P_rr))
+        trainX = cast(NDArray[Any], self.trainX)
+        Q_fr = cast(NDArray[Any], self.Q_fr)
+        P_rr = cast(NDArray[Any], self.P_rr)
+        K_Xx = np.dot(testX, trainX.T)
+        Yhat = np.dot(K_Xx, np.dot(Q_fr, P_rr))
 
         return Yhat
 
-    def rrr_scorer(self, Yhat: np.ndarray, Ytest: np.ndarray) -> float:
+    def rrr_scorer(self, Yhat: NDArray[Any], Ytest: NDArray[Any]) -> float:
         diag_corr = (np.diag(np.corrcoef(Ytest, Yhat))).mean()
         return diag_corr
 
     ## Optional
-    def get_params(self, deep: bool = True) -> dict:
+    def get_params(  # ty: ignore[missing-override-decorator]
+        self, deep: bool = True
+    ) -> dict[str, int | float]:
         return {"rank": self.rank, "reg": self.reg}
 
     #
@@ -218,7 +224,7 @@ class kernelReducedRankRegressor(BaseEstimator):
     #            self.setattr(parameter, value)
     #        return self
 
-    def mse(self, X: np.ndarray, y_true: np.ndarray) -> float:
+    def mse(self, X: NDArray[Any], y_true: NDArray[Any]) -> float:
         """
         Score the model on test data.
 
@@ -238,7 +244,7 @@ class kernelReducedRankRegressor(BaseEstimator):
         MSE = (np.power((y_true - Yhat), 2) / np.prod(y_true.shape)).mean()
         return MSE
 
-    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
+    def score(self, X: NDArray[Any], Y: NDArray[Any]) -> float:
         """Score the model."""
 
         y_pred = self.predict(X)

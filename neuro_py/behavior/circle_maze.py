@@ -1,10 +1,11 @@
 import os
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.patches import Circle
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
 
 
@@ -19,7 +20,14 @@ class CircularTrackLinearizer:
     - Press 'r' to reset circle to auto-fit
     """
 
-    def __init__(self, x_data, y_data, basepath=None, epoch=None, interval=None):
+    def __init__(
+        self,
+        x_data: NDArray[Any],
+        y_data: NDArray[Any],
+        basepath: Optional[str] = None,
+        epoch: Optional[int] = None,
+        interval: Optional[Tuple[float, float]] = None,
+    ) -> None:
         self.x_data = np.array(x_data)
         self.y_data = np.array(y_data)
         self.basepath = basepath
@@ -316,12 +324,15 @@ class CircularTrackLinearizer:
     def save_to_behavior_file(self, results_df):
         """Save results to behavior file following the same epoch-aware logic as original code"""
         try:
+            if self.basepath is None:
+                raise ValueError("A basepath is required to save behavior data.")
+            basepath = self.basepath
             # Load existing behavior data
-            behave_df = load_animal_behavior(self.basepath)
+            behave_df = load_animal_behavior(basepath)
 
             # Determine which epochs/intervals to update (same logic as original)
             if self.epoch is not None:
-                epochs = load_epoch(self.basepath)
+                epochs = load_epoch(basepath)
                 cur_epoch = (behave_df.time >= epochs.iloc[self.epoch].startTime) & (
                     behave_df.time <= epochs.iloc[self.epoch].stopTime
                 )
@@ -344,7 +355,7 @@ class CircularTrackLinearizer:
 
             # Load the .mat file and update it
             filename = os.path.join(
-                self.basepath, os.path.basename(self.basepath) + ".animal.behavior.mat"
+                basepath, os.path.basename(basepath) + ".animal.behavior.mat"
             )
 
             if os.path.exists(filename):
@@ -374,8 +385,8 @@ class CircularTrackLinearizer:
         # print(f"Results also saved as CSV: {csv_filename}")
 
     def save_circle_params_to_behavior(
-        self, data: dict, behave_df: pd.DataFrame
-    ) -> dict:
+        self, data: dict[str, Any], behave_df: pd.DataFrame
+    ) -> dict[str, Any]:
         """
         Store circle parameters into behavior file.
         Similar to save_nodes_edges_to_behavior but for circular track parameters.
@@ -389,19 +400,23 @@ class CircularTrackLinearizer:
 
         if self.epoch is None and not hasattr(self, "interval"):
             # Load epochs and add to all epochs with valid linearized coords
+            if self.basepath is None:
+                raise ValueError("A basepath is required to save circle parameters.")
             epochs = load_epoch(self.basepath)
-            for epoch_i, ep in enumerate(epochs.itertuples()):
-                idx = behave_df.time.between(ep.startTime, ep.stopTime)
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
+                idx = behave_df.time.between(ep["startTime"], ep["stopTime"])
                 if not all(np.isnan(behave_df[idx].linearized)) & (
                     behave_df[idx].shape[0] != 0
                 ):
                     data["behavior"]["epochs"][epoch_i]["circle_params"] = circle_params
         elif hasattr(self, "interval") and self.interval is not None:
             # Add to epochs within the interval
+            if self.basepath is None:
+                raise ValueError("A basepath is required to save circle parameters.")
             epochs = load_epoch(self.basepath)
-            for epoch_i, ep in enumerate(epochs.itertuples()):
-                start_overlap = max(self.interval[0], ep.startTime)
-                end_overlap = min(self.interval[1], ep.stopTime)
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
+                start_overlap = max(self.interval[0], ep["startTime"])
+                end_overlap = min(self.interval[1], ep["stopTime"])
                 overlap = max(0, end_overlap - start_overlap)
                 if overlap > 1:  # If overlap is greater than 1 second
                     data["behavior"]["epochs"][epoch_i]["circle_params"] = circle_params

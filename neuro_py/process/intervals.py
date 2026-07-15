@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import nelpy as nel
 import numba
@@ -6,12 +6,13 @@ import numpy as np
 from nelpy import core
 from nelpy.core import EpochArray
 from numba import jit
+from numpy.typing import NDArray
 
 
 def randomize_epochs(
     epoch: EpochArray,
     randomize_each: bool = True,
-    start_stop: Optional[np.ndarray] = None,
+    start_stop: Optional[NDArray[Any]] = None,
 ) -> EpochArray:
     """
     Randomly shifts the epochs of a EpochArray object and wraps them around the original time boundaries.
@@ -86,7 +87,7 @@ def randomize_epochs(
 
 def split_epoch_by_width(
     intervals: List[Tuple[float, float]], bin_width: float = 0.001
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Generate combined intervals (start, stop) at a specified width within given intervals.
 
@@ -108,14 +109,14 @@ def split_epoch_by_width(
         edges = np.arange(start, end, bin_width)
         edges = np.append(edges, end)  # Ensure the final end is included
         # Generate intervals (start, stop) for each bin
-        intervals = np.stack((edges[:-1], edges[1:]), axis=1)
-        bin_intervals.append(intervals)
+        interval_bins = np.stack((edges[:-1], edges[1:]), axis=1)
+        bin_intervals.append(interval_bins)
     return np.vstack(bin_intervals)
 
 
 def split_epoch_equal_parts(
-    intervals: np.ndarray, n_parts: int, return_epoch_array: bool = True
-) -> Union[np.ndarray, nel.EpochArray]:
+    intervals: NDArray[Any], n_parts: int, return_epoch_array: bool = True
+) -> Union[NDArray[Any], nel.EpochArray]:
     """
     Split multiple intervals into equal parts.
 
@@ -155,7 +156,7 @@ def split_epoch_equal_parts(
 
 def overlap_intersect(
     epoch: nel.EpochArray, interval: nel.IntervalArray, return_indices: bool = True
-) -> Union[nel.EpochArray, Tuple[nel.EpochArray, np.ndarray]]:
+) -> Union[nel.EpochArray, Tuple[nel.EpochArray, list[int]]]:
     """
     Returns the epochs with overlap with the given interval.
 
@@ -172,7 +173,7 @@ def overlap_intersect(
     -------
     nelpy.EpochArray
         The epochs with overlap with the interval.
-    Tuple[nelpy.EpochArray, np.ndarray], optional
+    Tuple[nelpy.EpochArray, list[int]], optional
         If `return_indices` is True, also returns the indices of the overlapping epochs.
     """
     new_intervals = []
@@ -192,7 +193,7 @@ def overlap_intersect(
 
 
 @jit(nopython=True)
-def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[float]:
+def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List[float]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
@@ -226,7 +227,7 @@ def _find_intersecting_intervals(set1: np.ndarray, set2: np.ndarray) -> List[flo
 
 def find_intersecting_intervals(
     set1: nel.EpochArray, set2: nel.EpochArray, return_indices: bool = True
-) -> Union[np.ndarray, List[bool]]:
+) -> Union[NDArray[Any], List[bool]]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each intersection.
 
@@ -337,11 +338,15 @@ def find_interval(logical: List[bool]) -> List[Tuple[int, int]]:
 
 # @njit(parallel=True)
 def in_intervals(
-    timestamps: np.ndarray,
-    intervals: np.ndarray,
+    timestamps: NDArray[Any],
+    intervals: NDArray[Any],
     return_interval: bool = False,
     shift: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
+) -> Union[
+    NDArray[Any],
+    Tuple[NDArray[Any], NDArray[Any]],
+    Tuple[NDArray[Any], NDArray[Any], NDArray[Any]],
+]:
     """
     Find which timestamps fall within the given intervals.
 
@@ -387,6 +392,7 @@ def in_intervals(
     """
     in_interval = np.zeros(timestamps.shape, dtype=np.bool_)
     interval = np.full(timestamps.shape, np.nan)
+    shifted_timestamps = np.array([], dtype=timestamps.dtype)
 
     for i, (start, end) in enumerate(intervals):
         # Find the leftmost index of a timestamp that is >= start
@@ -428,7 +434,9 @@ def in_intervals(
 
 
 @jit(nopython=True, parallel=True)
-def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
+def in_intervals_interval(
+    timestamps: NDArray[Any], intervals: NDArray[Any]
+) -> NDArray[Any]:
     """
     for each timestamps value, the index of the interval to which it belongs (nan = none)
 
@@ -454,7 +462,7 @@ def in_intervals_interval(timestamps: np.ndarray, intervals: np.ndarray) -> np.n
     array([nan,  0,  0,  0,  1,  1,  1, nan])
     """
     in_interval = np.full(timestamps.shape, np.nan)
-    for i in numba.prange(intervals.shape[0]):
+    for i in numba.prange(intervals.shape[0]):  # ty: ignore[not-iterable]  # numba loop
         start, end = intervals[i]
         mask = (timestamps >= start) & (timestamps <= end)
         in_interval[mask] = i
@@ -583,19 +591,40 @@ def shift_epoch_array(
     epoch_starts, epoch_stops = epoch[epoch_shift].data.T
 
     # shift starts and stops by epoch_shift
-    _, epoch_starts_shifted = in_intervals(epoch_starts, epoch_shift.data, shift=True)
-    _, epoch_stops_shifted = in_intervals(epoch_stops, epoch_shift.data, shift=True)
+    start_shift_result = in_intervals(epoch_starts, epoch_shift.data, shift=True)
+    if not isinstance(start_shift_result, tuple) or len(start_shift_result) != 2:
+        raise ValueError("Expected shifted timestamps when shift=True")
+    _, epoch_starts_shifted = start_shift_result
+
+    stop_shift_result = in_intervals(epoch_stops, epoch_shift.data, shift=True)
+    if not isinstance(stop_shift_result, tuple) or len(stop_shift_result) != 2:
+        raise ValueError("Expected shifted timestamps when shift=True")
+    _, epoch_stops_shifted = stop_shift_result
 
     # shift time support as well, if one exists
     support_starts_shifted, support_stops_shifted = -np.inf, np.inf
     if epoch.domain.start != -np.inf:
-        _, support_starts_shifted = in_intervals(
-            epoch.domain.start, epoch_shift.data, shift=True
+        domain_start_shift_result = in_intervals(
+            np.asarray([epoch.domain.start]), epoch_shift.data, shift=True
         )
+        if (
+            not isinstance(domain_start_shift_result, tuple)
+            or len(domain_start_shift_result) != 2
+        ):
+            raise ValueError("Expected shifted timestamps when shift=True")
+        _, support_start_values = domain_start_shift_result
+        support_starts_shifted = float(support_start_values[0])
     if epoch.domain.stop != np.inf:
-        _, support_stops_shifted = in_intervals(
-            epoch.domain.stop, epoch_shift.data, shift=True
+        domain_stop_shift_result = in_intervals(
+            np.asarray([epoch.domain.stop]), epoch_shift.data, shift=True
         )
+        if (
+            not isinstance(domain_stop_shift_result, tuple)
+            or len(domain_stop_shift_result) != 2
+        ):
+            raise ValueError("Expected shifted timestamps when shift=True")
+        _, support_stop_values = domain_stop_shift_result
+        support_stops_shifted = float(support_stop_values[0])
 
     session_domain = nel.EpochArray([support_starts_shifted, support_stops_shifted])
 
@@ -607,7 +636,7 @@ def shift_epoch_array(
 
 def get_overlapping_intervals(
     start: float, stop: float, interval_width: float, slideby: float
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Generate overlapping intervals within a specified time range.
 

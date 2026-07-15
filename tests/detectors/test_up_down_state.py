@@ -42,7 +42,9 @@ def test_detect_up_down_states_detection():
     for down_state_time in down_state_times:
         win = np.array([down_state_time - 0.1, down_state_time + 0.1])
         # interval overlap: start < win_end AND end > win_start
-        overlaps = (down_state_intervals[:, 0] < win[1]) & (down_state_intervals[:, 1] > win[0])
+        overlaps = (down_state_intervals[:, 0] < win[1]) & (
+            down_state_intervals[:, 1] > win[0]
+        )
         assert np.any(overlaps), f"DOWN window around {down_state_time}s not detected."
 
     # Check UP states detected in high activity periods
@@ -62,9 +64,9 @@ def test_detect_up_down_states_detection():
         ), f"UP state at {down_state_time} detected."
 
     # Check that DOWN states are not detected in UP states
-    assert (
-        up_state_epochs & down_state_epochs
-    ).isempty, "DOWN state detected in UP state."
+    assert (up_state_epochs & down_state_epochs).isempty, (
+        "DOWN state detected in UP state."
+    )
 
 
 def test_detect_up_down_states_epoch_by_epoch():
@@ -97,31 +99,31 @@ def test_detect_up_down_states_epoch_by_epoch():
     )
 
     # basic existence
-    assert (
-        down_state_epochs is not None
-    ), "Expected DOWN states with epoch_by_epoch=True."
+    assert down_state_epochs is not None, (
+        "Expected DOWN states with epoch_by_epoch=True."
+    )
     assert up_state_epochs is not None, "Expected UP states with epoch_by_epoch=True."
 
     # Verify detected DOWN states occur near the silenced windows and stay within behavior epochs
     d_intervals = down_state_epochs.time
     for t in down_state_times:
         # Found as a DOWN state somewhere
-        assert any(
-            (t >= d_intervals[:, 0]) & (t <= d_intervals[:, 1])
-        ), f"DOWN state at {t} s not detected in epoch_by_epoch mode."
+        assert any((t >= d_intervals[:, 0]) & (t <= d_intervals[:, 1])), (
+            f"DOWN state at {t} s not detected in epoch_by_epoch mode."
+        )
 
     # Ensure results respect epoch boundaries: every interval should be fully inside one beh epoch
     beh_intervals = beh_epochs.time
     for start, stop in d_intervals:
         # contained within at least one behavior epoch
-        assert any(
-            (start >= beh_intervals[:, 0]) & (stop <= beh_intervals[:, 1])
-        ), f"Detected DOWN interval [{start}, {stop}] crosses behavior epoch boundary."
+        assert any((start >= beh_intervals[:, 0]) & (stop <= beh_intervals[:, 1])), (
+            f"Detected DOWN interval [{start}, {stop}] crosses behavior epoch boundary."
+        )
 
     # No overlap between up and down outputs
-    assert (
-        up_state_epochs & down_state_epochs
-    ).isempty, "DOWN state detected within UP state for epoch_by_epoch mode."
+    assert (up_state_epochs & down_state_epochs).isempty, (
+        "DOWN state detected within UP state for epoch_by_epoch mode."
+    )
 
 
 def test_detect_up_down_states_bimodal_thresh_basic():
@@ -174,9 +176,9 @@ def test_detect_up_down_states_bimodal_thresh_basic():
     # All epochs should be within NREM support
     for epoch in [down_state_epochs, up_state_epochs]:
         for start, stop in epoch.time:
-            assert (
-                start >= nrem_epochs.starts[0] and stop <= nrem_epochs.stops[0]
-            ), f"State interval [{start}, {stop}] outside NREM bounds."
+            assert start >= nrem_epochs.starts[0] and stop <= nrem_epochs.stops[0], (
+                f"State interval [{start}, {stop}] outside NREM bounds."
+            )
 
 
 def test_detect_up_down_states_bimodal_thresh_epoch_by_epoch():
@@ -219,16 +221,16 @@ def test_detect_up_down_states_bimodal_thresh_epoch_by_epoch():
         nboot=10,
     )
 
-    assert (
-        down_state_epochs is not None
-    ), "Expected DOWN states with epoch_by_epoch=True."
+    assert down_state_epochs is not None, (
+        "Expected DOWN states with epoch_by_epoch=True."
+    )
     assert up_state_epochs is not None, "Expected UP states with epoch_by_epoch=True."
-    assert (
-        down_state_epochs.n_epochs > 0
-    ), "No DOWN states detected in epoch_by_epoch mode."
+    assert down_state_epochs.n_epochs > 0, (
+        "No DOWN states detected in epoch_by_epoch mode."
+    )
 
     # All states should respect NREM boundaries
     for start, stop in down_state_epochs.time:
-        assert any(
-            (start >= nrem_epochs.starts) & (stop <= nrem_epochs.stops)
-        ), f"DOWN interval [{start}, {stop}] not contained in any NREM epoch."
+        assert any((start >= nrem_epochs.starts) & (stop <= nrem_epochs.stops)), (
+            f"DOWN interval [{start}, {stop}] not contained in any NREM epoch."
+        )

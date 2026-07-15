@@ -7,8 +7,8 @@ from typing import Any, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
-
 from track_linearization import get_linearized_position, make_track_graph
 
 # Deprecation warning
@@ -143,7 +143,10 @@ class NodePicker:
         if ax is None:
             ax = plt.gca()
         self.ax = ax
-        self.canvas = ax.get_figure().canvas
+        figure = ax.get_figure()
+        if figure is None or figure.canvas is None:
+            raise RuntimeError("NodePicker requires axes attached to a figure canvas")
+        self.canvas = figure.canvas
         self.cid = None
         self._nodes = []
         self.node_color = node_color
@@ -169,7 +172,7 @@ class NodePicker:
         self.connect()
 
     @property
-    def node_positions(self) -> np.ndarray:
+    def node_positions(self) -> NDArray[Any]:
         """
         Get the positions of the nodes.
 
@@ -268,7 +271,7 @@ class NodePicker:
             self.ax.text(
                 x,
                 y,
-                ind,
+                str(ind),
                 zorder=6,
                 fontsize=10,
                 horizontalalignment="center",
@@ -313,10 +316,13 @@ class NodePicker:
         """
         Format the data and save it to disk.
         """
-        behave_df = load_animal_behavior(self.basepath)
+        if self.basepath is None:
+            raise ValueError("basepath is required to save linearization results")
+        basepath = self.basepath
+        behave_df = load_animal_behavior(basepath)
 
         if self.epoch is not None:
-            epochs = load_epoch(self.basepath)
+            epochs = load_epoch(basepath)
 
             cur_epoch = (
                 ~np.isnan(behave_df.x)
@@ -357,7 +363,7 @@ class NodePicker:
         )
 
         filename = os.path.join(
-            self.basepath, os.path.basename(self.basepath) + ".animal.behavior.mat"
+            basepath, os.path.basename(basepath) + ".animal.behavior.mat"
         )
 
         data = loadmat(filename, simplify_cells=True)
@@ -384,12 +390,16 @@ class NodePicker:
         """
         Save the nodes and edges to a pickle file.
         """
+        if self.basepath is None:
+            raise ValueError("basepath is required to save nodes and edges")
         results = {"node_positions": self.node_positions, "edges": self.edges}
         save_file = os.path.join(self.basepath, "linearization_nodes_edges.pkl")
         with open(save_file, "wb") as f:
             pickle.dump(results, f)
 
-    def save_nodes_edges_to_behavior(self, data: dict, behave_df: pd.DataFrame) -> dict:
+    def save_nodes_edges_to_behavior(
+        self, data: dict[str, Any], behave_df: pd.DataFrame
+    ) -> dict[str, Any]:
         """
         Store nodes and edges into behavior file.
         Searches to find epochs with valid linearized coords.
@@ -409,11 +419,13 @@ class NodePicker:
         """
         if self.epoch is None and self.interval is None:
             # load epochs
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
             # iter over each epoch
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # locate index for given epoch
-                idx = behave_df.time.between(ep.startTime, ep.stopTime)
+                idx = behave_df.time.between(ep["startTime"], ep["stopTime"])
                 # if linearized is not all nan, add nodes and edges
                 if not all(np.isnan(behave_df[idx].linearized)) & (
                     behave_df[idx].shape[0] != 0
@@ -425,11 +437,13 @@ class NodePicker:
                     data["behavior"]["epochs"][epoch_i]["edges"] = self.edges
         elif self.interval is not None:
             # if interval was used, add nodes and edges just the epochs within that interval
+            if self.basepath is None:
+                raise ValueError("basepath is required to load epochs")
             epochs = load_epoch(self.basepath)
-            for epoch_i, ep in enumerate(epochs.itertuples()):
+            for epoch_i, (_, ep) in enumerate(epochs.iterrows()):
                 # amount of overlap between interval and epoch
-                start_overlap = max(self.interval[0], ep.startTime)
-                end_overlap = min(self.interval[1], ep.stopTime)
+                start_overlap = max(self.interval[0], ep["startTime"])
+                end_overlap = min(self.interval[1], ep["stopTime"])
                 overlap = max(0, end_overlap - start_overlap)
 
                 # if overlap is greater than 1 second, add nodes and edges

@@ -1,4 +1,6 @@
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+
+from typing_extensions import override
 
 from ...util._dependencies import _check_dependency
 
@@ -43,6 +45,7 @@ class PositionalEncoding(nn.Module):
         pe = pe.unsqueeze(0).transpose(0, 1)  # t x 1 x d
         self.register_buffer("pe", pe)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Add positional encoding to the input tensor.
@@ -102,7 +105,7 @@ class NDT(L.LightningModule):
         self,
         in_dim: int = 100,
         out_dim: int = 2,
-        hidden_dims: Tuple[int] = (400, 1, 1, 0.0, 0.0),
+        hidden_dims: Tuple[int, int, int, float, float] = (400, 1, 1, 0.0, 0.0),
         max_context_len: int = 2,
         args: Optional[Dict] = None,
     ):
@@ -154,6 +157,7 @@ class NDT(L.LightningModule):
 
         self.decoder.apply(init_params)
 
+    @override
     def forward(
         self, x: torch.Tensor, mask_labels: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
@@ -208,7 +212,7 @@ class NDT(L.LightningModule):
         self.src_mask[str(src.device)] = mask
         return self.src_mask[str(src.device)]
 
-    def _step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def _step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Perform a single step (forward pass + loss calculation).
 
@@ -229,7 +233,8 @@ class NDT(L.LightningModule):
         loss = self.args["criterion"](outs, ys)
         return loss
 
-    def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    @override
+    def training_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for training step.
 
@@ -249,7 +254,8 @@ class NDT(L.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    @override
+    def validation_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for validation step.
 
@@ -269,7 +275,8 @@ class NDT(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
-    def test_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    @override
+    def test_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for test step.
 
@@ -289,7 +296,8 @@ class NDT(L.LightningModule):
         self.log("test_loss", loss)
         return loss
 
-    def configure_optimizers(self) -> tuple:
+    @override
+    def configure_optimizers(self) -> Any:
         """
         Configure optimizers and learning rate schedulers.
 
@@ -305,7 +313,7 @@ class NDT(L.LightningModule):
             optimizer,
             max_lr=self.args["lr"],
             epochs=self.args["epochs"],
-            total_steps=self.trainer.estimated_stepping_batches,
+            total_steps=int(self.trainer.estimated_stepping_batches),
         )
         lr_scheduler = {"scheduler": scheduler, "interval": "step"}
         return [optimizer], [lr_scheduler]

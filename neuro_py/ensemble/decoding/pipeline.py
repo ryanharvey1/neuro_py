@@ -4,7 +4,7 @@ import copy
 import os
 import random
 import zlib
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import bottleneck as bn
 import numpy as np
@@ -14,6 +14,10 @@ import sklearn.preprocessing
 from numpy.typing import NDArray
 
 from ...util._dependencies import _check_dependency
+
+if TYPE_CHECKING:
+    import lightning.pytorch as pl
+    import torch
 
 
 def _check_dl_dependencies(include_tensorboard: bool = False) -> None:
@@ -64,8 +68,8 @@ def seed_worker(worker_id: int) -> None:
 
 
 def get_spikes_with_history(
-    neural_data: np.ndarray, bins_before: int, bins_after: int, bins_current: int = 1
-) -> np.ndarray:
+    neural_data: NDArray[Any], bins_before: int, bins_after: int, bins_current: int = 1
+) -> NDArray[Any]:
     """
     Create the covariate matrix of neural activity.
 
@@ -101,8 +105,11 @@ def get_spikes_with_history(
 
 
 def _get_trial_spikes_with_no_overlap_history(
-    X: NDArray, bins_before: int, bins_after: int, bins_current: int
-) -> List[NDArray]:
+    X: Any,
+    bins_before: int,
+    bins_after: int,
+    bins_current: int,
+) -> List[NDArray[Any]]:
     """
     Get trial spikes with no overlap history.
 
@@ -136,15 +143,22 @@ def _get_trial_spikes_with_no_overlap_history(
 
 
 def format_trial_segs_nsv(
-    nsv_train_normed: List[NDArray],
-    nsv_rest_normed: List[NDArray],
-    bv_train: NDArray,
-    bv_rest: List[NDArray],
+    nsv_train_normed: Any,
+    nsv_rest_normed: Any,
+    bv_train: Any,
+    bv_rest: Any,
     predict_bv: List[int],
     bins_before: int = 0,
     bins_current: int = 1,
     bins_after: int = 0,
-) -> Tuple[NDArray, List[NDArray], NDArray, List[NDArray], NDArray, List[NDArray]]:
+) -> Tuple[
+    NDArray[Any],
+    List[NDArray[Any]],
+    NDArray[Any],
+    List[NDArray[Any]],
+    NDArray[Any],
+    List[NDArray[Any]],
+]:
     """
     Format trial segments for neural state vectors.
 
@@ -306,18 +320,16 @@ def zscore_trial_segs(
 
 
 def normalize_format_trial_segs(
-    nsv_train: NDArray,
-    nsv_rest: List[NDArray],
-    bv_train: NDArray,
-    bv_rest: List[NDArray],
+    nsv_train: Any,
+    nsv_rest: Any,
+    bv_train: Any,
+    bv_rest: Any,
     predict_bv: List[int] = [4, 5],
     bins_before: int = 0,
     bins_current: int = 1,
     bins_after: int = 0,
     normparams: Optional[Dict[str, Any]] = None,
-) -> Tuple[
-    NDArray, NDArray, NDArray, List[Tuple[NDArray, NDArray, NDArray]], Dict[str, Any]
-]:
+) -> Tuple[Any, Any, Any, Any, Dict[str, Any]]:
     """
     Normalize and format trial segments.
 
@@ -397,11 +409,7 @@ def minibatchify(
     batch_size: int = 128,
     num_workers: int = 5,
     modeltype: str = "MLP",
-) -> Tuple[
-    torch.utils.data.DataLoader,
-    torch.utils.data.DataLoader,
-    torch.utils.data.DataLoader,
-]:
+) -> Tuple[Any, Any, Any]:
     """
     Create minibatches for training, validation, and testing.
 
@@ -524,7 +532,7 @@ def normalize_labels(
     return (y_train, y_val, y_test), n_classes
 
 
-def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, pl.LightningModule]:
+def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, Any]:
     """
     Create a model based on the given hyperparameters.
 
@@ -552,22 +560,14 @@ def create_model(hyperparams: Dict[str, Any]) -> Tuple[Any, pl.LightningModule]:
 def preprocess_data(
     hyperparams: Dict[str, Any],
     ohe: sklearn.preprocessing.OneHotEncoder,
-    nsv_train: NDArray,
-    nsv_val: NDArray,
-    nsv_test: NDArray,
-    bv_train: NDArray,
-    bv_val: NDArray,
-    bv_test: NDArray,
+    nsv_train: Any,
+    nsv_val: Any,
+    nsv_test: Any,
+    bv_train: Any,
+    bv_val: Any,
+    bv_test: Any,
     foldnormparams: Optional[Dict[str, Any]] = None,
-) -> Tuple[
-    Tuple[NDArray, NDArray, NDArray, NDArray, NDArray, NDArray],
-    Tuple[
-        torch.utils.data.DataLoader,
-        torch.utils.data.DataLoader,
-        torch.utils.data.DataLoader,
-    ],
-    Dict[str, Any],
-]:
+) -> Tuple[Any, Tuple[Any, Any, Any], Dict[str, Any]]:
     """
     Preprocess the data for model training and evaluation.
 
@@ -761,7 +761,7 @@ def preprocess_data(
 def evaluate_model(
     hyperparams: Dict[str, Any],
     ohe: sklearn.preprocessing.OneHotEncoder,
-    predictor: torch.nn.Module,
+    predictor: Any,
     X_test: NDArray,
     y_test: NDArray,
 ) -> Tuple[Dict[str, float], NDArray]:
@@ -796,11 +796,12 @@ def evaluate_model(
                 predictor(torch.from_numpy(X.reshape(1, *X.shape)).type(torch.float32))
                 for X in X_test
             ]
-        bv_preds_fold = np.vstack(
+        bv_preds_fold = np.concatenate(
             [
-                bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim)
+                np.asarray(bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim))
                 for bv in bv_preds_fold
-            ]
+            ],
+            axis=0,
         )
     else:
         bv_preds_fold = predictor(torch.from_numpy(X_test).type(torch.float32))
@@ -809,7 +810,13 @@ def evaluate_model(
     bv_preds_fold = copy.deepcopy(bv_preds_fold)
 
     logits = bv_preds_fold
-    labels = np.vstack(y_test)
+    # Dense decoder targets are already shaped (n_samples, n_outputs), while
+    # sequence models retain one array per trial segment.
+    labels = (
+        np.asarray(y_test)
+        if isinstance(y_test, np.ndarray)
+        else np.concatenate([np.asarray(y) for y in y_test], axis=0)
+    )
     if hyperparams["model_args"]["args"]["clf"]:
         logits = ohe.inverse_transform(logits)
         labels = ohe.inverse_transform(labels)
@@ -825,7 +832,7 @@ def evaluate_model(
     return metrics, bv_preds_fold
 
 
-def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray:
+def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray[Any]:
     """
     Shuffle neural state variables within trial segments.
 
@@ -848,12 +855,19 @@ def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray:
 
 def train_model(
     partitions: List[
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Tuple[
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+        ]
     ],
     hyperparams: Dict[str, Any],
     resultspath: Optional[str] = None,
     stop_partition: Optional[int] = None,
-) -> Tuple[List[np.ndarray], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
+) -> Tuple[List[NDArray], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
     """
     Train a DNN model on the given data partitions with in-built caching & checkpointing.
 
@@ -959,6 +973,7 @@ def train_model(
     """
     _check_dl_dependencies(include_tensorboard=True)
     import lightning.pytorch as pl
+    from lightning.pytorch.loggers import TensorBoardLogger
 
     ohe = sklearn.preprocessing.OneHotEncoder()
     bv_preds_folds = []
@@ -986,6 +1001,9 @@ def train_model(
         del hyperparams_cp["model_args"]["args"]["num_training_batches"]
         model_cache_name = zlib.crc32(str(hyperparams_cp).encode("utf-8"))
         best_ckpt_path = None
+        model_cache_path: str | None = None
+        best_ckpt_name_file: str | None = None
+        checkpoint_callback: Any = None
         if resultspath is not None:
             model_cache_path = os.path.join(
                 resultspath, "models", str(model_cache_name)
@@ -996,8 +1014,8 @@ def train_model(
                     best_ckpt_path = f.read()
 
         lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval="step")
-        callbacks = [lr_monitor]
-        if resultspath is not None:
+        callbacks: list[Any] = [lr_monitor]
+        if model_cache_path is not None:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 save_top_k=1,
                 monitor="val_loss",
@@ -1005,7 +1023,7 @@ def train_model(
                 filename=f"{i}" + "-{epoch:02d}-{val_loss:.2f}",
             )
             callbacks.append(checkpoint_callback)
-        logger = pl.loggers.TensorBoardLogger(
+        logger = TensorBoardLogger(
             save_dir="logs",
             name=f"{model_cache_name}-{i}",
         )
@@ -1025,7 +1043,11 @@ def train_model(
             reload_dataloaders_every_n_epochs=1,
         )
         trainer.fit(model, train_loader, val_loader, ckpt_path=best_ckpt_path)
-        if resultspath is not None:
+        if (
+            model_cache_path is not None
+            and best_ckpt_name_file is not None
+            and checkpoint_callback is not None
+        ):
             os.makedirs(model_cache_path, exist_ok=True)
             with open(best_ckpt_name_file, "w") as f:
                 f.write(checkpoint_callback.best_model_path)

@@ -1,18 +1,19 @@
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import nelpy as nel
 import numpy as np
+from numpy.typing import NDArray
 
 from neuro_py.process import intervals
 
 
 def clean_lfp(
-    lfp: Union[nel.AnalogSignalArray, np.ndarray],
-    t: np.ndarray = None,
+    lfp: Union[nel.AnalogSignalArray, NDArray[Any]],
+    t: NDArray[Any] | None = None,
     thresholds: Tuple[float, float] = (5, 10),
     artifact_time_expand: Tuple[float, float] = (0.25, 0.1),
     return_bad_intervals: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, nel.EpochArray]]:
+) -> Union[NDArray[Any], Tuple[NDArray[Any], nel.EpochArray]]:
     """
     Remove artefacts and noise from a local field potential (LFP) signal.
 
@@ -20,6 +21,8 @@ def clean_lfp(
     ----------
     lfp : nel.AnalogSignalArray
         The LFP signal to be cleaned. Single signal only.
+    t : np.ndarray, optional
+        The timestamps corresponding to the LFP signal. Required if `lfp` is a numpy array. If `lfp` is a `nel.AnalogSignalArray`, this parameter is ignored.
     thresholds : tuple of float, optional
         A tuple of two thresholds for detecting artefacts and noise. The first threshold is used to detect large global
         artefacts by finding values in the z-scored LFP signal that deviate by more than the threshold number of sigmas
@@ -72,7 +75,7 @@ def clean_lfp(
 
     # Detect large global artefacts [0]
     artefactInterval = t[
-        np.array(intervals.find_interval(np.abs(z) > threshold1), dtype=int)
+        np.array(intervals.find_interval((np.abs(z) > threshold1).tolist()), dtype=int)
     ]
     artefactInterval = nel.EpochArray(artefactInterval)
     if not artefactInterval.isempty:
@@ -80,7 +83,7 @@ def clean_lfp(
 
     # Find noise using the derivative of the z-scored signal [1]
     noisyInterval = t[
-        np.array(intervals.find_interval(np.abs(d) > threshold2), dtype=int)
+        np.array(intervals.find_interval((np.abs(d) > threshold2).tolist()), dtype=int)
     ]
     noisyInterval = nel.EpochArray(noisyInterval)
     if not noisyInterval.isempty:
@@ -93,7 +96,7 @@ def clean_lfp(
         return values
 
     # Find timestamps within intervals for artefacts and noise
-    in_interval = intervals.in_intervals(t, bad.data)
+    in_interval = np.asarray(intervals.in_intervals(t, bad.data), dtype=bool)
 
     # Interpolate values for timestamps within intervals for artefacts and noise
     values[in_interval] = np.interp(

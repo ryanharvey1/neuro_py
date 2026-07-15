@@ -8,6 +8,7 @@ import nelpy as nel
 import numpy as np
 from scipy.io import savemat
 from scipy.signal import cheby2, filtfilt, find_peaks
+from typing_extensions import override
 
 from neuro_py.io import loading
 from neuro_py.lfp.preprocessing import clean_lfp
@@ -38,7 +39,8 @@ class DetectDS(object):
     primary_threshold : float, optional
         Primary threshold for detecting the dentate spikes (difference method only)
     secondary_threshold : float, optional
-        Secondary threshold for detecting the dentate spikes (difference method only)
+        Secondary threshold for detecting the dentate spikes (difference method only).
+        If None, uses ``primary_threshold``.
     primary_thres_mol : float, optional
         Primary threshold for detecting the dentate spikes in the mol signal
     primary_thres_hilus : float, optional
@@ -134,10 +136,28 @@ class DetectDS(object):
         method: str = "seperately",
         clean_lfp: bool = False,
         emg_threshold: float = 0.9,
+        secondary_threshold: Union[int, float, None] = None,
     ) -> None:
-        # adding all the parameters to the class
-        self.__dict__.update(locals())
-        del self.__dict__["self"]
+        self.basepath = basepath
+        self.hilus_ch = hilus_ch
+        self.mol_ch = mol_ch
+        self.noise_ch = noise_ch
+        self.lowcut = lowcut
+        self.highcut = highcut
+        self.filter_signal_bool = filter_signal_bool
+        self.primary_threshold = primary_threshold
+        self.secondary_threshold = (
+            primary_threshold if secondary_threshold is None else secondary_threshold
+        )
+        self.primary_thres_mol = primary_thres_mol
+        self.primary_thres_hilus = primary_thres_hilus
+        self.min_duration = min_duration
+        self.max_duration = max_duration
+        self.filter_order = filter_order
+        self.filter_rs = filter_rs
+        self.method = method
+        self.clean_lfp = clean_lfp
+        self.emg_threshold = emg_threshold
         # setting the type name
         self.type_name = self.__class__.__name__
         self.get_xml_data()
@@ -146,7 +166,10 @@ class DetectDS(object):
         """
         Load the XML file to get the number of channels, sampling frequency and shank to channel mapping
         """
-        nChannels, fs, fs_dat, shank_to_channel = loading.loadXML(self.basepath)
+        xml_data = loading.loadXML(self.basepath)
+        if xml_data is None:
+            raise FileNotFoundError(f"Could not load XML metadata from {self.basepath}")
+        nChannels, fs, fs_dat, shank_to_channel = xml_data
         self.nChannels = nChannels
         self.fs = fs
         self.fs_dat = fs_dat
@@ -202,6 +225,8 @@ class DetectDS(object):
             fs=self.fs,
             btype="bandpass",
         )
+        if self.lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
         return filtfilt(b, a, self.lfp.data)
 
     def get_filtered_lfp(self):
@@ -209,6 +234,8 @@ class DetectDS(object):
             self.load_lfp()
 
         self.filtered_lfp = deepcopy(self.lfp)
+        if self.filtered_lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
         self.filtered_lfp._data = self.filter_signal()
 
     def get_lfp_diff(self):
@@ -217,31 +244,37 @@ class DetectDS(object):
         else:
             if not hasattr(self, "lfp"):
                 self.load_lfp()
+            if self.lfp is None:
+                raise RuntimeError("LFP data could not be loaded")
             y = self.lfp.data
 
+        if self.lfp is None:
+            raise RuntimeError("LFP data could not be loaded")
+        lfp = self.lfp
         self.mol_hilus_diff = nel.AnalogSignalArray(
             data=y[0, :] - y[1, :],
-            timestamps=self.lfp.abscissa_vals,
+            timestamps=lfp.abscissa_vals,
             fs=self.fs,
             support=nel.EpochArray(
-                np.array([min(self.lfp.abscissa_vals), max(self.lfp.abscissa_vals)])
+                np.array([min(lfp.abscissa_vals), max(lfp.abscissa_vals)])
             ),
         )
 
     def detect_ds_difference(self):
         if not hasattr(self, "mol_hilus_diff"):
             self.get_lfp_diff()
+        if self.mol_hilus_diff is None:
+            raise RuntimeError("LFP difference could not be calculated")
+        mol_hilus_diff = self.mol_hilus_diff
 
         PrimaryThreshold = (
-            self.mol_hilus_diff.mean()
-            + self.primary_threshold * self.mol_hilus_diff.std()
+            mol_hilus_diff.mean() + self.primary_threshold * mol_hilus_diff.std()
         )
         SecondaryThreshold = (
-            self.mol_hilus_diff.mean()
-            + self.secondary_threshold * self.mol_hilus_diff.std()
+            mol_hilus_diff.mean() + self.secondary_threshold * mol_hilus_diff.std()
         )
         bounds, self.peak_val, _ = nel.utils.get_events_boundaries(
-            x=self.mol_hilus_diff.data,
+            x=mol_hilus_diff.data,
             PrimaryThreshold=PrimaryThreshold,
             SecondaryThreshold=SecondaryThreshold,
             minThresholdLength=0,
@@ -259,48 +292,53 @@ class DetectDS(object):
         # remove ds in high emg
         _, high_emg_epoch, _ = loading.load_emg(self.basepath, self.emg_threshold)
         if not high_emg_epoch.isempty:
-            idx = find_intersecting_intervals(self.ds_epoch, high_emg_epoch)
+            idx = np.asarray(
+                find_intersecting_intervals(self.ds_epoch, high_emg_epoch), dtype=bool
+            )
             self.ds_epoch._data = self.ds_epoch.data[~idx]
             self.peak_val = self.peak_val[~idx]
 
     def detect_ds_seperately(self):
         if not hasattr(self, "filtered_lfp"):
             self.get_filtered_lfp()
+        if self.filtered_lfp is None:
+            raise RuntimeError("Filtered LFP data could not be calculated")
+        filtered_lfp = self.filtered_lfp
 
         # min and max time width of ds (converted to samples for find_peaks)
         time_widths = [
-            int(self.min_duration * self.filtered_lfp.fs),
-            int(self.max_duration * self.filtered_lfp.fs),
+            int(self.min_duration * filtered_lfp.fs),
+            int(self.max_duration * filtered_lfp.fs),
         ]
 
         # detect ds in hilus
         PrimaryThreshold = (
-            self.filtered_lfp.data[0, :].mean()
-            + self.primary_thres_hilus * self.filtered_lfp.data[0, :].std()
+            filtered_lfp.data[0, :].mean()
+            + self.primary_thres_hilus * filtered_lfp.data[0, :].std()
         )
 
         peaks, properties = find_peaks(
-            self.filtered_lfp.data[0, :],
+            filtered_lfp.data[0, :],
             height=PrimaryThreshold,
             width=time_widths,
         )
-        self.peaks = peaks / self.filtered_lfp.fs
+        self.peaks = peaks / filtered_lfp.fs
         self.peak_val = properties["peak_heights"]
 
         # create EpochArray with bounds
         hilus_epoch = nel.EpochArray(
             np.array([properties["left_ips"], properties["right_ips"]]).T
-            / self.filtered_lfp.fs
+            / filtered_lfp.fs
         )
 
         # detect ds in mol
         PrimaryThreshold = (
-            self.filtered_lfp.data[1, :].mean()
-            + self.primary_thres_mol * self.filtered_lfp.data[1, :].std()
+            filtered_lfp.data[1, :].mean()
+            + self.primary_thres_mol * filtered_lfp.data[1, :].std()
         )
 
         peaks, properties = find_peaks(
-            -self.filtered_lfp.data[1, :],
+            -filtered_lfp.data[1, :],
             height=PrimaryThreshold,
             width=time_widths,
         )
@@ -308,18 +346,19 @@ class DetectDS(object):
         # create EpochArray with bounds
         mol_epoch = nel.EpochArray(
             np.array([properties["left_ips"], properties["right_ips"]]).T
-            / self.filtered_lfp.fs
+            / filtered_lfp.fs
         )
 
         # detect ds in noise channel
+        noise_epoch = None
         if self.noise_ch is not None:
             PrimaryThreshold = (
-                self.filtered_lfp.data[2, :].mean()
-                + self.primary_thres_hilus * self.filtered_lfp.data[2, :].std()
+                filtered_lfp.data[2, :].mean()
+                + self.primary_thres_hilus * filtered_lfp.data[2, :].std()
             )
 
             peaks, properties = find_peaks(
-                self.filtered_lfp.data[2, :],
+                filtered_lfp.data[2, :],
                 height=PrimaryThreshold,
                 width=time_widths,
             )
@@ -327,7 +366,7 @@ class DetectDS(object):
             # create EpochArray with bounds
             noise_epoch = nel.EpochArray(
                 np.array([properties["left_ips"], properties["right_ips"]]).T
-                / self.filtered_lfp.fs
+                / filtered_lfp.fs
             )
 
         # remove hilus spikes that are not overlapping with mol spikes
@@ -343,9 +382,12 @@ class DetectDS(object):
         self.peaks = self.peaks[overlap]
 
         # remove dentate spikes that are overlapping with noise spikes
-        if self.noise_ch is not None:
-            overlap = find_intersecting_intervals(
-                self.ds_epoch, noise_epoch, return_indices=True
+        if noise_epoch is not None:
+            overlap = np.asarray(
+                find_intersecting_intervals(
+                    self.ds_epoch, noise_epoch, return_indices=True
+                ),
+                dtype=bool,
             )
             self.ds_epoch = nel.EpochArray(self.ds_epoch.data[~overlap])
             self.peak_val = self.peak_val[~overlap]
@@ -354,7 +396,9 @@ class DetectDS(object):
         # remove ds in high emg
         _, high_emg_epoch, _ = loading.load_emg(self.basepath, self.emg_threshold)
         if not high_emg_epoch.isempty:
-            idx = find_intersecting_intervals(self.ds_epoch, high_emg_epoch)
+            idx = np.asarray(
+                find_intersecting_intervals(self.ds_epoch, high_emg_epoch), dtype=bool
+            )
             self.ds_epoch._data = self.ds_epoch.data[~idx]
             self.peak_val = self.peak_val[~idx]
             self.peaks = self.peaks[~idx]
@@ -432,6 +476,8 @@ class DetectDS(object):
             hilus_shank = [
                 k for k, v in self.shank_to_channel.items() if self.hilus_ch in v
             ][0]
+        else:
+            hilus_shank = shank
 
         ds_average, time_lags = event_triggered_average_fast(
             signal=lfp[:, self.shank_to_channel[hilus_shank]].T,
@@ -518,6 +564,7 @@ class DetectDS(object):
         with open(filename, "rb") as f:
             return pickle.load(f)
 
+    @override
     def __repr__(self) -> str:
         address_str = " at " + str(hex(id(self)))
 
@@ -532,6 +579,7 @@ class DetectDS(object):
 
         return "<%s%s: %s> %s" % (self.type_name, address_str, dentate_spikes, dstr)
 
+    @override
     def __str__(self) -> str:
         return self.__repr__()
 

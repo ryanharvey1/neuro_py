@@ -15,17 +15,18 @@ Also assume the system state evolves after every input:
 This is a linear dynamical system.
 """
 
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import scipy as sp
+from numpy.typing import NDArray
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
 
 
 def ideal_data(
     num: int, dimU: int, dimY: int, dimX: int, noise: float = 1.0
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Generate linear system data.
 
@@ -61,10 +62,10 @@ def ideal_data(
 
     # make sure state evolution is stable
     U, S, V = np.linalg.svd(A)
-    A = np.dot(U, np.dot(np.lib.diag(S / max(S)), V))
+    A = np.dot(U, np.dot(np.diag(S / max(S)), V))
     U, S, V = np.linalg.svd(B)
     S2 = np.zeros((np.size(U, 1), np.size(V, 0)))
-    S2[:, : np.size(U, 1)] = np.lib.diag(S / max(S))
+    S2[:, : np.size(U, 1)] = np.diag(S / max(S))
     B = np.dot(U, np.dot(S2, V))
 
     # random input
@@ -118,8 +119,8 @@ class SystemIdentifier(object):
 
     def __init__(
         self,
-        U: np.ndarray,
-        Y: np.ndarray,
+        U: NDArray[Any],
+        Y: NDArray[Any],
         statedim: int,
         reg: Union[float, None] = None,
     ):
@@ -190,10 +191,10 @@ class SystemIdentifier(object):
         self.C = Sys[statedim:, :statedim]
         self.D = Sys[statedim:, statedim:]
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # ty: ignore[missing-override-decorator]
         return "Linear Dynamical System"
 
-    def predict(self, U: np.ndarray) -> np.ndarray:
+    def predict(self, U: NDArray[Any]) -> NDArray[Any]:
         """
         Predict output given the control inputs.
 

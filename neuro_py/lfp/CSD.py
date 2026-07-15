@@ -1,4 +1,8 @@
+from importlib import import_module
+from typing import Any, Literal, cast
+
 import numpy as np
+from numpy.typing import NDArray
 
 from neuro_py.io import loading
 from neuro_py.util._dependencies import _check_dependency
@@ -8,7 +12,7 @@ _check_dependency("elephant", "csd")
 _check_dependency("quantities", "csd")
 
 
-def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
+def get_coords(basepath: str, shank: int = 0) -> NDArray[Any]:
     """
     Get the coordinates of the channels from the probe layout.
 
@@ -24,10 +28,10 @@ def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
     np.ndarray
         Coordinates of the channels.
     """
-    import quantities as pq
+    pq = import_module("quantities")
 
     # load the probe layout
-    probe_layout = loading.load_probe_layout(basepath)
+    probe_layout = cast(Any, loading.load_probe_layout(basepath))
 
     # get the coordinates of the channels
     coords = probe_layout.loc[shank == probe_layout.shank, "y"].values
@@ -42,8 +46,14 @@ def get_coords(basepath: str, shank: int = 0) -> np.ndarray:
 
 
 def get_csd(
-    basepath, data, shank, fs=1250, diam=0.015, method="DeltaiCSD", channel_offset=0.046
-):
+    basepath: str,
+    data: NDArray[Any],
+    shank: int,
+    fs: float = 1250,
+    diam: float = 0.015,
+    method: Literal["DeltaiCSD", "StandardCSD", "KD1CSD"] = "DeltaiCSD",
+    channel_offset: float = 0.046,
+) -> Any:
     """
     compute the CSD for a given basepath and data using elephant estimate_csd.
 
@@ -77,9 +87,9 @@ def get_csd(
     get_coords, estimate_csd (Elephant), neo, quantities
 
     """
-    import quantities as pq
-    from elephant.current_source_density import estimate_csd
-    from neo import AnalogSignal
+    pq = import_module("quantities")
+    estimate_csd = import_module("elephant.current_source_density").estimate_csd
+    AnalogSignal = import_module("neo").AnalogSignal
 
     coords = get_coords(basepath, shank=shank)
 

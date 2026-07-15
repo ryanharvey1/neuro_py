@@ -1,10 +1,11 @@
 import os
 import sys
-from typing import Optional, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
 import nelpy as nel
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import savemat
 
 from neuro_py.io import loading
@@ -31,6 +32,8 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
     """
     brain_region = loading.load_brain_regions(basepath)
     channel_tags = loading.load_channel_tags(basepath)
+    if not isinstance(brain_region, dict):
+        return None
 
     # First, check in channel_tags
     if tag in channel_tags:
@@ -72,7 +75,7 @@ def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
     return None
 
 
-def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
+def process_lfp(basepath: str) -> Tuple[NDArray[Any], NDArray[Any], float]:
     """
     Process and load Local Field Potential (LFP) data.
 
@@ -86,7 +89,10 @@ def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
     tuple
         A tuple containing the LFP data, timestamps, and sampling frequency.
     """
-    nChannels, fs, _, _ = loading.loadXML(basepath)
+    xml_data = loading.loadXML(basepath)
+    if xml_data is None:
+        raise FileNotFoundError(f"Could not load XML metadata from {basepath}")
+    nChannels, fs, _, _ = xml_data
 
     lfp, ts = loading.loadLFP(
         basepath, n_channels=nChannels, channel=None, frequency=fs
@@ -94,7 +100,7 @@ def process_lfp(basepath: str) -> Tuple[np.ndarray, np.ndarray, float]:
     return lfp, ts, fs
 
 
-def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
+def get_ep_from_df(df: pd.DataFrame, ts: NDArray[Any]) -> nel.EpochArray:
     """
     Extract epochs of theta oscillations from a bycycle dataframe.
 
@@ -113,7 +119,7 @@ def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
     index_for_oscilation_epoch = find_interval(df.is_burst)
     start = []
     stop = []
-    for idx in index_for_oscilation_epoch:
+    for idx in index_for_oscilation_epoch or []:
         start.append(df.sample_peak[idx[0]])
         stop.append(df.sample_peak[idx[1]])
 
@@ -133,9 +139,9 @@ def get_ep_from_df(df: pd.DataFrame, ts: np.ndarray) -> nel.EpochArray:
 
 def save_theta_cycles(
     df: pd.DataFrame,
-    ts: np.ndarray,
+    ts: NDArray[Any],
     basepath: str,
-    detection_params: dict,
+    detection_params: dict[str, Any],
     ch: int,
     event_name: str = "thetacycles",
     detection_name: Optional[str] = None,
@@ -163,7 +169,7 @@ def save_theta_cycles(
     filename = os.path.join(
         basepath, os.path.basename(basepath) + "." + event_name + ".events.mat"
     )
-    data = {}
+    data: dict[str, Any] = {}
     data[event_name] = {}
 
     # create variables that will be saved
@@ -217,10 +223,10 @@ def get_theta_cycles(
     basepath: str,
     theta_freq: Tuple[int, int] = (6, 10),
     lowpass: int = 48,
-    detection_params: Optional[dict] = None,
+    detection_params: Optional[dict[str, Any]] = None,
     ch: Optional[int] = None,
-    tag: Optional[list] = ["CA1so", "CA1sp"],
-) -> Optional[None]:
+    tag: Sequence[str] = ("CA1so", "CA1sp"),
+) -> None:
     """
     Detect theta cycles in LFP data and save the results.
 
@@ -289,4 +295,4 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         get_theta_cycles(sys.argv[1])
     elif len(sys.argv) == 3:
-        get_theta_cycles(sys.argv[1], epoch=int(sys.argv[2]))
+        get_theta_cycles(sys.argv[1], ch=int(sys.argv[2]))

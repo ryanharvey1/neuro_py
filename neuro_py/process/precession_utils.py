@@ -1,8 +1,9 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numba
 import numpy as np
 import scipy as sp
+from numpy.typing import NDArray
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
@@ -14,7 +15,7 @@ import neuro_py.stats.circ_stats as pcs
 
 
 def corrcc(
-    alpha1: np.ndarray, alpha2: np.ndarray, axis: Optional[int] = None
+    alpha1: NDArray[Any], alpha2: NDArray[Any], axis: Optional[int] = None
 ) -> Tuple[float, float]:
     """
     Circular correlation coefficient for two circular random variables.
@@ -85,7 +86,7 @@ def corrcc(
 
 
 def corrcc_uniform(
-    alpha1: np.ndarray, alpha2: np.ndarray, axis: Optional[int] = None
+    alpha1: NDArray[Any], alpha2: NDArray[Any], axis: Optional[int] = None
 ) -> Tuple[float, float]:
     """
     Circular correlation coefficient for two circular random variables.
@@ -161,8 +162,8 @@ def corrcc_uniform(
 
 
 def spatial_phase_precession(
-    circ: np.ndarray,
-    lin: np.ndarray,
+    circ: NDArray[Any],
+    lin: NDArray[Any],
     slope_bounds: Union[List[float], Tuple[float, float]] = [-3 * np.pi, 3 * np.pi],
 ) -> Tuple[float, float, float, float]:
     """
@@ -261,7 +262,7 @@ def spatial_phase_precession(
 
 
 @numba.jit(nopython=True)
-def pcorrelate(t: np.ndarray, u: np.ndarray, bins: np.ndarray) -> np.ndarray:
+def pcorrelate(t: NDArray[Any], u: NDArray[Any], bins: NDArray[Any]) -> NDArray[Any]:
     """
     Compute the correlation of two arrays of discrete events (point-process).
 
@@ -306,6 +307,7 @@ def pcorrelate(t: np.ndarray, u: np.ndarray, bins: np.ndarray) -> np.ndarray:
 
     # For each ti, perform binning of (u - ti) and accumulate counts in Y
     for ti in t:
+        j = 0
         for k, (tau_min, tau_max) in enumerate(zip(bins[:-1], bins[1:])):
             if k == 0:
                 j = imin[k]
@@ -332,8 +334,8 @@ def pcorrelate(t: np.ndarray, u: np.ndarray, bins: np.ndarray) -> np.ndarray:
 
 
 def fast_acf(
-    counts: np.ndarray, width: float, bin_width: float, cut_peak: bool = True
-) -> Tuple[np.ndarray, np.ndarray]:
+    counts: NDArray[Any], width: float, bin_width: float, cut_peak: bool = True
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Compute the Auto-Correlation Function (ACF) in a fast manner using Numba.
 
@@ -381,7 +383,7 @@ def fast_acf(
     return acf, bins
 
 
-def acf_power(acf: np.ndarray, norm: Optional[bool] = True) -> np.ndarray:
+def acf_power(acf: NDArray[Any], norm: Optional[bool] = True) -> NDArray[Any]:
     """
     Compute the power spectrum of the signal by calculating the FFT of the autocorrelation function (ACF).
 
@@ -421,7 +423,7 @@ def acf_power(acf: np.ndarray, norm: Optional[bool] = True) -> np.ndarray:
 
 
 def nonspatial_phase_precession(
-    unwrapped_spike_phases: np.ndarray,
+    unwrapped_spike_phases: NDArray[Any],
     width: float = 4 * 2 * np.pi,
     bin_width: float = np.pi / 3,
     cut_peak: bool = True,
@@ -429,7 +431,7 @@ def nonspatial_phase_precession(
     psd_lims: List[float] = [0.65, 1.55],
     upsample: int = 4,
     smooth_sigma: float = 1,
-) -> Tuple[float, float, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[float, float, NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Compute the nonspatial spike-LFP relationship modulation index.
 
@@ -517,7 +519,7 @@ def nonspatial_phase_precession(
 
 
 # def nonspatial_phase_precession_v2(
-#     spike_cycles: np.ndarray,
+#     spike_cycles: NDArray[Any],
 #     width: float = 4 * 2 * np.pi,
 #     bin_width: float = np.pi / 3,
 #     cut_peak: bool = True,

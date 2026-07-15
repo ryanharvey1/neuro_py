@@ -1,15 +1,18 @@
+from typing import Any
+
 import numpy as np
 from numba import njit, prange
+from numpy.typing import NDArray
 
 
 @njit(parallel=True, fastmath=True)
 def decode(
-    ct: np.ndarray,
-    tc: np.ndarray,
-    occupancy: np.ndarray,
+    ct: NDArray[Any],
+    tc: NDArray[Any],
+    occupancy: NDArray[Any],
     bin_size_s: float,
     uniform_prior: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Decode position from spike counts in an N-dimensional spatial environment
 
@@ -96,7 +99,7 @@ def decode(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # prange for parallel loop
+    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
         log_likelihood = log_p1 + log_p2 + np.sum(log_tc_flat * ct[i, :], axis=1)
         p[i, :] = np.exp(
             log_likelihood - np.max(log_likelihood)
@@ -114,12 +117,12 @@ def decode(
 
 @njit(parallel=True, fastmath=True, cache=True)
 def decode_with_prior_fallback(
-    ct: np.ndarray,
-    tc: np.ndarray,
-    occupancy: np.ndarray,
+    ct: NDArray[Any],
+    tc: NDArray[Any],
+    occupancy: NDArray[Any],
     bin_size_s: float,
     uniform_prior: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Decode position from spike counts in an N-dimensional spatial environment
 
@@ -206,7 +209,7 @@ def decode_with_prior_fallback(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # prange for parallel loop
+    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
         if not np.any(ct[i, :]):
             p[i, :] = occupancy_flat / occupancy_flat.sum()
             continue
@@ -227,12 +230,12 @@ def decode_with_prior_fallback(
 
 # @njit(parallel=True, fastmath=True, cache=True)
 # def decode_with_prior_fallback(
-#     ct: np.ndarray,
-#     tc: np.ndarray,
-#     occupancy: np.ndarray,
+#     ct: NDArray[Any],
+#     tc: NDArray[Any],
+#     occupancy: NDArray[Any],
 #     bin_size_s: float,
 #     uniform_prior: bool = False,
-# ) -> np.ndarray:
+# ) -> NDArray[Any]:
 #     # Input validation
 #     assert ct.ndim == 2, "ct must be 2D array (n_bins, n_cells)"
 #     assert tc.ndim >= 2, "tc must be at least 2D array (n_xbins, ..., n_cells)"
@@ -292,12 +295,12 @@ def decode_with_prior_fallback(
 
 # @njit(parallel=True, fastmath=True, cache=True, boundscheck=False)
 # def decode_with_prior_fallback(
-#     ct: np.ndarray,
-#     tc: np.ndarray,
-#     occupancy: np.ndarray,
+#     ct: NDArray[Any],
+#     tc: NDArray[Any],
+#     occupancy: NDArray[Any],
 #     bin_size_s: float,
 #     uniform_prior: bool = False,
-# ) -> np.ndarray:
+# ) -> NDArray[Any]:
 #     # Input dimensions
 #     n_bins, n_cells = ct.shape
 #     spatial_shape = tc.shape[:-1]

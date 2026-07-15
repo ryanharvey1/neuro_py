@@ -1,12 +1,15 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy.signal.windows import dpss
 
 
-def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.ndarray]:
+def getfgrid(
+    Fs: int, nfft: int, fpass: List[float]
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Get frequency grid for evaluation.
 
@@ -40,8 +43,8 @@ def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[np.ndarray, np.nda
 
 
 def dpsschk(
-    tapers: Union[np.ndarray, Tuple[float, int]], N: int, Fs: float
-) -> np.ndarray:
+    tapers: Union[NDArray[Any], Tuple[float, int]], N: int, Fs: float
+) -> NDArray[Any]:
     """
     Check and generate DPSS tapers.
 
@@ -78,7 +81,7 @@ def get_tapers(
     fs: float = 1.0,
     min_lambda: float = 0.95,
     n_tapers: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Compute tapers and associated energy concentrations for the Thomson
     multitaper method.
@@ -143,13 +146,13 @@ def get_tapers(
 
 
 def mtfftpt(
-    data: np.ndarray,
-    tapers: np.ndarray,
+    data: NDArray[Any],
+    tapers: NDArray[Any],
     nfft: int,
-    t: np.ndarray,
-    f: np.ndarray,
-    findx: List[bool],
-) -> Tuple[np.ndarray, float, float]:
+    t: NDArray[Any],
+    f: NDArray[Any],
+    findx: NDArray[Any],
+) -> Tuple[NDArray[Any], float, float]:
     """
     Multitaper FFT for point process times.
 
@@ -226,14 +229,14 @@ def mtfftpt(
 
 
 def mtspectrumpt(
-    data: np.ndarray,
+    data: NDArray[Any],
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    time_support: Union[list[float], None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -326,7 +329,9 @@ def mtspectrumpt(
     return spectrum_df
 
 
-def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarray:
+def mtfftc(
+    data: NDArray[Any], tapers: NDArray[Any], nfft: int, Fs: int
+) -> NDArray[Any]:
     """
     Multi-taper Fourier Transform - Continuous Data (Single Signal)
 
@@ -366,7 +371,7 @@ def mtfftc(data: np.ndarray, tapers: np.ndarray, nfft: int, Fs: int) -> np.ndarr
 
 
 def mtspectrumc(
-    data: np.ndarray, Fs: int, fpass: list, tapers: np.ndarray
+    data: NDArray[Any], Fs: int, fpass: list[float], tapers: NDArray[Any]
 ) -> pd.Series:
     """
     Compute the multitaper power spectrum for continuous data.
@@ -411,13 +416,13 @@ def mtspectrumc(
 
 
 def point_spectra(
-    times: np.ndarray,
+    times: NDArray[Any],
     Fs: int = 1250,
     freq_range: List[float] = [1, 20],
     tapers0: List[int] = [3, 5],
     pad: int = 0,
     nfft: Optional[int] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Compute multitaper power spectrum for point processes.
 
@@ -493,15 +498,15 @@ def point_spectra(
 
 
 def mtcsdpt(
-    data1: np.ndarray,
-    data2: np.ndarray,
+    data1: NDArray[Any],
+    data2: NDArray[Any],
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    time_support: Union[list[float], None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -548,6 +553,9 @@ def mtcsdpt(
         N = len(tapers_ts)
         tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
 
+    if tapers_ts is None:
+        tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
+
     tapers = tapers.T
     N = len(tapers_ts)
 
@@ -563,20 +571,20 @@ def mtcsdpt(
     # Cross-spectral density: Sxy = mean(conjugate(J1) * J2)
     csd = np.real(np.mean(np.conj(J1) * J2, axis=1))
 
-    csd_df = pd.DataFrame(index=f, data=csd, columns=["CSD"])
+    csd_df = pd.DataFrame({"CSD": csd}, index=f)
     return csd_df
 
 
 def mtcoherencept(
-    data1: np.ndarray,
-    data2: np.ndarray,
+    data1: NDArray[Any],
+    data2: NDArray[Any],
     Fs: int,
-    fpass: list,
+    fpass: list[float],
     NW: Union[int, float] = 2.5,
     n_tapers: int = 4,
-    time_support: Union[list, None] = None,
-    tapers: Union[np.ndarray, None] = None,
-    tapers_ts: Union[np.ndarray, None] = None,
+    time_support: Union[list[float], None] = None,
+    tapers: Union[NDArray[Any], None] = None,
+    tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -633,5 +641,7 @@ def mtcoherencept(
     coherence = np.abs(csd["CSD"].values) ** 2 / (psd1.values * psd2.values).flatten()
 
     # Return coherence as a pandas DataFrame
-    coherence_df = pd.DataFrame(index=csd.index, data=coherence, columns=["Coherence"])
+    coherence_df = pd.DataFrame(
+        index=csd.index, data=coherence, columns=pd.Index(["Coherence"])
+    )
     return coherence_df

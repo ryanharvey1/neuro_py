@@ -14,19 +14,20 @@ from typing import (
 
 import numpy as np
 from decorator import decorator
+from numpy.typing import NDArray
 from scipy import stats
 
 # minimal version of pycircstat from https://github.com/circstat/pycircstat/tree/master
 
-CI = namedtuple("confidence_interval", ["lower", "upper"])
+CI = namedtuple("CI", ["lower", "upper"])
 
 
 def nd_bootstrap(
-    data: Iterable[np.ndarray],
+    data: Iterable[NDArray[Any]],
     iterations: int,
     axis: Union[int, None] = None,
     strip_tuple_if_one: bool = True,
-) -> Generator[Union[np.ndarray, Tuple[np.ndarray, ...]], None, None]:
+) -> Generator[Union[NDArray[Any], Tuple[NDArray[Any], ...]], None, None]:
     """
     Bootstrap iterator for several n-dimensional data arrays.
 
@@ -46,6 +47,7 @@ def nd_bootstrap(
     Tuple[np.ndarray, ...]
         Bootstrapped data arrays for each iteration.
     """
+    data = list(data)
     shape0 = data[0].shape
     if axis is None:
         axis = 0
@@ -75,7 +77,7 @@ def nd_bootstrap(
                 )
 
 
-def mod2pi(f: Callable) -> Callable:
+def mod2pi(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to apply modulo 2*pi on the output of the function.
 
@@ -99,15 +101,21 @@ def mod2pi(f: Callable) -> Callable:
         if isinstance(ret, tuple):
             ret2 = []
             for r in ret:
-                if isinstance(r, np.ndarray) or np.isscalar(r):
+                if isinstance(r, np.ndarray):
                     ret2.append(r % (2 * np.pi))
+                elif np.isscalar(r):
+                    scalar: Any = r
+                    ret2.append(scalar % (2 * np.pi))
                 elif isinstance(r, CI):
                     ret2.append(CI(r.lower % (2 * np.pi), r.upper % (2 * np.pi)))
                 else:
                     raise TypeError("Type not known!")
             return tuple(ret2)
-        elif isinstance(ret, np.ndarray) or np.isscalar(ret):
+        elif isinstance(ret, np.ndarray):
             return ret % (2 * np.pi)
+        elif np.isscalar(ret):
+            scalar: Any = ret
+            return scalar % (2 * np.pi)
         else:
             raise TypeError("Type not known!")
 
@@ -259,11 +267,11 @@ def percentile(alpha, q, q0, axis=None, ci=None, bootstrap_iter=None):
 
 
 def _complex_mean(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     axis: Optional[int] = None,
     axial_correction: float = 1,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Compute the weighted mean of complex values.
 
@@ -302,14 +310,14 @@ def _complex_mean(
 
 @bootstrap(1, "linear")
 def resultant_vector_length(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
     axial_correction: int = 1,
     ci: Optional[float] = None,
     bootstrap_iter: Optional[int] = None,
-) -> float:
+) -> float | NDArray[Any]:
     """
     Computes the mean resultant vector length for circular data.
 
@@ -369,12 +377,12 @@ vector_strength = resultant_vector_length
 
 
 def mean_ci_limits(
-    alpha: np.ndarray,
+    alpha: NDArray[Any],
     ci: float = 0.95,
-    w: Optional[np.ndarray] = None,
+    w: Optional[NDArray[Any]] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Computes the confidence limits on the mean for circular data.
 
@@ -439,8 +447,8 @@ def mean_ci_limits(
 
 @mod2pi
 def mean(
-    alpha: np.ndarray,
-    w: Optional[np.ndarray] = None,
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
     ci: Optional[float] = None,
     d: Optional[float] = None,
     axis: Optional[int] = None,
@@ -495,7 +503,9 @@ def mean(
 
 
 @mod2pi
-def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...]:
+def center(
+    *args: NDArray[Any], **kwargs: Any
+) -> NDArray[Any] | Tuple[NDArray[Any], ...]:
     """
     Centers the data on its circular mean.
 
@@ -516,7 +526,7 @@ def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...
     axis = kwargs.pop("axis", None)
     if axis is None:
         axis = 0
-        args = [a.ravel() for a in args]
+        args = tuple(a.ravel() for a in args)
 
     reshaper = tuple(
         slice(None, None) if i != axis else np.newaxis
@@ -535,7 +545,10 @@ def center(*args: np.ndarray, **kwargs: Optional[dict]) -> Tuple[np.ndarray, ...
 
 
 def get_var(
-    f: Callable, varnames: List[str], args: List[Any], kwargs: Dict[str, Any]
+    f: Any,
+    varnames: List[str],
+    args: List[Any],
+    kwargs: Dict[str, Any],
 ) -> Tuple[List[int], List[str]]:
     """
     Retrieve indices of specified variables from a function's argument list.
@@ -619,19 +632,19 @@ class swap2zeroaxis:
         self.inputs = inputs
         self.out_idx = out_idx
 
-    def __call__(self, f: callable) -> callable:
-        def _deco(f: callable, *args: tuple, **kwargs: dict) -> tuple:
-            to_swap_idx, to_swap_keys = get_var(f, self.inputs, args, kwargs)
-            args = list(args)
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        def _deco(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+            args_list = list(args)
+            to_swap_idx, to_swap_keys = get_var(f, self.inputs, args_list, kwargs)
 
             # extract axis parameter
             try:
-                axis_idx, axis_kw = get_var(f, ["axis"], args, kwargs)
+                axis_idx, axis_kw = get_var(f, ["axis"], args_list, kwargs)
                 if len(axis_idx) == 0 and len(axis_kw) == 0:
                     axis = None
                 else:
                     if len(axis_idx) > 0:
-                        axis, args[axis_idx[0]] = args[axis_idx[0]], 0
+                        axis, args_list[axis_idx[0]] = args_list[axis_idx[0]], 0
                     else:
                         axis, kwargs[axis_kw[0]] = kwargs[axis_kw[0]], 0
             except ValueError:
@@ -640,30 +653,29 @@ class swap2zeroaxis:
             # adjust axes or flatten
             if axis is not None:
                 for i in to_swap_idx:
-                    if args[i] is not None:
-                        args[i] = args[i].swapaxes(0, axis)
+                    if args_list[i] is not None:
+                        args_list[i] = args_list[i].swapaxes(0, axis)
                 for k in to_swap_keys:
                     if kwargs[k] is not None:
                         kwargs[k] = kwargs[k].swapaxes(0, axis)
             else:
                 for i in to_swap_idx:
-                    if args[i] is not None:
-                        args[i] = args[i].ravel()
+                    if args_list[i] is not None:
+                        args_list[i] = args_list[i].ravel()
                 for k in to_swap_keys:
                     if kwargs[k] is not None:
                         kwargs[k] = kwargs[k].ravel()
 
             # compute function
-            outputs = f(*args, **kwargs)
+            outputs: Any = f(*args_list, **kwargs)
 
             # swap everything back into place
             if len(self.out_idx) > 0 and axis is not None:
                 if isinstance(outputs, tuple):
                     outputs = list(outputs)
                     for i in self.out_idx:
-                        outputs[i] = (
-                            outputs[i][np.newaxis, ...].swapaxes(0, axis).squeeze()
-                        )
+                        output: Any = outputs[i]
+                        outputs[i] = output[np.newaxis, ...].swapaxes(0, axis).squeeze()
 
                     return tuple(outputs)
                 else:
@@ -681,7 +693,10 @@ class swap2zeroaxis:
 
 @swap2zeroaxis(["alpha", "w"], [0, 1])
 def rayleigh(
-    alpha: np.ndarray, w: np.ndarray = None, d: float = None, axis: int = None
+    alpha: NDArray[Any],
+    w: Optional[NDArray[Any]] = None,
+    d: Optional[float] = None,
+    axis: Optional[int] = None,
 ) -> Tuple[float, float]:
     """
     Computes Rayleigh test for non-uniformity of circular data.

@@ -1,13 +1,17 @@
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.model_selection import StratifiedKFold
 
 
 def split_data(
-    trial_nsvs: np.ndarray, splitby: np.ndarray, trainsize: float = 0.8, seed: int = 0
-) -> List[np.ndarray]:
+    trial_nsvs: NDArray[Any],
+    splitby: NDArray[Any],
+    trainsize: float = 0.8,
+    seed: int = 0,
+) -> List[NDArray[Any]]:
     """
     Split data into stratified folds.
 
@@ -34,8 +38,8 @@ def split_data(
 
 
 def partition_indices(
-    folds: List[np.ndarray],
-) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    folds: List[NDArray[Any]],
+) -> List[Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]]:
     """
     Partition indices into train, validation, and test sets.
 
@@ -65,11 +69,18 @@ def partition_indices(
 
 
 def partition_sets(
-    partitions_indices: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
-    nsv_trial_segs: Union[np.ndarray, pd.DataFrame],
-    bv_trial_segs: Union[np.ndarray, pd.DataFrame],
+    partitions_indices: List[Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]],
+    nsv_trial_segs: Union[NDArray[Any], pd.DataFrame],
+    bv_trial_segs: Union[NDArray[Any], pd.DataFrame],
 ) -> List[
-    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    Tuple[
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+    ]
 ]:
     """
     Partition neural state vectors and behavioral variables into train,
@@ -94,18 +105,27 @@ def partition_sets(
         state vectors and behavioral variables.
     """
     partitions = []
-    is_2D = nsv_trial_segs[0].ndim == 1
+    if isinstance(nsv_trial_segs, pd.DataFrame):
+        is_2D = nsv_trial_segs.iloc[0].ndim == 1
+    else:
+        is_2D = nsv_trial_segs[0].ndim == 1
     for train_indices, val_indices, test_indices in partitions_indices:
         if is_2D:
             if isinstance(nsv_trial_segs, pd.DataFrame):
-                nsv_trial_segs = nsv_trial_segs.loc
-                bv_trial_segs = bv_trial_segs.loc
-            train = nsv_trial_segs[train_indices]
-            val = nsv_trial_segs[val_indices]
-            test = nsv_trial_segs[test_indices]
-            train_bv = bv_trial_segs[train_indices]
-            val_bv = bv_trial_segs[val_indices]
-            test_bv = bv_trial_segs[test_indices]
+                assert isinstance(bv_trial_segs, pd.DataFrame)
+                train = nsv_trial_segs.loc[train_indices]
+                val = nsv_trial_segs.loc[val_indices]
+                test = nsv_trial_segs.loc[test_indices]
+                train_bv = bv_trial_segs.loc[train_indices]
+                val_bv = bv_trial_segs.loc[val_indices]
+                test_bv = bv_trial_segs.loc[test_indices]
+            else:
+                train = nsv_trial_segs[train_indices]
+                val = nsv_trial_segs[val_indices]
+                test = nsv_trial_segs[test_indices]
+                train_bv = bv_trial_segs[train_indices]
+                val_bv = bv_trial_segs[val_indices]
+                test_bv = bv_trial_segs[test_indices]
         else:
             train = np.take(nsv_trial_segs, train_indices, axis=0)
             val = np.take(nsv_trial_segs, val_indices, axis=0)

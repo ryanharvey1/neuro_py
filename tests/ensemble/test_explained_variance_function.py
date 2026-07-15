@@ -1,10 +1,13 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from neuro_py.ensemble.explained_variance import explained_variance as ev_func
 
 
-def _equicorr_cov(n: int, rho: float) -> np.ndarray:
+def _equicorr_cov(n: int, rho: float) -> NDArray[Any]:
     """Return an n x n equicorrelation covariance matrix with off-diagonal rho."""
     cov = np.full((n, n), rho, dtype=float)
     np.fill_diagonal(cov, 1.0)

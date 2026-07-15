@@ -1,26 +1,27 @@
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pywt
+from numpy.typing import NDArray
 from scipy import signal
 from scipy.linalg import toeplitz
 from scipy.signal import butter, filtfilt, firwin
 
 
 def filter_signal(
-    sig: np.ndarray,
+    sig: NDArray[Any],
     fs: float,
     pass_type: str,
-    f_range: Union[float, Tuple[float, float]],
+    f_range: Union[float, Tuple[Optional[float], Optional[float]]],
     filter_type: str = "fir",
     n_cycles: int = 3,
     n_seconds: Optional[float] = None,
     butterworth_order: int = 4,
     remove_edges: bool = True,
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Filter a neural signal using an FIR or IIR filter.
 
@@ -87,9 +88,21 @@ def filter_signal(
                 "`f_range` must be a tuple for 'bandpass' or 'bandstop' filters."
             )
 
+    low_cutoff, high_cutoff = f_range
+    if low_cutoff is None and high_cutoff is None:
+        raise ValueError("At least one cutoff frequency must be specified.")
+
+    if pass_type == "lowpass" and high_cutoff is None:
+        raise ValueError("A high cutoff frequency must be specified for 'lowpass'.")
+    if pass_type == "highpass" and low_cutoff is None:
+        raise ValueError("A low cutoff frequency must be specified for 'highpass'.")
+
+    low_cutoff_value = float(low_cutoff) if low_cutoff is not None else 0.0
+    high_cutoff_value = float(high_cutoff) if high_cutoff is not None else 0.0
+
     # Validate bandpass/bandstop filters
     if pass_type in ["bandpass", "bandstop"]:
-        if not isinstance(f_range, tuple) or f_range[0] is None or f_range[1] is None:
+        if low_cutoff is None or high_cutoff is None:
             raise ValueError(
                 "Both frequencies must be specified for 'bandpass' and 'bandstop' filters."
             )
@@ -98,15 +111,17 @@ def filter_signal(
     nyquist = fs / 2
 
     # FIR filter implementation
+    kernel_len = 0
+    fir_coefs: NDArray[Any] = np.array([])
     if filter_type == "fir":
         # Compute filter kernel length
         if n_seconds is not None:
             kernel_len = int(n_seconds * fs)
         else:
             kernel_len = (
-                int((n_cycles / f_range[0]) * fs)
-                if f_range[0]
-                else int((n_cycles / f_range[1]) * fs)
+                int((n_cycles / low_cutoff_value) * fs)
+                if low_cutoff is not None
+                else int((n_cycles / high_cutoff_value) * fs)
             )
         if kernel_len % 2 == 0:
             kernel_len += 1  # Ensure kernel length is odd
@@ -115,13 +130,13 @@ def filter_signal(
         if pass_type in ["bandpass", "bandstop"]:
             fir_coefs = firwin(
                 kernel_len,
-                [f_range[0] / nyquist, f_range[1] / nyquist],
+                [low_cutoff_value / nyquist, high_cutoff_value / nyquist],
                 pass_zero=(pass_type == "bandstop"),
             )
         elif pass_type == "lowpass":
-            fir_coefs = firwin(kernel_len, f_range[1] / nyquist, pass_zero=True)
+            fir_coefs = firwin(kernel_len, high_cutoff_value / nyquist, pass_zero=True)
         elif pass_type == "highpass":
-            fir_coefs = firwin(kernel_len, f_range[0] / nyquist, pass_zero=False)
+            fir_coefs = firwin(kernel_len, low_cutoff_value / nyquist, pass_zero=False)
 
         # Apply the FIR filter
         if len(sig.shape) == 1:
@@ -133,17 +148,19 @@ def filter_signal(
 
     # IIR filter implementation
     elif filter_type == "iir":
+        b: NDArray[Any] = np.array([])
+        a: NDArray[Any] = np.array([])
         # Design a Butterworth filter
         if pass_type in ["bandpass", "bandstop"]:
             b, a = butter(
                 butterworth_order,
-                [f_range[0] / nyquist, f_range[1] / nyquist],
+                [low_cutoff_value / nyquist, high_cutoff_value / nyquist],
                 btype=pass_type,
             )
         elif pass_type == "lowpass":
-            b, a = butter(butterworth_order, f_range[1] / nyquist, btype="low")
+            b, a = butter(butterworth_order, high_cutoff_value / nyquist, btype="low")
         elif pass_type == "highpass":
-            b, a = butter(butterworth_order, f_range[0] / nyquist, btype="high")
+            b, a = butter(butterworth_order, low_cutoff_value / nyquist, btype="high")
 
         # Apply the IIR filter
         sig_filt = filtfilt(b, a, sig)
@@ -161,13 +178,13 @@ def filter_signal(
 
 
 def yule_walker(
-    x: Union[np.ndarray, list],
+    x: Union[NDArray[Any], list[Any]],
     order: int = 1,
     method: str = "adjusted",
     df: Optional[int] = None,
     inv: bool = False,
     demean: bool = True,
-) -> Union[Tuple[np.ndarray, float], Tuple[np.ndarray, float, np.ndarray]]:
+) -> Union[Tuple[NDArray[Any], float], Tuple[NDArray[Any], float, NDArray[Any]]]:
     """
     Estimate autoregressive (AR) parameters using the Yule-Walker equations.
 
@@ -260,7 +277,7 @@ def yule_walker(
         return rho, sigma
 
 
-def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
+def whiten_lfp(lfp: NDArray[Any], order: int = 2) -> NDArray[Any]:
     """
     Perform temporal whitening of Local Field Potential (LFP) data using an Autoregressive (AR) model.
 
@@ -280,7 +297,8 @@ def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
         The temporally whitened LFP data as a 1D numpy array.
     """
 
-    rho, _ = yule_walker(lfp, order=order)
+    yule_walker_result = yule_walker(lfp, order=order)
+    rho = yule_walker_result[0]
 
     a = np.concatenate(([1.0], -rho))
 
@@ -289,9 +307,9 @@ def whiten_lfp(lfp: np.ndarray, order: int = 2) -> np.ndarray:
 
 
 def event_triggered_wavelet(
-    signal: np.ndarray,
-    timestamps: np.ndarray,
-    events: np.ndarray,
+    signal: NDArray[Any],
+    timestamps: NDArray[Any],
+    events: NDArray[Any],
     max_lag: float = 1,
     freq_min: float = 4,
     freq_max: float = 100,
@@ -303,7 +321,7 @@ def event_triggered_wavelet(
     fs: Optional[float] = None,
     **kwargs,
 ) -> Union[
-    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]],
     Tuple[pd.DataFrame, pd.Series],
 ]:
     """
@@ -488,14 +506,14 @@ def event_triggered_wavelet(
 
 
 def compute_wavelet_transform(
-    sig: np.ndarray,
+    sig: NDArray[Any],
     fs: float,
-    freqs: Union[np.ndarray, List[float], Tuple[float, float, Optional[float]]],
+    freqs: Union[NDArray[Any], List[float], Tuple[float, float, Optional[float]]],
     wavelet: str = "cmor",
     center_frequency: float = 0.5,
     bandwidth_frequency: float = 1.5,
     method="conv",
-) -> np.ndarray:
+) -> NDArray[Any]:
     """
     Compute the time-frequency representation of a signal using Morlet wavelets via PyWavelets.
 

@@ -1,24 +1,23 @@
 import itertools
 import math
 import multiprocessing
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy import stats
 
 from neuro_py.stats.stats import get_significant_events
 
-global COMBINATIONS
-
 
 def similarity_index(
-    patterns: np.ndarray,
+    patterns: NDArray[Any],
     n_shuffles: int = 1000,
     parallel: bool = True,
-    groups: np.ndarray = None,
+    groups: Optional[NDArray[Any]] = None,
     adjust_pvalue: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any]]:
     """
     Calculate the similarity index of a set of patterns.
 
@@ -85,14 +84,13 @@ def similarity_index(
         return np.array([np.random.permutation(pattern) for pattern in patterns])
 
     # Calculate absolute inner product between patterns
-    def get_si(patterns):
+    combinations = np.array(list(itertools.combinations(range(patterns.shape[0]), 2)))
+
+    def get_si(patterns: NDArray[Any]) -> NDArray[Any]:
         si = np.array(
-            [np.abs(np.inner(patterns[i], patterns[j])) for i, j in COMBINATIONS]
+            [np.abs(np.inner(patterns[i], patterns[j])) for i, j in combinations]
         )
         return si
-
-    # get all possible combinations of patterns
-    COMBINATIONS = np.array(list(itertools.combinations(range(patterns.shape[0]), 2)))
 
     # calculate observed si
     si = get_si(patterns)
@@ -115,12 +113,12 @@ def similarity_index(
         groups = np.asarray(groups)
 
         # Identify cross-group comparisons
-        cross_group_mask = groups[COMBINATIONS[:, 0]] != groups[COMBINATIONS[:, 1]]
+        cross_group_mask = groups[combinations[:, 0]] != groups[combinations[:, 1]]
         si = si[cross_group_mask]
-        COMBINATIONS = COMBINATIONS[cross_group_mask]
+        combinations = combinations[cross_group_mask]
         pvalues = pvalues[cross_group_mask]
 
     if adjust_pvalue:
         pvalues = stats.false_discovery_control(pvalues)
 
-    return si, COMBINATIONS, pvalues
+    return si, combinations, pvalues
