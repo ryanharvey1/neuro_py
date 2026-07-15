@@ -798,9 +798,7 @@ def evaluate_model(
             ]
         bv_preds_fold = np.concatenate(
             [
-                np.asarray(
-                    bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim)
-                )
+                np.asarray(bv.squeeze().detach().cpu().numpy().reshape(-1, out_dim))
                 for bv in bv_preds_fold
             ],
             axis=0,
@@ -857,7 +855,14 @@ def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray[Any]:
 
 def train_model(
     partitions: List[
-        Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any]]
+        Tuple[
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+            np.ndarray[Any, Any],
+        ]
     ],
     hyperparams: Dict[str, Any],
     resultspath: Optional[str] = None,

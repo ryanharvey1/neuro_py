@@ -234,9 +234,7 @@ class NDT(L.LightningModule):
         return loss
 
     @override
-    def training_step(
-        self, batch: tuple[Any, Any], batch_idx: int
-    ) -> torch.Tensor:
+    def training_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for training step.
 
@@ -257,9 +255,7 @@ class NDT(L.LightningModule):
         return loss
 
     @override
-    def validation_step(
-        self, batch: tuple[Any, Any], batch_idx: int
-    ) -> torch.Tensor:
+    def validation_step(self, batch: tuple[Any, Any], batch_idx: int) -> torch.Tensor:
         """
         Lightning method for validation step.
 

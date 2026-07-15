@@ -573,7 +573,9 @@ class TestNodePicker:
             assert result["behavior"]["epochs"]["edges"] == [[0, 1]]
 
     @patch("neuro_py.behavior.linearization.load_epoch")
-    def test_save_nodes_edges_to_behavior_zero_dim_epoch_array_list(self, mock_load_epoch):
+    def test_save_nodes_edges_to_behavior_zero_dim_epoch_array_list(
+        self, mock_load_epoch
+    ):
         """Regression test for zero-dimensional epoch arrays wrapping a list."""
         with patch("matplotlib.pyplot.gca") as mock_gca:
             mock_ax = Mock()
@@ -831,12 +833,12 @@ class TestAdaptiveBinning:
         )
 
         # Verify that adaptive binning reduced the number of states
-        assert (
-            hmm2.n_states <= hmm1.n_states
-        ), "Adaptive binning should reduce total states"
-        assert (
-            hmm3.n_states <= hmm2.n_states
-        ), "More aggressive binning should reduce states further"
+        assert hmm2.n_states <= hmm1.n_states, (
+            "Adaptive binning should reduce total states"
+        )
+        assert hmm3.n_states <= hmm2.n_states, (
+            "More aggressive binning should reduce states further"
+        )
 
         # Verify that the reduction is proportional
         expected_bins2 = min(50, 400 // 12)

@@ -162,7 +162,9 @@ def potential_landscape_nd(
     projbins: Union[int, NDArray[Any]],
     domainbins: Union[int, NDArray[Any], None] = None,
     nanborderempty: bool = True,
-) -> Tuple[NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]]:
+) -> Tuple[
+    NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]
+]:
     """Compute numerical approximation of potential energy landscape across
     n-dimensional state and domain (e.g. time, position, etc.).
 

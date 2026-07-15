@@ -39,7 +39,9 @@ def main() -> int:
     # run. Executing it in a fresh subprocess keeps the rest of the suite and
     # the batch-analysis coverage intact without changing production behavior.
     if env.get("CI") and not user_args:
-        first_phase = _run_pytest(["--ignore=tests/process/test_batch_analysis.py"], env)
+        first_phase = _run_pytest(
+            ["--ignore=tests/process/test_batch_analysis.py"], env
+        )
         if first_phase != 0:
             return first_phase
         return _run_pytest(["tests/process/test_batch_analysis.py"], env)

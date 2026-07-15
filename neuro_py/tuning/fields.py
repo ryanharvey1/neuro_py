@@ -194,7 +194,9 @@ def remove_fields_by_area(
 
 
 def separate_fields_by_laplace(
-    rate_map: NDArray[Any], threshold: float = 0, minimum_field_area: Optional[int] = None
+    rate_map: NDArray[Any],
+    threshold: float = 0,
+    minimum_field_area: Optional[int] = None,
 ) -> NDArray[Any]:
     """
     Separates fields using the Laplacian to identify fields separated by

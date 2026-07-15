@@ -12,9 +12,7 @@ def test_find_pre_task_post_accepts_list_input():
 
 
 def test_find_pre_task_post_finds_shifted_pattern():
-    mask, indices = locate_epochs.find_pre_task_post(
-        ["home", "sleep", "maze", "sleep"]
-    )
+    mask, indices = locate_epochs.find_pre_task_post(["home", "sleep", "maze", "sleep"])
 
     assert np.array_equal(mask, np.array([False, True, True, True]))
     assert indices == [1, 2, 3]

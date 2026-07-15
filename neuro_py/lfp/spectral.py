@@ -128,13 +128,9 @@ def filter_signal(
                 pass_zero=(pass_type == "bandstop"),
             )
         elif pass_type == "lowpass":
-            fir_coefs = firwin(
-                kernel_len, high_cutoff_value / nyquist, pass_zero=True
-            )
+            fir_coefs = firwin(kernel_len, high_cutoff_value / nyquist, pass_zero=True)
         elif pass_type == "highpass":
-            fir_coefs = firwin(
-                kernel_len, low_cutoff_value / nyquist, pass_zero=False
-            )
+            fir_coefs = firwin(kernel_len, low_cutoff_value / nyquist, pass_zero=False)
 
         # Apply the FIR filter
         if len(sig.shape) == 1:
@@ -156,13 +152,9 @@ def filter_signal(
                 btype=pass_type,
             )
         elif pass_type == "lowpass":
-            b, a = butter(
-                butterworth_order, high_cutoff_value / nyquist, btype="low"
-            )
+            b, a = butter(butterworth_order, high_cutoff_value / nyquist, btype="low")
         elif pass_type == "highpass":
-            b, a = butter(
-                butterworth_order, low_cutoff_value / nyquist, btype="high"
-            )
+            b, a = butter(butterworth_order, low_cutoff_value / nyquist, btype="high")
 
         # Apply the IIR filter
         sig_filt = filtfilt(b, a, sig)

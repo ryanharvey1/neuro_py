@@ -291,7 +291,10 @@ def joint_peth(
 
 
 def deconvolve_peth(
-    signal: NDArray[Any], events: NDArray[Any], bin_width: float = 0.002, n_bins: int = 100
+    signal: NDArray[Any],
+    events: NDArray[Any],
+    bin_width: float = 0.002,
+    n_bins: int = 100,
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Perform deconvolution of a peri-event time histogram (PETH) signal.

@@ -49,7 +49,9 @@ def get_velocity(
     return np.gradient(position, time, axis=0)
 
 
-def get_speed(position: NDArray[Any], time: Union[NDArray[Any], None] = None) -> NDArray[Any]:
+def get_speed(
+    position: NDArray[Any], time: Union[NDArray[Any], None] = None
+) -> NDArray[Any]:
     """
     Computes the speed from position data.
 

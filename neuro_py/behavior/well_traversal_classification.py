@@ -72,7 +72,9 @@ def enter_exit_target(
     return enter_exit, at_target
 
 
-def enter_exit_target_dio(dio_indicator: NDArray[Any]) -> Tuple[NDArray[Any], NDArray[Any]]:
+def enter_exit_target_dio(
+    dio_indicator: NDArray[Any],
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Marks when a digital input/output (DIO) indicator has entered or exited a target state.
 

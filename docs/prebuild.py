@@ -506,7 +506,9 @@ def generate_index() -> None:
         for stem in tutorials:
             t = tut_meta.get(stem, {})
             icon = t.get("icon", "material-notebook")
-            title = t.get("title", _TUTORIAL_TITLES.get(stem, stem.replace("_", " ").title()))
+            title = t.get(
+                "title", _TUTORIAL_TITLES.get(stem, stem.replace("_", " ").title())
+            )
             desc = t.get("description", f"Explore the {title} tutorial notebook.")
             lines.append(f"- :{icon}:{{ .lg .middle }} __{title}__")
             lines.append("")
@@ -663,7 +665,9 @@ def update_nav(ref_nav: list) -> None:
     tutorials_dir = DOCS_DIR / "tutorials"
     if tutorials_dir.exists():
         for md_file in sorted(tutorials_dir.glob("*.md")):
-            title = _TUTORIAL_TITLES.get(md_file.stem, md_file.stem.replace("_", " ").title())
+            title = _TUTORIAL_TITLES.get(
+                md_file.stem, md_file.stem.replace("_", " ").title()
+            )
             tutorial_nav.append({title: f"tutorials/{md_file.name}"})
 
     # Build the new nav YAML fragment
@@ -693,7 +697,9 @@ def update_nav(ref_nav: list) -> None:
         text += "\n" + nav_yaml
 
     config_path.write_text(text, encoding="utf-8")
-    print(f"  Updated nav: {len(ref_nav)} reference entries, {len(tutorial_nav)} tutorials")
+    print(
+        f"  Updated nav: {len(ref_nav)} reference entries, {len(tutorial_nav)} tutorials"
+    )
 
 
 def main() -> None:

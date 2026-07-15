@@ -121,7 +121,9 @@ def test_show_scaled_rejects_invalid_format():
 def test_show_scaled_rejects_invalid_backend():
     """show_scaled should reject unsupported backends."""
     fig, _ = plt.subplots()
-    with pytest.raises(ValueError, match="backend must be 'auto', 'jupyter', or 'marimo'"):
+    with pytest.raises(
+        ValueError, match="backend must be 'auto', 'jupyter', or 'marimo'"
+    ):
         show_scaled(fig, backend="qt")
     plt.close(fig)
 
@@ -132,7 +134,7 @@ def test_show_scaled_jupyter_returns_html():
     display_obj = show_scaled(fig, scale=1.5, backend="jupyter")
 
     assert isinstance(display_obj, _HTMLDisplay)
-    assert 'width: 600px' in display_obj.data
+    assert "width: 600px" in display_obj.data
     assert "data:image/png;base64," in display_obj.data
     plt.close(fig)
 
@@ -192,7 +194,7 @@ def test_show_scaled_preserves_savefig_dimensions():
 
     html = _build_scaled_image_html(fig, scale=1.0, dpi=100)
 
-    assert 'width: 400px' in html
+    assert "width: 400px" in html
     plt.close(fig)
 
 
@@ -217,7 +219,9 @@ def test_show_scaled_auto_does_not_choose_marimo_when_only_installed(
     monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
     monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
 
-    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+    with pytest.raises(
+        RuntimeError, match="could not detect a supported notebook backend"
+    ):
         show_scaled(fig, backend="auto")
 
     plt.close(fig)
@@ -230,7 +234,9 @@ def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
     monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
 
-    with pytest.raises(RuntimeError, match="could not detect a supported notebook backend"):
+    with pytest.raises(
+        RuntimeError, match="could not detect a supported notebook backend"
+    ):
         show_scaled(fig, backend="auto")
 
     plt.close(fig)

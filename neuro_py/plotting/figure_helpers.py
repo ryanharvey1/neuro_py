@@ -336,9 +336,7 @@ def show_scaled(
     raise RuntimeError("Unsupported notebook display backend")
 
 
-def _build_scaled_image_html(
-    fig: Figure, scale: float, dpi: float
-) -> str:
+def _build_scaled_image_html(fig: Figure, scale: float, dpi: float) -> str:
     """Render a figure to an HTML image tag with display-only scaling."""
 
     buffer = io.BytesIO()

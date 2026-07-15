@@ -431,9 +431,7 @@ def test_joint_detection_rejects_events_without_ripple_peak_in_final_boundary() 
         duration=0.04,
         amplitude=120.0,
     )
-    sharp_wave_signal += -60.0 * np.exp(
-        -((timestamps - 1.04) ** 2) / (2 * 0.006**2)
-    )
+    sharp_wave_signal += -60.0 * np.exp(-((timestamps - 1.04) ** 2) / (2 * 0.006**2))
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -565,12 +563,8 @@ def test_joint_detection_keeps_nearby_ripples_with_distinct_sharp_waves() -> Non
             amplitude=150.0,
         )
 
-    sharp_wave_signal += -90.0 * np.exp(
-        -((timestamps - 0.85) ** 2) / (2 * 0.035**2)
-    )
-    sharp_wave_signal += -55.0 * np.exp(
-        -((timestamps - 0.958) ** 2) / (2 * 0.025**2)
-    )
+    sharp_wave_signal += -90.0 * np.exp(-((timestamps - 0.85) ** 2) / (2 * 0.035**2))
+    sharp_wave_signal += -55.0 * np.exp(-((timestamps - 0.958) ** 2) / (2 * 0.025**2))
 
     events = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,
@@ -720,9 +714,7 @@ def test_detector_rejects_nonfinite_and_saturated_event_windows() -> None:
 
 
 def test_edge_events_are_rejected_by_default_and_can_be_allowed() -> None:
-    timestamps, ripple_signal, _ = _make_synthetic_ripple_session(
-        [0.08], duration=1.0
-    )
+    timestamps, ripple_signal, _ = _make_synthetic_ripple_session([0.08], duration=1.0)
 
     rejected = detect_sharp_wave_ripples(
         ripple_signal=ripple_signal,

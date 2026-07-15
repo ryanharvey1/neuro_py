@@ -170,11 +170,7 @@ def _enforce_min_inter_event_interval(
         keep_indices.append(row_index)
         kept_peaks.append(peak)
 
-    return (
-        events.loc[keep_indices]
-        .sort_values("start")
-        .reset_index(drop=True)
-    )
+    return events.loc[keep_indices].sort_values("start").reset_index(drop=True)
 
 
 def _get_ripple_channel(basepath: str) -> int:
@@ -425,7 +421,9 @@ def _edge_rejects_event(
     """Return True when an event is too close to the signal edge."""
     if edge_samples <= 0:
         return False
-    return event_start_idx < edge_samples or event_stop_idx > (n_samples - edge_samples - 1)
+    return event_start_idx < edge_samples or event_stop_idx > (
+        n_samples - edge_samples - 1
+    )
 
 
 def _window_has_artifact(
@@ -436,6 +434,7 @@ def _window_has_artifact(
     flat_std_threshold: float,
 ) -> bool:
     """Return True if any signal window is non-finite, saturated, or flat."""
+
     def _longest_run(mask: NDArray[Any]) -> int:
         if mask.size == 0:
             return 0
@@ -503,24 +502,23 @@ def _localize_sharp_wave_interval(
     peak_position = int(np.searchsorted(local_peaks, peak_idx))
     previous_peak = local_peaks[peak_position - 1] if peak_position > 0 else None
     next_peak = (
-        local_peaks[peak_position + 1]
-        if peak_position < local_peaks.size - 1
-        else None
+        local_peaks[peak_position + 1] if peak_position < local_peaks.size - 1 else None
     )
 
     split_start = parent_start
     split_stop = parent_stop
     if previous_peak is not None:
-        split_start = max(split_start, int(np.floor((previous_peak + peak_idx) / 2)) + 1)
+        split_start = max(
+            split_start, int(np.floor((previous_peak + peak_idx) / 2)) + 1
+        )
     if next_peak is not None:
         split_stop = min(split_stop, int(np.ceil((peak_idx + next_peak) / 2)) - 1)
 
     if split_stop < split_start:
         return int(peak_idx), int(peak_idx)
 
-    above_threshold = (
-        np.isfinite(sharp_wave_power[split_start : split_stop + 1])
-        & (sharp_wave_power[split_start : split_stop + 1] >= low_threshold)
+    above_threshold = np.isfinite(sharp_wave_power[split_start : split_stop + 1]) & (
+        sharp_wave_power[split_start : split_stop + 1] >= low_threshold
     )
     peak_offset = peak_idx - split_start
     if 0 <= peak_offset < above_threshold.size and above_threshold[peak_offset]:
@@ -638,9 +636,7 @@ def _events_to_dataframe(
     search_radius = max(1, int(round(search_window * fs)))
     edge_samples = max(0, int(round(edge_buffer * fs)))
     flat_std = (
-        np.finfo(float).eps
-        if flat_std_threshold is None
-        else float(flat_std_threshold)
+        np.finfo(float).eps if flat_std_threshold is None else float(flat_std_threshold)
     )
     sharp_wave_bounds_array = _bounds_to_array(sharp_wave_bounds)
 
@@ -1206,7 +1202,9 @@ def detect_sharp_wave_ripples(
 
     if ripple_signal is None:
         if basepath is None:
-            raise ValueError("`basepath` is required when `ripple_signal` is not provided.")
+            raise ValueError(
+                "`basepath` is required when `ripple_signal` is not provided."
+            )
         ripple_signal, timestamps, fs, ripple_channel, loaded_signals = _load_signals(
             basepath=basepath,
             ripple_channel=ripple_channel,

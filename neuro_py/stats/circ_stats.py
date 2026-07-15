@@ -627,9 +627,7 @@ class swap2zeroaxis:
         self.out_idx = out_idx
 
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        def _deco(
-            f: Callable[..., Any], *args: Any, **kwargs: Any
-        ) -> Any:
+        def _deco(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
             args_list = list(args)
             to_swap_idx, to_swap_keys = get_var(f, self.inputs, args_list, kwargs)
 

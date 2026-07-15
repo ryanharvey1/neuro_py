@@ -181,9 +181,7 @@ def _(
     ripple_noise = brown_noise(len(timestamps), seed=7)
     sharp_noise = brown_noise(len(timestamps), seed=8)
     ripple_raw = [noise_amplitude.value * value for value in ripple_noise]
-    sharp_wave_raw = [
-        0.75 * noise_amplitude.value * value for value in sharp_noise
-    ]
+    sharp_wave_raw = [0.75 * noise_amplitude.value * value for value in sharp_noise]
 
     sharp_wave_duration = 0.140
     for center in SWR_TIMES:
@@ -196,15 +194,11 @@ def _(
             sharp_wave_envelope = math.exp(
                 -((time - center) ** 2) / (2.0 * sharp_width**2)
             )
-            ripple_carrier = math.sin(
-                2.0 * math.pi * RIPPLE_FREQUENCY * time
-            )
+            ripple_carrier = math.sin(2.0 * math.pi * RIPPLE_FREQUENCY * time)
             ripple_raw[index] += (
                 ripple_amplitude.value * ripple_carrier * ripple_envelope
             )
-            sharp_wave_raw[index] -= (
-                sharp_wave_amplitude.value * sharp_wave_envelope
-            )
+            sharp_wave_raw[index] -= sharp_wave_amplitude.value * sharp_wave_envelope
 
     truth = [
         (
@@ -231,12 +225,8 @@ def _(
     zscore,
 ):
     slow_ripple = moving_average(ripple_raw, window=int(0.030 * FS))
-    ripple_high = [
-        abs(raw - slow) for raw, slow in zip(ripple_raw, slow_ripple)
-    ]
-    ripple_feature = zscore(
-        moving_average(ripple_high, window=int(0.012 * FS))
-    )
+    ripple_high = [abs(raw - slow) for raw, slow in zip(ripple_raw, slow_ripple)]
+    ripple_feature = zscore(moving_average(ripple_high, window=int(0.012 * FS)))
 
     sharp_wave_feature = zscore(
         moving_average([-value for value in sharp_wave_raw], int(0.040 * FS))
@@ -357,25 +347,20 @@ def _(
         )
         series.append(row_label(label, row_top))
         series.append(polyline(values, row_top + 8, row_height - 16, color))
-    series.append(
-        polyline(sharp_wave_feature, 376, 129, "#047857", stroke_width=1.1)
-    )
+    series.append(polyline(sharp_wave_feature, 376, 129, "#047857", stroke_width=1.1))
 
     ticks = []
     for tick in [0.0, 0.5, 1.0, 1.5]:
         x = 70.0 + (tick / DURATION) * 860.0
         ticks.append(
-            f'<line x1="{x:.1f}" x2="{x:.1f}" y1="520" y2="526" '
-            'stroke="#64748b" />'
+            f'<line x1="{x:.1f}" x2="{x:.1f}" y1="520" y2="526" stroke="#64748b" />'
         )
         ticks.append(
             f'<text x="{x:.1f}" y="546" text-anchor="middle" '
             f'font-size="12" fill="#475569">{tick:.1f}</text>'
         )
 
-    peak_text = ", ".join(
-        f"{event['peak']:.3f}s" for event in detected_events
-    )
+    peak_text = ", ".join(f"{event['peak']:.3f}s" for event in detected_events)
     if not peak_text:
         peak_text = "none"
 

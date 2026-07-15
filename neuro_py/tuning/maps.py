@@ -128,9 +128,7 @@ class NDimensionalBinner:
                 # Single value: use for all dimensions
                 scalar_sigma: Any = tuning_curve_sigma
                 if scalar_sigma > 0 and hasattr(tc, "smooth"):
-                    tc.smooth(
-                        sigma=scalar_sigma, inplace=True, mode=smooth_mode
-                    )
+                    tc.smooth(sigma=scalar_sigma, inplace=True, mode=smooth_mode)
             else:
                 # Array/list: convert to numpy array
                 sigma_array = np.asarray(tuning_curve_sigma)
@@ -422,7 +420,9 @@ class SpatialMap(NDimensionalBinner):
         dir_epoch: Optional[nel.EpochArray] = None,  # deprecated
         speed_thres: Union[int, float] = 4,
         s_binsize: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
-        tuning_curve_sigma: Union[int, float, List[Union[int, float]], NDArray[Any]] = 3,
+        tuning_curve_sigma: Union[
+            int, float, List[Union[int, float]], NDArray[Any]
+        ] = 3,
         x_minmax: Optional[List[Union[int, float]]] = None,
         y_minmax: Optional[List[Union[int, float]]] = None,
         dim_minmax: Optional[List[List[Union[int, float]]]] = None,
@@ -1118,7 +1118,9 @@ class SpatialMap(NDimensionalBinner):
 
             return x_temp
 
-        def get_spatial_infos(pos_shuff: NDArray[Any], ts: NDArray[Any], dim: int) -> float:
+        def get_spatial_infos(
+            pos_shuff: NDArray[Any], ts: NDArray[Any], dim: int
+        ) -> float:
             """Get spatial information for shuffled position data.
 
             Parameters

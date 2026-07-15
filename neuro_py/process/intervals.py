@@ -434,7 +434,9 @@ def in_intervals(
 
 
 @jit(nopython=True, parallel=True)
-def in_intervals_interval(timestamps: NDArray[Any], intervals: NDArray[Any]) -> NDArray[Any]:
+def in_intervals_interval(
+    timestamps: NDArray[Any], intervals: NDArray[Any]
+) -> NDArray[Any]:
     """
     for each timestamps value, the index of the interval to which it belongs (nan = none)
 
@@ -616,9 +618,10 @@ def shift_epoch_array(
         domain_stop_shift_result = in_intervals(
             np.asarray([epoch.domain.stop]), epoch_shift.data, shift=True
         )
-        if not isinstance(domain_stop_shift_result, tuple) or len(
-            domain_stop_shift_result
-        ) != 2:
+        if (
+            not isinstance(domain_stop_shift_result, tuple)
+            or len(domain_stop_shift_result) != 2
+        ):
             raise ValueError("Expected shifted timestamps when shift=True")
         _, support_stop_values = domain_stop_shift_result
         support_stops_shifted = float(support_stop_values[0])

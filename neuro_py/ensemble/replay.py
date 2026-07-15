@@ -210,7 +210,10 @@ def weighted_corr_2d(
 
 
 def _position_estimator_1d(
-    posterior_prob: NDArray[Any], bin_centers: NDArray[Any], method: str, n_time_bins: int
+    posterior_prob: NDArray[Any],
+    bin_centers: NDArray[Any],
+    method: str,
+    n_time_bins: int,
 ):
     """Helper function for 1D position decoding."""
     if posterior_prob.shape[1] != len(bin_centers):
@@ -365,7 +368,9 @@ def position_estimator(
 
 
 def WeightedCorr(
-    weights: NDArray[Any], x: Optional[NDArray[Any]] = None, y: Optional[NDArray[Any]] = None
+    weights: NDArray[Any],
+    x: Optional[NDArray[Any]] = None,
+    y: Optional[NDArray[Any]] = None,
 ) -> float:
     """
     Calculate the weighted correlation between the X and Y dimensions of the matrix.
@@ -954,7 +959,9 @@ class PairwiseBias(object):
         return skew_bias_matrix(spike_times, neuron_ids, total_neurons, fillneutral)
 
     @staticmethod
-    def cosine_similarity_matrices(matrix1: NDArray[Any], matrix2: NDArray[Any]) -> float:
+    def cosine_similarity_matrices(
+        matrix1: NDArray[Any], matrix2: NDArray[Any]
+    ) -> float:
         """
         Computes the cosine similarity between two flattened bias matrices.
 
@@ -1593,7 +1600,9 @@ def bottom_up_replay_detection(
     return replays, meta
 
 
-def _posterior_trajectory_nd(posterior: NDArray[Any], method: str = "com") -> NDArray[Any]:
+def _posterior_trajectory_nd(
+    posterior: NDArray[Any], method: str = "com"
+) -> NDArray[Any]:
     """Decode an N-dimensional posterior into a trajectory with time on the last axis."""
     posterior = np.asarray(posterior)
 

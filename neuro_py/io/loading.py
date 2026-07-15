@@ -691,7 +691,9 @@ def loadLFP(
     # dtype is required for both direct loads and DAT fallback validation
     dtype = np.dtype(precision)
 
-    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype[Any]) -> int:
+    def _calc_n_samples(
+        file_path: str, channels: int, sample_dtype: np.dtype[Any]
+    ) -> int:
         file_size = os.path.getsize(file_path)
         bytes_per_sample = int(channels) * int(sample_dtype.itemsize)
         if bytes_per_sample <= 0:
@@ -2134,7 +2136,13 @@ def load_theta_rem_shift(
 def load_SleepState_states(
     basepath: str,
     return_epoch_array: bool = False,
-    states_list: list[str] = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"],
+    states_list: list[str] = [
+        "WAKEstate",
+        "NREMstate",
+        "REMstate",
+        "THETA",
+        "nonTHETA",
+    ],
 ) -> Union[dict[str, Any], dict[str, nel.EpochArray], None]:
     """
     Loader of SleepState.states.mat.
@@ -2640,9 +2648,7 @@ def load_brain_regions(
             channels = shank_to_channel
             shanks = np.zeros(len(channels))
 
-        mapped_df = pd.DataFrame(
-            columns=np.array(["channels", "region"], dtype=object)
-        )
+        mapped_df = pd.DataFrame(columns=np.array(["channels", "region"], dtype=object))
         mapped_df["channels"] = channels
         mapped_df["region"] = "Unknown"
         mapped_df["shank"] = shanks

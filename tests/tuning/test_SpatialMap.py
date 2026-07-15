@@ -919,10 +919,14 @@ def test_spatial_map_max_gap_changes_ratemap():
         )
 
     if not (hasattr(sm_strict, "st_run") and hasattr(sm_loose, "st_run")):
-        pytest.skip("SpatialMap does not expose st_run attribute; cannot compare outputs")
+        pytest.skip(
+            "SpatialMap does not expose st_run attribute; cannot compare outputs"
+        )
 
     # Strict max_gap should exclude spikes in large timestamp gaps; loose should retain more.
-    n_spikes_strict = int(sum(len(unit_spikes) for unit_spikes in sm_strict.st_run.data))
+    n_spikes_strict = int(
+        sum(len(unit_spikes) for unit_spikes in sm_strict.st_run.data)
+    )
     n_spikes_loose = int(sum(len(unit_spikes) for unit_spikes in sm_loose.st_run.data))
 
     assert n_spikes_loose > n_spikes_strict
@@ -1063,7 +1067,14 @@ def test_continuous_signal_binned_mean_high_bin():
     con_signal = nel.AnalogSignalArray(con, time=timestamps, fs=fs_pos)
 
     # Use 10 cm bins so 60-70 region maps to bin index 6 (0-based)
-    sm = SpatialMap(pos=pos, st=con_signal, x_minmax=(0, 100), y_minmax=(0, 100), s_binsize=10, speed_thres=0)
+    sm = SpatialMap(
+        pos=pos,
+        st=con_signal,
+        x_minmax=(0, 100),
+        y_minmax=(0, 100),
+        s_binsize=10,
+        speed_thres=0,
+    )
 
     # ratemap shape: (n_units/n_channels, x_bins, y_bins)
     rm = sm.ratemap[0]
@@ -1077,7 +1088,9 @@ def test_continuous_signal_binned_mean_high_bin():
     center_high = x[high_mask].mean()
     expected_x_bin = np.searchsorted(sm.x_edges, center_high, side="right") - 1
     # `rm` shape is (x_bins, y_bins) so first index is x bin
-    assert max_idx[0] == expected_x_bin, f"Expected peak x-bin {expected_x_bin}, got {max_idx[0]}"
+    assert max_idx[0] == expected_x_bin, (
+        f"Expected peak x-bin {expected_x_bin}, got {max_idx[0]}"
+    )
 
 
 def test_continuous_signal_binned_mean_high_bin_1d():
@@ -1101,7 +1114,9 @@ def test_continuous_signal_binned_mean_high_bin_1d():
     pos = nel.AnalogSignalArray(np.array([x]), time=timestamps, fs=fs_pos)
     con_signal = nel.AnalogSignalArray(con, time=timestamps, fs=fs_pos)
 
-    sm = SpatialMap(pos=pos, st=con_signal, x_minmax=(0, 100), s_binsize=10, speed_thres=0)
+    sm = SpatialMap(
+        pos=pos, st=con_signal, x_minmax=(0, 100), s_binsize=10, speed_thres=0
+    )
 
     rm = sm.ratemap[1]  # channel 1
     occ = sm.occupancy
@@ -1112,7 +1127,9 @@ def test_continuous_signal_binned_mean_high_bin_1d():
     center_high = x[high_mask].mean()
     expected_x_bin = np.searchsorted(sm.x_edges, center_high, side="right") - 1
     # 1D ratemap shape is (x_bins,) so max_idx is a scalar tuple
-    assert max_idx[0] == expected_x_bin, f"Expected peak x-bin {expected_x_bin}, got {max_idx[0]}"
+    assert max_idx[0] == expected_x_bin, (
+        f"Expected peak x-bin {expected_x_bin}, got {max_idx[0]}"
+    )
 
 
 def test_continuous_signal_binned_mean_high_bin_2d():
@@ -1143,7 +1160,14 @@ def test_continuous_signal_binned_mean_high_bin_2d():
     pos = nel.AnalogSignalArray(np.vstack([x, y]), time=timestamps, fs=fs_pos)
     con_signal = nel.AnalogSignalArray(con, time=timestamps, fs=fs_pos)
 
-    sm = SpatialMap(pos=pos, st=con_signal, x_minmax=(0, 100), y_minmax=(0, 100), s_binsize=10, speed_thres=0)
+    sm = SpatialMap(
+        pos=pos,
+        st=con_signal,
+        x_minmax=(0, 100),
+        y_minmax=(0, 100),
+        s_binsize=10,
+        speed_thres=0,
+    )
 
     rm = sm.ratemap[2]
     occ = sm.occupancy
@@ -1161,9 +1185,16 @@ def test_continuous_signal_binned_mean_high_bin_2d():
         & (y_bins_for_high >= 0)
         & (y_bins_for_high < rm.shape[1])
     )
-    bins_pairs = set(map(tuple, np.column_stack([x_bins_for_high[valid_mask], y_bins_for_high[valid_mask]])))
+    bins_pairs = set(
+        map(
+            tuple,
+            np.column_stack([x_bins_for_high[valid_mask], y_bins_for_high[valid_mask]]),
+        )
+    )
 
-    assert (max_idx[0], max_idx[1]) in bins_pairs, f"Peak bin {(max_idx[0], max_idx[1])} not in high-value bins {bins_pairs}"
+    assert (max_idx[0], max_idx[1]) in bins_pairs, (
+        f"Peak bin {(max_idx[0], max_idx[1])} not in high-value bins {bins_pairs}"
+    )
 
 
 def test_continuous_signal_binned_mean_high_bin_3d():
@@ -1227,8 +1258,16 @@ def test_continuous_signal_binned_mean_high_bin_3d():
     bins_triplets = set(
         map(
             tuple,
-            np.column_stack([x_bins_for_high[valid_mask], y_bins_for_high[valid_mask], z_bins_for_high[valid_mask]]),
+            np.column_stack(
+                [
+                    x_bins_for_high[valid_mask],
+                    y_bins_for_high[valid_mask],
+                    z_bins_for_high[valid_mask],
+                ]
+            ),
         )
     )
 
-    assert (max_idx[0], max_idx[1], max_idx[2]) in bins_triplets, f"Peak bin {(max_idx[0], max_idx[1], max_idx[2])} not in high-value bins {bins_triplets}"
+    assert (max_idx[0], max_idx[1], max_idx[2]) in bins_triplets, (
+        f"Peak bin {(max_idx[0], max_idx[1], max_idx[2])} not in high-value bins {bins_triplets}"
+    )

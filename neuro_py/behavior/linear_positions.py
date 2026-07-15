@@ -8,7 +8,9 @@ from numpy.typing import NDArray
 from sklearn.decomposition import PCA
 
 
-def linearize_position(x: NDArray[Any], y: NDArray[Any]) -> Tuple[NDArray[Any], NDArray[Any]]:
+def linearize_position(
+    x: NDArray[Any], y: NDArray[Any]
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Use PCA (a dimensionality reduction technique) to find the direction of maximal variance
     in our position data, and use this as the new 1D linear track axis.
@@ -105,7 +107,9 @@ def __find_laps(
     # Handle empty input
     if len(Vdata) == 0 or len(Vts) == 0:
         return pd.DataFrame(
-            columns=np.array(["start_ts", "pos", "start_idx", "direction"], dtype=object)
+            columns=np.array(
+                ["start_ts", "pos", "start_idx", "direction"], dtype=object
+            )
         )
 
     TL = np.abs(np.nanmax(Vdata) - np.nanmin(Vdata))  # % track length

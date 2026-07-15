@@ -516,7 +516,7 @@ class HMMLinearizer:
         self.use_adaptive_subsampling = use_adaptive_subsampling
         self.use_batch_processing = use_batch_processing
         self.batch_size = batch_size
-        
+
         # Performance optimization parameters
         self.adaptive_binning = adaptive_binning
         self.max_total_states = max_total_states
@@ -524,14 +524,16 @@ class HMMLinearizer:
 
         # Calculate track segment properties
         self.n_segments = len(track_graph.edges)
-        
+
         # Adaptive binning: reduce bins for large track graphs
         if self.adaptive_binning and self.n_segments > 5:
             # Reduce bins per segment to keep total states manageable
             max_bins_per_segment = max(10, self.max_total_states // self.n_segments)
             self.n_bins_per_segment = min(self.n_bins_per_segment, max_bins_per_segment)
-            print(f"Adaptive binning: reduced to {self.n_bins_per_segment} bins per segment for {self.n_segments} segments")
-        
+            print(
+                f"Adaptive binning: reduced to {self.n_bins_per_segment} bins per segment for {self.n_segments} segments"
+            )
+
         self.segment_lengths = []
         self.segment_positions = []
 
@@ -935,7 +937,9 @@ class HMMLinearizer:
 
         # Check if we should use fast approximate method for very large track graphs
         if self.n_states > 1000 and len(valid_positions) > 500:
-            print(f"Using fast approximate HMM for large track graph ({self.n_states} states, {len(valid_positions)} positions)")
+            print(
+                f"Using fast approximate HMM for large track graph ({self.n_states} states, {len(valid_positions)} positions)"
+            )
             return self._linearize_with_fast_approximate_hmm(positions, valid_mask)
 
         # Subsample positions if requested for speed
@@ -998,32 +1002,32 @@ class HMMLinearizer:
         projected_positions = np.full((n_positions, 2), np.nan)
 
         valid_positions = positions[valid_mask]
-        
+
         # Step 1: Find nearest state for each position (much faster than full HMM)
         nearest_states = np.zeros(len(valid_positions), dtype=int)
         for i, pos in enumerate(valid_positions):
             # Find nearest emission center
             distances = np.linalg.norm(self.emission_centers - pos, axis=1)
             nearest_states[i] = np.argmin(distances)
-        
+
         # Step 2: Apply simple temporal smoothing (optional)
         if len(nearest_states) > 1:
             smoothed_states = self._apply_temporal_smoothing(nearest_states)
         else:
             smoothed_states = nearest_states
-        
+
         # Step 3: Convert states to positions
         for i, state in enumerate(smoothed_states):
             global_idx = np.where(valid_mask)[0][i]
-            
+
             seg_id = self.state_to_segment[state]
             projected_pos = self.state_to_position[state]
             linear_pos = self._calculate_linear_position(seg_id, projected_pos)
-            
+
             linear_positions[global_idx] = linear_pos
             track_segment_ids[global_idx] = seg_id
             projected_positions[global_idx] = projected_pos
-        
+
         return linear_positions, track_segment_ids, projected_positions
 
     def _apply_temporal_smoothing(self, states: NDArray[Any]) -> NDArray[Any]:
@@ -1033,20 +1037,20 @@ class HMMLinearizer:
         """
         smoothed = states.copy()
         window_size = min(5, len(states) // 10)  # Adaptive window size
-        
+
         if window_size < 2:
             return smoothed
-        
+
         # Apply moving average smoothing
         for i in range(len(states)):
             start = max(0, i - window_size // 2)
             end = min(len(states), i + window_size // 2 + 1)
             window_states = states[start:end]
-            
+
             # Use mode (most common state) in window
             unique, counts = np.unique(window_states, return_counts=True)
             smoothed[i] = unique[np.argmax(counts)]
-        
+
         return smoothed
 
     def _viterbi(self, observations: NDArray[Any]) -> NDArray[Any]:
@@ -1446,7 +1450,7 @@ def plot_linearization_confirmation(
             ax1.scatter(
                 original_positions[:, 0],
                 original_positions[:, 1],
-                color="lightblue", 
+                color="lightblue",
                 s=1,
                 alpha=0.6,
             )
@@ -1454,16 +1458,14 @@ def plot_linearization_confirmation(
         ax1.scatter(
             original_positions[:, 0],
             original_positions[:, 1],
-            color="lightblue", 
+            color="lightblue",
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
     node_positions = track_graph.node_positions
-    ax1.scatter(
-        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
-    ) 
+    ax1.scatter(node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5)
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1503,7 +1505,7 @@ def plot_linearization_confirmation(
             ax2.scatter(
                 linearized_df["projected_x_position"],
                 linearized_df["projected_y_position"],
-                color="green", 
+                color="green",
                 s=1,
                 alpha=0.6,
             )
@@ -1511,15 +1513,13 @@ def plot_linearization_confirmation(
         ax2.scatter(
             linearized_df["projected_x_position"],
             linearized_df["projected_y_position"],
-            color="green", 
+            color="green",
             s=1,
             alpha=0.6,
         )
 
     # Plot track graph nodes and edges with color coding
-    ax2.scatter(
-        node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5
-    ) 
+    ax2.scatter(node_positions[:, 0], node_positions[:, 1], color="red", s=50, zorder=5)
 
     # Draw edges with color coding
     for i, edge in enumerate(track_graph.edges):
@@ -1559,7 +1559,7 @@ def plot_linearization_confirmation(
                     ax3.scatter(
                         segment_times,
                         segment_positions,
-                        color=segment_color, 
+                        color=segment_color,
                         s=1,
                         alpha=0.7,
                     )
@@ -1567,7 +1567,7 @@ def plot_linearization_confirmation(
         ax3.scatter(
             time_points,
             linearized_df["linear_position"],
-            color="blue", 
+            color="blue",
             s=1,
             alpha=0.7,
         )
@@ -1662,14 +1662,18 @@ def get_linearized_position(
         # For large track graphs, use more aggressive optimization
         if n_bins_per_segment > 30:
             n_bins_per_segment = 30
-            print(f"Reduced bins per segment to {n_bins_per_segment} for large track graph ({n_segments} segments)")
-        
+            print(
+                f"Reduced bins per segment to {n_bins_per_segment} for large track graph ({n_segments} segments)"
+            )
+
         # Enable subsampling for very large datasets
         if len(position) > 1000 and not subsample_positions:
             subsample_positions = True
             subsample_factor = max(3, len(position) // 2000)
-            print(f"Enabled subsampling with factor {subsample_factor} for large dataset ({len(position)} positions)")
-        
+            print(
+                f"Enabled subsampling with factor {subsample_factor} for large dataset ({len(position)} positions)"
+            )
+
         # Enable batch processing for large track graphs
         if not use_batch_processing:
             use_batch_processing = True
@@ -1687,7 +1691,7 @@ def get_linearized_position(
             use_batch_processing=use_batch_processing,
             batch_size=batch_size,
             adaptive_binning=True,  # Enable adaptive binning for large track graphs
-            max_total_states=500,   # Limit total states for performance
+            max_total_states=500,  # Limit total states for performance
         )
 
         # Auto-tune parameters if requested
@@ -1695,49 +1699,69 @@ def get_linearized_position(
             tuned_params = hmm_linearizer._auto_tune_parameters(position)
             print(f"Auto-tuned HMM parameters: {tuned_params}")
             # Apply tuned parameters
-            hmm_linearizer.emission_noise = tuned_params.get("emission_noise", hmm_linearizer.emission_noise)
-            hmm_linearizer.transition_smoothness = tuned_params.get("transition_smoothness", hmm_linearizer.transition_smoothness)
+            hmm_linearizer.emission_noise = tuned_params.get(
+                "emission_noise", hmm_linearizer.emission_noise
+            )
+            hmm_linearizer.transition_smoothness = tuned_params.get(
+                "transition_smoothness", hmm_linearizer.transition_smoothness
+            )
 
         # Perform HMM linearization
-        linear_positions, track_segment_ids, projected_positions = hmm_linearizer.linearize_with_hmm(position)
+        linear_positions, track_segment_ids, projected_positions = (
+            hmm_linearizer.linearize_with_hmm(position)
+        )
 
         # Create DataFrame
-        result_df = pd.DataFrame({
-            "linear_position": linear_positions,
-            "track_segment_id": track_segment_ids,
-            "projected_x_position": projected_positions[:, 0],
-            "projected_y_position": projected_positions[:, 1],
-        })
+        result_df = pd.DataFrame(
+            {
+                "linear_position": linear_positions,
+                "track_segment_id": track_segment_ids,
+                "projected_x_position": projected_positions[:, 0],
+                "projected_y_position": projected_positions[:, 1],
+            }
+        )
 
         # Show confirmation plot if requested
         if show_confirmation_plot:
             plot_linearization_confirmation(
-                position, result_df, track_graph, title="Linearization Confirmation (HMM)"
+                position,
+                result_df,
+                track_graph,
+                title="Linearization Confirmation (HMM)",
             )
 
         return result_df
     else:
         # Use standard linearization
-        linear_positions, track_segment_ids, projected_positions = project_position_to_track(position, track_graph)
+        linear_positions, track_segment_ids, projected_positions = (
+            project_position_to_track(position, track_graph)
+        )
 
         # Create DataFrame
-        result_df = pd.DataFrame({
-            "linear_position": linear_positions,
-            "track_segment_id": track_segment_ids,
-            "projected_x_position": projected_positions[:, 0],
-            "projected_y_position": projected_positions[:, 1],
-        })
+        result_df = pd.DataFrame(
+            {
+                "linear_position": linear_positions,
+                "track_segment_id": track_segment_ids,
+                "projected_x_position": projected_positions[:, 0],
+                "projected_y_position": projected_positions[:, 1],
+            }
+        )
 
         # Show confirmation plot if requested
         if show_confirmation_plot:
             plot_linearization_confirmation(
-                position, result_df, track_graph, title="Linearization Confirmation (Standard)"
+                position,
+                result_df,
+                track_graph,
+                title="Linearization Confirmation (Standard)",
             )
 
         return result_df
 
 
-def make_track_graph(node_positions: NDArray[Any], edges: List[List[int]]) -> TrackGraph:
+def make_track_graph(
+    node_positions: NDArray[Any], edges: List[List[int]]
+) -> TrackGraph:
     """
     Create a track graph from node positions and edges.
 
@@ -2114,7 +2138,9 @@ class NodePicker:
         with open(save_file, "wb") as f:
             pickle.dump(results, f)
 
-    def save_nodes_edges_to_behavior(self, data: dict[str, Any], behave_df: pd.DataFrame) -> dict[str, Any]:
+    def save_nodes_edges_to_behavior(
+        self, data: dict[str, Any], behave_df: pd.DataFrame
+    ) -> dict[str, Any]:
         """
         Store nodes and edges into behavior file.
         Searches to find epochs with valid linearized coords.
@@ -2132,7 +2158,10 @@ class NodePicker:
         dict
             The updated behavior data dictionary.
         """
-        def validate_epoch_entry(epoch_entry: object, epoch_index: int) -> MutableMapping[Any, Any]:
+
+        def validate_epoch_entry(
+            epoch_entry: object, epoch_index: int
+        ) -> MutableMapping[Any, Any]:
             if not isinstance(epoch_entry, MutableMapping):
                 raise TypeError(
                     "behavior['epochs'] entries must be mutable mapping types, "
@@ -2154,7 +2183,11 @@ class NodePicker:
                 return behavior_epochs
 
             if isinstance(behavior_epochs, np.ndarray):
-                behavior_epochs = behavior_epochs.item() if behavior_epochs.ndim == 0 else behavior_epochs
+                behavior_epochs = (
+                    behavior_epochs.item()
+                    if behavior_epochs.ndim == 0
+                    else behavior_epochs
+                )
 
             if isinstance(behavior_epochs, Sequence) and not isinstance(
                 behavior_epochs, (str, bytes, bytearray)

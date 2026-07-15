@@ -424,9 +424,7 @@ class AssemblyReact:
                 self.cross_structural,
             )
         else:
-            assembly_activity_data = assembly.computeAssemblyActivity(
-                patterns, zactmat
-            )
+            assembly_activity_data = assembly.computeAssemblyActivity(patterns, zactmat)
 
         assembly_act = nel.AnalogSignalArray(
             data=assembly_activity_data,
