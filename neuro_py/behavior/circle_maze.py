@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.patches import Circle
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
 
 
@@ -21,8 +22,8 @@ class CircularTrackLinearizer:
 
     def __init__(
         self,
-        x_data: np.ndarray[Any, Any],
-        y_data: np.ndarray[Any, Any],
+        x_data: NDArray[Any],
+        y_data: NDArray[Any],
         basepath: Optional[str] = None,
         epoch: Optional[int] = None,
         interval: Optional[Tuple[float, float]] = None,

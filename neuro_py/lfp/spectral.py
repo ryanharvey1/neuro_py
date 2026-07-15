@@ -91,6 +91,12 @@ def filter_signal(
     low_cutoff, high_cutoff = f_range
     if low_cutoff is None and high_cutoff is None:
         raise ValueError("At least one cutoff frequency must be specified.")
+
+    if pass_type == "lowpass" and high_cutoff is None:
+        raise ValueError("A high cutoff frequency must be specified for 'lowpass'.")
+    if pass_type == "highpass" and low_cutoff is None:
+        raise ValueError("A low cutoff frequency must be specified for 'highpass'.")
+
     low_cutoff_value = float(low_cutoff) if low_cutoff is not None else 0.0
     high_cutoff_value = float(high_cutoff) if high_cutoff is not None else 0.0
 

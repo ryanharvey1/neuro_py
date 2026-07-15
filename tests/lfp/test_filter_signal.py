@@ -71,3 +71,19 @@ def test_filter_signal_invalid_pass_type(sample_signal):
     sig, fs = sample_signal
     with pytest.raises(ValueError, match="`pass_type` must be one of"):
         filter_signal(sig, fs, "invalid_type", (10, 20))
+
+
+@pytest.mark.parametrize(
+    ("pass_type", "f_range", "message"),
+    [
+        ("lowpass", (10, None), "high cutoff"),
+        ("highpass", (None, 10), "low cutoff"),
+    ],
+)
+def test_filter_signal_requires_the_correct_single_cutoff(
+    sample_signal, pass_type, f_range, message
+):
+    sig, fs = sample_signal
+
+    with pytest.raises(ValueError, match=message):
+        filter_signal(sig, fs, pass_type, f_range)

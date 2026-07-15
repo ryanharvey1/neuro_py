@@ -101,15 +101,21 @@ def mod2pi(f: Callable[..., Any]) -> Callable[..., Any]:
         if isinstance(ret, tuple):
             ret2 = []
             for r in ret:
-                if isinstance(r, np.ndarray) or np.isscalar(r):
-                    ret2.append(np.asarray(r) % (2 * np.pi))
+                if isinstance(r, np.ndarray):
+                    ret2.append(r % (2 * np.pi))
+                elif np.isscalar(r):
+                    scalar: Any = r
+                    ret2.append(scalar % (2 * np.pi))
                 elif isinstance(r, CI):
                     ret2.append(CI(r.lower % (2 * np.pi), r.upper % (2 * np.pi)))
                 else:
                     raise TypeError("Type not known!")
             return tuple(ret2)
-        elif isinstance(ret, np.ndarray) or np.isscalar(ret):
-            return np.asarray(ret) % (2 * np.pi)
+        elif isinstance(ret, np.ndarray):
+            return ret % (2 * np.pi)
+        elif np.isscalar(ret):
+            scalar: Any = ret
+            return scalar % (2 * np.pi)
         else:
             raise TypeError("Type not known!")
 
