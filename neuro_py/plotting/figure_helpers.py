@@ -1,25 +1,36 @@
 import base64
-import io
 import importlib.util
-from importlib import import_module
+import io
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
+from importlib import import_module
 from itertools import cycle
 from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Generator, Hashable, List, Literal, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Hashable,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import matplotlib
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import PathPatch
+from numpy.typing import NDArray
 
 from neuro_py.process.peri_event import joint_peth
 from neuro_py.process.utils import average_diagonal

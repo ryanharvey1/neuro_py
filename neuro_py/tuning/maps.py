@@ -4,15 +4,15 @@ import multiprocessing
 import os
 import warnings
 from typing import Any, List, Optional, Union
-from typing_extensions import override
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy.io import savemat
 from scipy.spatial.distance import pdist
 from scipy.stats import binned_statistic_dd
+from typing_extensions import override
 
 from neuro_py.stats.stats import get_significant_events
 from neuro_py.tuning import fields

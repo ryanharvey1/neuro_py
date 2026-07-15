@@ -13,8 +13,8 @@ from typing import (
 )
 
 import numpy as np
-from numpy.typing import NDArray
 from decorator import decorator
+from numpy.typing import NDArray
 from scipy import stats
 
 # minimal version of pycircstat from https://github.com/circstat/pycircstat/tree/master

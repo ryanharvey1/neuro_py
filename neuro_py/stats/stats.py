@@ -1,12 +1,11 @@
 import warnings
-from typing import Callable, Optional, Tuple, Union
-from typing import Any
+from typing import Any, Callable, Optional, Tuple, Union
 
 import bottleneck as bn
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import scipy.stats as stats
+from numpy.typing import NDArray
 
 
 def get_significant_events(

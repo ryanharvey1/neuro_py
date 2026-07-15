@@ -1,15 +1,15 @@
 import itertools
 import math
 import multiprocessing
-from typing import Optional, Tuple
-from typing import Any
+from typing import Any, Optional, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy import stats
 
 from neuro_py.stats.stats import get_significant_events
+
 
 def similarity_index(
     patterns: NDArray[Any],

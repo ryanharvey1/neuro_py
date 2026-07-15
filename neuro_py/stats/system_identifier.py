@@ -15,12 +15,11 @@ Also assume the system state evolves after every input:
 This is a linear dynamical system.
 """
 
-from typing import Tuple, Union
-from typing import Any
+from typing import Any, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import scipy as sp
+from numpy.typing import NDArray
 from scipy import sparse
 from scipy.sparse import linalg as sparse_linalg
 

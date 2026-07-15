@@ -1,14 +1,13 @@
-from typing import List, Tuple
-from typing import Any
+from typing import Any, List, Tuple
 
 import nelpy as nel
 import numba
 import numpy as np
-from numpy.typing import NDArray
 import sklearn
 import sklearn.metrics
 from joblib import Parallel, delayed
 from numba import njit, typed
+from numpy.typing import NDArray
 
 from neuro_py.io import loading
 from neuro_py.process import intervals

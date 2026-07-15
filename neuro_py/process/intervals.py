@@ -1,13 +1,12 @@
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import nelpy as nel
 import numba
 import numpy as np
-from numpy.typing import NDArray
 from nelpy import core
 from nelpy.core import EpochArray
 from numba import jit
+from numpy.typing import NDArray
 
 
 def randomize_epochs(

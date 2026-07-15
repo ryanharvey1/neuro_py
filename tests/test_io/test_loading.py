@@ -11,6 +11,7 @@ import scipy.io as sio
 
 from neuro_py.io.loading import (
     LFPLoader,
+    VirtualConcatenatedDat,
     load_all_cell_metrics,
     load_animal_behavior,
     load_brain_regions,
@@ -30,7 +31,6 @@ from neuro_py.io.loading import (
     load_trials,
     loadLFP,
     loadXML,
-    VirtualConcatenatedDat,
 )
 
 

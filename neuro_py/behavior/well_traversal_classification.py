@@ -1,10 +1,9 @@
 # https://github.com/Eden-Kramer-Lab/loren_frank_data_processing/blob/master/loren_frank_data_processing/well_traversal_classification.py
-from typing import Dict, Tuple, Union
-from typing import Any
+from typing import Any, Dict, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.ndimage.measurements import label
 
 

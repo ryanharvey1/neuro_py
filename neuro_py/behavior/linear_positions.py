@@ -1,11 +1,10 @@
 import sys
-from typing import Tuple
-from typing import Any
+from typing import Any, Tuple
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.decomposition import PCA
 
 

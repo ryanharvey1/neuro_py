@@ -1,9 +1,8 @@
-from typing import Optional, Tuple, cast
-from typing import Any
+from typing import Any, Optional, Tuple, cast
 
 import numpy as np
-from numpy.typing import NDArray
 import scipy
+from numpy.typing import NDArray
 from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score

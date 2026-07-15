@@ -4,8 +4,8 @@ from typing import Any, Optional, Sequence, Tuple
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import savemat
 
 from neuro_py.io import loading

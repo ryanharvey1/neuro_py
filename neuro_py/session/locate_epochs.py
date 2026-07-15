@@ -3,8 +3,8 @@ import re
 from typing import Any, List, Tuple, Union, cast
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 
 
 def find_pre_task_post(

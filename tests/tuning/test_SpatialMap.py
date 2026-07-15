@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from neuro_py.tuning.maps import SpatialMap
-import numpy as np
 
 # Ensure that the logging module captures warnings
 logging.captureWarnings(True)

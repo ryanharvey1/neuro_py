@@ -1,7 +1,8 @@
 from typing import Any
+
 import numpy as np
-from numpy.typing import NDArray
 from numba import njit, prange
+from numpy.typing import NDArray
 
 
 @njit(parallel=True, fastmath=True)

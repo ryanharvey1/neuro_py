@@ -1,12 +1,11 @@
 import itertools
-from typing import Optional, Sequence, Tuple, Union
-from typing import Any
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy import signal, stats
 from scipy.stats import poisson
 

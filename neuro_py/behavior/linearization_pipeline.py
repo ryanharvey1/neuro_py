@@ -6,10 +6,9 @@ from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
-
 from track_linearization import get_linearized_position, make_track_graph
 
 # Deprecation warning

@@ -1,10 +1,8 @@
 import warnings
-from typing import List, Optional, Sequence, Tuple, Union, cast
-from typing import Any
+from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import bottleneck as bn
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 from nelpy import EpochArray
 from nelpy.core import (
@@ -15,6 +13,7 @@ from nelpy.core import (
 )
 from nelpy.core._eventarray import BinnedEventArray, EventArray
 from numba import jit, prange
+from numpy.typing import NDArray
 from scipy import stats
 from scipy.linalg import toeplitz
 from scipy.ndimage import gaussian_filter1d

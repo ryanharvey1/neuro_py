@@ -1,9 +1,8 @@
-from typing import List, Union
-from typing import Any
+from typing import Any, List, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 
 
 def get_spindices(data: NDArray[Any]) -> pd.DataFrame:

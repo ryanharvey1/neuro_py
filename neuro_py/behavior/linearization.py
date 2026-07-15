@@ -6,8 +6,8 @@ from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.io import loadmat, savemat
 from scipy.optimize import minimize
 from scipy.sparse import csr_matrix

@@ -1,16 +1,16 @@
-from typing import Any
 import glob
 import os
 import pickle
 import tempfile
+from typing import Any
 from unittest.mock import patch
 
 import h5py
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import pytest
 from joblib.externals.loky import get_reusable_executor
+from numpy.typing import NDArray
 
 from neuro_py.process import batch_analysis
 from neuro_py.process.batch_analysis import (

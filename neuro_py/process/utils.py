@@ -1,10 +1,9 @@
-from typing import List, Tuple, Union
-from typing import Any
+from typing import Any, List, Tuple, Union
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 
 from neuro_py.process.intervals import truncate_epoch
 

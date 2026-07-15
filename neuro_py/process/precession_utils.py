@@ -1,10 +1,9 @@
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numba
 import numpy as np
-from numpy.typing import NDArray
 import scipy as sp
+from numpy.typing import NDArray
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 

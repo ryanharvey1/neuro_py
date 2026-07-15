@@ -1,16 +1,15 @@
 import multiprocessing
 import warnings
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 from joblib import Parallel, delayed
 from nelpy import TuningCurve1D
 from nelpy.analysis import replay
 from nelpy.core import BinnedSpikeTrainArray
 from nelpy.decoding import decode1D as decode
 from numba import jit, njit, prange
+from numpy.typing import NDArray
 
 from neuro_py.ensemble.pairwise_bias_correlation import (
     cosine_similarity_matrices,

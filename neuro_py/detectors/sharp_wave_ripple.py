@@ -3,13 +3,12 @@ from __future__ import annotations
 import os
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Mapping, Optional, Union
-from typing import Any
+from typing import Any, Mapping, Optional, Union
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from scipy import ndimage, signal
 from scipy.io import savemat
 

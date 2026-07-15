@@ -1,5 +1,4 @@
-from typing import Union
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 from numpy.typing import NDArray

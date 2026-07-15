@@ -1,12 +1,11 @@
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import pywt
+from numpy.typing import NDArray
 from scipy import signal
 from scipy.linalg import toeplitz
 from scipy.signal import butter, filtfilt, firwin

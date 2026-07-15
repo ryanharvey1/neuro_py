@@ -1,16 +1,15 @@
 import copy
 import logging
-from typing import Optional, Tuple, Union
-from typing import Any
-from typing_extensions import override
+from typing import Any, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
+from numpy.typing import NDArray
 from scipy import stats
+from typing_extensions import override
 
 from neuro_py.ensemble import assembly
 from neuro_py.io import loading

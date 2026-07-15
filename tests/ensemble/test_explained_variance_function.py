@@ -1,7 +1,8 @@
 from typing import Any
+
 import numpy as np
-from numpy.typing import NDArray
 import pytest
+from numpy.typing import NDArray
 
 from neuro_py.ensemble.explained_variance import explained_variance as ev_func
 

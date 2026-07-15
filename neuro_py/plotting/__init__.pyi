@@ -27,6 +27,7 @@ from .figure_helpers import (
     clean_plot3d,
     figure_scale,
     lighten_color,
+    paired_lines,
     plot_joint_peth,
     restore_natural_scale,
     scale_figsize,
@@ -34,6 +35,5 @@ from .figure_helpers import (
     set_plotting_defaults,
     set_size,
     show_scaled,
-    paired_lines,
 )
 from .replay import plot_2d_replay

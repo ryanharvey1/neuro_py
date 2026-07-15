@@ -5,10 +5,10 @@ import bottleneck as bn
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import seaborn as sns
 from nelpy.core import EpochArray
+from numpy.typing import NDArray
 
 from neuro_py.stats.stats import confidence_intervals
 

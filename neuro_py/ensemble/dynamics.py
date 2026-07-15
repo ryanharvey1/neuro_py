@@ -1,9 +1,8 @@
-from typing import Tuple, Union
-from typing import Any
+from typing import Any, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import sklearn.metrics
+from numpy.typing import NDArray
 from scipy.stats import binned_statistic_dd
 
 from ..util.array import (

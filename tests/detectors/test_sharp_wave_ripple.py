@@ -1,13 +1,13 @@
-from typing import Any
 import os
 import tempfile
+from typing import Any
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import pytest
 import scipy.io as sio
+from numpy.typing import NDArray
 
 from neuro_py.detectors.sharp_wave_ripple import (
     _bound_containing_index,

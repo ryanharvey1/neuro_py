@@ -4,14 +4,13 @@ import os
 import pickle
 import traceback
 from collections.abc import Callable
-from typing import Literal, Optional, Sequence, Union, cast
-from typing import Any
+from typing import Any, Literal, Optional, Sequence, Union, cast
 
 import h5py
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from tqdm import tqdm
 
 _HDF5_ROOT_OBJECT_KEY = "__neuro_py_root_object__"

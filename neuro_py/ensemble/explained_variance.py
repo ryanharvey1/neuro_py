@@ -1,10 +1,11 @@
 from typing import Any
+
 import numpy as np
-from numpy.typing import NDArray
 from nelpy.core._analogsignalarray import AnalogSignalArray
 from nelpy.core._eventarray import SpikeTrainArray
 from nelpy.core._intervalarray import EpochArray
 from numba import jit
+from numpy.typing import NDArray
 
 
 class ExplainedVariance(object):

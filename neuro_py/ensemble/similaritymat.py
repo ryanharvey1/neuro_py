@@ -1,9 +1,8 @@
-from typing import Optional, Tuple, Union
-from typing import Any
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import scipy.optimize as optimize
+from numpy.typing import NDArray
 from sklearn.metrics.pairwise import cosine_similarity as getsim
 
 

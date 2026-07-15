@@ -1,7 +1,6 @@
 import os
 import sys
-from typing import Optional, Tuple
-from typing import Any
+from typing import Any, Optional, Tuple
 
 import nelpy as nel
 import numpy as np
