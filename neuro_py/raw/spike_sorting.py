@@ -260,7 +260,7 @@ def phy_log_to_epocharray(filename: str, merge_gap: float = 30):
             timestamps.append(match.group(1))
 
     # Create a Pandas DataFrame
-    df = pd.DataFrame(timestamps, columns=["Timestamp"])
+    df = pd.DataFrame({"Timestamp": timestamps})
 
     # Convert the 'Timestamp' column to datetime format
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], format="%H:%M:%S.%f")

@@ -201,9 +201,9 @@ class kernelReducedRankRegressor(BaseEstimator):
     def predict(self, testX: NDArray[Any]) -> NDArray[Any]:
         # use try/except blog with exceptions!
 
-        trainX = cast(np.ndarray, self.trainX)
-        Q_fr = cast(np.ndarray, self.Q_fr)
-        P_rr = cast(np.ndarray, self.P_rr)
+        trainX = cast(NDArray[Any], self.trainX)
+        Q_fr = cast(NDArray[Any], self.Q_fr)
+        P_rr = cast(NDArray[Any], self.P_rr)
         K_Xx = np.dot(testX, trainX.T)
         Yhat = np.dot(K_Xx, np.dot(Q_fr, P_rr))
 

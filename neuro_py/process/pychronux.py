@@ -1,14 +1,15 @@
-from typing import List, Optional, Tuple, Union
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 from joblib import Parallel, delayed
+from numpy.typing import NDArray
 from scipy.signal.windows import dpss
 
 
-def getfgrid(Fs: int, nfft: int, fpass: List[float]) -> Tuple[NDArray[Any], NDArray[Any]]:
+def getfgrid(
+    Fs: int, nfft: int, fpass: List[float]
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Get frequency grid for evaluation.
 
@@ -328,7 +329,9 @@ def mtspectrumpt(
     return spectrum_df
 
 
-def mtfftc(data: NDArray[Any], tapers: NDArray[Any], nfft: int, Fs: int) -> NDArray[Any]:
+def mtfftc(
+    data: NDArray[Any], tapers: NDArray[Any], nfft: int, Fs: int
+) -> NDArray[Any]:
     """
     Multi-taper Fourier Transform - Continuous Data (Single Signal)
 
@@ -568,7 +571,7 @@ def mtcsdpt(
     # Cross-spectral density: Sxy = mean(conjugate(J1) * J2)
     csd = np.real(np.mean(np.conj(J1) * J2, axis=1))
 
-    csd_df = pd.DataFrame(index=f, data=csd, columns=["CSD"])
+    csd_df = pd.DataFrame({"CSD": csd}, index=f)
     return csd_df
 
 
@@ -638,5 +641,7 @@ def mtcoherencept(
     coherence = np.abs(csd["CSD"].values) ** 2 / (psd1.values * psd2.values).flatten()
 
     # Return coherence as a pandas DataFrame
-    coherence_df = pd.DataFrame(index=csd.index, data=coherence, columns=["Coherence"])
+    coherence_df = pd.DataFrame(
+        index=csd.index, data=coherence, columns=pd.Index(["Coherence"])
+    )
     return coherence_df

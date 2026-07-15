@@ -13,10 +13,11 @@ from xml.dom.minidom import Element
 
 import nelpy as nel
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import scipy.io as sio
 from joblib import Parallel, delayed
+from numpy.exceptions import AxisError
+from numpy.typing import DTypeLike, NDArray
 from scipy import signal
 
 import neuro_py as npy
@@ -24,7 +25,6 @@ from neuro_py.behavior.kinematics import get_speed
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 from neuro_py.util.array import is_nested
-from numpy.exceptions import AxisError
 
 
 def _get_xml_text(element: Element) -> str:
@@ -99,7 +99,7 @@ class VirtualConcatenatedDat:
         self,
         segments: List[Tuple[str, int]],
         n_channels: int,
-        dtype: Union[str, np.dtype],
+        dtype: DTypeLike,
     ) -> None:
         self.segments = segments
         self.n_channels = int(n_channels)
@@ -398,7 +398,7 @@ class VirtualConcatenatedDatView:
         return 2
 
     @property
-    def dtype(self) -> np.dtype:
+    def dtype(self) -> np.dtype[Any]:
         return self._base.dtype
 
     @property
@@ -555,7 +555,7 @@ def _load_session_epochs_metadata(basepath: str) -> list[dict[str, Any]]:
     return epoch_list
 
 
-def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype) -> int:
+def _validate_dat_file(path: str, n_channels: int, dtype: np.dtype[Any]) -> int:
     if not os.path.exists(path):
         raise FileNotFoundError(f"Per-epoch dat file not found at {path}")
     file_size = os.path.getsize(path)
@@ -600,7 +600,7 @@ def _resolve_epoch_dat_path(basepath: str, epoch_name: str) -> str:
 
 
 def _resolve_epoch_segments(
-    basepath: str, n_channels: int, dtype: np.dtype
+    basepath: str, n_channels: int, dtype: DTypeLike
 ) -> List[Tuple[str, int]]:
     epochs = _load_session_epochs_metadata(basepath)
     segments: List[Tuple[str, int]] = []
@@ -610,7 +610,7 @@ def _resolve_epoch_segments(
         # If the session omits an epoch name, fall back to sequential 1-based labels.
         epoch_name = epoch.get("name", f"epoch{idx + 1}")
         dat_path = _resolve_epoch_dat_path(basepath, str(epoch_name))
-        n_samples = _validate_dat_file(dat_path, n_channels, dtype)
+        n_samples = _validate_dat_file(dat_path, n_channels, np.dtype(dtype))
         segments.append((dat_path, n_samples))
     return segments
 
@@ -620,7 +620,7 @@ def _load_dat_from_epochs(
     n_channels: int,
     channel: Union[int, list[int], None],
     frequency: float,
-    dtype: np.dtype,
+    dtype: DTypeLike,
 ):
     segments = _resolve_epoch_segments(
         basepath, n_channels=int(n_channels), dtype=dtype
@@ -691,7 +691,7 @@ def loadLFP(
     # dtype is required for both direct loads and DAT fallback validation
     dtype = np.dtype(precision)
 
-    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype) -> int:
+    def _calc_n_samples(file_path: str, channels: int, sample_dtype: np.dtype[Any]) -> int:
         file_size = os.path.getsize(file_path)
         bytes_per_sample = int(channels) * int(sample_dtype.itemsize)
         if bytes_per_sample <= 0:
@@ -2640,7 +2640,9 @@ def load_brain_regions(
             channels = shank_to_channel
             shanks = np.zeros(len(channels))
 
-        mapped_df = pd.DataFrame(columns=["channels", "region"])
+        mapped_df = pd.DataFrame(
+            columns=np.array(["channels", "region"], dtype=object)
+        )
         mapped_df["channels"] = channels
         mapped_df["region"] = "Unknown"
         mapped_df["shank"] = shanks
@@ -3394,7 +3396,8 @@ def load_events(
         n_events = data[epoch_name]["timestamps"].shape[0]
 
         event_df = pd.DataFrame(
-            data[epoch_name]["timestamps"], columns=["starts", "stops"]
+            data[epoch_name]["timestamps"],
+            columns=np.array(["starts", "stops"], dtype=object),
         )
         for key in data[epoch_name].keys():
             if (

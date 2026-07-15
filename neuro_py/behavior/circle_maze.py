@@ -21,8 +21,8 @@ class CircularTrackLinearizer:
 
     def __init__(
         self,
-        x_data: np.ndarray,
-        y_data: np.ndarray,
+        x_data: np.ndarray[Any, Any],
+        y_data: np.ndarray[Any, Any],
         basepath: Optional[str] = None,
         epoch: Optional[int] = None,
         interval: Optional[Tuple[float, float]] = None,

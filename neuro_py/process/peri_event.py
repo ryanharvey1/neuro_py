@@ -1256,7 +1256,7 @@ def peth(
 
         # Compute event-triggered average
         result, time_lags = cast(
-            Tuple[np.ndarray, np.ndarray],
+            Tuple[NDArray[Any], NDArray[Any]],
             event_triggered_average(
                 timestamps,
                 signal,

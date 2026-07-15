@@ -1,8 +1,8 @@
 from typing import Any, Tuple, cast
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 
 
 def find_terminal_masked_indices(
@@ -91,9 +91,8 @@ def replace_border_zeros_with_nan(arr: NDArray[Any]) -> NDArray[Any]:
         # Find indices where zero values start and stop
         for idx in np.ndindex(*[dims[i] for i in range(len(dims)) if i != axis]):
             slicer = list(idx)
-            slicer.insert(
-                axis, slice(None)
-            )  # Insert the full slice along the current axis
+            # Build slicer tuple with slice(None) at the axis position
+            slicer = slicer[:axis] + [slice(None)] + slicer[axis:]
 
             # Check for first sequence of zeros
             subarray = arr[tuple(slicer)]
@@ -144,7 +143,9 @@ def is_nested(array: NDArray[Any]) -> bool:
     return any(isinstance(item, np.ndarray) for item in array)
 
 
-def circular_interp(x: NDArray[Any], xp: NDArray[Any], fp: NDArray[Any]) -> NDArray[Any]:
+def circular_interp(
+    x: NDArray[Any], xp: NDArray[Any], fp: NDArray[Any]
+) -> NDArray[Any]:
     """
     Circular interpolation of data.
     This function performs interpolation on circular data, such as angles, using sine and cosine.
@@ -247,7 +248,9 @@ def interp_max_gap(
     return y_interpolated
 
 
-def shrink(matrix: NDArray[Any], row_bin_size: int, column_bin_size: int) -> NDArray[Any]:
+def shrink(
+    matrix: NDArray[Any], row_bin_size: int, column_bin_size: int
+) -> NDArray[Any]:
     """
     Shrink a 2D matrix by averaging non-overlapping blocks.
 

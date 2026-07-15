@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Hashable
 from datetime import datetime
 from typing import Mapping, Optional, Union
 from typing import Any
@@ -160,7 +161,7 @@ def _enforce_min_inter_event_interval(
         ascending=[False, False],
         na_position="last",
     )
-    keep_indices: list[int] = []
+    keep_indices: list[Hashable] = []
     kept_peaks: list[float] = []
 
     for row_index, row in events_by_strength.iterrows():
@@ -826,20 +827,20 @@ def _events_to_dataframe(
 
     if not records:
         return pd.DataFrame(
-            columns=[
-                "start",
-                "stop",
-                "peaks",
-                "center",
-                "duration",
-                "amplitude",
-                "frequency",
-                "peakNormedPower",
-                "ripple_channel",
-                "noise_peakNormedPower",
-                "ripple_duration",
-                "sharp_wave_peakNormedPower",
-            ]
+            {
+                "start": [],
+                "stop": [],
+                "peaks": [],
+                "center": [],
+                "duration": [],
+                "amplitude": [],
+                "frequency": [],
+                "peakNormedPower": [],
+                "ripple_channel": [],
+                "noise_peakNormedPower": [],
+                "ripple_duration": [],
+                "sharp_wave_peakNormedPower": [],
+            }
         )
 
     return (

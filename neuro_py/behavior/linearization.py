@@ -749,7 +749,7 @@ class HMMLinearizer:
                     2 * self.transition_smoothness**2
                 )
 
-        return log_prob
+        return float(log_prob)
 
     def _segments_connected(self, seg1: int, seg2: int) -> bool:
         """Check if two segments are connected in the track graph."""
@@ -1414,7 +1414,7 @@ def plot_linearization_confirmation(
     # Create color map for segments
     unique_segments = sorted(linearized_df["track_segment_id"].unique())
     if len(unique_segments) > 0:
-        colors = plt.cm.tab10(np.linspace(0, 1, len(unique_segments)))
+        colors = plt.get_cmap("tab10")(np.linspace(0, 1, len(unique_segments)))
         segment_colors = dict(zip(unique_segments, colors))
     else:
         segment_colors = {}

@@ -344,9 +344,9 @@ def in_intervals(
     return_interval: bool = False,
     shift: bool = False,
 ) -> Union[
-    np.ndarray,
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray, np.ndarray],
+    NDArray[Any],
+    Tuple[NDArray[Any], NDArray[Any]],
+    Tuple[NDArray[Any], NDArray[Any], NDArray[Any]],
 ]:
     """
     Find which timestamps fall within the given intervals.

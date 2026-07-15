@@ -1,14 +1,16 @@
-from typing import List, Tuple, Union
-from typing import Any
+from typing import Any, List, Tuple, Union
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.model_selection import StratifiedKFold
 
 
 def split_data(
-    trial_nsvs: NDArray[Any], splitby: NDArray[Any], trainsize: float = 0.8, seed: int = 0
+    trial_nsvs: NDArray[Any],
+    splitby: NDArray[Any],
+    trainsize: float = 0.8,
+    seed: int = 0,
 ) -> List[NDArray[Any]]:
     """
     Split data into stratified folds.
@@ -71,7 +73,14 @@ def partition_sets(
     nsv_trial_segs: Union[NDArray[Any], pd.DataFrame],
     bv_trial_segs: Union[NDArray[Any], pd.DataFrame],
 ) -> List[
-    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    Tuple[
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+        NDArray[Any],
+    ]
 ]:
     """
     Partition neural state vectors and behavioral variables into train,

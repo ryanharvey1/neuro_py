@@ -834,7 +834,7 @@ def evaluate_model(
     return metrics, bv_preds_fold
 
 
-def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray:
+def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray[Any]:
     """
     Shuffle neural state variables within trial segments.
 
@@ -857,12 +857,12 @@ def shuffle_nsv_intrialsegs(nsv_trialsegs: List[pd.DataFrame]) -> NDArray:
 
 def train_model(
     partitions: List[
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any], np.ndarray[Any, Any]]
     ],
     hyperparams: Dict[str, Any],
     resultspath: Optional[str] = None,
     stop_partition: Optional[int] = None,
-) -> Tuple[List[NDArray[Any]], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
+) -> Tuple[List[NDArray], List[Any], List[Dict[str, Any]], Dict[str, List[float]]]:
     """
     Train a DNN model on the given data partitions with in-built caching & checkpointing.
 

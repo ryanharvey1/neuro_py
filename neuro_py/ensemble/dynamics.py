@@ -269,7 +269,7 @@ def potential_landscape_nd(
             nonzero_mask = H != 0
 
             for t in range(nbins_domain):
-                nrndimslices = [slice(None)] * nnrns
+                nrndimslices: list[slice[Any, Any, Any] | int] = [slice(None)] * nnrns
                 nrndimslices.append(t)
                 peripheral_zeros_nanmask = ~np.isnan(
                     replace_border_zeros_with_nan(nonzero_mask[tuple(nrndimslices)])
@@ -294,7 +294,7 @@ def potential_landscape_nd(
     hist = np.stack(hist_nrns, axis=-1)  # projbins x domainbins x nnrns
     latentedges_nrns = np.stack(latentedges_nrns, axis=-1)  # projbins x nnrns
     domainedges_nrns = np.stack(domainedges_nrns, axis=-1)  # domainbins x nnrns
-    nrndimslices = [slice(None)] * (nnrns + 1)
+    nrndimslices: list[slice[Any, Any, Any] | int] = [slice(None)] * (nnrns + 1)
     nrndimslices.append(0)
     potential_nrns_pos = []
     for nrn in range(nnrns):

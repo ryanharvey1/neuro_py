@@ -38,7 +38,7 @@ class NDimensionalBinner:
         min_duration: float = 0.1,
         minbgrate: Union[int, float] = 0,
         tuning_curve_sigma: Optional[
-            Union[int, float, List[Union[int, float]], np.ndarray]
+            Union[int, float, List[Union[int, float]], NDArray[Any]]
         ] = None,
         smooth_mode: str = "reflect",
     ) -> tuple[Any, NDArray[Any], NDArray[Any]]:
