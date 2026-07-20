@@ -109,7 +109,7 @@ def _detect_bycycle_features(
         & (features["amp_consistency"] >= thresholds["amp_consistency"])
         & (features["period_consistency"] >= thresholds["period_consistency"])
         & (features["monotonicity"] >= thresholds["monotonicity"])
-    ).to_numpy(dtype=bool)
+    ).to_numpy(dtype=bool, copy=True)
     is_burst[[0, -1]] = False
     starts = np.flatnonzero(np.diff(np.r_[False, is_burst, False].astype(int)) == 1)
     stops = np.flatnonzero(np.diff(np.r_[False, is_burst, False].astype(int)) == -1)

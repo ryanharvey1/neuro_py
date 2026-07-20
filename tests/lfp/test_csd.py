@@ -10,7 +10,9 @@ def test_standard_csd_returns_channel_by_time_array() -> None:
 
     result = CSD.get_csd("unused", data, shank=0, method="StandardCSD", channel_offset=0.05)
 
-    np.testing.assert_allclose(result[1:-1], -2 * np.array([[1.0, 2.0, 3.0]]))
+    np.testing.assert_allclose(
+        result[1:-1], -2 * np.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
+    )
     assert result.shape == data.shape
 
 
