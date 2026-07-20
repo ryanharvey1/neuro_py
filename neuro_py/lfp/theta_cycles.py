@@ -6,11 +6,118 @@ import nelpy as nel
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
+from scipy import signal
 from scipy.io import savemat
 
 from neuro_py.io import loading
 from neuro_py.lfp.spectral import filter_signal
 from neuro_py.process.intervals import find_interval
+
+
+def _detect_bycycle_features(
+    sig: NDArray[Any],
+    fs: float,
+    theta_freq: Tuple[int, int],
+    thresholds: dict[str, Any],
+) -> pd.DataFrame:
+    """Compute the cycle fields consumed by the historical Bycycle workflow.
+
+    This implementation follows the cycle definition and consistency thresholds
+    used by Bycycle 1.2.0 (Voytek Lab, Apache-2.0). It is intentionally local
+    to avoid making Bycycle and neurodsp installation requirements.
+    """
+    if theta_freq[0] <= 0 or theta_freq[1] >= fs / 2 or theta_freq[0] >= theta_freq[1]:
+        raise ValueError("theta_freq must lie within (0, fs / 2).")
+    required = {
+        "amp_fraction",
+        "amp_consistency",
+        "period_consistency",
+        "monotonicity",
+        "min_n_cycles",
+    }
+    unknown = set(thresholds).difference(required)
+    if unknown:
+        raise ValueError(f"Unsupported theta-cycle thresholds: {sorted(unknown)}")
+    sos = signal.butter(4, theta_freq, btype="bandpass", fs=fs, output="sos")
+    filtered = signal.sosfiltfilt(sos, np.asarray(sig, dtype=float))
+    zero_crossings = np.flatnonzero(np.diff(np.signbit(filtered))).astype(int) + 1
+    if zero_crossings.size < 4:
+        return pd.DataFrame(
+            columns=pd.Index(
+                data=["sample_peak", "sample_last_trough", "band_amp", "is_burst"]
+            )
+        )
+    rises = zero_crossings[
+        (filtered[zero_crossings - 1] <= 0) & (filtered[zero_crossings] > 0)
+    ]
+    decays = zero_crossings[
+        (filtered[zero_crossings - 1] > 0) & (filtered[zero_crossings] <= 0)
+    ]
+    peaks: list[int] = []
+    troughs: list[int] = []
+    for rise in rises:
+        next_decay = decays[decays > rise]
+        if next_decay.size:
+            peaks.append(int(rise + np.argmax(sig[rise : next_decay[0]])))
+    for decay in decays:
+        next_rise = rises[rises > decay]
+        if next_rise.size:
+            troughs.append(int(decay + np.argmin(sig[decay : next_rise[0]])))
+    peaks_array = np.asarray(peaks, dtype=int)
+    troughs_array = np.asarray(troughs, dtype=int)
+    rows: list[dict[str, Any]] = []
+    analytic_amplitude = np.abs(signal.hilbert(filtered))
+    for peak in peaks_array:
+        before = troughs_array[troughs_array < peak]
+        after = troughs_array[troughs_array > peak]
+        if before.size == 0 or after.size == 0:
+            continue
+        last_trough, next_trough = int(before[-1]), int(after[0])
+        rise = float(sig[peak] - sig[last_trough])
+        decay = float(sig[peak] - sig[next_trough])
+        period = next_trough - last_trough
+        rise_segment = np.diff(sig[last_trough : peak + 1])
+        decay_segment = np.diff(sig[peak : next_trough + 1])
+        rows.append(
+            {
+                "sample_peak": peak,
+                "sample_last_trough": last_trough,
+                "sample_next_trough": next_trough,
+                "band_amp": float(np.mean(analytic_amplitude[last_trough:next_trough])),
+                "period": float(period),
+                "volt_rise": rise,
+                "volt_decay": decay,
+                "monotonicity": float(
+                    (np.mean(rise_segment > 0) + np.mean(decay_segment < 0)) / 2
+                ),
+            }
+        )
+    features = pd.DataFrame(rows)
+    if features.empty:
+        features["is_burst"] = pd.Series(dtype=bool)
+        return features
+    features["amp_fraction"] = features["band_amp"] / features["band_amp"].median()
+    features["amp_consistency"] = 1 - np.abs(
+        features["volt_rise"] - features["volt_decay"]
+    ) / (features["volt_rise"] + features["volt_decay"])
+    adjacent_period = (features["period"].shift(1) + features["period"].shift(-1)) / 2
+    features["period_consistency"] = (
+        1 - np.abs(features["period"] - adjacent_period) / adjacent_period
+    )
+    is_burst = (
+        (features["amp_fraction"] >= thresholds["amp_fraction"])
+        & (features["amp_consistency"] >= thresholds["amp_consistency"])
+        & (features["period_consistency"] >= thresholds["period_consistency"])
+        & (features["monotonicity"] >= thresholds["monotonicity"])
+    ).to_numpy(dtype=bool)
+    is_burst[[0, -1]] = False
+    starts = np.flatnonzero(np.diff(np.r_[False, is_burst, False].astype(int)) == 1)
+    stops = np.flatnonzero(np.diff(np.r_[False, is_burst, False].astype(int)) == -1)
+    for start, stop in zip(starts, stops):
+        if stop - start < thresholds["min_n_cycles"]:
+            is_burst[start:stop] = False
+    features["is_burst"] = is_burst
+    return features
 
 
 def get_theta_channel(basepath: str, tag: str = "CA1so") -> Optional[int]:
@@ -250,9 +357,6 @@ def get_theta_cycles(
     -------
     None
     """
-    # import bycycle, hidden import to avoid mandatory dependency
-    from bycycle import Bycycle
-
     # load lfp as memmap
     lfp, ts, fs = process_lfp(basepath)
 
@@ -282,11 +386,8 @@ def get_theta_cycles(
     else:
         thresholds = detection_params
 
-    # initialize bycycle object
-    bm = Bycycle(thresholds=thresholds)
-    bm.fit(filt_sig, fs, theta_freq)
-
-    save_theta_cycles(bm.df_features, ts, basepath, detection_params=thresholds, ch=ch)
+    features = _detect_bycycle_features(filt_sig, fs, theta_freq, thresholds)
+    save_theta_cycles(features, ts, basepath, detection_params=thresholds, ch=ch)
 
 
 # to run on cmd
