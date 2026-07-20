@@ -92,7 +92,6 @@ nav:
     - kinematics: reference/neuro_py/behavior/kinematics.md
     - linear_positions: reference/neuro_py/behavior/linear_positions.md
     - linearization: reference/neuro_py/behavior/linearization.md
-    - linearization_pipeline: reference/neuro_py/behavior/linearization_pipeline.md
     - preprocessing: reference/neuro_py/behavior/preprocessing.md
     - well_traversal_classification: reference/neuro_py/behavior/well_traversal_classification.md
   - detectors:
