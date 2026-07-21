@@ -16,6 +16,17 @@ def test_standard_csd_returns_channel_by_time_array() -> None:
     assert result.shape == data.shape
 
 
+def test_standard_csd_uses_explicit_coordinates() -> None:
+    coordinates = np.array([0.0, 0.04, 0.1, 0.18])
+    data = coordinates[:, None] ** 2 * np.array([[1.0, 2.0]])
+
+    result = CSD.get_csd(
+        "unused", data, shank=0, method="StandardCSD", coords=coordinates
+    )
+
+    np.testing.assert_allclose(result[1:-1], -2 * np.array([[1.0, 2.0]] * 2))
+
+
 def test_kd1csd_alias_warns_and_uses_kcsd(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(CSD, "get_coords", lambda basepath, shank: np.array([0.0, 0.05, 0.1]))
     data = np.arange(12, dtype=float).reshape(3, 4)

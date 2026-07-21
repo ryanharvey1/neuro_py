@@ -21,13 +21,18 @@ CSDMethod = Literal["DeltaiCSD", "StandardCSD", "KCSD1D", "KD1CSD"]
 
 
 def get_coords(basepath: str, shank: int = 0) -> NDArray[np.float64]:
-    """Return monotonically increasing electrode coordinates in millimetres."""
+    """Return monotonically increasing electrode coordinates in millimetres.
+
+    The CellExplorer probe layout stores ``y`` coordinates in micrometres.
+    """
     probe_layout = loading.load_probe_layout(basepath)
     if probe_layout is None:
         raise ValueError(f"No probe layout is available for {basepath!r}.")
-    coords = np.asarray(
-        probe_layout.loc[probe_layout.shank == shank, "y"].values, dtype=float
-    )
+    coords = np.sort(
+        np.asarray(
+            probe_layout.loc[probe_layout.shank == shank, "y"].values, dtype=float
+        )
+    ) / 1000.0
     if coords.size < 3:
         raise ValueError("CSD estimation requires at least three channels on a shank.")
     coords -= coords.min()
@@ -80,16 +85,34 @@ def _delta_icsd(
 def _kcsd_1d(
     data: NDArray[np.float64], coords: NDArray[np.float64]
 ) -> NDArray[np.float64]:
-    """Kernel CSD estimate with a Gaussian spatial basis and GCV regularization."""
+    """Kernel CSD estimate with a smooth Gaussian basis and GCV regularization."""
     spacing = float(np.median(np.diff(coords)))
-    width = max(spacing, np.finfo(float).eps)
+    # A source basis spanning several contacts prevents the estimate from
+    # interpolating contact-to-contact noise as alternating sources and sinks.
+    width = max(3.0 * spacing, np.finfo(float).eps)
     distance = coords[:, None] - coords[None, :]
     kernel = np.exp(-0.5 * (distance / width) ** 2)
-    # A small scale-aware ridge stabilizes irregular and closely spaced probes.
-    ridge = np.finfo(float).eps * np.trace(kernel) + 1e-8
-    coefficients = np.linalg.solve(kernel + ridge * np.eye(kernel.shape[0]), data)
+    identity = np.eye(kernel.shape[0])
+    kernel_scale = np.trace(kernel) / kernel.shape[0]
+    regularizers = kernel_scale * np.logspace(-6, 0, 25)
+
+    # Select the amount of regularization across all time samples. This is the
+    # standard generalized-cross-validation criterion for kernel ridge
+    # regression and avoids a fixed near-zero ridge that overfits LFP noise.
+    gcv_scores = np.empty(regularizers.size)
+    for idx, regularizer in enumerate(regularizers):
+        smoother = np.linalg.solve(kernel + regularizer * identity, kernel)
+        residual = data - smoother @ data
+        degrees_of_freedom = kernel.shape[0] - np.trace(smoother)
+        gcv_scores[idx] = np.mean(residual**2) / (
+            degrees_of_freedom / kernel.shape[0]
+        ) ** 2
+    ridge = regularizers[np.argmin(gcv_scores)]
+    coefficients = np.linalg.solve(kernel + ridge * identity, data)
     second_derivative = ((distance**2 / width**4) - 1.0 / width**2) * kernel
-    return second_derivative @ coefficients
+    # CSD is proportional to the negative spatial Laplacian of potential.
+    # This keeps the KCSD sign convention aligned with StandardCSD and iCSD.
+    return -(second_derivative @ coefficients)
 
 
 def get_csd(
@@ -100,6 +123,7 @@ def get_csd(
     diam: float = 0.015,
     method: CSDMethod = "DeltaiCSD",
     channel_offset: float = 0.046,
+    coords: NDArray[np.float64] | None = None,
 ) -> NDArray[np.float64]:
     """Estimate one-dimensional CSD from channel-by-time LFP data.
 
@@ -119,6 +143,10 @@ def get_csd(
         Estimator to apply. ``KD1CSD`` is a deprecated alias for ``KCSD1D``.
     channel_offset : float, optional
         Uniform channel spacing in mm for StandardCSD.
+    coords : numpy.ndarray, optional
+        Electrode coordinates in mm. This is used by every method. If not
+        provided, inverse-method coordinates are loaded from the probe layout;
+        StandardCSD uses ``channel_offset``.
 
     Returns
     -------
@@ -136,18 +164,22 @@ def get_csd(
     if method not in {"DeltaiCSD", "StandardCSD", "KCSD1D"}:
         raise ValueError(f"Unsupported CSD method: {method!r}.")
     if method == "StandardCSD":
-        if channel_offset <= 0:
-            raise ValueError("channel_offset must be positive.")
-        values = np.asarray(data, dtype=float)
-        if values.ndim != 2 or values.shape[0] < 3:
+        if coords is None:
+            if channel_offset <= 0:
+                raise ValueError("channel_offset must be positive.")
+            coords = np.arange(np.asarray(data).shape[0], dtype=float) * channel_offset
+        values = _validate_data(data, coords)
+        if values.shape[0] < 3:
             raise ValueError(
                 "data must have shape (n_channels, n_samples) with at least 3 channels."
             )
-        return _standard_csd(
-            values, np.arange(values.shape[0], dtype=float) * channel_offset
-        )
+        if np.any(np.diff(coords) <= 0):
+            raise ValueError("Probe coordinates must be unique and strictly increasing.")
+        return _standard_csd(values, coords)
 
-    coords = get_coords(basepath, shank=shank)
+    if coords is None:
+        coords = get_coords(basepath, shank=shank)
+
     values = _validate_data(data, coords)
     if method == "DeltaiCSD":
         return _delta_icsd(values, coords, diam)
