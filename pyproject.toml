@@ -47,12 +47,6 @@ dl = [
     "lightning>=2.4.0",
     "tensorboard>=2.18.0"
 ]
-# For current source density (CSD) analysis
-csd = [
-    "elephant>=1.1.0",
-    "neo>=0.13.3",
-    "quantities>=0.15.0"
-]
 # For documentation generation
 docs = [
     "zensical>=0.0.23",
@@ -70,9 +64,6 @@ dev = [
 all = [
     "lightning>=2.4.0",
     "tensorboard>=2.18.0",
-    "elephant>=1.1.0",
-    "neo>=0.13.3",
-    "quantities>=0.15.0",
     "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
     "nbconvert>=7.0.0",
@@ -113,10 +104,3 @@ error-on-warning = true
 
 [tool.ty.rules]
 all = "error"
-
-[tool.ty.analysis]
-# `track_linearization` is an optional dependency used by the linearization pipeline.
-allowed-unresolved-imports = [
-    "bycycle",
-    "track_linearization",
-]

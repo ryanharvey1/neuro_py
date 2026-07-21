@@ -1,138 +1,237 @@
-from importlib import import_module
-from typing import Any, Literal, cast
+"""Dependency-free one-dimensional current-source density estimators.
+
+The public API in this module historically delegated to Elephant.  The
+implementations below keep the same laminar-probe methods without requiring
+Neo or Quantities. Coordinates are expressed in millimetres and input LFPs in
+millivolts. ``StandardCSD`` returns voltage curvature (mV/mm**2), while
+``DeltaiCSD`` applies the supplied conductivity and returns mA/mm**2.
+"""
+
+from __future__ import annotations
+
+import warnings
+from typing import Literal
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy import integrate
 
 from neuro_py.io import loading
-from neuro_py.util._dependencies import _check_dependency
 
-_check_dependency("neo", "csd")
-_check_dependency("elephant", "csd")
-_check_dependency("quantities", "csd")
+CSDMethod = Literal["DeltaiCSD", "StandardCSD", "KCSD1D", "KD1CSD"]
 
 
-def get_coords(basepath: str, shank: int = 0) -> NDArray[Any]:
+def get_coords(basepath: str, shank: int = 0) -> NDArray[np.float64]:
+    """Return monotonically increasing electrode coordinates in millimetres.
+
+    The CellExplorer probe layout stores ``y`` coordinates in micrometres.
     """
-    Get the coordinates of the channels from the probe layout.
+    probe_layout = loading.load_probe_layout(basepath)
+    if probe_layout is None:
+        raise ValueError(f"No probe layout is available for {basepath!r}.")
+    coords = np.asarray(
+        probe_layout.loc[probe_layout.shank == shank, "y"].values, dtype=float
+    )
+    if coords.size < 3:
+        raise ValueError("CSD estimation requires at least three channels on a shank.")
+    # Keep the layout order: it is the channel order expected by callers that
+    # pass their LFP rows directly to ``get_csd``. Sorting here would silently
+    # pair a signal with a different electrode coordinate.
+    coords = (coords - coords.min()) / 1000.0
+    if np.any(np.diff(coords) <= 0):
+        raise ValueError("Probe coordinates must be unique and strictly increasing.")
+    return coords
 
-    Parameters
-    ----------
-    basepath : str
-        Path to the basepath.
-    shank : int, optional
-        Shank to get the coordinates from, by default 0.
 
-    Returns
-    -------
-    np.ndarray
-        Coordinates of the channels.
+def _validate_data(
+    data: NDArray[np.generic], coords: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    values = np.asarray(data, dtype=float)
+    if values.ndim != 2:
+        raise ValueError("data must have shape (n_channels, n_samples).")
+    if values.shape[0] != coords.size:
+        raise ValueError(
+            "The first data dimension must match the number of shank coordinates."
+        )
+    if not np.isfinite(values).all():
+        raise ValueError("data must not contain NaN or infinite values.")
+    return values
+
+
+def _standard_csd(
+    data: NDArray[np.float64], coords: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """Second spatial derivative on possibly non-uniform electrode positions."""
+    return -np.gradient(
+        np.gradient(data, coords, axis=0, edge_order=2), coords, axis=0, edge_order=2
+    )
+
+
+def _delta_icsd(
+    data: NDArray[np.float64],
+    coords: NDArray[np.float64],
+    diam: float,
+    sigma: float,
+    sigma_top: float,
+) -> NDArray[np.float64]:
+    """Delta-iCSD inverse using the cylindrical-disc forward model.
+
+    The model includes the conductivity discontinuity at the top boundary and
+    is intentionally unfiltered, matching Elephant's raw inverse estimate.
     """
-    pq = import_module("quantities")
+    if diam <= 0 or sigma <= 0 or sigma_top <= 0:
+        raise ValueError("diam, sigma, and sigma_top must be positive.")
+    radius = diam / 2.0
+    distance = np.abs(coords[:, None] - coords[None, :])
+    image_distance = np.abs(coords[:, None] + coords[None, :])
+    conductivity_ratio = (sigma - sigma_top) / (sigma + sigma_top)
+    forward = (
+        np.sqrt(distance**2 + radius**2)
+        - distance
+        + conductivity_ratio * (np.sqrt(image_distance**2 + radius**2) - image_distance)
+    )
+    # Convert conductivity from S/m to S/mm, matching the millimetre geometry.
+    forward /= 2.0 * (sigma / 1000.0)
+    return np.linalg.solve(forward, data)
 
-    # load the probe layout
-    probe_layout = cast(Any, loading.load_probe_layout(basepath))
 
-    # get the coordinates of the channels
-    coords = probe_layout.loc[shank == probe_layout.shank, "y"].values
+def _kcsd_1d(
+    data: NDArray[np.float64], coords: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """Estimate CSD with a Gaussian-basis 1D kCSD model.
 
-    # rescale the coordinates so none are negative and in mm
-    rescaled_coords = (coords - coords.min()) * pq.mm
+    This is the Potworowski et al. (2012) kernel construction evaluated at the
+    recording contacts, with generalized cross-validation selecting the ridge
+    penalty.  Unlike a spatial second derivative of a Gaussian fit, it models
+    the potential generated by each candidate current source before solving
+    the inverse problem.
+    """
+    spacing = float(np.median(np.diff(coords)))
+    source_radius = max(0.23, 3.0 * spacing)
+    n_sources = max(100, 10 * len(coords))
+    sources = np.linspace(coords[0], coords[-1], n_sources)
+    source_distances = np.abs(sources[:, None] - coords[None, :])
+    max_distance = float(np.max(source_distances) + source_radius)
+    lookup_distances = np.logspace(0, np.log10(max_distance + 1), 64) - 1
 
-    # add dimension to coords to make it (nchannels,1)
-    rescaled_coords = rescaled_coords[:, np.newaxis]
+    def forward_model(distance: float) -> float:
+        def integrand(position: float) -> float:
+            standard_deviation = source_radius / 3.0
+            basis = np.exp(-(position**2) / (2 * standard_deviation**2)) / (
+                np.sqrt(2 * np.pi) * standard_deviation
+            )
+            return (
+                np.sqrt((distance - position) ** 2 + 1.0) - abs(distance - position)
+            ) * basis
 
-    return rescaled_coords
+        integral, _ = integrate.quad(integrand, -source_radius, source_radius)
+        return integral / 2.0
+
+    lookup_potentials = np.array(
+        [forward_model(distance) for distance in lookup_distances]
+    )
+    basis_potentials = np.interp(source_distances, lookup_distances, lookup_potentials)
+    potential_kernel = basis_potentials.T @ basis_potentials / n_sources
+    source_basis = np.exp(
+        -0.5 * ((coords[:, None] - sources[None, :]) / (source_radius / 3.0)) ** 2
+    ) / (np.sqrt(2 * np.pi) * (source_radius / 3.0))
+    csd_kernel = source_basis @ basis_potentials / n_sources
+
+    identity = np.eye(len(coords))
+    kernel_scale = float(np.trace(potential_kernel) / len(coords))
+    regularizers = kernel_scale * np.logspace(-8, 0, 25)
+    gcv_scores = np.empty(regularizers.size)
+    for index, regularizer in enumerate(regularizers):
+        smoother = np.linalg.solve(
+            potential_kernel + regularizer * identity, potential_kernel
+        )
+        residual = data - smoother @ data
+        denominator = 1.0 - np.trace(smoother) / len(coords)
+        gcv_scores[index] = np.mean(residual**2) / denominator**2
+    ridge = regularizers[np.argmin(gcv_scores)]
+    coefficients = np.linalg.solve(potential_kernel + ridge * identity, data)
+    return csd_kernel @ coefficients
 
 
 def get_csd(
     basepath: str,
-    data: NDArray[Any],
+    data: NDArray[np.generic],
     shank: int,
     fs: float = 1250,
     diam: float = 0.015,
-    method: Literal["DeltaiCSD", "StandardCSD", "KD1CSD"] = "DeltaiCSD",
+    sigma: float = 0.3,
+    sigma_top: float | None = None,
+    method: CSDMethod = "DeltaiCSD",
     channel_offset: float = 0.046,
-) -> Any:
-    """
-    compute the CSD for a given basepath and data using elephant estimate_csd.
-
-    Klas H. Pettersen, Anna Devor, Istvan Ulbert, Anders M. Dale, Gaute T. Einevoll,
-    Current-source density estimation based on inversion of electrostatic forward
-    solution: Effects of finite extent of neuronal activity and conductivity
-    discontinuities, Journal of Neuroscience Methods, Volume 154, Issues 1-2,
-    30 June 2006, Pages 116-133, ISSN 0165-0270,
-    http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.
+    coords: NDArray[np.float64] | None = None,
+) -> NDArray[np.float64]:
+    """Estimate one-dimensional CSD from channel-by-time LFP data.
 
     Parameters
     ----------
     basepath : str
-        path to the basepath
-    data : np.array
-        data to compute the CSD on [channels x time]
-    fs : int, optional
-        sampling rate of the data, by default 1250 Hz
+        Session directory containing the probe layout.
+    data : numpy.ndarray
+        LFP data with shape ``(n_channels, n_samples)`` in mV.
+    shank : int
+        Probe shank to use for DeltaiCSD and KCSD1D coordinates.
+    fs : float, optional
+        Sampling rate in Hz. Retained for backwards compatibility.
     diam : float, optional
-        diameter of the electrode, by default 0.015 mm
-    method : str, optional
-        method to compute the CSD, by default 'DeltaiCSD'
+        Electrode diameter in mm for DeltaiCSD.
+    sigma : float, optional
+        Conductivity of the tissue in S/m for DeltaiCSD.
+    sigma_top : float, optional
+        Conductivity above the tissue in S/m for DeltaiCSD. Defaults to
+        ``sigma`` (equal-conductivity boundary condition).
+    method : {"DeltaiCSD", "StandardCSD", "KCSD1D", "KD1CSD"}, optional
+        Estimator to apply. ``KD1CSD`` is a deprecated alias for ``KCSD1D``.
+    channel_offset : float, optional
+        Uniform channel spacing in mm for StandardCSD.
+    coords : numpy.ndarray, optional
+        Electrode coordinates in mm. This is used by every method. If not
+        provided, inverse-method coordinates are loaded from the probe layout;
+        StandardCSD uses ``channel_offset``.
 
     Returns
     -------
-    neo.AnalogSignal
-        CSD signal
-
-    Dependencies
-    ------------
-    get_coords, estimate_csd (Elephant), neo, quantities
-
+    numpy.ndarray
+        CSD estimates with the same shape as ``data``. Units are mV/mm**2 for
+        StandardCSD and mA/mm**2 for DeltaiCSD. KCSD1D is a model-based source
+        density estimate whose scale depends on its Gaussian basis model.
     """
-    pq = import_module("quantities")
-    estimate_csd = import_module("elephant.current_source_density").estimate_csd
-    AnalogSignal = import_module("neo").AnalogSignal
+    del fs
+    if method == "KD1CSD":
+        warnings.warn(
+            "'KD1CSD' is deprecated; use 'KCSD1D' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        method = "KCSD1D"
+    if method not in {"DeltaiCSD", "StandardCSD", "KCSD1D"}:
+        raise ValueError(f"Unsupported CSD method: {method!r}.")
+    if method == "StandardCSD":
+        if coords is None:
+            if channel_offset <= 0:
+                raise ValueError("channel_offset must be positive.")
+            coords = np.arange(np.asarray(data).shape[0], dtype=float) * channel_offset
+        values = _validate_data(data, coords)
+        if values.shape[0] < 3:
+            raise ValueError(
+                "data must have shape (n_channels, n_samples) with at least 3 channels."
+            )
+        if np.any(np.diff(coords) <= 0):
+            raise ValueError(
+                "Probe coordinates must be unique and strictly increasing."
+            )
+        return _standard_csd(values, coords)
 
-    coords = get_coords(basepath, shank=shank)
+    if coords is None:
+        coords = get_coords(basepath, shank=shank)
 
-    signal = AnalogSignal(
-        data,
-        units="mV",
-        t_start=0 * pq.s,
-        sampling_rate=fs * pq.Hz,
-        dtype=float,
-    )
-
+    values = _validate_data(data, coords)
     if method == "DeltaiCSD":
-        csd = estimate_csd(signal, coordinates=coords, diam=diam * pq.mm, method=method)
-
-    elif method == "StandardCSD":
-        # create coordinates for the CSD
-        coords = np.zeros(data.shape[1])
-        for idx, i in enumerate(coords):
-            if idx == 0:
-                coords[idx] = 0
-            else:
-                coords[idx] = coords[idx - 1] + channel_offset
-
-        coords = coords * pq.mm
-
-        # add dimension to coords to make it (64,1)
-        coords = coords[:, np.newaxis]
-
-        csd = estimate_csd(signal, coordinates=coords, method=method)
-
-    elif method == "KD1CSD":
-        # create coordinates for the CSD
-        coords = np.zeros(data.shape[1])
-        for idx, i in enumerate(coords):
-            if idx == 0:
-                coords[idx] = 0
-            else:
-                coords[idx] = coords[idx - 1] + channel_offset
-
-        coords = coords * pq.mm
-
-        # add dimension to coords to make it (64,1)
-        coords = coords[:, np.newaxis]
-        csd = estimate_csd(signal, coordinates=coords, method=method)
-
-    return csd
+        return _delta_icsd(
+            values, coords, diam, sigma, sigma if sigma_top is None else sigma_top
+        )
+    return _kcsd_1d(values, coords)
