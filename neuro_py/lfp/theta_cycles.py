@@ -13,6 +13,114 @@ from neuro_py.io import loading
 from neuro_py.lfp.spectral import filter_signal
 from neuro_py.process.intervals import find_interval
 
+# The implementation below follows the public algorithms in Bycycle 1.2.0
+# (Voytek Lab, Apache-2.0).
+_BYCYCLE_COLUMNS = [
+    "sample_peak",
+    "sample_last_zerox_decay",
+    "sample_zerox_decay",
+    "sample_zerox_rise",
+    "sample_last_trough",
+    "sample_next_trough",
+    "period",
+    "time_peak",
+    "time_trough",
+    "volt_peak",
+    "volt_trough",
+    "time_decay",
+    "time_rise",
+    "volt_decay",
+    "volt_rise",
+    "volt_amp",
+    "time_rdsym",
+    "time_ptsym",
+    "band_amp",
+    "monotonicity",
+    "amp_fraction",
+    "amp_consistency",
+    "period_consistency",
+    "is_burst",
+]
+
+
+def _find_bycycle_flank_zerox(
+    values: NDArray[np.float64], flank: str
+) -> NDArray[np.int_]:
+    """Return Bycycle's index-before-transition zero crossings."""
+    positive = values <= 0 if flank == "rise" else values > 0
+    crossings = np.flatnonzero(positive[:-1] & ~positive[1:])
+    if crossings.size == 0:
+        return np.array([len(values) // 2], dtype=int)
+    return crossings
+
+
+def _find_bycycle_extrema(
+    values: NDArray[np.float64], fs: float, theta_freq: Tuple[int, int]
+) -> tuple[NDArray[np.int_], NDArray[np.int_]]:
+    """Find extrema using Bycycle's padded narrow-band cycle definition."""
+    filter_length = int(np.ceil(fs * 3 / theta_freq[0]))
+    if filter_length % 2 == 0:
+        filter_length += 1
+    padding = int(np.ceil(filter_length / 2))
+    padded = np.pad(values, padding, mode="constant")
+    filtered = filter_signal(
+        padded, fs, "bandpass", theta_freq, n_cycles=3, remove_edges=False
+    )
+    rise_crossings = _find_bycycle_flank_zerox(filtered, "rise")
+    decay_crossings = _find_bycycle_flank_zerox(filtered, "decay")
+    if rise_crossings.size < 2 or decay_crossings.size < 2:
+        return np.array([], dtype=int), np.array([], dtype=int)
+
+    peaks: list[int] = []
+    troughs: list[int] = []
+    for rise in rise_crossings:
+        following = decay_crossings[decay_crossings > rise]
+        if following.size:
+            peaks.append(int(rise + np.argmax(padded[rise : following[0]])))
+    for decay in decay_crossings:
+        following = rise_crossings[rise_crossings > decay]
+        if following.size:
+            troughs.append(int(decay + np.argmin(padded[decay : following[0]])))
+    peaks_array = np.asarray(peaks, dtype=int) - padding
+    troughs_array = np.asarray(troughs, dtype=int) - padding
+    peaks_array = peaks_array[(peaks_array > 0) & (peaks_array < len(values))]
+    troughs_array = troughs_array[(troughs_array > 0) & (troughs_array < len(values))]
+    if peaks_array.size == 0 or troughs_array.size == 0:
+        return np.array([], dtype=int), np.array([], dtype=int)
+    if peaks_array[0] > troughs_array[0]:
+        troughs_array = troughs_array[1:]
+    if peaks_array.size and troughs_array.size and peaks_array[-1] > troughs_array[-1]:
+        peaks_array = peaks_array[:-1]
+    count = min(peaks_array.size, troughs_array.size)
+    return peaks_array[:count], troughs_array[:count]
+
+
+def _find_bycycle_zerox(
+    values: NDArray[np.float64], peaks: NDArray[np.int_], troughs: NDArray[np.int_]
+) -> tuple[NDArray[np.int_], NDArray[np.int_]]:
+    """Find midpoint crossings between the extrema used to define each cycle."""
+    rises = np.empty(len(peaks) - 1, dtype=int)
+    decays = np.empty(len(peaks), dtype=int)
+    for idx, (trough, peak) in enumerate(zip(troughs[:-1], peaks[1:])):
+        segment = values[trough : peak + 1]
+        if np.sum(np.abs(segment)) == 0 or segment[0] > segment[-1]:
+            rises[idx] = trough + len(segment) // 2
+        else:
+            midpoint = (segment[0] + segment[-1]) / 2
+            rises[idx] = trough + int(
+                np.median(_find_bycycle_flank_zerox(segment - midpoint, "rise"))
+            )
+    for idx, (peak, trough) in enumerate(zip(peaks, troughs)):
+        segment = values[peak : trough + 1]
+        if np.sum(np.abs(segment)) == 0 or segment[0] < segment[-1]:
+            decays[idx] = peak + len(segment) // 2
+        else:
+            midpoint = (segment[0] + segment[-1]) / 2
+            decays[idx] = peak + int(
+                np.median(_find_bycycle_flank_zerox(segment - midpoint, "decay"))
+            )
+    return rises, decays
+
 
 def _detect_bycycle_features(
     sig: NDArray[Any],
@@ -38,77 +146,112 @@ def _detect_bycycle_features(
     unknown = set(thresholds).difference(required)
     if unknown:
         raise ValueError(f"Unsupported theta-cycle thresholds: {sorted(unknown)}")
-    sos = signal.butter(4, theta_freq, btype="bandpass", fs=fs, output="sos")
-    filtered = signal.sosfiltfilt(sos, np.asarray(sig, dtype=float))
-    zero_crossings = np.flatnonzero(np.diff(np.signbit(filtered))).astype(int) + 1
-    if zero_crossings.size < 4:
-        return pd.DataFrame(
-            columns=pd.Index(
-                data=["sample_peak", "sample_last_trough", "band_amp", "is_burst"]
-            )
-        )
-    rises = zero_crossings[
-        (filtered[zero_crossings - 1] <= 0) & (filtered[zero_crossings] > 0)
-    ]
-    decays = zero_crossings[
-        (filtered[zero_crossings - 1] > 0) & (filtered[zero_crossings] <= 0)
-    ]
-    peaks: list[int] = []
-    troughs: list[int] = []
-    for rise in rises:
-        next_decay = decays[decays > rise]
-        if next_decay.size:
-            peaks.append(int(rise + np.argmax(sig[rise : next_decay[0]])))
-    for decay in decays:
-        next_rise = rises[rises > decay]
-        if next_rise.size:
-            troughs.append(int(decay + np.argmin(sig[decay : next_rise[0]])))
-    peaks_array = np.asarray(peaks, dtype=int)
-    troughs_array = np.asarray(troughs, dtype=int)
-    rows: list[dict[str, Any]] = []
+    values = np.asarray(sig, dtype=float)
+    peaks, troughs = _find_bycycle_extrema(values, fs, theta_freq)
+    if peaks.size < 2 or troughs.size < 2:
+        return pd.DataFrame(columns=pd.Index(data=_BYCYCLE_COLUMNS))
+
+    rises, decays = _find_bycycle_zerox(values, peaks, troughs)
+    samples = pd.DataFrame(
+        {
+            "sample_peak": peaks[1:],
+            "sample_last_zerox_decay": decays[:-1],
+            "sample_zerox_decay": decays[1:],
+            "sample_zerox_rise": rises,
+            "sample_last_trough": troughs[:-1],
+            "sample_next_trough": troughs[1:],
+        }
+    )
+    if samples.empty:
+        return pd.DataFrame(columns=pd.Index(data=_BYCYCLE_COLUMNS))
+
+    peak_samples = samples["sample_peak"].to_numpy()
+    last_troughs = samples["sample_last_trough"].to_numpy()
+    next_troughs = samples["sample_next_trough"].to_numpy()
+    period = next_troughs - last_troughs
+    volt_rise = values[peak_samples] - values[last_troughs]
+    volt_decay = values[peak_samples] - values[next_troughs]
+    filtered = filter_signal(
+        values, fs, "bandpass", theta_freq, n_cycles=3, remove_edges=False
+    )
     analytic_amplitude = np.abs(signal.hilbert(filtered))
-    for peak in peaks_array:
-        before = troughs_array[troughs_array < peak]
-        after = troughs_array[troughs_array > peak]
-        if before.size == 0 or after.size == 0:
-            continue
-        last_trough, next_trough = int(before[-1]), int(after[0])
-        rise = float(sig[peak] - sig[last_trough])
-        decay = float(sig[peak] - sig[next_trough])
-        period = next_trough - last_trough
-        rise_segment = np.diff(sig[last_trough : peak + 1])
-        decay_segment = np.diff(sig[peak : next_trough + 1])
-        rows.append(
-            {
-                "sample_peak": peak,
-                "sample_last_trough": last_trough,
-                "sample_next_trough": next_trough,
-                "band_amp": float(np.mean(analytic_amplitude[last_trough:next_trough])),
-                "period": float(period),
-                "volt_rise": rise,
-                "volt_decay": decay,
-                "monotonicity": float(
-                    (np.mean(rise_segment > 0) + np.mean(decay_segment < 0)) / 2
-                ),
-            }
-        )
-    features = pd.DataFrame(rows)
+    band_amp = np.array(
+        [
+            np.mean(analytic_amplitude[start:stop])
+            for start, stop in zip(last_troughs, next_troughs)
+        ]
+    )
+    monotonicity = np.array(
+        [
+            np.mean(
+                [
+                    np.mean(np.diff(values[last_trough : peak + 1]) > 0),
+                    np.mean(np.diff(values[peak : next_trough + 1]) < 0),
+                ]
+            )
+            for peak, last_trough, next_trough in zip(
+                peak_samples, last_troughs, next_troughs
+            )
+        ]
+    )
+    features = samples.assign(
+        period=period,
+        time_peak=samples["sample_zerox_decay"] - samples["sample_zerox_rise"],
+        time_trough=samples["sample_zerox_rise"] - samples["sample_last_zerox_decay"],
+        volt_peak=values[peak_samples],
+        volt_trough=values[last_troughs],
+        time_decay=next_troughs - peak_samples,
+        time_rise=peak_samples - last_troughs,
+        volt_decay=volt_decay,
+        volt_rise=volt_rise,
+        volt_amp=(volt_rise + volt_decay) / 2,
+        time_rdsym=(peak_samples - last_troughs) / period,
+        time_ptsym=(
+            (samples["sample_zerox_decay"] - samples["sample_zerox_rise"])
+            / (samples["sample_zerox_decay"] - samples["sample_last_zerox_decay"])
+        ),
+        band_amp=band_amp,
+        monotonicity=monotonicity,
+    )
     if features.empty:
         features["is_burst"] = pd.Series(dtype=bool)
         return features
-    features["amp_fraction"] = features["band_amp"] / features["band_amp"].median()
-    features["amp_consistency"] = 1 - np.abs(
-        features["volt_rise"] - features["volt_decay"]
-    ) / (features["volt_rise"] + features["volt_decay"])
-    adjacent_period = (features["period"].shift(1) + features["period"].shift(-1)) / 2
-    features["period_consistency"] = (
-        1 - np.abs(features["period"] - adjacent_period) / adjacent_period
-    )
+    # Bycycle's cycle-consistency burst features (v1.2.0): amplitude is
+    # ranked across cycles, while the consistency metrics compare both adjacent
+    # cycles and the rise/decay pair in the current cycle.
+    features["amp_fraction"] = features["volt_amp"].rank() / len(features)
+    amp_consistency = np.full(len(features), np.nan)
+    period_consistency = np.full(len(features), np.nan)
+    rises = features["volt_rise"].to_numpy()
+    decays = features["volt_decay"].to_numpy()
+    periods = features["period"].to_numpy()
+    for cycle in range(1, len(features) - 1):
+        with np.errstate(invalid="ignore", divide="ignore"):
+            amp_ratios = np.array(
+                [
+                    min(rises[cycle], decays[cycle]) / max(rises[cycle], decays[cycle]),
+                    min(rises[cycle], decays[cycle - 1])
+                    / max(rises[cycle], decays[cycle - 1]),
+                    min(rises[cycle + 1], decays[cycle])
+                    / max(rises[cycle + 1], decays[cycle]),
+                ]
+            )
+        amp_consistency[cycle] = np.nanmin(amp_ratios)
+        period_consistency[cycle] = min(periods[cycle - 1], periods[cycle]) / max(
+            periods[cycle - 1], periods[cycle]
+        )
+        period_consistency[cycle] = min(
+            period_consistency[cycle],
+            min(periods[cycle + 1], periods[cycle])
+            / max(periods[cycle + 1], periods[cycle]),
+        )
+    features["amp_consistency"] = amp_consistency
+    features["period_consistency"] = period_consistency
     is_burst = (
-        (features["amp_fraction"] >= thresholds["amp_fraction"])
-        & (features["amp_consistency"] >= thresholds["amp_consistency"])
-        & (features["period_consistency"] >= thresholds["period_consistency"])
-        & (features["monotonicity"] >= thresholds["monotonicity"])
+        (features["amp_fraction"] > thresholds["amp_fraction"])
+        & (features["amp_consistency"] > thresholds["amp_consistency"])
+        & (features["period_consistency"] > thresholds["period_consistency"])
+        & (features["monotonicity"] > thresholds["monotonicity"])
     ).to_numpy(dtype=bool, copy=True)
     is_burst[[0, -1]] = False
     starts = np.flatnonzero(np.diff(np.r_[False, is_burst, False].astype(int)) == 1)
