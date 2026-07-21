@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.50">
+      <meta name="generator" content="zensical-0.0.51">
     
     
       
@@ -305,6 +305,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -503,8 +507,6 @@
       
         
           
-        
-      
         
       
         
@@ -723,33 +725,6 @@
     
   
   linearization
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../behavior/linearization_pipeline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  linearization_pipeline
 
     
   </span>
@@ -3188,6 +3163,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3298,6 +3277,33 @@
     
   
   Bias Correlation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tutorials/csd_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Csd Tutorial
 
     
   </span>
@@ -3541,6 +3547,33 @@
     
   
   Spatial Map
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tutorials/theta_cycles_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Theta Cycles Tutorial
 
     
   </span>
@@ -3817,6 +3850,13 @@
 <a id="neuro_py.lfp.CSD"></a>
     <div class="doc doc-contents first">
 
+        <p>Dependency-free one-dimensional current-source density estimators.</p>
+<p>The public API in this module historically delegated to Elephant.  The
+implementations below keep the same laminar-probe methods without requiring
+Neo or Quantities. Coordinates are expressed in millimetres and input LFPs in
+millivolts. <code>StandardCSD</code> returns voltage curvature (mV/mm<strong>2), while
+<code>DeltaiCSD</code> applies the supplied conductivity and returns mA/mm</strong>2.</p>
+
 
 
 
@@ -3848,7 +3888,69 @@
 
     <div class="doc doc-contents ">
 
-        <p>Get the coordinates of the channels from the probe layout.</p>
+        <p>Return monotonically increasing electrode coordinates in millimetres.</p>
+<p>The CellExplorer probe layout stores <code>y</code> coordinates in micrometres.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/lfp/CSD.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return monotonically increasing electrode coordinates in millimetres.</span>
+
+<span class="sd">    The CellExplorer probe layout stores ``y`` coordinates in micrometres.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">probe_layout</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">probe_layout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No probe layout is available for </span><span class="si">{</span><span class="n">basepath</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+        <span class="n">probe_layout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">probe_layout</span><span class="o">.</span><span class="n">shank</span> <span class="o">==</span> <span class="n">shank</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;CSD estimation requires at least three channels on a shank.&quot;</span><span class="p">)</span>
+    <span class="c1"># Keep the layout order: it is the channel order expected by callers that</span>
+    <span class="c1"># pass their LFP rows directly to ``get_csd``. Sorting here would silently</span>
+    <span class="c1"># pair a signal with a different electrode coordinate.</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">(</span><span class="n">coords</span> <span class="o">-</span> <span class="n">coords</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mf">1000.0</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Probe coordinates must be unique and strictly increasing.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coords</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.lfp.CSD.get_csd" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_csd</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">shank</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">1250</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="mf">0.015</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">sigma_top</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;DeltaiCSD&#39;</span><span class="p">,</span> <span class="n">channel_offset</span><span class="o">=</span><span class="mf">0.046</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#neuro_py.lfp.CSD.get_csd" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Estimate one-dimensional CSD from channel-by-time LFP data.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3871,7 +3973,23 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to the basepath.</p>
+                <p>Session directory containing the probe layout.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LFP data with shape <code>(n_channels, n_samples)</code> in mV.</p>
               </div>
             </td>
             <td>
@@ -3887,11 +4005,126 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Shank to get the coordinates from, by default 0.</p>
+                <p>Probe shank to use for DeltaiCSD and KCSD1D coordinates.</p>
               </div>
             </td>
             <td>
-                  <code>0</code>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>fs</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampling rate in Hz. Retained for backwards compatibility.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1250</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>diam</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Electrode diameter in mm for DeltaiCSD.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.015</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sigma</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Conductivity of the tissue in S/m for DeltaiCSD.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sigma_top</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Conductivity above the tissue in S/m for DeltaiCSD. Defaults to
+<code>sigma</code> (equal-conductivity boundary condition).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>method</code>
+            </td>
+            <td>
+                  <code>(&#39;DeltaiCSD&#39;, &#39;StandardCSD&#39;, &#39;KCSD1D&#39;, &#39;KD1CSD&#39;)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Estimator to apply. <code>KD1CSD</code> is a deprecated alias for <code>KCSD1D</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;DeltaiCSD&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>channel_offset</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Uniform channel spacing in mm for StandardCSD.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.046</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coords</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Electrode coordinates in mm. This is used by every method. If not
+provided, inverse-method coordinates are loaded from the probe layout;
+StandardCSD uses <code>channel_offset</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -3913,7 +4146,9 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Coordinates of the channels.</p>
+                <p>CSD estimates with the same shape as <code>data</code>. Units are mV/mm<strong>2 for
+StandardCSD and mA/mm</strong>2 for DeltaiCSD. KCSD1D is a model-based source
+density estimate whose scale depends on its Gaussian basis model.</p>
               </div>
             </td>
           </tr>
@@ -3923,399 +4158,169 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/lfp/CSD.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get the coordinates of the channels from the probe layout.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    basepath : str</span>
-<span class="sd">        Path to the basepath.</span>
-<span class="sd">    shank : int, optional</span>
-<span class="sd">        Shank to get the coordinates from, by default 0.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    np.ndarray</span>
-<span class="sd">        Coordinates of the channels.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pq</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;quantities&quot;</span><span class="p">)</span>
-
-    <span class="c1"># load the probe layout</span>
-    <span class="n">probe_layout</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">))</span>
-
-    <span class="c1"># get the coordinates of the channels</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">probe_layout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">shank</span> <span class="o">==</span> <span class="n">probe_layout</span><span class="o">.</span><span class="n">shank</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-
-    <span class="c1"># rescale the coordinates so none are negative and in mm</span>
-    <span class="n">rescaled_coords</span> <span class="o">=</span> <span class="p">(</span><span class="n">coords</span> <span class="o">-</span> <span class="n">coords</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">mm</span>
-
-    <span class="c1"># add dimension to coords to make it (nchannels,1)</span>
-    <span class="n">rescaled_coords</span> <span class="o">=</span> <span class="n">rescaled_coords</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-    <span class="k">return</span> <span class="n">rescaled_coords</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="neuro_py.lfp.CSD.get_csd" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_csd</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">shank</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">1250</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="mf">0.015</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;DeltaiCSD&#39;</span><span class="p">,</span> <span class="n">channel_offset</span><span class="o">=</span><span class="mf">0.046</span><span class="p">)</span></code>
-
-<a href="#neuro_py.lfp.CSD.get_csd" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>compute the CSD for a given basepath and data using elephant estimate_csd.</p>
-<p>Klas H. Pettersen, Anna Devor, Istvan Ulbert, Anders M. Dale, Gaute T. Einevoll,
-Current-source density estimation based on inversion of electrostatic forward
-solution: Effects of finite extent of neuronal activity and conductivity
-discontinuities, Journal of Neuroscience Methods, Volume 154, Issues 1-2,
-30 June 2006, Pages 116-133, ISSN 0165-0270,
-http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>basepath</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>path to the basepath</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>data</code>
-            </td>
-            <td>
-                  <code><span title="numpy.array">array</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>data to compute the CSD on [channels x time]</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>fs</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>sampling rate of the data, by default 1250 Hz</p>
-              </div>
-            </td>
-            <td>
-                  <code>1250</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>diam</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>diameter of the electrode, by default 0.015 mm</p>
-              </div>
-            </td>
-            <td>
-                  <code>0.015</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>method</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>method to compute the CSD, by default 'DeltaiCSD'</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#39;DeltaiCSD&#39;</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="neo.AnalogSignal">AnalogSignal</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>CSD signal</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="dependencies" open>
-  <summary>Dependencies</summary>
-  <p>get_coords, estimate_csd (Elephant), neo, quantities</p>
-</details>
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>neuro_py/lfp/CSD.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 48</span>
-<span class="normal"> 49</span>
-<span class="normal"> 50</span>
-<span class="normal"> 51</span>
-<span class="normal"> 52</span>
-<span class="normal"> 53</span>
-<span class="normal"> 54</span>
-<span class="normal"> 55</span>
-<span class="normal"> 56</span>
-<span class="normal"> 57</span>
-<span class="normal"> 58</span>
-<span class="normal"> 59</span>
-<span class="normal"> 60</span>
-<span class="normal"> 61</span>
-<span class="normal"> 62</span>
-<span class="normal"> 63</span>
-<span class="normal"> 64</span>
-<span class="normal"> 65</span>
-<span class="normal"> 66</span>
-<span class="normal"> 67</span>
-<span class="normal"> 68</span>
-<span class="normal"> 69</span>
-<span class="normal"> 70</span>
-<span class="normal"> 71</span>
-<span class="normal"> 72</span>
-<span class="normal"> 73</span>
-<span class="normal"> 74</span>
-<span class="normal"> 75</span>
-<span class="normal"> 76</span>
-<span class="normal"> 77</span>
-<span class="normal"> 78</span>
-<span class="normal"> 79</span>
-<span class="normal"> 80</span>
-<span class="normal"> 81</span>
-<span class="normal"> 82</span>
-<span class="normal"> 83</span>
-<span class="normal"> 84</span>
-<span class="normal"> 85</span>
-<span class="normal"> 86</span>
-<span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_csd</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_csd</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">],</span>
     <span class="n">shank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1250</span><span class="p">,</span>
     <span class="n">diam</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.015</span><span class="p">,</span>
-    <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;StandardCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;KD1CSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span>
+    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="n">sigma_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">CSDMethod</span> <span class="o">=</span> <span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span>
     <span class="n">channel_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.046</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    compute the CSD for a given basepath and data using elephant estimate_csd.</span>
-
-<span class="sd">    Klas H. Pettersen, Anna Devor, Istvan Ulbert, Anders M. Dale, Gaute T. Einevoll,</span>
-<span class="sd">    Current-source density estimation based on inversion of electrostatic forward</span>
-<span class="sd">    solution: Effects of finite extent of neuronal activity and conductivity</span>
-<span class="sd">    discontinuities, Journal of Neuroscience Methods, Volume 154, Issues 1-2,</span>
-<span class="sd">    30 June 2006, Pages 116-133, ISSN 0165-0270,</span>
-<span class="sd">    http://dx.doi.org/10.1016/j.jneumeth.2005.12.005.</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate one-dimensional CSD from channel-by-time LFP data.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    basepath : str</span>
-<span class="sd">        path to the basepath</span>
-<span class="sd">    data : np.array</span>
-<span class="sd">        data to compute the CSD on [channels x time]</span>
-<span class="sd">    fs : int, optional</span>
-<span class="sd">        sampling rate of the data, by default 1250 Hz</span>
+<span class="sd">        Session directory containing the probe layout.</span>
+<span class="sd">    data : numpy.ndarray</span>
+<span class="sd">        LFP data with shape ``(n_channels, n_samples)`` in mV.</span>
+<span class="sd">    shank : int</span>
+<span class="sd">        Probe shank to use for DeltaiCSD and KCSD1D coordinates.</span>
+<span class="sd">    fs : float, optional</span>
+<span class="sd">        Sampling rate in Hz. Retained for backwards compatibility.</span>
 <span class="sd">    diam : float, optional</span>
-<span class="sd">        diameter of the electrode, by default 0.015 mm</span>
-<span class="sd">    method : str, optional</span>
-<span class="sd">        method to compute the CSD, by default &#39;DeltaiCSD&#39;</span>
+<span class="sd">        Electrode diameter in mm for DeltaiCSD.</span>
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        Conductivity of the tissue in S/m for DeltaiCSD.</span>
+<span class="sd">    sigma_top : float, optional</span>
+<span class="sd">        Conductivity above the tissue in S/m for DeltaiCSD. Defaults to</span>
+<span class="sd">        ``sigma`` (equal-conductivity boundary condition).</span>
+<span class="sd">    method : {&quot;DeltaiCSD&quot;, &quot;StandardCSD&quot;, &quot;KCSD1D&quot;, &quot;KD1CSD&quot;}, optional</span>
+<span class="sd">        Estimator to apply. ``KD1CSD`` is a deprecated alias for ``KCSD1D``.</span>
+<span class="sd">    channel_offset : float, optional</span>
+<span class="sd">        Uniform channel spacing in mm for StandardCSD.</span>
+<span class="sd">    coords : numpy.ndarray, optional</span>
+<span class="sd">        Electrode coordinates in mm. This is used by every method. If not</span>
+<span class="sd">        provided, inverse-method coordinates are loaded from the probe layout;</span>
+<span class="sd">        StandardCSD uses ``channel_offset``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    neo.AnalogSignal</span>
-<span class="sd">        CSD signal</span>
-
-<span class="sd">    Dependencies</span>
-<span class="sd">    ------------</span>
-<span class="sd">    get_coords, estimate_csd (Elephant), neo, quantities</span>
-
+<span class="sd">    numpy.ndarray</span>
+<span class="sd">        CSD estimates with the same shape as ``data``. Units are mV/mm**2 for</span>
+<span class="sd">        StandardCSD and mA/mm**2 for DeltaiCSD. KCSD1D is a model-based source</span>
+<span class="sd">        density estimate whose scale depends on its Gaussian basis model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pq</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;quantities&quot;</span><span class="p">)</span>
-    <span class="n">estimate_csd</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;elephant.current_source_density&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">estimate_csd</span>
-    <span class="n">AnalogSignal</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;neo&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">AnalogSignal</span>
+    <span class="k">del</span> <span class="n">fs</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;KD1CSD&quot;</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;&#39;KD1CSD&#39; is deprecated; use &#39;KCSD1D&#39; instead.&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;KCSD1D&quot;</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;StandardCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;KCSD1D&quot;</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported CSD method: </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;StandardCSD&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">channel_offset</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;channel_offset must be positive.&quot;</span><span class="p">)</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="n">channel_offset</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">_validate_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;data must have shape (n_channels, n_samples) with at least 3 channels.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Probe coordinates must be unique and strictly increasing.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_standard_csd</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
 
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">shank</span><span class="o">=</span><span class="n">shank</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">get_coords</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">shank</span><span class="o">=</span><span class="n">shank</span><span class="p">)</span>
 
-    <span class="n">signal</span> <span class="o">=</span> <span class="n">AnalogSignal</span><span class="p">(</span>
-        <span class="n">data</span><span class="p">,</span>
-        <span class="n">units</span><span class="o">=</span><span class="s2">&quot;mV&quot;</span><span class="p">,</span>
-        <span class="n">t_start</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
-        <span class="n">sampling_rate</span><span class="o">=</span><span class="n">fs</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-    <span class="p">)</span>
-
+    <span class="n">values</span> <span class="o">=</span> <span class="n">_validate_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;DeltaiCSD&quot;</span><span class="p">:</span>
-        <span class="n">csd</span> <span class="o">=</span> <span class="n">estimate_csd</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">diam</span><span class="o">=</span><span class="n">diam</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">mm</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
-
-    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;StandardCSD&quot;</span><span class="p">:</span>
-        <span class="c1"># create coordinates for the CSD</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">channel_offset</span>
-
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">mm</span>
-
-        <span class="c1"># add dimension to coords to make it (64,1)</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-        <span class="n">csd</span> <span class="o">=</span> <span class="n">estimate_csd</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
-
-    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;KD1CSD&quot;</span><span class="p">:</span>
-        <span class="c1"># create coordinates for the CSD</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">channel_offset</span>
-
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">mm</span>
-
-        <span class="c1"># add dimension to coords to make it (64,1)</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-        <span class="n">csd</span> <span class="o">=</span> <span class="n">estimate_csd</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">csd</span>
+        <span class="k">return</span> <span class="n">_delta_icsd</span><span class="p">(</span>
+            <span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">diam</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">sigma</span> <span class="k">if</span> <span class="n">sigma_top</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">sigma_top</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_kcsd_1d</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
