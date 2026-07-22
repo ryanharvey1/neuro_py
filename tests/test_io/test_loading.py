@@ -2212,7 +2212,7 @@ def test_load_ripples_events_basic():
                         "detectorinfo": {
                             "detectorname": "auto_detector",
                             "detectionparms": {
-                                "Channels": 10,
+                                "Channels": np.array([10, 11]),
                             },
                         },
                     }
@@ -2232,6 +2232,7 @@ def test_load_ripples_events_basic():
         assert "frequency" in df.columns
         assert "detectorName" in df.columns
         assert "ripple_channel" in df.columns
+        assert (df["ripple_channel"] == 10).all()
         assert "basepath" in df.columns
         assert df.start.iloc[0] == 0.1
         assert df.stop.iloc[0] == 0.15
@@ -2485,17 +2486,15 @@ def test_load_deepSuperficialfromRipple():
                 "channel": [[np.array([1, 2])]],
                 "ripple_channels": [[[[(np.array([1, 2]),)]]]],
                 "channelDistance": [[np.array([[0.0], [1.0]])]],
-                "channelClass": [
-                    [[np.array([["deep"]]), np.array([["superficial"]])]]
-                ],
+                "channelClass": [[[np.array([["deep"]]), np.array([["superficial"]])]]],
                 "ripple_power": [[[np.array([[1.0, 2.0]])]]],
                 "ripple_amplitude": [[[np.array([[3.0, 4.0]])]]],
                 "SWR_diff": [[[np.array([[5.0, 6.0]])]]],
                 "SWR_amplitude": [[[np.array([[7.0, 8.0]])]]],
                 "ripple_time_axis": [[[np.array([-0.1, 0.0, 0.1])]]],
-                "ripple_average": [[[[
-                    np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])
-                ]]]],
+                "ripple_average": [
+                    [[[np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])]]]
+                ],
             }
         }
         open(filename, "wb").close()
@@ -2503,8 +2502,8 @@ def test_load_deepSuperficialfromRipple():
             patch("neuro_py.io.loading.load_mat", return_value=data),
             patch("neuro_py.io.loading.load_brain_regions", return_value={}),
         ):
-            channels, ripple_average, ripple_time_axis = (
-                load_deepSuperficialfromRipple(basepath)
+            channels, ripple_average, ripple_time_axis = load_deepSuperficialfromRipple(
+                basepath
             )
 
     assert channels["channel"].tolist() == [1.0, 2.0]
@@ -3752,6 +3751,30 @@ def test_load_position_reads_whl_and_replaces_missing_values():
     assert fs == 50.0
     assert position.columns.tolist() == ["x1", "y1", "x2", "y2"]
     assert np.isnan(position.loc[0, "x2"])
+
+
+def test_load_cell_metrics_allows_empty_session_metadata(monkeypatch):
+    """Optional empty metadata is broadcast as missing rather than as a cell vector."""
+    data = {
+        "cell_metrics": {
+            "UID": np.array([1, 2]),
+            "putativeCellType": np.array(["Pyramidal", "Pyramidal"]),
+            "brainRegion": np.array(["CA1", "PFC"]),
+            "general": {
+                "basename": "session",
+                "cellCount": np.array([]),
+                "animal": {"sex": np.array([])},
+            },
+        }
+    }
+    monkeypatch.setattr("os.path.exists", lambda _: True)
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    metrics = load_cell_metrics("session", only_metrics=True)
+
+    assert metrics is not None
+    assert metrics["sex"].isna().all()
+    assert metrics["cellCount"].tolist() == [2, 2]
 
 
 @pytest.mark.parametrize(

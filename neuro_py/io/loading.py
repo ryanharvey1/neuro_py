@@ -1412,12 +1412,15 @@ def load_cell_metrics(
             "geneticLine": animal.get("geneticLine", np.nan),
             "cellCount": general.get("cellCount", n_cells),
         }.items():
-            scalar = np.asarray(value).squeeze()
-            df[column] = (
-                scalar.item()
-                if isinstance(scalar, np.ndarray) and scalar.size == 1
-                else scalar
-            )
+            values = np.asarray(value, dtype=object).reshape(-1)
+            if values.size == 1:
+                df[column] = values[0]
+            elif values.size == n_cells:
+                df[column] = values
+            elif column == "cellCount":
+                df[column] = n_cells
+            else:
+                df[column] = np.nan
 
         if only_metrics:
             return df
@@ -1758,17 +1761,28 @@ def load_ripples_events(
             if isinstance(detector_info, dict)
             else {}
         )
-        df["detectorName"] = (
+        detector_name = (
             detector_info.get("detectorname", ripples.get("detectorName", "unknown"))
             if isinstance(detector_info, dict)
             else ripples.get("detectorName", "unknown")
         )
-        df["ripple_channel"] = detector_params.get(
+        ripple_channel = detector_params.get(
             "Channels",
             detector_params.get(
                 "channel", detector_params.get("ripple_channel", np.nan)
             ),
         )
+
+        def event_metadata(value: Any) -> Any:
+            values = np.asarray(value, dtype=object).reshape(-1)
+            if values.size == len(df):
+                return values
+            if values.size:
+                return values[0]
+            return np.nan
+
+        df["detectorName"] = event_metadata(detector_name)
+        df["ripple_channel"] = event_metadata(ripple_channel)
         flagged = np.asarray(ripples.get("flagged", []), dtype=int).reshape(-1)
         if flagged.size:
             df = df.drop(index=flagged - 1, errors="ignore").reset_index(drop=True)
