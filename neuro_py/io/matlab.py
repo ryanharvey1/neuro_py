@@ -4,11 +4,17 @@ from pathlib import Path
 from typing import Any, Literal
 
 import h5py
-import hdf5storage
-from pymatreader import read_mat
 from scipy import io as sio
 
 MatFormat = Literal["v7", "v7.3"]
+
+
+def _v73_dependency_error(dependency: str) -> ImportError:
+    """Create an actionable error for optional v7.3 MAT-file support."""
+    return ImportError(
+        f"MATLAB v7.3 support requires {dependency}. "
+        "For an editable checkout, run: python -m pip install -e ."
+    )
 
 
 def load_mat(filename: str | Path, *, simplify_cells: bool = True) -> dict[str, Any]:
@@ -29,6 +35,10 @@ def load_mat(filename: str | Path, *, simplify_cells: bool = True) -> dict[str, 
     """
     path = str(filename)
     if h5py.is_hdf5(path):
+        try:
+            from pymatreader import read_mat
+        except ModuleNotFoundError as error:
+            raise _v73_dependency_error("pymatreader") from error
         return read_mat(path)
     return sio.loadmat(path, simplify_cells=simplify_cells)
 
@@ -54,6 +64,10 @@ def save_mat(
         sio.savemat(filename, data, long_field_names=True)
         return
     if format == "v7.3":
+        try:
+            import hdf5storage
+        except ModuleNotFoundError as error:
+            raise _v73_dependency_error("hdf5storage") from error
         hdf5storage.savemat(
             filename,
             data,

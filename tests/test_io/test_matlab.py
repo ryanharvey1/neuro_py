@@ -37,7 +37,7 @@ def test_load_mat_preserves_legacy_scipy_behavior(tmp_path):
 def test_save_mat_v73_uses_matlab_compatible_backend(tmp_path):
     """The large-file path selects hdf5storage without a huge test allocation."""
     filename = tmp_path / "large.mat"
-    with patch("neuro_py.io.matlab.hdf5storage.savemat") as save:
+    with patch("hdf5storage.savemat") as save:
         save_mat(filename, {"large": np.empty(0)}, format="v7.3")
 
     assert save.call_args.kwargs["fmt"] == "7.3"
