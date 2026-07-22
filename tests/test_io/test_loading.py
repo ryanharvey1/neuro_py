@@ -14,20 +14,28 @@ from neuro_py.io.loading import (
     VirtualConcatenatedDat,
     load_all_cell_metrics,
     load_animal_behavior,
+    load_barrage_events,
+    load_basic_data,
     load_brain_regions,
     load_cell_metrics,
     load_channel_tags,
     load_deepSuperficialfromRipple,
+    load_dentate_spikes,
     load_emg,
     load_epoch,
     load_events,
     load_extracellular_metadata,
+    load_ied_events,
     load_manipulation,
+    load_mua_events,
+    load_position,
     load_probe_layout,
     load_ripples_events,
     load_SleepState_states,
     load_spikes,
+    load_SWRunitMetrics,
     load_theta_cycles,
+    load_theta_rem_shift,
     load_trials,
     loadLFP,
     loadXML,
@@ -2467,26 +2475,41 @@ def test_load_all_cell_metrics():
 
 
 def test_load_deepSuperficialfromRipple():
-    """Test that load_deepSuperficialfromRipple function is importable and has correct signature.
+    """Deep/superficial loader returns channels and ripple traces from a MAT file."""
+    with tempfile.TemporaryDirectory() as basepath:
+        filename = os.path.join(
+            basepath, "session.deepSuperficialfromRipple.channelinfo.mat"
+        )
+        data = {
+            "deepSuperficialfromRipple": {
+                "channel": [[np.array([1, 2])]],
+                "ripple_channels": [[[[(np.array([1, 2]),)]]]],
+                "channelDistance": [[np.array([[0.0], [1.0]])]],
+                "channelClass": [
+                    [[np.array([["deep"]]), np.array([["superficial"]])]]
+                ],
+                "ripple_power": [[[np.array([[1.0, 2.0]])]]],
+                "ripple_amplitude": [[[np.array([[3.0, 4.0]])]]],
+                "SWR_diff": [[[np.array([[5.0, 6.0]])]]],
+                "SWR_amplitude": [[[np.array([[7.0, 8.0]])]]],
+                "ripple_time_axis": [[[np.array([-0.1, 0.0, 0.1])]]],
+                "ripple_average": [[[[
+                    np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])
+                ]]]],
+            }
+        }
+        open(filename, "wb").close()
+        with (
+            patch("neuro_py.io.loading.load_mat", return_value=data),
+            patch("neuro_py.io.loading.load_brain_regions", return_value={}),
+        ):
+            channels, ripple_average, ripple_time_axis = (
+                load_deepSuperficialfromRipple(basepath)
+            )
 
-    Note: Full functional testing of this function requires complex MATLAB struct data that is
-    difficult to replicate accurately with scipy.io.savemat. This test verifies the function
-    exists and can be called properly.
-    """
-    # Verify function is imported and callable
-    assert callable(load_deepSuperficialfromRipple)
-
-    # Verify function signature using inspect
-    import inspect
-
-    sig = inspect.signature(load_deepSuperficialfromRipple)
-    params = list(sig.parameters.keys())
-    assert "basepath" in params
-    assert "bypass_mismatch_exception" in params
-
-    # Verify return type annotation indicates a tuple
-    return_annotation = sig.return_annotation
-    assert return_annotation != inspect.Signature.empty
+    assert channels["channel"].tolist() == [1.0, 2.0]
+    assert ripple_average.shape == (2, 3)
+    assert ripple_time_axis.tolist() == [-0.1, 0.0, 0.1]
 
 
 def test_load_events_epoch_array_and_dataframe():
@@ -3715,6 +3738,72 @@ def test_loadLFP_dat_prefers_concatenated_file_when_present():
         # Explicitly release memmap-backed file handle before temp dir cleanup on Windows.
         result._mmap.close()
         del result
+
+
+def test_load_position_reads_whl_and_replaces_missing_values():
+    """Position loader reads the standard WHL layout and marks -1 as missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        filename = os.path.join(temp_dir, "position.whl")
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write("x1\ty1\tx2\ty2\n1\t2\t-1\t4\n")
+
+        position, fs = load_position(temp_dir, fs=50.0)
+
+    assert fs == 50.0
+    assert position.columns.tolist() == ["x1", "y1", "x2", "y2"]
+    assert np.isnan(position.loc[0, "x2"])
+
+
+@pytest.mark.parametrize(
+    ("loader", "kwargs"),
+    [
+        (load_SWRunitMetrics, {}),
+        (load_ied_events, {"manual_events": False}),
+        (load_dentate_spikes, {"manual_events": False}),
+        (load_theta_rem_shift, {}),
+        (load_mua_events, {}),
+    ],
+)
+def test_unavailable_mat_loaders_return_documented_empty_result(loader, kwargs):
+    """MAT-backed loaders keep their established missing-file behavior."""
+    with tempfile.TemporaryDirectory() as basepath:
+        result = loader(basepath, **kwargs)
+
+    if isinstance(result, tuple):
+        assert result[0].empty
+        assert np.isnan(result[1])
+    else:
+        assert result.empty
+
+
+def test_load_barrage_events_uses_empty_result_when_file_is_missing():
+    """Barrage loader warns and returns an empty table without event data."""
+    with tempfile.TemporaryDirectory() as basepath:
+        with pytest.warns(UserWarning, match="No barrage"):
+            result = load_barrage_events(basepath)
+
+    assert result.empty
+
+
+def test_load_basic_data_composes_loader_results(monkeypatch):
+    """Basic-data loader preserves the component outputs and XML sampling rate."""
+    metrics = pd.DataFrame({"UID": [1]})
+    additional = {"spikes": [np.array([0.1])]}
+    ripples = pd.DataFrame({"start": [1.0], "stop": [2.0]})
+    monkeypatch.setattr(
+        "neuro_py.io.loading.loadXML", lambda _: (4, 1250, 20000, {0: [0]})
+    )
+    monkeypatch.setattr("neuro_py.io.loading.load_ripples_events", lambda _: ripples)
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_cell_metrics", lambda _: (metrics, additional)
+    )
+
+    result_metrics, result_data, result_ripples, fs_dat = load_basic_data("session")
+
+    assert result_metrics is metrics
+    assert result_data is additional
+    assert result_ripples is ripples
+    assert fs_dat == 20000
 
 
 def test_loadXML_parses_basic_fields():

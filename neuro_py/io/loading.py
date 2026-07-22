@@ -14,7 +14,6 @@ from xml.dom.minidom import Element
 import nelpy as nel
 import numpy as np
 import pandas as pd
-import scipy.io as sio
 from joblib import Parallel, delayed
 from numpy.exceptions import AxisError
 from numpy.typing import DTypeLike, NDArray
@@ -22,6 +21,7 @@ from scipy import signal
 
 import neuro_py as npy
 from neuro_py.behavior.kinematics import get_speed
+from neuro_py.io.matlab import load_mat
 from neuro_py.process.intervals import find_interval, in_intervals
 from neuro_py.process.peri_event import get_participation
 from neuro_py.util.array import is_nested
@@ -529,7 +529,7 @@ def _load_session_epochs_metadata(basepath: str) -> list[dict[str, Any]]:
             "Session metadata is required to locate per-epoch DAT files."
         )
 
-    data = sio.loadmat(session_path, simplify_cells=True)
+    data = load_mat(session_path, simplify_cells=True)
     session = data.get("session")
     if session is None or "epochs" not in session:
         raise ValueError("Session epochs not found in session metadata.")
@@ -1366,7 +1366,7 @@ def load_cell_metrics(
         return None, None
 
     # load cell_metrics file
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     # construct data frame with features per neuron
     df = {}
@@ -1394,7 +1394,8 @@ def load_cell_metrics(
 
     # load in tag
     # check if tags exist within cell_metrics
-    if "tags" in data.get("cell_metrics").dtype.names:
+    cell_metrics_data = data.get("cell_metrics")
+    if cell_metrics_data is not None and "tags" in cell_metrics_data.dtype.names:
         # get names of each tag
         dt = data["cell_metrics"]["tags"][0][0].dtype
         if len(dt) > 0:
@@ -1496,7 +1497,7 @@ def load_SWRunitMetrics(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     df2 = pd.DataFrame()
     # loop through each available epoch and pull out contents
@@ -1618,7 +1619,7 @@ def load_ripples_events(
         return pd.DataFrame()
 
     # load matfile
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     # make data frame of known fields
     df = pd.DataFrame()
@@ -1753,7 +1754,7 @@ def load_theta_cycles(
             return nel.EpochArray()
         return pd.DataFrame()
 
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     df = pd.DataFrame()
     df["start"] = data["thetacycles"]["timestamps"][:, 0]
     df["stop"] = data["thetacycles"]["timestamps"][:, 1]
@@ -1804,7 +1805,7 @@ def load_barrage_events(
         return pd.DataFrame()
 
     # load data from file and extract relevant data
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     data = data["HSEn2"]
 
     # convert to DataFrame
@@ -1894,7 +1895,7 @@ def load_ied_events(
 
     df = pd.DataFrame()
 
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     struct_name = list(data.keys())[-1]
     df["start"] = data[struct_name]["timestamps"][:, 0]
     df["stop"] = data[struct_name]["timestamps"][:, 1]
@@ -2006,7 +2007,7 @@ def load_dentate_spikes(
             continue
         # load matfile
         filename = matching_files[0]
-        data = sio.loadmat(filename, simplify_cells=True)
+        data = load_mat(filename, simplify_cells=True)
         # pull out data
         df = pd.concat(
             [df, extract_data(s_type, data, manual_events)], ignore_index=True
@@ -2069,7 +2070,7 @@ def load_theta_rem_shift(
         warnings.warn("file does not exist")
         return pd.DataFrame(), np.nan
 
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     df = pd.DataFrame()
 
@@ -2169,7 +2170,7 @@ def load_SleepState_states(
         return None
 
     # load cell_metrics file
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
 
     # get epoch id
     statenames = data["SleepState"]["idx"]["statenames"]
@@ -2267,7 +2268,7 @@ def load_animal_behavior(
             warnings.warn("file does not exist")
             return df
 
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
 
     def _assign_column(col_name: str, values) -> None:
         if col_name in df.columns:
@@ -2450,7 +2451,7 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
 
     def add_columns(df):
         """add columns to df if they don't exist"""
@@ -2512,7 +2513,7 @@ def load_trials(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     if "trials" not in data["behavior"].keys():
         warnings.warn("trials not found in file")
         return pd.DataFrame()
@@ -2606,7 +2607,7 @@ def load_brain_regions(
             return {}
 
     # load file
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     data = data["session"]
 
     if "brainRegions" not in data.keys():
@@ -2689,7 +2690,7 @@ def get_animal_id(basepath: str) -> Union[str, pd.DataFrame]:
         return pd.DataFrame()
 
     # load file
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
     return data["session"][0][0]["animal"][0][0]["name"][0]
 
 
@@ -2943,7 +2944,7 @@ def load_deepSuperficialfromRipple(
     filename = glob.glob(basepath + os.sep + file_type)[0]
 
     # load matfile
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     channel_df = pd.DataFrame()
     name = "deepSuperficialfromRipple"
@@ -3065,7 +3066,7 @@ def load_mua_events(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load matfile
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     # pull out and package data
     df = pd.DataFrame()
@@ -3154,7 +3155,7 @@ def load_manipulation(
     except Exception:
         return None
     # load matfile
-    data = sio.loadmat(filename)
+    data = load_mat(filename, simplify_cells=False)
 
     if struct_name is None:
         struct_name = list(data.keys())[-1]
@@ -3231,7 +3232,7 @@ def load_channel_tags(basepath: str) -> dict[str, Any]:
         A dictionary of channel tags from the session file.
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     return data["session"]["channelTags"]
 
 
@@ -3253,7 +3254,7 @@ def load_extracellular_metadata(basepath: str) -> dict[str, Any]:
     # check if filename exist
     if not os.path.exists(filename):
         return {}
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     return data["session"]["extracellular"]
 
 
@@ -3276,7 +3277,7 @@ def load_probe_layout(basepath: str) -> Union[pd.DataFrame, None]:
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
     # load file
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
     x = data["session"]["extracellular"]["chanCoords"]["x"]
     y = data["session"]["extracellular"]["chanCoords"]["y"]
 
@@ -3354,7 +3355,7 @@ def load_emg(
     )
 
     # load matfile
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
 
     # put emg data into AnalogSignalArray
     emg = nel.AnalogSignalArray(
@@ -3396,7 +3397,7 @@ def load_events(
     if not os.path.exists(filename):
         return None
 
-    data = sio.loadmat(filename, simplify_cells=True)
+    data = load_mat(filename, simplify_cells=True)
 
     if load_pandas:
         n_events = data[epoch_name]["timestamps"].shape[0]
