@@ -1,3 +1,5 @@
+import inspect
+
 import numpy as np
 import pandas as pd
 
@@ -93,3 +95,62 @@ def test_rayleigh():
     pval, z = ncirc.rayleigh(alpha)
     assert isinstance(pval, float) or isinstance(pval, np.floating)
     assert isinstance(z, float) or isinstance(z, np.floating)
+
+
+def test_circular_statistics_wrappers_preserve_public_signatures():
+    assert list(inspect.signature(ncirc.percentile).parameters) == [
+        "alpha",
+        "q",
+        "q0",
+        "axis",
+        "ci",
+        "bootstrap_iter",
+    ]
+    assert list(inspect.signature(ncirc.resultant_vector_length).parameters)[-2:] == [
+        "ci",
+        "bootstrap_iter",
+    ]
+    assert ncirc.mean.__name__ == "mean"
+    assert ncirc.rayleigh.__name__ == "rayleigh"
+
+
+def test_bootstrap_controls_accept_keyword_and_positional_arguments():
+    alpha = np.linspace(0, 2 * np.pi, 24).reshape(3, 8)
+
+    np.random.seed(0)
+    keyword_result, keyword_ci = ncirc.resultant_vector_length(
+        alpha, axis=1, ci=0.95, bootstrap_iter=8
+    )
+    np.random.seed(0)
+    positional_result, positional_ci = ncirc.resultant_vector_length(
+        alpha, None, None, 1, 1, 0.95, 8
+    )
+
+    assert np.allclose(keyword_result, positional_result)
+    assert np.allclose(keyword_ci.lower, positional_ci.lower)
+    assert np.allclose(keyword_ci.upper, positional_ci.upper)
+
+
+def test_circular_percentile_bootstrap_and_rayleigh_axis_handling():
+    alpha = np.linspace(0, 2 * np.pi, 24).reshape(3, 8)
+
+    percentile_result, percentile_ci = ncirc.percentile(
+        alpha,
+        50,
+        np.zeros(alpha.shape[0]),
+        axis=1,
+        ci=0.95,
+        bootstrap_iter=8,
+    )
+    assert percentile_result.shape == (3,)
+    assert percentile_ci.lower.shape == (3,)
+    assert percentile_ci.upper.shape == (3,)
+    assert np.all((0 <= percentile_ci.lower) & (percentile_ci.lower < 2 * np.pi))
+    assert np.all((0 <= percentile_ci.upper) & (percentile_ci.upper < 2 * np.pi))
+
+    p_values, z_values = ncirc.rayleigh(alpha, axis=1)
+    assert p_values.shape == (3,)
+    assert z_values.shape == (3,)
+    expected = [ncirc.rayleigh(row) for row in alpha]
+    assert np.allclose(p_values, [result[0] for result in expected])
+    assert np.allclose(z_values, [result[1] for result in expected])
