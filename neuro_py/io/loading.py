@@ -35,6 +35,31 @@ def _get_xml_text(element: Element) -> str:
     return str(first_child.data)
 
 
+def _event_metadata(value: Any, n_events: int, default: Any = np.nan) -> Any:
+    """Return event-aligned metadata or a scalar safe to broadcast."""
+    values = np.asarray(value, dtype=object).reshape(-1)
+    if values.size == n_events:
+        return values
+    if values.size:
+        return values[0]
+    return default
+
+
+def _fit_channel_metadata(
+    value: Any, n_channels: int, fill_value: Any, *, broadcast_single: bool = True
+) -> NDArray[Any]:
+    """Fit optional channel metadata to a channel table without dropping channels."""
+    values = np.asarray(value, dtype=object).reshape(-1)
+    if values.size == n_channels:
+        return values
+    result = np.full(n_channels, fill_value, dtype=object)
+    if values.size == 1 and broadcast_single:
+        result[:] = values[0]
+    elif values.size:
+        result[: min(values.size, n_channels)] = values[:n_channels]
+    return result
+
+
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list[int]]], None]:
     """
     Load XML file and extract relevant information.
@@ -1773,16 +1798,8 @@ def load_ripples_events(
             ),
         )
 
-        def event_metadata(value: Any) -> Any:
-            values = np.asarray(value, dtype=object).reshape(-1)
-            if values.size == len(df):
-                return values
-            if values.size:
-                return values[0]
-            return np.nan
-
-        df["detectorName"] = event_metadata(detector_name)
-        df["ripple_channel"] = event_metadata(ripple_channel)
+        df["detectorName"] = _event_metadata(detector_name, len(df), "unknown")
+        df["ripple_channel"] = _event_metadata(ripple_channel, len(df))
         flagged = np.asarray(ripples.get("flagged", []), dtype=int).reshape(-1)
         if flagged.size:
             df = df.drop(index=flagged - 1, errors="ignore").reset_index(drop=True)
@@ -2268,9 +2285,9 @@ def load_theta_rem_shift(
             phase_stats = phase_data.get("phasestats", {})
             if isinstance(phase_stats, dict):
                 for statistic in ["m", "r", "k", "p", "mode"]:
-                    df[f"{statistic}_{output_name}"] = np.asarray(
-                        phase_stats.get(statistic, np.nan)
-                    ).reshape(-1)
+                    df[f"{statistic}_{output_name}"] = _event_metadata(
+                        phase_stats.get(statistic, np.nan), len(df)
+                    )
             result[output_name] = {
                 "phasedistros": np.asarray(phase_data.get("phasedistros", [])),
                 "spkphases": np.asarray(phase_data.get("spkphases", [])),
@@ -3161,12 +3178,15 @@ def load_deepSuperficialfromRipple(
         channels = np.asarray(deep_superficial["channel"], dtype=float).reshape(-1)
         channel_df["channel"] = channels
         channel_df["channel_sort_idx"] = np.arange(channels.size)
-        channel_df["channelDistance"] = np.asarray(
-            deep_superficial.get("channelDistance", np.nan)
-        ).reshape(-1)
-        channel_df["channelClass"] = np.asarray(
-            deep_superficial.get("channelClass", "unknown"), dtype=object
-        ).reshape(-1)
+        channel_df["channelDistance"] = _fit_channel_metadata(
+            deep_superficial.get("channelDistance", []), channels.size, np.nan
+        )
+        channel_df["channelClass"] = _fit_channel_metadata(
+            deep_superficial.get("channelClass", []),
+            channels.size,
+            "unknown",
+            broadcast_single=False,
+        )
         channel_df["shank"] = np.nan
         for label in ["ripple_power", "ripple_amplitude", "SWR_diff", "SWR_amplitude"]:
             values = np.asarray(deep_superficial.get(label, np.nan)).reshape(-1)
@@ -3323,17 +3343,22 @@ def load_mua_events(basepath: str) -> pd.DataFrame:
                 if values.size == 1
                 else np.nan
             )
-        df["amplitudeUnits"] = hse.get("amplitudeUnits", np.nan)
+        df["amplitudeUnits"] = _event_metadata(hse.get("amplitudeUnits", []), 0)
         detector_info = hse.get("detectorinfo", {})
-        df["detectorName"] = (
+        detector_name = (
             detector_info.get("detectorname", "unknown")
             if isinstance(detector_info, dict)
             else "unknown"
         )
+        df["detectorName"] = _event_metadata(detector_name, 0, "unknown")
         normalized_path = os.path.normpath(filename)
         path_components = normalized_path.split(os.sep)
         df["basepath"] = basepath
-        df["basename"] = path_components[-2]
+        df["basename"] = (
+            path_components[-2]
+            if len(path_components) >= 2
+            else os.path.basename(basepath)
+        )
         df["animal"] = path_components[-3] if len(path_components) >= 3 else np.nan
         return df
 
@@ -3445,7 +3470,9 @@ def load_manipulation(
                 if values.size == 1
                 else np.nan
             )
-        df["amplitudeUnits"] = manipulation.get("amplitudeUnits", np.nan)
+        df["amplitudeUnits"] = _event_metadata(
+            manipulation.get("amplitudeUnits", []), 0
+        )
         event_ids = np.asarray(manipulation.get("eventID", [])).reshape(-1)
         labels = np.asarray(manipulation.get("eventIDlabels", [])).reshape(-1)
         for label, event_id in zip(labels, np.unique(event_ids)):

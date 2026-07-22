@@ -2348,7 +2348,7 @@ def test_load_manipulation_basic():
                         "center": np.array([[1.25], [2.25], [3.25]]),
                         "duration": np.array([[0.5], [0.5], [0.5]]),
                         "amplitude": np.array([[100.0], [100.0], [100.0]]),
-                        "amplitudeUnits": "mW",
+                        "amplitudeUnits": np.array(["mW", "unused"], dtype=object),
                         "eventIDlabels": np.array(
                             ["stim_on", "stim_off"], dtype=object
                         ),
@@ -2414,6 +2414,7 @@ def test_load_manipulation_dataframe():
         assert "amplitude" in df.columns
         assert "ev_label" in df.columns
         assert df.start.iloc[0] == 1.0
+        assert (df["amplitudeUnits"] == "mW").all()
 
 
 def test_load_all_cell_metrics():
@@ -3775,6 +3776,74 @@ def test_load_cell_metrics_allows_empty_session_metadata(monkeypatch):
     assert metrics is not None
     assert metrics["sex"].isna().all()
     assert metrics["cellCount"].tolist() == [2, 2]
+
+
+def test_load_theta_rem_shift_broadcasts_scalar_phase_statistics(monkeypatch):
+    """Session-level phase statistics do not break multi-unit result tables."""
+    phase_data = {
+        "phasestats": {"m": 0.5, "r": np.array([]), "k": 1.0, "p": 0.1, "mode": 0.0},
+        "phasedistros": [],
+        "spkphases": [],
+    }
+    data = {
+        "rem_shift_data": {
+            "UID": np.array([1, 2]),
+            "circ_dist": np.array([0.1, 0.2]),
+            "rem_shift": np.array([0.3, 0.4]),
+            "non_rem_shift": np.array([0.5, 0.6]),
+            "PhaseLockingData_rem": phase_data,
+            "PhaseLockingData_wake": phase_data,
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["theta_rem_shift.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    metrics, _ = load_theta_rem_shift("session")
+
+    assert metrics["m_rem"].tolist() == [0.5, 0.5]
+    assert metrics["r_wake"].isna().all()
+
+
+def test_load_mua_events_broadcasts_session_metadata(monkeypatch):
+    """MUA metadata arrays shorter than the event table are treated as session data."""
+    data = {
+        "HSE": {
+            "timestamps": np.array([[1.0, 2.0], [3.0, 4.0]]),
+            "peaks": np.array([1.5, 3.5]),
+            "center": np.array([1.5, 3.5]),
+            "duration": np.array([1.0, 1.0]),
+            "amplitudes": np.array([4.0, 5.0]),
+            "amplitudeUnits": np.array(["uV", "unused"], dtype=object),
+            "detectorinfo": {"detectorname": np.array(["HSE", "unused"], dtype=object)},
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["mua_ca1_pyr.events.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    events = load_mua_events("session")
+
+    assert (events["amplitudeUnits"] == "uV").all()
+    assert (events["detectorName"] == "HSE").all()
+
+
+def test_load_deep_superficial_pads_incomplete_channel_metadata(monkeypatch):
+    """Partial channel annotations retain all channels with explicit missing values."""
+    data = {
+        "deepSuperficialfromRipple": {
+            "channel": np.array([1, 2]),
+            "channelDistance": np.array([]),
+            "channelClass": np.array(["deep"], dtype=object),
+            "ripple_time_axis": np.array([0.0, 0.1]),
+            "ripple_average": np.ones((2, 2)),
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["channelinfo.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    channels, _, _ = load_deepSuperficialfromRipple("session")
+
+    assert channels["channelDistance"].isna().all()
+    assert channels["channelClass"].tolist() == ["deep", "unknown"]
 
 
 @pytest.mark.parametrize(
