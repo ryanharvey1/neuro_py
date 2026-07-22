@@ -529,7 +529,7 @@ def _load_session_epochs_metadata(basepath: str) -> list[dict[str, Any]]:
             "Session metadata is required to locate per-epoch DAT files."
         )
 
-    data = load_mat(session_path, simplify_cells=True)
+    data = load_mat(session_path)
     session = data.get("session")
     if session is None or "epochs" not in session:
         raise ValueError("Session epochs not found in session metadata.")
@@ -1366,7 +1366,101 @@ def load_cell_metrics(
         return None, None
 
     # load cell_metrics file
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
+
+    # ``simplify_cells=True`` returns CellExplorer structs as dictionaries.
+    # Keep the data extraction on that stable representation so legacy and
+    # HDF5-backed MAT files follow the same path.
+    metrics = data["cell_metrics"]
+    if isinstance(metrics, dict):
+        uids = np.atleast_1d(np.asarray(metrics["UID"])).reshape(-1)
+        n_cells = uids.size
+        table: dict[str, Any] = {"UID": uids}
+        nested_fields = {"tags", "general", "spikes", "waveforms", "acg", "events"}
+        for name, value in metrics.items():
+            if name in nested_fields:
+                continue
+            values = np.asarray(value, dtype=object).reshape(-1)
+            if values.size == n_cells:
+                table[name] = [
+                    item.item()
+                    if isinstance(item, np.ndarray) and item.size == 1
+                    else item
+                    for item in values
+                ]
+        df = pd.DataFrame(table)
+
+        tags = metrics.get("tags", {})
+        if isinstance(tags, dict):
+            for name, tagged_uids in tags.items():
+                df[f"tags_{name}"] = df["UID"].isin(np.asarray(tagged_uids).reshape(-1))
+        df["bad_unit"] = df.get("tags_Bad", False)
+        df["bad_unit"] = df["bad_unit"].fillna(False).astype(bool)
+
+        general = metrics.get("general", {})
+        if not isinstance(general, dict):
+            general = {}
+        animal = general.get("animal", {})
+        if not isinstance(animal, dict):
+            animal = {}
+        for column, value in {
+            "basename": general.get("basename", os.path.basename(basepath)),
+            "basepath": basepath,
+            "sex": animal.get("sex", np.nan),
+            "species": animal.get("species", np.nan),
+            "strain": animal.get("strain", np.nan),
+            "geneticLine": animal.get("geneticLine", np.nan),
+            "cellCount": general.get("cellCount", n_cells),
+        }.items():
+            scalar = np.asarray(value).squeeze()
+            df[column] = (
+                scalar.item()
+                if isinstance(scalar, np.ndarray) and scalar.size == 1
+                else scalar
+            )
+
+        if only_metrics:
+            return df
+
+        def split_units(value: Any) -> list[NDArray[Any]]:
+            array = np.asarray(value, dtype=object)
+            if array.ndim == 0:
+                return [np.atleast_1d(array.item())]
+            if n_cells == 1:
+                return [array.reshape(-1)]
+            if array.shape[0] == n_cells:
+                return [
+                    np.asarray(array[index]).reshape(-1) for index in range(n_cells)
+                ]
+            return [np.asarray(item).reshape(-1) for item in array.reshape(-1)]
+
+        spikes_data = metrics.get("spikes", {})
+        spikes = (
+            split_units(spikes_data.get("times", []))
+            if isinstance(spikes_data, dict)
+            else []
+        )
+        waveforms_data = metrics.get("waveforms", {})
+        waveforms = (
+            np.asarray(waveforms_data.get("filt", []))
+            if isinstance(waveforms_data, dict)
+            else np.array([])
+        )
+        acg = metrics.get("acg", {})
+        if not isinstance(acg, dict):
+            acg = {}
+        return df, {
+            "acg_wide": acg.get("wide", np.array([])),
+            "acg_narrow": acg.get("narrow", np.array([])),
+            "acg_log10": acg.get("log10", np.array([])),
+            "ripple_fr": [],
+            "chanCoords_x": [],
+            "chanCoords_y": [],
+            "epochs": [],
+            "spikes": spikes,
+            "waveforms": waveforms,
+            "events_psth": [],
+        }
 
     # construct data frame with features per neuron
     df = {}
@@ -1497,7 +1591,25 @@ def load_SWRunitMetrics(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
+
+    swr_metrics = data["SWRunitMetrics"]
+    if isinstance(swr_metrics, dict):
+        frames = []
+        for epoch, values in swr_metrics.items():
+            if not isinstance(values, dict):
+                continue
+            participation = np.asarray(values.get("particip", [])).reshape(-1)
+            if participation.size == 0:
+                continue
+            frame = pd.DataFrame({"particip": participation})
+            for name, value in values.items():
+                column = np.asarray(value).reshape(-1)
+                if column.size == len(frame):
+                    frame[name] = column
+            frame["epoch"] = epoch
+            frames.append(frame)
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     df2 = pd.DataFrame()
     # loop through each available epoch and pull out contents
@@ -1619,7 +1731,60 @@ def load_ripples_events(
         return pd.DataFrame()
 
     # load matfile
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
+
+    ripples = data["ripples"]
+    if isinstance(ripples, dict):
+        timestamps = ripples.get("timestamps", ripples.get("times"))
+        timestamps_array = np.asarray(timestamps, dtype=float)
+        if timestamps_array.ndim == 1:
+            timestamps_array = timestamps_array.reshape(1, -1)
+        if timestamps_array.shape[1] != 2:
+            raise ValueError("Ripple timestamps must have start and stop columns.")
+        df = pd.DataFrame(timestamps_array, columns=pd.Index(["start", "stop"]))
+        for name in ["peaks", "amplitude", "duration", "frequency", "peakNormedPower"]:
+            values = np.asarray(ripples.get(name, np.nan), dtype=float).reshape(-1)
+            if values.size == len(df):
+                df[name] = values
+            elif values.size == 1:
+                df[name] = values.item()
+            else:
+                df[name] = np.nan
+        if df["duration"].isna().all():
+            df["duration"] = df["stop"] - df["start"]
+        detector_info = ripples.get("detectorinfo", {})
+        detector_params = (
+            detector_info.get("detectionparms", {})
+            if isinstance(detector_info, dict)
+            else {}
+        )
+        df["detectorName"] = (
+            detector_info.get("detectorname", ripples.get("detectorName", "unknown"))
+            if isinstance(detector_info, dict)
+            else ripples.get("detectorName", "unknown")
+        )
+        df["ripple_channel"] = detector_params.get(
+            "Channels",
+            detector_params.get(
+                "channel", detector_params.get("ripple_channel", np.nan)
+            ),
+        )
+        flagged = np.asarray(ripples.get("flagged", []), dtype=int).reshape(-1)
+        if flagged.size:
+            df = df.drop(index=flagged - 1, errors="ignore").reset_index(drop=True)
+        if manual_events and "added" in ripples:
+            df = _add_manual_events(
+                df, np.asarray(ripples["added"], dtype=float).reshape(-1).tolist()
+            )
+        df["event_spk_thres"] = int("eventSpikingParameters" in ripples)
+        normalized_path = os.path.normpath(filename)
+        path_components = normalized_path.split(os.sep)
+        df["basepath"] = basepath
+        df["basename"] = path_components[-2]
+        df["animal"] = path_components[-3] if len(path_components) >= 3 else np.nan
+        if return_epoch_array:
+            return nel.EpochArray(np.column_stack((df.start, df.stop)), label="ripples")
+        return df
 
     # make data frame of known fields
     df = pd.DataFrame()
@@ -1754,7 +1919,7 @@ def load_theta_cycles(
             return nel.EpochArray()
         return pd.DataFrame()
 
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     df = pd.DataFrame()
     df["start"] = data["thetacycles"]["timestamps"][:, 0]
     df["stop"] = data["thetacycles"]["timestamps"][:, 1]
@@ -1805,7 +1970,7 @@ def load_barrage_events(
         return pd.DataFrame()
 
     # load data from file and extract relevant data
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     data = data["HSEn2"]
 
     # convert to DataFrame
@@ -1895,7 +2060,7 @@ def load_ied_events(
 
     df = pd.DataFrame()
 
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     struct_name = list(data.keys())[-1]
     df["start"] = data[struct_name]["timestamps"][:, 0]
     df["stop"] = data[struct_name]["timestamps"][:, 1]
@@ -2007,7 +2172,7 @@ def load_dentate_spikes(
             continue
         # load matfile
         filename = matching_files[0]
-        data = load_mat(filename, simplify_cells=True)
+        data = load_mat(filename)
         # pull out data
         df = pd.concat(
             [df, extract_data(s_type, data, manual_events)], ignore_index=True
@@ -2070,9 +2235,33 @@ def load_theta_rem_shift(
         warnings.warn("file does not exist")
         return pd.DataFrame(), np.nan
 
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
 
     df = pd.DataFrame()
+
+    rem_shift_data = data["rem_shift_data"]
+    if isinstance(rem_shift_data, dict):
+        for name in ["UID", "circ_dist", "rem_shift", "non_rem_shift"]:
+            df[name] = np.asarray(rem_shift_data.get(name, [])).reshape(-1)
+        result: dict[str, dict[str, Any]] = {}
+        for output_name, source_name in [
+            ("rem", "PhaseLockingData_rem"),
+            ("wake", "PhaseLockingData_wake"),
+        ]:
+            phase_data = rem_shift_data.get(source_name, {})
+            if not isinstance(phase_data, dict):
+                phase_data = {}
+            phase_stats = phase_data.get("phasestats", {})
+            if isinstance(phase_stats, dict):
+                for statistic in ["m", "r", "k", "p", "mode"]:
+                    df[f"{statistic}_{output_name}"] = np.asarray(
+                        phase_stats.get(statistic, np.nan)
+                    ).reshape(-1)
+            result[output_name] = {
+                "phasedistros": np.asarray(phase_data.get("phasedistros", [])),
+                "spkphases": np.asarray(phase_data.get("spkphases", [])),
+            }
+        return df, result
 
     df["UID"] = data["rem_shift_data"]["UID"][0][0][0]
     df["circ_dist"] = data["rem_shift_data"]["circ_dist"][0][0][0]
@@ -2170,7 +2359,7 @@ def load_SleepState_states(
         return None
 
     # load cell_metrics file
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
 
     # get epoch id
     statenames = data["SleepState"]["idx"]["statenames"]
@@ -2268,7 +2457,7 @@ def load_animal_behavior(
             warnings.warn("file does not exist")
             return df
 
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
 
     def _assign_column(col_name: str, values) -> None:
         if col_name in df.columns:
@@ -2451,7 +2640,7 @@ def load_epoch(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
 
     def add_columns(df):
         """add columns to df if they don't exist"""
@@ -2513,7 +2702,7 @@ def load_trials(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load file
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     if "trials" not in data["behavior"].keys():
         warnings.warn("trials not found in file")
         return pd.DataFrame()
@@ -2607,7 +2796,7 @@ def load_brain_regions(
             return {}
 
     # load file
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     data = data["session"]
 
     if "brainRegions" not in data.keys():
@@ -2690,7 +2879,11 @@ def get_animal_id(basepath: str) -> Union[str, pd.DataFrame]:
         return pd.DataFrame()
 
     # load file
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
+    if isinstance(data.get("session"), dict):
+        animal = data["session"].get("animal", {})
+        if isinstance(animal, dict):
+            return str(animal.get("name", ""))
     return data["session"][0][0]["animal"][0][0]["name"][0]
 
 
@@ -2944,10 +3137,38 @@ def load_deepSuperficialfromRipple(
     filename = glob.glob(basepath + os.sep + file_type)[0]
 
     # load matfile
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
 
     channel_df = pd.DataFrame()
     name = "deepSuperficialfromRipple"
+
+    deep_superficial = data[name]
+    if isinstance(deep_superficial, dict):
+        channels = np.asarray(deep_superficial["channel"], dtype=float).reshape(-1)
+        channel_df["channel"] = channels
+        channel_df["channel_sort_idx"] = np.arange(channels.size)
+        channel_df["channelDistance"] = np.asarray(
+            deep_superficial.get("channelDistance", np.nan)
+        ).reshape(-1)
+        channel_df["channelClass"] = np.asarray(
+            deep_superficial.get("channelClass", "unknown"), dtype=object
+        ).reshape(-1)
+        channel_df["shank"] = np.nan
+        for label in ["ripple_power", "ripple_amplitude", "SWR_diff", "SWR_amplitude"]:
+            values = np.asarray(deep_superficial.get(label, np.nan)).reshape(-1)
+            channel_df[label] = values if values.size == channels.size else np.nan
+        ripple_time_axis = np.asarray(
+            deep_superficial.get("ripple_time_axis", [])
+        ).reshape(-1)
+        ripple_average = np.squeeze(
+            np.asarray(deep_superficial.get("ripple_average", []))
+        )
+        if ripple_average.ndim == 1:
+            ripple_average = ripple_average.reshape(1, -1)
+        if ripple_average.ndim == 2 and ripple_average.shape[1] == channels.size:
+            ripple_average = ripple_average.T
+        channel_df["basepath"] = basepath
+        return channel_df, ripple_average, ripple_time_axis
 
     # sometimes more channels positons will be in deepSuperficialfromRipple than in xml
     #   this is because they used channel id as an index.
@@ -3066,7 +3287,41 @@ def load_mua_events(basepath: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # load matfile
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
+
+    hse = data["HSE"]
+    if isinstance(hse, dict):
+        timestamps = np.asarray(hse["timestamps"], dtype=float)
+        if timestamps.ndim == 1:
+            timestamps = timestamps.reshape(1, -1)
+        df = pd.DataFrame(timestamps, columns=pd.Index(["start", "stop"]))
+        for output, source in [
+            ("peaks", "peaks"),
+            ("center", "center"),
+            ("duration", "duration"),
+            ("amplitude", "amplitudes"),
+        ]:
+            values = np.asarray(hse.get(source, np.nan)).reshape(-1)
+            df[output] = (
+                values
+                if values.size == len(df)
+                else values.item()
+                if values.size == 1
+                else np.nan
+            )
+        df["amplitudeUnits"] = hse.get("amplitudeUnits", np.nan)
+        detector_info = hse.get("detectorinfo", {})
+        df["detectorName"] = (
+            detector_info.get("detectorname", "unknown")
+            if isinstance(detector_info, dict)
+            else "unknown"
+        )
+        normalized_path = os.path.normpath(filename)
+        path_components = normalized_path.split(os.sep)
+        df["basepath"] = basepath
+        df["basename"] = path_components[-2]
+        df["animal"] = path_components[-3] if len(path_components) >= 3 else np.nan
+        return df
 
     # pull out and package data
     df = pd.DataFrame()
@@ -3155,31 +3410,49 @@ def load_manipulation(
     except Exception:
         return None
     # load matfile
-    data = load_mat(filename, simplify_cells=False)
+    data = load_mat(filename)
 
     if struct_name is None:
         struct_name = list(data.keys())[-1]
 
     df = pd.DataFrame()
-    df["start"] = data[struct_name]["timestamps"][0][0][:, 0]
-    df["stop"] = data[struct_name]["timestamps"][0][0][:, 1]
-    df["peaks"] = data[struct_name]["peaks"][0][0]
-    df["center"] = data[struct_name]["center"][0][0]
-    df["duration"] = data[struct_name]["duration"][0][0]
-    df["amplitude"] = data[struct_name]["amplitude"][0][0]
-    df["amplitudeUnits"] = data[struct_name]["amplitudeUnits"][0][0][0]
+    manipulation = data[struct_name]
+    if isinstance(manipulation, dict):
+        timestamps = np.asarray(manipulation["timestamps"], dtype=float)
+        if timestamps.ndim == 1:
+            timestamps = timestamps.reshape(1, -1)
+        df = pd.DataFrame(timestamps, columns=pd.Index(["start", "stop"]))
+        for name in ["peaks", "center", "duration", "amplitude"]:
+            values = np.asarray(manipulation.get(name, np.nan)).reshape(-1)
+            df[name] = (
+                values
+                if values.size == len(df)
+                else values.item()
+                if values.size == 1
+                else np.nan
+            )
+        df["amplitudeUnits"] = manipulation.get("amplitudeUnits", np.nan)
+        event_ids = np.asarray(manipulation.get("eventID", [])).reshape(-1)
+        labels = np.asarray(manipulation.get("eventIDlabels", [])).reshape(-1)
+        for label, event_id in zip(labels, np.unique(event_ids)):
+            df.loc[event_ids == event_id, "ev_label"] = label
+    else:
+        manipulation = None
 
-    # extract event label names
-    eventIDlabels = []
-    for name in data[struct_name]["eventIDlabels"][0][0][0]:
-        eventIDlabels.append(name[0])
-
-    # extract numeric category labels associated with label names
-    eventID = np.array(data[struct_name]["eventID"][0][0]).ravel()
-
-    # add eventIDlabels and eventID to df
-    for ev_label, ev_num in zip(eventIDlabels, np.unique(eventID)):
-        df.loc[eventID == ev_num, "ev_label"] = ev_label
+    if manipulation is None:
+        df["start"] = data[struct_name]["timestamps"][0][0][:, 0]
+        df["stop"] = data[struct_name]["timestamps"][0][0][:, 1]
+        df["peaks"] = data[struct_name]["peaks"][0][0]
+        df["center"] = data[struct_name]["center"][0][0]
+        df["duration"] = data[struct_name]["duration"][0][0]
+        df["amplitude"] = data[struct_name]["amplitude"][0][0]
+        df["amplitudeUnits"] = data[struct_name]["amplitudeUnits"][0][0][0]
+        eventIDlabels = []
+        for name in data[struct_name]["eventIDlabels"][0][0][0]:
+            eventIDlabels.append(name[0])
+        eventID = np.array(data[struct_name]["eventID"][0][0]).ravel()
+        for ev_label, ev_num in zip(eventIDlabels, np.unique(eventID)):
+            df.loc[eventID == ev_num, "ev_label"] = ev_label
 
     if return_epoch_array:
         # get session epochs to add support for epochs
@@ -3232,7 +3505,7 @@ def load_channel_tags(basepath: str) -> dict[str, Any]:
         A dictionary of channel tags from the session file.
     """
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     return data["session"]["channelTags"]
 
 
@@ -3254,7 +3527,7 @@ def load_extracellular_metadata(basepath: str) -> dict[str, Any]:
     # check if filename exist
     if not os.path.exists(filename):
         return {}
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     return data["session"]["extracellular"]
 
 
@@ -3277,7 +3550,7 @@ def load_probe_layout(basepath: str) -> Union[pd.DataFrame, None]:
     filename = glob.glob(os.path.join(basepath, "*.session.mat"))[0]
 
     # load file
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
     x = data["session"]["extracellular"]["chanCoords"]["x"]
     y = data["session"]["extracellular"]["chanCoords"]["y"]
 
@@ -3355,7 +3628,7 @@ def load_emg(
     )
 
     # load matfile
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
 
     # put emg data into AnalogSignalArray
     emg = nel.AnalogSignalArray(
@@ -3397,7 +3670,7 @@ def load_events(
     if not os.path.exists(filename):
         return None
 
-    data = load_mat(filename, simplify_cells=True)
+    data = load_mat(filename)
 
     if load_pandas:
         n_events = data[epoch_name]["timestamps"].shape[0]

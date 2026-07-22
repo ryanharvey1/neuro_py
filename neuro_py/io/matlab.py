@@ -17,17 +17,13 @@ def _v73_dependency_error(dependency: str) -> ImportError:
     )
 
 
-def load_mat(filename: str | Path, *, simplify_cells: bool = True) -> dict[str, Any]:
+def load_mat(filename: str | Path) -> dict[str, Any]:
     """Load a legacy or MATLAB v7.3 MAT-file.
 
     Parameters
     ----------
     filename : str or pathlib.Path
         MAT-file to load.
-    simplify_cells : bool, optional
-        Forwarded to :func:`scipy.io.loadmat` for legacy MAT-files. MATLAB v7.3
-        files are read by ``pymatreader``, whose output is already simplified.
-
     Returns
     -------
     dict
@@ -40,7 +36,7 @@ def load_mat(filename: str | Path, *, simplify_cells: bool = True) -> dict[str, 
         except ModuleNotFoundError as error:
             raise _v73_dependency_error("pymatreader") from error
         return read_mat(path)
-    return sio.loadmat(path, simplify_cells=simplify_cells)
+    return sio.loadmat(path, simplify_cells=True)
 
 
 def save_mat(
