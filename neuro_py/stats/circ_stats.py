@@ -1,5 +1,7 @@
 import warnings
 from collections import namedtuple
+from functools import wraps
+from inspect import signature
 from typing import (
     Any,
     Callable,
@@ -13,7 +15,6 @@ from typing import (
 )
 
 import numpy as np
-from decorator import decorator
 from numpy.typing import NDArray
 from scipy import stats
 
@@ -95,7 +96,8 @@ def mod2pi(f: Callable[..., Any]) -> Callable[..., Any]:
         A wrapper function that applies modulo 2*pi on the output.
     """
 
-    def wrapper(f, *args, **kwargs):
+    @wraps(f)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         ret = f(*args, **kwargs)
 
         if isinstance(ret, tuple):
@@ -119,7 +121,7 @@ def mod2pi(f: Callable[..., Any]) -> Callable[..., Any]:
         else:
             raise TypeError("Type not known!")
 
-    return decorator(wrapper, f)
+    return wrapper
 
 
 class bootstrap:
@@ -162,27 +164,37 @@ class bootstrap:
         return val
 
     def __call__(self, f):
-        def wrapper(f, *args, **kwargs):
-            args = list(args)
-            ci = self._get_var(f, "ci", None, args, kwargs, remove=True)
-            bootstrap_iter = self._get_var(
-                f, "bootstrap_iter", None, args, kwargs, remove=True
-            )
-            axis = self._get_var(f, "axis", None, args, kwargs)
+        func_signature = signature(f)
+        bootstrap_names = list(func_signature.parameters)[: self.no_boostrap]
 
-            alpha = args[: self.no_boostrap]
-            args0 = args[self.no_boostrap :]
+        @wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            bound_args = func_signature.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            ci = bound_args.arguments["ci"]
+            bootstrap_iter = bound_args.arguments["bootstrap_iter"]
+            axis = bound_args.arguments["axis"]
+            alpha = [bound_args.arguments[name] for name in bootstrap_names]
 
             if bootstrap_iter is None:
                 bootstrap_iter = (
                     alpha[0].shape[axis] if axis is not None else alpha[0].size
                 )
 
-            r0 = f(*(alpha + args0), **kwargs)
+            r0 = f(*bound_args.args, **bound_args.kwargs)
             if ci is not None:
+
+                def bootstrap_sample(sample: Iterable[Any]) -> Any:
+                    sample_args = bound_args.arguments.copy()
+                    for name, value in zip(bootstrap_names, sample):
+                        sample_args[name] = value
+                    sample_bound_args = func_signature.bind(**sample_args)
+                    return f(*sample_bound_args.args, **sample_bound_args.kwargs)
+
                 r = np.asarray(
                     [
-                        f(*(list(a) + args0), **kwargs)
+                        bootstrap_sample(a)
                         for a in nd_bootstrap(
                             alpha, bootstrap_iter, axis=axis, strip_tuple_if_one=False
                         )
@@ -206,7 +218,7 @@ class bootstrap:
             else:
                 return r0
 
-        return decorator(wrapper, f)
+        return wrapper
 
 
 @mod2pi
@@ -633,41 +645,29 @@ class swap2zeroaxis:
         self.out_idx = out_idx
 
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        def _deco(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-            args_list = list(args)
-            to_swap_idx, to_swap_keys = get_var(f, self.inputs, args_list, kwargs)
+        func_signature = signature(f)
 
-            # extract axis parameter
-            try:
-                axis_idx, axis_kw = get_var(f, ["axis"], args_list, kwargs)
-                if len(axis_idx) == 0 and len(axis_kw) == 0:
-                    axis = None
-                else:
-                    if len(axis_idx) > 0:
-                        axis, args_list[axis_idx[0]] = args_list[axis_idx[0]], 0
-                    else:
-                        axis, kwargs[axis_kw[0]] = kwargs[axis_kw[0]], 0
-            except ValueError:
-                axis = None
+        @wraps(f)
+        def _deco(*args: Any, **kwargs: Any) -> Any:
+            bound_args = func_signature.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            axis = bound_args.arguments.get("axis")
 
             # adjust axes or flatten
             if axis is not None:
-                for i in to_swap_idx:
-                    if args_list[i] is not None:
-                        args_list[i] = args_list[i].swapaxes(0, axis)
-                for k in to_swap_keys:
-                    if kwargs[k] is not None:
-                        kwargs[k] = kwargs[k].swapaxes(0, axis)
+                bound_args.arguments["axis"] = 0
+                for name in self.inputs:
+                    if bound_args.arguments[name] is not None:
+                        bound_args.arguments[name] = bound_args.arguments[
+                            name
+                        ].swapaxes(0, axis)
             else:
-                for i in to_swap_idx:
-                    if args_list[i] is not None:
-                        args_list[i] = args_list[i].ravel()
-                for k in to_swap_keys:
-                    if kwargs[k] is not None:
-                        kwargs[k] = kwargs[k].ravel()
+                for name in self.inputs:
+                    if bound_args.arguments[name] is not None:
+                        bound_args.arguments[name] = bound_args.arguments[name].ravel()
 
             # compute function
-            outputs: Any = f(*args_list, **kwargs)
+            outputs: Any = f(*bound_args.args, **bound_args.kwargs)
 
             # swap everything back into place
             if len(self.out_idx) > 0 and axis is not None:
@@ -688,7 +688,7 @@ class swap2zeroaxis:
             else:
                 return outputs
 
-        return decorator(_deco, f)
+        return _deco
 
 
 @swap2zeroaxis(["alpha", "w"], [0, 1])
