@@ -66,6 +66,17 @@ def test_load_events_reads_v73_file(tmp_path):
     assert events["stops"].tolist() == [2.0, 4.0]
 
 
+def test_save_mat_v73_replaces_existing_legacy_file(tmp_path):
+    """Converting a legacy MAT-file in place creates a valid v7.3 file."""
+    filename = tmp_path / "session.mat"
+    sio.savemat(filename, {"session": {"timestamps": np.array([[1.0, 2.0]])}})
+
+    save_mat(filename, load_mat(filename), format="v7.3")
+
+    assert h5py.is_hdf5(filename)
+    assert "session" in load_mat(filename)
+
+
 def test_save_mat_rejects_unknown_format(tmp_path):
     """Unsupported MAT formats fail clearly rather than silently changing output."""
     with pytest.raises(ValueError, match="format"):

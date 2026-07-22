@@ -59,6 +59,7 @@ def save_mat(
             data,
             fmt="7.3",
             matlab_compatible=True,
+            truncate_existing=True,
         )
         return
     raise ValueError("format must be either 'v7' or 'v7.3'")
