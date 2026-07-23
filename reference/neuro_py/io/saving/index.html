@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../loading/">
+        <link rel="prev" href="../matlab/">
       
       
         <link rel="next" href="../../lfp/">
@@ -1540,6 +1540,8 @@
       
         
       
+        
+      
     
     
     
@@ -1605,6 +1607,33 @@
     
   
   loading
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../matlab/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  matlab
 
     
   </span>
@@ -3773,6 +3802,8 @@
       
         
       
+        
+      
     
     
     
@@ -3848,7 +3879,7 @@
 
 
 <h2 id="neuro_py.io.saving.epoch_to_mat" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">epoch_to_mat</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="p">,</span> <span class="n">detection_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">epoch_to_mat</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="n">epoch_name</span><span class="p">,</span> <span class="n">detection_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;v7&#39;</span><span class="p">)</span></code>
 
 <a href="#neuro_py.io.saving.epoch_to_mat" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -3933,14 +3964,29 @@
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>format</code>
+            </td>
+            <td>
+                  <code>(<span title="v7">v7</span>, &#39;v7.3&#39;)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>MAT-file format, by default <code>"v7"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;v7&#34;</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/saving.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 9</span>
-<span class="normal">10</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
 <span class="normal">13</span>
@@ -3994,11 +4040,16 @@
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">epoch_to_mat</span><span class="p">(</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">epoch_to_mat</span><span class="p">(</span>
     <span class="n">epoch</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">epoch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">detection_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;v7&quot;</span><span class="p">,</span> <span class="s2">&quot;v7.3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;v7&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save an EpochArray to a .mat file in the Cell Explorer format.</span>
@@ -4013,6 +4064,8 @@
 <span class="sd">        Name of the epoch.</span>
 <span class="sd">    detection_name : Union[None, str], optional</span>
 <span class="sd">        Name of the detection, by default None.</span>
+<span class="sd">    format : {&quot;v7&quot;, &quot;v7.3&quot;}, optional</span>
+<span class="sd">        MAT-file format, by default ``&quot;v7&quot;``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">basepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">epoch_name</span> <span class="o">+</span> <span class="s2">&quot;.events.mat&quot;</span>
@@ -4049,7 +4102,7 @@
     <span class="n">data</span><span class="p">[</span><span class="n">epoch_name</span><span class="p">][</span><span class="s2">&quot;detectorinfo&quot;</span><span class="p">][</span><span class="s2">&quot;detectionparms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">data</span><span class="p">[</span><span class="n">epoch_name</span><span class="p">][</span><span class="s2">&quot;detectorinfo&quot;</span><span class="p">][</span><span class="s2">&quot;detectionintervals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="n">savemat</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">long_field_names</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">save_mat</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4105,7 +4158,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../loading/" class="md-footer__link md-footer__link--prev" aria-label="Previous: loading">
+          <a href="../matlab/" class="md-footer__link md-footer__link--prev" aria-label="Previous: matlab">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -4115,7 +4168,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                loading
+                matlab
               </div>
             </div>
           </a>
