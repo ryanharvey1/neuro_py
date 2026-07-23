@@ -226,8 +226,37 @@ def test_load_animal_behavior_filters_random_fields():
         assert "wrong_len" not in df.columns
         assert "two_d" not in df.columns
         assert "empty_array" not in df.columns
-        assert "notes" in df.columns
-        assert (df["epochs"] == "task").all()
+    assert "notes" in df.columns
+    assert (df["epochs"] == "task").all()
+
+
+def test_load_animal_behavior_skips_ragged_metadata(monkeypatch):
+    """Ragged v7.3 metadata is not mistaken for a sample-aligned column."""
+    data = {
+        "behavior": {
+            "timestamps": np.array([0.0, 1.0, 2.0]),
+            "speed": np.array([1.0, 2.0, 3.0]),
+            "notes": [np.array(["first"]), np.array(["second", "third"])],
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["behavior.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_epoch",
+        lambda _: pd.DataFrame(
+            {
+                "name": ["task"],
+                "startTime": [0.0],
+                "stopTime": [2.0],
+                "environment": ["linear"],
+            }
+        ),
+    )
+
+    df = load_animal_behavior("session")
+
+    assert df["speed"].tolist() == [1.0, 2.0, 3.0]
+    assert "notes" not in df.columns
 
 
 def test_load_animal_behavior_filters_scalar_arrays():
@@ -2572,6 +2601,26 @@ def test_load_events_epoch_array_and_dataframe():
         assert "amplitude" in df.columns
         assert "labels" in df.columns
         assert "extra2d" not in df.columns
+
+
+def test_load_events_accepts_event_aligned_v73_lists(tmp_path, monkeypatch):
+    """v7.3 list-backed event metadata is retained as a dataframe column."""
+    basepath = tmp_path / "session"
+    basepath.mkdir()
+    (basepath / "session.MergePoints.events.mat").touch()
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_mat",
+        lambda _: {
+            "MergePoints": {
+                "timestamps": np.array([[0.0, 1.0], [2.0, 3.0]]),
+                "foldernames": ["first", "second"],
+            }
+        },
+    )
+
+    events = load_events(str(basepath), "MergePoints", load_pandas=True)
+
+    assert events["foldernames"].tolist() == ["first", "second"]
 
 
 def test_load_channel_tags_and_extracellular_metadata():

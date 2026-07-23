@@ -77,7 +77,9 @@ def _matlab_array_leaves(value: Any) -> list[NDArray[Any]]:
         return [leaf for item in value for leaf in _matlab_array_leaves(item)]
     array = np.asarray(value)
     if array.dtype == object:
-        return [leaf for item in array.reshape(-1) for leaf in _matlab_array_leaves(item)]
+        return [
+            leaf for item in array.reshape(-1) for leaf in _matlab_array_leaves(item)
+        ]
     return [array]
 
 
@@ -2141,6 +2143,16 @@ def load_animal_behavior(
             )
         df[col_name] = values
 
+    def _is_aligned_series(values: Any) -> bool:
+        """Return whether a MATLAB value can be represented as a dataframe column."""
+        if not isinstance(values, (list, np.ndarray)):
+            return True
+        try:
+            array = np.asarray(values)
+        except ValueError:
+            return False
+        return array.ndim <= 1 and (array.ndim == 0 or len(array) == len(df))
+
     # add timestamps first which provide the correct shape of df
     # here, I'm naming them time, but this should be deprecated
     _assign_column("time", data["behavior"]["timestamps"])
@@ -2171,12 +2183,8 @@ def load_animal_behavior(
                     continue
                 if isinstance(values, dict):
                     continue
-                if isinstance(values, (list, np.ndarray)):
-                    arr = np.asarray(values)
-                    if arr.ndim > 1:
-                        continue
-                    if arr.ndim == 1 and len(arr) != len(df):
-                        continue
+                if not _is_aligned_series(values):
+                    continue
                 if series_name == "position":
                     _assign_column(key, values)
                 else:
@@ -2189,12 +2197,8 @@ def load_animal_behavior(
         values = data["behavior"][key]
         if isinstance(values, dict):
             continue
-        if isinstance(values, (list, np.ndarray)):
-            arr = np.asarray(values)
-            if arr.ndim > 1:
-                continue
-            if arr.ndim == 1 and len(arr) != len(df):
-                continue
+        if not _is_aligned_series(values):
+            continue
         _assign_column(key, values)
 
     # add speed and acceleration (only if we have x and y coordinates and enough samples)
@@ -2216,10 +2220,8 @@ def load_animal_behavior(
         trials = data["behavior"]["trials"]
         # If trials is a struct/dict, support common fields
         if isinstance(trials, dict):
-            if "trials" in trials and isinstance(trials["trials"], (list, np.ndarray)):
-                arr = np.asarray(trials["trials"])
-                if arr.ndim == 1 and len(arr) == len(df):
-                    _assign_column("trials", arr)
+            if "trials" in trials and _is_aligned_series(trials["trials"]):
+                _assign_column("trials", trials["trials"])
             elif {
                 "start",
                 "stop",
@@ -2257,12 +2259,8 @@ def load_animal_behavior(
         for key, values in data["behavior"]["timeSeries"].items():
             if isinstance(values, dict):
                 continue
-            if isinstance(values, (list, np.ndarray)):
-                arr = np.asarray(values)
-                if arr.ndim > 1:
-                    continue
-                if arr.ndim == 1 and len(arr) != len(df):
-                    continue
+            if not _is_aligned_series(values):
+                continue
             _assign_column(f"timeSeries_{key}", values)
 
     # Initialize epoch columns with object dtype to hold strings
@@ -2840,9 +2838,7 @@ def load_deepSuperficialfromRipple(
         ripple_time_axis = np.asarray(
             deep_superficial.get("ripple_time_axis", [])
         ).reshape(-1)
-        ripple_arrays = _matlab_array_leaves(
-            deep_superficial.get("ripple_average", [])
-        )
+        ripple_arrays = _matlab_array_leaves(deep_superficial.get("ripple_average", []))
         ragged_cell_traces = bool(ripple_arrays) and all(
             array.ndim == 2 for array in ripple_arrays
         )
@@ -3252,12 +3248,15 @@ def load_events(
             columns=np.array(["starts", "stops"], dtype=object),
         )
         for key in data[epoch_name].keys():
-            if (
-                isinstance(data[epoch_name][key], np.ndarray)
-                and data[epoch_name][key].shape[0] == n_events
-                and data[epoch_name][key].ndim == 1
-            ):
-                event_df[key] = data[epoch_name][key]
+            value = data[epoch_name][key]
+            if not isinstance(value, (list, tuple, np.ndarray)):
+                continue
+            try:
+                values = np.asarray(value)
+            except ValueError:
+                continue
+            if values.ndim == 1 and values.size == n_events:
+                event_df[key] = values
         return event_df
 
     return nel.EpochArray(data[epoch_name]["timestamps"])
