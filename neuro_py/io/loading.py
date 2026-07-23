@@ -6,7 +6,6 @@ import multiprocessing
 import os
 import sys
 import warnings
-from itertools import chain
 from typing import Any, Dict, List, Sequence, Tuple, Union, cast
 from xml.dom import minidom
 from xml.dom.minidom import Element
@@ -58,6 +57,28 @@ def _fit_channel_metadata(
     elif values.size:
         result[: min(values.size, n_channels)] = values[:n_channels]
     return result
+
+
+def _flatten_matlab_cells(value: Any) -> NDArray[Any]:
+    """Flatten nested MATLAB cell arrays while retaining ragged cell contents."""
+    if isinstance(value, (list, tuple)):
+        values = [_flatten_matlab_cells(item) for item in value]
+        return np.concatenate(values) if values else np.array([])
+    array = np.asarray(value)
+    if array.dtype != object:
+        return array.reshape(-1)
+    values = [_flatten_matlab_cells(item) for item in array.reshape(-1)]
+    return np.concatenate(values) if values else np.array([])
+
+
+def _matlab_array_leaves(value: Any) -> list[NDArray[Any]]:
+    """Extract numeric array leaves from nested MATLAB cell arrays."""
+    if isinstance(value, (list, tuple)):
+        return [leaf for item in value for leaf in _matlab_array_leaves(item)]
+    array = np.asarray(value)
+    if array.dtype == object:
+        return [leaf for item in array.reshape(-1) for leaf in _matlab_array_leaves(item)]
+    return [array]
 
 
 def loadXML(basepath: str) -> Union[Tuple[int, int, int, Dict[int, list[int]]], None]:
@@ -2814,17 +2835,29 @@ def load_deepSuperficialfromRipple(
         )
         channel_df["shank"] = np.nan
         for label in ["ripple_power", "ripple_amplitude", "SWR_diff", "SWR_amplitude"]:
-            values = np.asarray(deep_superficial.get(label, np.nan)).reshape(-1)
+            values = _flatten_matlab_cells(deep_superficial.get(label, np.nan))
             channel_df[label] = values if values.size == channels.size else np.nan
         ripple_time_axis = np.asarray(
             deep_superficial.get("ripple_time_axis", [])
         ).reshape(-1)
-        ripple_average = np.squeeze(
-            np.asarray(deep_superficial.get("ripple_average", []))
+        ripple_arrays = _matlab_array_leaves(
+            deep_superficial.get("ripple_average", [])
+        )
+        ragged_cell_traces = bool(ripple_arrays) and all(
+            array.ndim == 2 for array in ripple_arrays
+        )
+        ripple_average = (
+            np.concatenate(ripple_arrays, axis=1).T
+            if ragged_cell_traces
+            else np.squeeze(np.asarray(ripple_arrays))
         )
         if ripple_average.ndim == 1:
             ripple_average = ripple_average.reshape(1, -1)
-        if ripple_average.ndim == 2 and ripple_average.shape[1] == channels.size:
+        if (
+            not ragged_cell_traces
+            and ripple_average.ndim == 2
+            and ripple_average.shape[1] == channels.size
+        ):
             ripple_average = ripple_average.T
         channel_df["basepath"] = basepath
         return channel_df, ripple_average, ripple_time_axis
@@ -3108,33 +3141,25 @@ def load_probe_layout(basepath: str) -> Union[pd.DataFrame, None]:
         return None
 
     electrode_groups = data["session"]["extracellular"]["electrodeGroups"]["channels"]
+    n_groups = int(data["session"]["extracellular"]["nElectrodeGroups"])
+    group_channels = (
+        list(electrode_groups)
+        if isinstance(electrode_groups, list)
+        or (
+            isinstance(electrode_groups, np.ndarray)
+            and electrode_groups.dtype == object
+        )
+        else [electrode_groups]
+    )
 
-    # for each group in electrodeGroups
-    mapped_shanks = []
+    # MATLAB uses one-based channel IDs. Convert them to integer positional
+    # indices before using them to select coordinate rows.
     mapped_channels = []
-
-    n_groups = data["session"]["extracellular"]["nElectrodeGroups"]
-
-    if n_groups > 1:
-        # loop through electrode groups
-        for group_i in np.arange(n_groups):
-            mapped_channels.append(
-                electrode_groups[group_i] - 1
-            )  # -1 to make 0 indexed
-            mapped_shanks.append(np.repeat(group_i, len(electrode_groups[group_i])))
-
-    elif n_groups == 1:
-        mapped_channels.append(electrode_groups - 1)  # -1 to make 0 indexed
-        mapped_shanks.append(
-            np.repeat(0, len(electrode_groups))
-        )  # electrode group for single shank always 0
-
-    #  unpack to lists
-    mapped_channels = list(chain(*mapped_channels))
-    shanks = list(chain(*mapped_shanks))
-
-    # get shank in same dimension as channels
-    shanks = np.expand_dims(shanks, axis=1)
+    shanks = []
+    for group_i, channels in enumerate(group_channels[:n_groups]):
+        channel_indices = np.asarray(channels, dtype=int).reshape(-1) - 1
+        mapped_channels.extend(channel_indices.tolist())
+        shanks.extend([group_i] * channel_indices.size)
 
     probe_layout = (
         pd.DataFrame({"x": x.flatten(), "y": y.flatten()})

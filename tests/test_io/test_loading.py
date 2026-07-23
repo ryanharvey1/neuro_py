@@ -2512,6 +2512,35 @@ def test_load_deepSuperficialfromRipple():
     assert ripple_time_axis.tolist() == [-0.1, 0.0, 0.1]
 
 
+def test_load_deep_superficial_flattens_ragged_v73_cells():
+    """Ragged v7.3 cell arrays retain one metric and trace per channel."""
+    data = {
+        "deepSuperficialfromRipple": {
+            "channel": np.array([1, 2, 3]),
+            "channelDistance": np.array([0.0, 1.0, 2.0]),
+            "channelClass": ["deep", "superficial", "deep"],
+            "ripple_power": [np.array([1.0, 2.0]), np.array([3.0])],
+            "ripple_amplitude": [np.array([4.0, 5.0]), np.array([6.0])],
+            "SWR_diff": [np.array([7.0, 8.0]), np.array([9.0])],
+            "SWR_amplitude": [np.array([10.0, 11.0]), np.array([12.0])],
+            "ripple_time_axis": np.array([-0.1, 0.0, 0.1]),
+            "ripple_average": [
+                np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]]),
+                np.array([[7.0], [8.0], [9.0]]),
+            ],
+        }
+    }
+    with (
+        patch("glob.glob", return_value=["channelinfo.mat"]),
+        patch("neuro_py.io.loading.load_mat", return_value=data),
+    ):
+        channels, ripple_average, _ = load_deepSuperficialfromRipple("session")
+
+    assert channels["ripple_power"].tolist() == [1.0, 2.0, 3.0]
+    assert ripple_average.shape == (3, 3)
+    assert ripple_average[:, 0].tolist() == [1.0, 4.0, 7.0]
+
+
 def test_load_events_epoch_array_and_dataframe():
     """Test load_events returns EpochArray or DataFrame based on load_pandas flag."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2613,6 +2642,29 @@ def test_load_probe_layout():
         assert list(probe_layout.columns) == ["x", "y", "shank", "channels"]
         assert probe_layout["channels"].tolist() == [0, 1, 2, 3]
         assert probe_layout["shank"].tolist() == [0, 0, 0, 0]
+
+
+def test_load_probe_layout_accepts_float_v73_channel_groups(monkeypatch):
+    """v7.3 channel groups can be lists of float-valued MATLAB arrays."""
+    data = {
+        "session": {
+            "extracellular": {
+                "nElectrodeGroups": 2.0,
+                "chanCoords": {"x": np.array([10, 20, 30]), "y": np.array([1, 2, 3])},
+                "electrodeGroups": {
+                    "channels": [np.array([1.0, 2.0]), np.array([3.0])]
+                },
+            }
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["session.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    probe_layout = load_probe_layout("session")
+
+    assert probe_layout is not None
+    assert probe_layout["channels"].tolist() == [0, 1, 2]
+    assert probe_layout["shank"].tolist() == [0, 0, 1]
 
 
 def test_load_emg():
