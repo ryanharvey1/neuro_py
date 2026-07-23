@@ -35,6 +35,8 @@ __all__ = (
     "load_emg",
     "load_events",
     "epoch_to_mat",
+    "load_mat",
+    "save_mat",
 )
 
 from .loading import (
@@ -74,4 +76,5 @@ from .loading import (
     loadXML,
     writeNeuroscopeEvents,
 )
+from .matlab import load_mat, save_mat
 from .saving import epoch_to_mat

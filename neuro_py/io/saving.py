@@ -1,9 +1,10 @@
 import os
-from typing import Union
+from typing import Literal, Union
 
 import nelpy as nel
 import numpy as np
-from scipy.io import savemat
+
+from neuro_py.io.matlab import save_mat
 
 
 def epoch_to_mat(
@@ -11,6 +12,7 @@ def epoch_to_mat(
     basepath: str,
     epoch_name: str,
     detection_name: Union[None, str] = None,
+    format: Literal["v7", "v7.3"] = "v7",
 ) -> None:
     """
     Save an EpochArray to a .mat file in the Cell Explorer format.
@@ -25,6 +27,8 @@ def epoch_to_mat(
         Name of the epoch.
     detection_name : Union[None, str], optional
         Name of the detection, by default None.
+    format : {"v7", "v7.3"}, optional
+        MAT-file format, by default ``"v7"``.
     """
     filename = os.path.join(
         basepath, os.path.basename(basepath) + "." + epoch_name + ".events.mat"
@@ -61,4 +65,4 @@ def epoch_to_mat(
     data[epoch_name]["detectorinfo"]["detectionparms"] = []
     data[epoch_name]["detectorinfo"]["detectionintervals"] = []
 
-    savemat(filename, data, long_field_names=True)
+    save_mat(filename, data, format=format)

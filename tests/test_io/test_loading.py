@@ -14,20 +14,28 @@ from neuro_py.io.loading import (
     VirtualConcatenatedDat,
     load_all_cell_metrics,
     load_animal_behavior,
+    load_barrage_events,
+    load_basic_data,
     load_brain_regions,
     load_cell_metrics,
     load_channel_tags,
     load_deepSuperficialfromRipple,
+    load_dentate_spikes,
     load_emg,
     load_epoch,
     load_events,
     load_extracellular_metadata,
+    load_ied_events,
     load_manipulation,
+    load_mua_events,
+    load_position,
     load_probe_layout,
     load_ripples_events,
     load_SleepState_states,
     load_spikes,
+    load_SWRunitMetrics,
     load_theta_cycles,
+    load_theta_rem_shift,
     load_trials,
     loadLFP,
     loadXML,
@@ -218,8 +226,37 @@ def test_load_animal_behavior_filters_random_fields():
         assert "wrong_len" not in df.columns
         assert "two_d" not in df.columns
         assert "empty_array" not in df.columns
-        assert "notes" in df.columns
-        assert (df["epochs"] == "task").all()
+    assert "notes" in df.columns
+    assert (df["epochs"] == "task").all()
+
+
+def test_load_animal_behavior_skips_ragged_metadata(monkeypatch):
+    """Ragged v7.3 metadata is not mistaken for a sample-aligned column."""
+    data = {
+        "behavior": {
+            "timestamps": np.array([0.0, 1.0, 2.0]),
+            "speed": np.array([1.0, 2.0, 3.0]),
+            "notes": [np.array(["first"]), np.array(["second", "third"])],
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["behavior.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_epoch",
+        lambda _: pd.DataFrame(
+            {
+                "name": ["task"],
+                "startTime": [0.0],
+                "stopTime": [2.0],
+                "environment": ["linear"],
+            }
+        ),
+    )
+
+    df = load_animal_behavior("session")
+
+    assert df["speed"].tolist() == [1.0, 2.0, 3.0]
+    assert "notes" not in df.columns
 
 
 def test_load_animal_behavior_filters_scalar_arrays():
@@ -2204,7 +2241,7 @@ def test_load_ripples_events_basic():
                         "detectorinfo": {
                             "detectorname": "auto_detector",
                             "detectionparms": {
-                                "Channels": 10,
+                                "Channels": np.array([10, 11]),
                             },
                         },
                     }
@@ -2224,6 +2261,7 @@ def test_load_ripples_events_basic():
         assert "frequency" in df.columns
         assert "detectorName" in df.columns
         assert "ripple_channel" in df.columns
+        assert (df["ripple_channel"] == 10).all()
         assert "basepath" in df.columns
         assert df.start.iloc[0] == 0.1
         assert df.stop.iloc[0] == 0.15
@@ -2339,7 +2377,7 @@ def test_load_manipulation_basic():
                         "center": np.array([[1.25], [2.25], [3.25]]),
                         "duration": np.array([[0.5], [0.5], [0.5]]),
                         "amplitude": np.array([[100.0], [100.0], [100.0]]),
-                        "amplitudeUnits": "mW",
+                        "amplitudeUnits": np.array(["mW", "unused"], dtype=object),
                         "eventIDlabels": np.array(
                             ["stim_on", "stim_off"], dtype=object
                         ),
@@ -2405,6 +2443,7 @@ def test_load_manipulation_dataframe():
         assert "amplitude" in df.columns
         assert "ev_label" in df.columns
         assert df.start.iloc[0] == 1.0
+        assert (df["amplitudeUnits"] == "mW").all()
 
 
 def test_load_all_cell_metrics():
@@ -2467,26 +2506,68 @@ def test_load_all_cell_metrics():
 
 
 def test_load_deepSuperficialfromRipple():
-    """Test that load_deepSuperficialfromRipple function is importable and has correct signature.
+    """Deep/superficial loader returns channels and ripple traces from a MAT file."""
+    with tempfile.TemporaryDirectory() as basepath:
+        filename = os.path.join(
+            basepath, "session.deepSuperficialfromRipple.channelinfo.mat"
+        )
+        data = {
+            "deepSuperficialfromRipple": {
+                "channel": [[np.array([1, 2])]],
+                "ripple_channels": [[[[(np.array([1, 2]),)]]]],
+                "channelDistance": [[np.array([[0.0], [1.0]])]],
+                "channelClass": [[[np.array([["deep"]]), np.array([["superficial"]])]]],
+                "ripple_power": [[[np.array([[1.0, 2.0]])]]],
+                "ripple_amplitude": [[[np.array([[3.0, 4.0]])]]],
+                "SWR_diff": [[[np.array([[5.0, 6.0]])]]],
+                "SWR_amplitude": [[[np.array([[7.0, 8.0]])]]],
+                "ripple_time_axis": [[[np.array([-0.1, 0.0, 0.1])]]],
+                "ripple_average": [
+                    [[[np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])]]]
+                ],
+            }
+        }
+        open(filename, "wb").close()
+        with (
+            patch("neuro_py.io.loading.load_mat", return_value=data),
+            patch("neuro_py.io.loading.load_brain_regions", return_value={}),
+        ):
+            channels, ripple_average, ripple_time_axis = load_deepSuperficialfromRipple(
+                basepath
+            )
 
-    Note: Full functional testing of this function requires complex MATLAB struct data that is
-    difficult to replicate accurately with scipy.io.savemat. This test verifies the function
-    exists and can be called properly.
-    """
-    # Verify function is imported and callable
-    assert callable(load_deepSuperficialfromRipple)
+    assert channels["channel"].tolist() == [1.0, 2.0]
+    assert ripple_average.shape == (2, 3)
+    assert ripple_time_axis.tolist() == [-0.1, 0.0, 0.1]
 
-    # Verify function signature using inspect
-    import inspect
 
-    sig = inspect.signature(load_deepSuperficialfromRipple)
-    params = list(sig.parameters.keys())
-    assert "basepath" in params
-    assert "bypass_mismatch_exception" in params
+def test_load_deep_superficial_flattens_ragged_v73_cells():
+    """Ragged v7.3 cell arrays retain one metric and trace per channel."""
+    data = {
+        "deepSuperficialfromRipple": {
+            "channel": np.array([1, 2, 3]),
+            "channelDistance": np.array([0.0, 1.0, 2.0]),
+            "channelClass": ["deep", "superficial", "deep"],
+            "ripple_power": [np.array([1.0, 2.0]), np.array([3.0])],
+            "ripple_amplitude": [np.array([4.0, 5.0]), np.array([6.0])],
+            "SWR_diff": [np.array([7.0, 8.0]), np.array([9.0])],
+            "SWR_amplitude": [np.array([10.0, 11.0]), np.array([12.0])],
+            "ripple_time_axis": np.array([-0.1, 0.0, 0.1]),
+            "ripple_average": [
+                np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]]),
+                np.array([[7.0], [8.0], [9.0]]),
+            ],
+        }
+    }
+    with (
+        patch("glob.glob", return_value=["channelinfo.mat"]),
+        patch("neuro_py.io.loading.load_mat", return_value=data),
+    ):
+        channels, ripple_average, _ = load_deepSuperficialfromRipple("session")
 
-    # Verify return type annotation indicates a tuple
-    return_annotation = sig.return_annotation
-    assert return_annotation != inspect.Signature.empty
+    assert channels["ripple_power"].tolist() == [1.0, 2.0, 3.0]
+    assert ripple_average.shape == (3, 3)
+    assert ripple_average[:, 0].tolist() == [1.0, 4.0, 7.0]
 
 
 def test_load_events_epoch_array_and_dataframe():
@@ -2520,6 +2601,26 @@ def test_load_events_epoch_array_and_dataframe():
         assert "amplitude" in df.columns
         assert "labels" in df.columns
         assert "extra2d" not in df.columns
+
+
+def test_load_events_accepts_event_aligned_v73_lists(tmp_path, monkeypatch):
+    """v7.3 list-backed event metadata is retained as a dataframe column."""
+    basepath = tmp_path / "session"
+    basepath.mkdir()
+    (basepath / "session.MergePoints.events.mat").touch()
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_mat",
+        lambda _: {
+            "MergePoints": {
+                "timestamps": np.array([[0.0, 1.0], [2.0, 3.0]]),
+                "foldernames": ["first", "second"],
+            }
+        },
+    )
+
+    events = load_events(str(basepath), "MergePoints", load_pandas=True)
+
+    assert events["foldernames"].tolist() == ["first", "second"]
 
 
 def test_load_channel_tags_and_extracellular_metadata():
@@ -2590,6 +2691,29 @@ def test_load_probe_layout():
         assert list(probe_layout.columns) == ["x", "y", "shank", "channels"]
         assert probe_layout["channels"].tolist() == [0, 1, 2, 3]
         assert probe_layout["shank"].tolist() == [0, 0, 0, 0]
+
+
+def test_load_probe_layout_accepts_float_v73_channel_groups(monkeypatch):
+    """v7.3 channel groups can be lists of float-valued MATLAB arrays."""
+    data = {
+        "session": {
+            "extracellular": {
+                "nElectrodeGroups": 2.0,
+                "chanCoords": {"x": np.array([10, 20, 30]), "y": np.array([1, 2, 3])},
+                "electrodeGroups": {
+                    "channels": [np.array([1.0, 2.0]), np.array([3.0])]
+                },
+            }
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["session.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    probe_layout = load_probe_layout("session")
+
+    assert probe_layout is not None
+    assert probe_layout["channels"].tolist() == [0, 1, 2]
+    assert probe_layout["shank"].tolist() == [0, 0, 1]
 
 
 def test_load_emg():
@@ -3715,6 +3839,164 @@ def test_loadLFP_dat_prefers_concatenated_file_when_present():
         # Explicitly release memmap-backed file handle before temp dir cleanup on Windows.
         result._mmap.close()
         del result
+
+
+def test_load_position_reads_whl_and_replaces_missing_values():
+    """Position loader reads the standard WHL layout and marks -1 as missing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        filename = os.path.join(temp_dir, "position.whl")
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write("x1\ty1\tx2\ty2\n1\t2\t-1\t4\n")
+
+        position, fs = load_position(temp_dir, fs=50.0)
+
+    assert fs == 50.0
+    assert position.columns.tolist() == ["x1", "y1", "x2", "y2"]
+    assert np.isnan(position.loc[0, "x2"])
+
+
+def test_load_cell_metrics_allows_empty_session_metadata(monkeypatch):
+    """Optional empty metadata is broadcast as missing rather than as a cell vector."""
+    data = {
+        "cell_metrics": {
+            "UID": np.array([1, 2]),
+            "putativeCellType": np.array(["Pyramidal", "Pyramidal"]),
+            "brainRegion": np.array(["CA1", "PFC"]),
+            "general": {
+                "basename": "session",
+                "cellCount": np.array([]),
+                "animal": {"sex": np.array([])},
+            },
+        }
+    }
+    monkeypatch.setattr("os.path.exists", lambda _: True)
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    metrics = load_cell_metrics("session", only_metrics=True)
+
+    assert metrics is not None
+    assert metrics["sex"].isna().all()
+    assert metrics["cellCount"].tolist() == [2, 2]
+
+
+def test_load_theta_rem_shift_broadcasts_scalar_phase_statistics(monkeypatch):
+    """Session-level phase statistics do not break multi-unit result tables."""
+    phase_data = {
+        "phasestats": {"m": 0.5, "r": np.array([]), "k": 1.0, "p": 0.1, "mode": 0.0},
+        "phasedistros": [],
+        "spkphases": [],
+    }
+    data = {
+        "rem_shift_data": {
+            "UID": np.array([1, 2]),
+            "circ_dist": np.array([0.1, 0.2]),
+            "rem_shift": np.array([0.3, 0.4]),
+            "non_rem_shift": np.array([0.5, 0.6]),
+            "PhaseLockingData_rem": phase_data,
+            "PhaseLockingData_wake": phase_data,
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["theta_rem_shift.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    metrics, _ = load_theta_rem_shift("session")
+
+    assert metrics["m_rem"].tolist() == [0.5, 0.5]
+    assert metrics["r_wake"].isna().all()
+
+
+def test_load_mua_events_broadcasts_session_metadata(monkeypatch):
+    """MUA metadata arrays shorter than the event table are treated as session data."""
+    data = {
+        "HSE": {
+            "timestamps": np.array([[1.0, 2.0], [3.0, 4.0]]),
+            "peaks": np.array([1.5, 3.5]),
+            "center": np.array([1.5, 3.5]),
+            "duration": np.array([1.0, 1.0]),
+            "amplitudes": np.array([4.0, 5.0]),
+            "amplitudeUnits": np.array(["uV", "unused"], dtype=object),
+            "detectorinfo": {"detectorname": np.array(["HSE", "unused"], dtype=object)},
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["mua_ca1_pyr.events.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    events = load_mua_events("session")
+
+    assert (events["amplitudeUnits"] == "uV").all()
+    assert (events["detectorName"] == "HSE").all()
+
+
+def test_load_deep_superficial_pads_incomplete_channel_metadata(monkeypatch):
+    """Partial channel annotations retain all channels with explicit missing values."""
+    data = {
+        "deepSuperficialfromRipple": {
+            "channel": np.array([1, 2]),
+            "channelDistance": np.array([]),
+            "channelClass": np.array(["deep"], dtype=object),
+            "ripple_time_axis": np.array([0.0, 0.1]),
+            "ripple_average": np.ones((2, 2)),
+        }
+    }
+    monkeypatch.setattr("glob.glob", lambda _: ["channelinfo.mat"])
+    monkeypatch.setattr("neuro_py.io.loading.load_mat", lambda _: data)
+
+    channels, _, _ = load_deepSuperficialfromRipple("session")
+
+    assert channels["channelDistance"].isna().all()
+    assert channels["channelClass"].tolist() == ["deep", "unknown"]
+
+
+@pytest.mark.parametrize(
+    ("loader", "kwargs"),
+    [
+        (load_SWRunitMetrics, {}),
+        (load_ied_events, {"manual_events": False}),
+        (load_dentate_spikes, {"manual_events": False}),
+        (load_theta_rem_shift, {}),
+        (load_mua_events, {}),
+    ],
+)
+def test_unavailable_mat_loaders_return_documented_empty_result(loader, kwargs):
+    """MAT-backed loaders keep their established missing-file behavior."""
+    with tempfile.TemporaryDirectory() as basepath:
+        result = loader(basepath, **kwargs)
+
+    if isinstance(result, tuple):
+        assert result[0].empty
+        assert np.isnan(result[1])
+    else:
+        assert result.empty
+
+
+def test_load_barrage_events_uses_empty_result_when_file_is_missing():
+    """Barrage loader warns and returns an empty table without event data."""
+    with tempfile.TemporaryDirectory() as basepath:
+        with pytest.warns(UserWarning, match="No barrage"):
+            result = load_barrage_events(basepath)
+
+    assert result.empty
+
+
+def test_load_basic_data_composes_loader_results(monkeypatch):
+    """Basic-data loader preserves the component outputs and XML sampling rate."""
+    metrics = pd.DataFrame({"UID": [1]})
+    additional = {"spikes": [np.array([0.1])]}
+    ripples = pd.DataFrame({"start": [1.0], "stop": [2.0]})
+    monkeypatch.setattr(
+        "neuro_py.io.loading.loadXML", lambda _: (4, 1250, 20000, {0: [0]})
+    )
+    monkeypatch.setattr("neuro_py.io.loading.load_ripples_events", lambda _: ripples)
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_cell_metrics", lambda _: (metrics, additional)
+    )
+
+    result_metrics, result_data, result_ripples, fs_dat = load_basic_data("session")
+
+    assert result_metrics is metrics
+    assert result_data is additional
+    assert result_ripples is ripples
+    assert fs_dat == 20000
 
 
 def test_loadXML_parses_basic_fields():
