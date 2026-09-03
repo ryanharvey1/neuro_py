@@ -2741,12 +2741,49 @@ def load_spikes(
         st = st[restrict_idx]
 
     if remove_unstable and len(st) > 0:
-        concatenated_spikes = np.concatenate([np.asarray(spikes) for spikes in st])
-        starts = np.arange(
-            concatenated_spikes.min(),
-            concatenated_spikes.max() - stable_interval_width,
-            stable_interval_width,
-        )
+        try:
+            epochs = load_epoch(basepath)
+        except (KeyError, TypeError):
+            # Some legacy session files do not define epochs.
+            epochs = pd.DataFrame()
+        if {"startTime", "stopTime"}.issubset(epochs.columns):
+            epoch_bounds = epochs[["startTime", "stopTime"]].apply(
+                pd.to_numeric, errors="coerce"
+            )
+            epoch_bounds = epoch_bounds.dropna()
+            epoch_bounds = epoch_bounds[
+                (epoch_bounds["stopTime"] > epoch_bounds["startTime"])
+                & np.isfinite(epoch_bounds).all(axis=1)
+            ]
+        else:
+            epoch_bounds = pd.DataFrame(
+                {
+                    "startTime": pd.Series(dtype=float),
+                    "stopTime": pd.Series(dtype=float),
+                }
+            )
+
+        if len(epoch_bounds) > 0:
+            # Build bins within, rather than between, session epochs so recording
+            # gaps excluded by the user cannot count as inactive time.
+            starts = np.concatenate(
+                [
+                    np.arange(
+                        start, stop - stable_interval_width, stable_interval_width
+                    )
+                    for start, stop in epoch_bounds[
+                        ["startTime", "stopTime"]
+                    ].to_numpy()
+                ]
+            )
+        else:
+            # Preserve the previous behavior for sessions without epoch metadata.
+            concatenated_spikes = np.concatenate([np.asarray(spikes) for spikes in st])
+            starts = np.arange(
+                concatenated_spikes.min(),
+                concatenated_spikes.max() - stable_interval_width,
+                stable_interval_width,
+            )
         stops = starts + stable_interval_width
 
         bst = npy.process.count_in_interval(st, starts, stops, "counts")

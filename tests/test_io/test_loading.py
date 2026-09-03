@@ -2075,6 +2075,72 @@ def test_load_spikes_filter_by_stable():
         assert len(metrics) == 1
 
 
+def test_load_spikes_stability_uses_session_epochs():
+    """Ignore recording gaps outside the session epochs when filtering units."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_epochs")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "extracellular": {"sr": 20000},
+                        "epochs": [
+                            {"name": "pre", "startTime": 0.0, "stopTime": 12.0},
+                            {"name": "post", "startTime": 100.0, "stopTime": 112.0},
+                        ],
+                    }
+                },
+                f"{basename}.cell_metrics.cellinfo.mat": {
+                    "cell_metrics": {
+                        "UID": np.array([1, 2], dtype="object"),
+                        "putativeCellType": np.array(["Pyramidal", "Pyramidal"]),
+                        "brainRegion": np.array(["CA1", "CA1"]),
+                        "tags": {"Bad": np.array([])},
+                        "spikes": {
+                            "times": np.array(
+                                [
+                                    np.array(
+                                        [[1.0], [4.0], [7.0], [101.0], [104.0], [107.0]]
+                                    ),
+                                    np.array([[1.0]]),
+                                ],
+                                dtype="object",
+                            )
+                        },
+                        "waveforms": {"filt": np.array([[[1, 2]], [[3, 4]]])},
+                        "acg": {
+                            "wide": np.array([[1, 2], [3, 4]]),
+                            "narrow": np.array([[1, 2], [3, 4]]),
+                            "log10": np.array([[1, 2], [3, 4]]),
+                        },
+                        "general": {
+                            "basename": basename,
+                            "cellCount": 2,
+                            "animal": {
+                                "sex": "male",
+                                "species": "rat",
+                                "strain": "long-evans",
+                                "geneticLine": "WT",
+                            },
+                        },
+                    }
+                },
+            },
+        )
+
+        st, metrics = load_spikes(
+            basepath, remove_unstable=True, stable_interval_width=3
+        )
+
+        assert st is not None
+        assert metrics is not None
+        assert st.n_active == 1
+        assert metrics["UID"].tolist() == [1]
+
+
 def test_load_spikes_other_metric_length_mismatch():
     """Test error when other_metric and other_metric_value have different lengths."""
     with tempfile.TemporaryDirectory() as temp_dir:
