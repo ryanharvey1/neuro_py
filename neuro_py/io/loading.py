@@ -2756,7 +2756,12 @@ def load_spikes(
                 & np.isfinite(epoch_bounds).all(axis=1)
             ]
         else:
-            epoch_bounds = pd.DataFrame(columns=["startTime", "stopTime"])
+            epoch_bounds = pd.DataFrame(
+                {
+                    "startTime": pd.Series(dtype=float),
+                    "stopTime": pd.Series(dtype=float),
+                }
+            )
 
         if len(epoch_bounds) > 0:
             # Build bins within, rather than between, session epochs so recording
