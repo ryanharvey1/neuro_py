@@ -40,3 +40,46 @@ def test_truncate_epoch():
 
     truncated = truncate_epoch(epoch, time=4.25)
     assert truncated.duration == 4.25
+
+
+def test_truncate_epoch_from_end():
+    epoch = nel.EpochArray([(0, 2), (5, 7), (10, 13), (15, 18), (20, 25)])
+
+    truncated = truncate_epoch(epoch, time=6.25, from_end=True)
+
+    expected = np.array([[16.75, 18], [20, 25]])
+    np.testing.assert_allclose(truncated.data, expected)
+    assert truncated.duration == 6.25
+
+
+def test_truncate_epoch_from_end_exact_interval_boundary():
+    epoch = nel.EpochArray([(0, 2), (5, 7), (10, 13), (15, 18), (20, 25)])
+
+    truncated = truncate_epoch(epoch, time=8, from_end=True)
+
+    expected = np.array([[15, 18], [20, 25]])
+    np.testing.assert_allclose(truncated.data, expected)
+
+
+def test_truncate_epoch_from_end_contiguous_epoch():
+    epoch = nel.EpochArray([(0, 4 * 60 * 60)])
+
+    truncated = truncate_epoch(epoch, time=60 * 60, from_end=True)
+
+    np.testing.assert_allclose(truncated.data, [[3 * 60 * 60, 4 * 60 * 60]])
+
+
+def test_truncate_epoch_from_end_no_truncation_needed():
+    epoch = nel.EpochArray([(0, 2), (5, 7)])
+
+    truncated = truncate_epoch(epoch, time=5, from_end=True)
+
+    np.testing.assert_array_equal(truncated.data, epoch.data)
+
+
+def test_truncate_empty_epoch_from_end():
+    epoch = nel.EpochArray(empty=True)
+
+    truncated = truncate_epoch(epoch, time=1, from_end=True)
+
+    assert truncated.isempty
