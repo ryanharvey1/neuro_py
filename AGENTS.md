@@ -16,6 +16,7 @@ Working rules for Codex:
 - Use type hints on function signatures and numpydoc docstrings for public functions.
 - Keep production code clean under the pinned `ty` checker; follow the detailed type-checking rules in `.github/copilot-instructions.md`.
 - Run the narrowest relevant pytest target you can before finishing, and clearly report if you could not run tests.
+- Before merging a pull request, wait for every required GitHub check to complete successfully and verify the final check status immediately before merging. Never merge while checks are pending, skipped, or failing.
 - Preserve scientific behavior, units, shapes, and `nelpy` semantics unless the task explicitly requires a change.
 - For loader work, follow `.github/instructions/io-loading.instructions.md` and keep missing-data behavior aligned with nearby loaders.
 - Prefer vectorized changes and avoid unnecessarily materializing large arrays or lazy loader views.
