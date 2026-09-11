@@ -516,7 +516,9 @@ def truncate_epoch(
         return epoch
 
     if time <= 0:
-        return nel.EpochArray(empty=True)
+        empty_epoch = nel.EpochArray(empty=True)
+        empty_epoch._domain = epoch.domain
+        return empty_epoch
 
     cumulative_lengths = (
         epoch.lengths[::-1].cumsum() if from_end else epoch.lengths.cumsum()
@@ -537,11 +539,11 @@ def truncate_epoch(
                 epoch.data[interval_index + 1 :],
             )
         )
-        return nel.EpochArray(intervals)
+        return nel.EpochArray(intervals, domain=epoch.domain)
 
     # Find the last interval that fits within the time and make new epoch
     idx = cumulative_lengths <= time
-    truncated_intervals = nel.EpochArray(epoch.data[idx])
+    truncated_intervals = nel.EpochArray(epoch.data[idx], domain=epoch.domain)
 
     # It's unlikely that the last interval will fit perfectly, so add the
     # remainder from the next interval until the epoch is the desired length.
@@ -561,6 +563,7 @@ def truncate_epoch(
         truncated_intervals = truncated_intervals | remainder
         interval_i += 1
 
+    truncated_intervals._domain = epoch.domain
     return truncated_intervals
 
 

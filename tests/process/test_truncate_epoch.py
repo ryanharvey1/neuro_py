@@ -44,13 +44,17 @@ def test_truncate_epoch():
 
 
 def test_truncate_epoch_from_end():
-    epoch = nel.EpochArray([(0, 2), (5, 7), (10, 13), (15, 18), (20, 25)])
+    domain = nel.EpochArray([0, 30])
+    epoch = nel.EpochArray(
+        [(0, 2), (5, 7), (10, 13), (15, 18), (20, 25)], domain=domain
+    )
 
     truncated = truncate_epoch(epoch, time=6.25, from_end=True)
 
     expected = np.array([[16.75, 18], [20, 25]])
     np.testing.assert_allclose(truncated.data, expected)
     assert truncated.duration == 6.25
+    np.testing.assert_array_equal(truncated.domain.data, domain.data)
 
 
 def test_truncate_epoch_from_end_exact_interval_boundary():
@@ -89,8 +93,19 @@ def test_truncate_empty_epoch_from_end():
 @pytest.mark.parametrize("from_end", [False, True])
 @pytest.mark.parametrize("time", [0, -1])
 def test_truncate_epoch_nonpositive_time(time, from_end):
-    epoch = nel.EpochArray([(0, 2), (5, 7)])
+    domain = nel.EpochArray([0, 10])
+    epoch = nel.EpochArray([(0, 2), (5, 7)], domain=domain)
 
     truncated = truncate_epoch(epoch, time=time, from_end=from_end)
 
     assert truncated.isempty
+    np.testing.assert_array_equal(truncated.domain.data, domain.data)
+
+
+def test_truncate_epoch_from_start_preserves_domain():
+    domain = nel.EpochArray([0, 30])
+    epoch = nel.EpochArray([(0, 2), (5, 7), (10, 13)], domain=domain)
+
+    truncated = truncate_epoch(epoch, time=5)
+
+    np.testing.assert_array_equal(truncated.domain.data, domain.data)
