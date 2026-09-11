@@ -1,5 +1,6 @@
 import nelpy as nel
 import numpy as np
+import pytest
 
 from neuro_py.process.intervals import truncate_epoch
 
@@ -81,5 +82,15 @@ def test_truncate_empty_epoch_from_end():
     epoch = nel.EpochArray(empty=True)
 
     truncated = truncate_epoch(epoch, time=1, from_end=True)
+
+    assert truncated.isempty
+
+
+@pytest.mark.parametrize("from_end", [False, True])
+@pytest.mark.parametrize("time", [0, -1])
+def test_truncate_epoch_nonpositive_time(time, from_end):
+    epoch = nel.EpochArray([(0, 2), (5, 7)])
+
+    truncated = truncate_epoch(epoch, time=time, from_end=from_end)
 
     assert truncated.isempty
