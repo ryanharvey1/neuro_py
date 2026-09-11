@@ -524,8 +524,9 @@ def truncate_epoch(
         return epoch
 
     if from_end:
+        if time <= 0:
+            return nel.EpochArray(empty=True)
         reverse_index = int(np.searchsorted(cumulative_lengths, time))
-        interval_index = len(epoch) - reverse_index - 1
         retained_duration = epoch.lengths[interval_index + 1 :].sum()
         partial_start = epoch.data[interval_index, 1] - (time - retained_duration)
         intervals = np.vstack(
