@@ -1,0 +1,1 @@
+import{bi as e,xi as t}from"./cells-Cp-G34Rz.js";var n=new t,r=new e;function i(e){let t=e.trim();return t?n.isSupported(t)?{code:n.transformIn(t).code,language:`markdown`}:r.isSupported(t)?{code:r.transformIn(t).code,language:`sql`}:{code:e,language:`python`}:{code:e,language:`python`}}export{i as t};

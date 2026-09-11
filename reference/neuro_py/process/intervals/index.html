@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.58">
+      <meta name="generator" content="zensical-0.0.60">
     
     
       
@@ -30,7 +30,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.5da3a30f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.ce62732f.min.css">
       
         
           
@@ -4096,7 +4096,7 @@
   
 
 
-  <h1 id="__skip">neuro_py.process.intervals</h1>
+  <h1 id="__skip">intervals</h1>
 
 <div class="doc doc-object doc-module">
 
@@ -4775,27 +4775,7 @@ If return_indices is False, returns a NumPy array with the amount of time each i
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/intervals.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">637</span>
-<span class="normal">638</span>
-<span class="normal">639</span>
-<span class="normal">640</span>
-<span class="normal">641</span>
-<span class="normal">642</span>
-<span class="normal">643</span>
-<span class="normal">644</span>
-<span class="normal">645</span>
-<span class="normal">646</span>
-<span class="normal">647</span>
-<span class="normal">648</span>
-<span class="normal">649</span>
-<span class="normal">650</span>
-<span class="normal">651</span>
-<span class="normal">652</span>
-<span class="normal">653</span>
-<span class="normal">654</span>
-<span class="normal">655</span>
-<span class="normal">656</span>
-<span class="normal">657</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">657</span>
 <span class="normal">658</span>
 <span class="normal">659</span>
 <span class="normal">660</span>
@@ -4811,7 +4791,27 @@ If return_indices is False, returns a NumPy array with the amount of time each i
 <span class="normal">670</span>
 <span class="normal">671</span>
 <span class="normal">672</span>
-<span class="normal">673</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_overlapping_intervals</span><span class="p">(</span>
+<span class="normal">673</span>
+<span class="normal">674</span>
+<span class="normal">675</span>
+<span class="normal">676</span>
+<span class="normal">677</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span>
+<span class="normal">682</span>
+<span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_overlapping_intervals</span><span class="p">(</span>
     <span class="n">start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">interval_width</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">slideby</span><span class="p">:</span> <span class="nb">float</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -5935,27 +5935,7 @@ becomes:
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/intervals.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">550</span>
-<span class="normal">551</span>
-<span class="normal">552</span>
-<span class="normal">553</span>
-<span class="normal">554</span>
-<span class="normal">555</span>
-<span class="normal">556</span>
-<span class="normal">557</span>
-<span class="normal">558</span>
-<span class="normal">559</span>
-<span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
-<span class="normal">563</span>
-<span class="normal">564</span>
-<span class="normal">565</span>
-<span class="normal">566</span>
-<span class="normal">567</span>
-<span class="normal">568</span>
-<span class="normal">569</span>
-<span class="normal">570</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">570</span>
 <span class="normal">571</span>
 <span class="normal">572</span>
 <span class="normal">573</span>
@@ -6019,7 +5999,27 @@ becomes:
 <span class="normal">631</span>
 <span class="normal">632</span>
 <span class="normal">633</span>
-<span class="normal">634</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shift_epoch_array</span><span class="p">(</span>
+<span class="normal">634</span>
+<span class="normal">635</span>
+<span class="normal">636</span>
+<span class="normal">637</span>
+<span class="normal">638</span>
+<span class="normal">639</span>
+<span class="normal">640</span>
+<span class="normal">641</span>
+<span class="normal">642</span>
+<span class="normal">643</span>
+<span class="normal">644</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shift_epoch_array</span><span class="p">(</span>
     <span class="n">epoch</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">epoch_shift</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -6442,7 +6442,7 @@ becomes:
 
 
 <h2 id="neuro_py.process.intervals.truncate_epoch" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">truncate_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">truncate_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span> <span class="n">from_end</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#neuro_py.process.intervals.truncate_epoch" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -6498,6 +6498,23 @@ containing intervals that cumulatively match the specified time.</p>
                   <code>3600</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>from_end</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, retain intervals working backward from the end of the epoch.
+If False (default), retain intervals working forward from the start.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -6526,24 +6543,18 @@ the specified time.</p>
     </table>
 
 
-<details class="algorithm" open>
-  <summary>Algorithm</summary>
-  <ol>
-<li>Calculate the cumulative lengths of intervals in the 'epoch'.</li>
-<li>If the cumulative time of the 'epoch' is already less than or equal to 'time',
-    return the original 'epoch'.</li>
-<li>Find the last interval that fits within the specified 'time' and create a new EpochArray
-    'truncated_intervals' with intervals up to that point.</li>
-<li>To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.</li>
-<li>Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached
-    or all intervals are used.</li>
-</ol>
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Gaps between intervals do not count toward <code>time</code>. When the requested
+duration ends within an interval, only the needed portion of that interval
+is retained.</p>
 </details>
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">epoch_data</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">)]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">epoch_data</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">truncated_epoch</span> <span class="o">=</span> <span class="n">truncate_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">truncated_from_end</span> <span class="o">=</span> <span class="n">truncate_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">from_end</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -6623,8 +6634,30 @@ the specified time.</p>
 <span class="normal">544</span>
 <span class="normal">545</span>
 <span class="normal">546</span>
-<span class="normal">547</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">truncate_epoch</span><span class="p">(</span>
-    <span class="n">epoch</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3600</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">truncate_epoch</span><span class="p">(</span>
+    <span class="n">epoch</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span>
+    <span class="n">time</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3600</span><span class="p">,</span>
+    <span class="n">from_end</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Truncates an EpochArray to achieve a specified cumulative time duration.</span>
@@ -6639,6 +6672,9 @@ the specified time.</p>
 <span class="sd">        The input EpochArray containing intervals to be truncated.</span>
 <span class="sd">    time : Union[int, float], optional</span>
 <span class="sd">        The desired cumulative time in seconds (default is 3600).</span>
+<span class="sd">    from_end : bool, optional</span>
+<span class="sd">        If True, retain intervals working backward from the end of the epoch.</span>
+<span class="sd">        If False (default), retain intervals working forward from the start.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -6646,43 +6682,57 @@ the specified time.</p>
 <span class="sd">        A new EpochArray containing intervals that cumulatively match</span>
 <span class="sd">        the specified time.</span>
 
-<span class="sd">    Algorithm</span>
-<span class="sd">    ---------</span>
-<span class="sd">    1. Calculate the cumulative lengths of intervals in the 'epoch'.</span>
-<span class="sd">    2. If the cumulative time of the 'epoch' is already less than or equal to 'time',</span>
-<span class="sd">        return the original 'epoch'.</span>
-<span class="sd">    3. Find the last interval that fits within the specified 'time' and create a new EpochArray</span>
-<span class="sd">        'truncated_intervals' with intervals up to that point.</span>
-<span class="sd">    4. To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.</span>
-<span class="sd">    5. Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached</span>
-<span class="sd">        or all intervals are used.</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Gaps between intervals do not count toward ``time``. When the requested</span>
+<span class="sd">    duration ends within an interval, only the needed portion of that interval</span>
+<span class="sd">    is retained.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; epoch_data = [(0, 2), (3, 6), (8, 10)]</span>
 <span class="sd">    &gt;&gt;&gt; epoch = nel.EpochArray(epoch_data)</span>
 <span class="sd">    &gt;&gt;&gt; truncated_epoch = truncate_epoch(epoch, time=7)</span>
+<span class="sd">    &gt;&gt;&gt; truncated_from_end = truncate_epoch(epoch, time=4, from_end=True)</span>
 <span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">epoch</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">epoch</span>
 
-    <span class="c1"># calcuate cumulative lengths</span>
-    <span class="n">cumulative_lengths</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">lengths</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">time</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">empty_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">empty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">empty_epoch</span><span class="o">.</span><span class="n">_domain</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">domain</span>
+        <span class="k">return</span> <span class="n">empty_epoch</span>
+
+    <span class="n">cumulative_lengths</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">epoch</span><span class="o">.</span><span class="n">lengths</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span> <span class="k">if</span> <span class="n">from_end</span> <span class="k">else</span> <span class="n">epoch</span><span class="o">.</span><span class="n">lengths</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+    <span class="p">)</span>
 
     <span class="c1"># No truncation needed</span>
     <span class="k">if</span> <span class="n">cumulative_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">time</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">epoch</span>
 
+    <span class="k">if</span> <span class="n">from_end</span><span class="p">:</span>
+        <span class="n">reverse_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">cumulative_lengths</span><span class="p">,</span> <span class="n">time</span><span class="p">))</span>
+        <span class="n">interval_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span> <span class="o">-</span> <span class="n">reverse_index</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">retained_duration</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">lengths</span><span class="p">[</span><span class="n">interval_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">partial_start</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">interval_index</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">time</span> <span class="o">-</span> <span class="n">retained_duration</span><span class="p">)</span>
+        <span class="n">intervals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="p">[</span><span class="n">partial_start</span><span class="p">,</span> <span class="n">epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">interval_index</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+                <span class="n">epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">interval_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">intervals</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">epoch</span><span class="o">.</span><span class="n">domain</span><span class="p">)</span>
+
     <span class="c1"># Find the last interval that fits within the time and make new epoch</span>
     <span class="n">idx</span> <span class="o">=</span> <span class="n">cumulative_lengths</span> <span class="o">&lt;=</span> <span class="n">time</span>
-    <span class="n">truncated_intervals</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+    <span class="n">truncated_intervals</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">epoch</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">domain</span><span class="o">=</span><span class="n">epoch</span><span class="o">.</span><span class="n">domain</span><span class="p">)</span>
 
-    <span class="c1"># It's unlikely that the last interval will fit perfectly, so add the remainder from the next interval</span>
-    <span class="c1">#   until the epoch is the desired length</span>
+    <span class="c1"># It's unlikely that the last interval will fit perfectly, so add the</span>
+    <span class="c1"># remainder from the next interval until the epoch is the desired length.</span>
     <span class="n">interval_i</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">while</span> <span class="p">(</span><span class="n">time</span> <span class="o">-</span> <span class="n">truncated_intervals</span><span class="o">.</span><span class="n">duration</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-10</span> <span class="ow">or</span> <span class="n">interval_i</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-        <span class="c1"># Add the last interval</span>
         <span class="n">next_interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cumulative_lengths</span> <span class="o">&gt;=</span> <span class="n">time</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="n">interval_i</span><span class="p">])</span>
 
         <span class="n">remainder</span> <span class="o">=</span> <span class="p">(</span>
@@ -6697,6 +6747,7 @@ the specified time.</p>
         <span class="n">truncated_intervals</span> <span class="o">=</span> <span class="n">truncated_intervals</span> <span class="o">|</span> <span class="n">remainder</span>
         <span class="n">interval_i</span> <span class="o">+=</span> <span class="mi">1</span>
 
+    <span class="n">truncated_intervals</span><span class="o">.</span><span class="n">_domain</span> <span class="o">=</span> <span class="n">epoch</span><span class="o">.</span><span class="n">domain</span>
     <span class="k">return</span> <span class="n">truncated_intervals</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -6818,7 +6869,7 @@ the specified time.</p>
       <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["announce.dismiss","content.action.edit","content.action.view","content.code.annotate","content.code.copy","content.tooltips","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant.prefetch","navigation.instant.preview","navigation.instant.progress","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","search.suggest","toc.follow"],"search":"../../../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.6970bfe9.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.88ee1349.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
       

@@ -1,0 +1,1 @@
+import{r as e}from"./dist-CKUpxYGQ.js";export{e as python};

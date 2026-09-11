@@ -1,0 +1,1 @@
+import{f as e}from"./useEvent-xfs0Sn4r.js";var t=e(null);export{t};

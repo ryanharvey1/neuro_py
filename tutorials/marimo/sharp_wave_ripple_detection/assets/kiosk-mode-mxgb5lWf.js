@@ -1,0 +1,1 @@
+import{l as e}from"./useEvent-xfs0Sn4r.js";import{O as t}from"./config-BlNM0caL.js";var n=n=>{let{children:r}=n;return e(t)?null:r},r=n=>{let{children:r}=n;return e(t)?r:null};export{r as n,n as t};

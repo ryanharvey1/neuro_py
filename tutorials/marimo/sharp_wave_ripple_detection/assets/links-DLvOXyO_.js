@@ -1,0 +1,1 @@
+import{c as e}from"./session-Sz5nSFku.js";function t(t){window.open(e(`?file=${encodeURIComponent(t)}`).toString(),`_blank`)}export{t};
