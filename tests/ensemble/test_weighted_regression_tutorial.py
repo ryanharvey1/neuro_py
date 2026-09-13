@@ -107,3 +107,47 @@ def test_plot_looks_up_nonconsecutive_ripple_ids(monkeypatch):
         assert all(not ax.get_visible() for ax in axes[2:])
     finally:
         plt.close("all")
+
+
+def shuffle_namespace():
+    from neuro_py.ensemble.replay import weighted_regression_2d
+
+    namespace = {"np": np, "weighted_regression_2d": weighted_regression_2d}
+    exec(source_starting("N_SHUFFLES ="), namespace)
+    return namespace
+
+
+def test_tutorial_spatial_shuffle_geometry_and_mass():
+    namespace = shuffle_namespace()
+    posterior = np.arange(12.0).reshape(2, 3, 2)
+    posterior[..., 0] = np.arange(6).reshape(2, 3)
+    before = posterior.copy()
+    result = namespace["toroidal_spatial_shuffle"](posterior, [1, 0], [2, 0])
+    # Known result of an axis-0 shift of 1 and axis-1 shift of 2.
+    np.testing.assert_array_equal(result[..., 0], [[4, 5, 3], [1, 2, 0]])
+    np.testing.assert_array_equal(result[..., 1], posterior[..., 1])
+    np.testing.assert_array_equal(result.sum(axis=(0, 1)), posterior.sum(axis=(0, 1)))
+    np.testing.assert_array_equal(posterior, before)
+
+
+def test_tutorial_null_is_reproducible_and_uses_correct_empirical_p():
+    ns = shuffle_namespace()
+    exec(source_starting("def simulate_degenerate_x"), ns)
+    posterior = ns["simulate_noisy_linear"](noise=0.50)
+    observed, null, p = ns["r2_shuffle_test"](posterior, n_shuffles=99, seed=42)
+    again = ns["r2_shuffle_test"](posterior, n_shuffles=99, seed=42)
+    np.testing.assert_array_equal(null, again[1])
+    assert np.all((null >= 0) & (null <= 1))
+    assert p == (np.count_nonzero(null >= observed) + 1) / 100
+    assert 0.01 <= p <= 1
+
+
+def test_tutorial_shuffle_ties_and_undefined_events():
+    ns = shuffle_namespace()
+    _, null, p = ns["r2_shuffle_test"](np.ones((2, 2, 4)), n_shuffles=9)
+    np.testing.assert_array_equal(null, 0)
+    assert p == 1
+    with pytest.raises(ValueError, match="positive integer"):
+        ns["r2_shuffle_test"](np.ones((2, 2, 4)), n_shuffles=0)
+    with pytest.raises(ValueError, match="finite"):
+        ns["r2_shuffle_test"](np.ones((2, 2, 1)), n_shuffles=9)
