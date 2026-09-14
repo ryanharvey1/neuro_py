@@ -257,7 +257,9 @@ def mtspectrumpt(
     time_support : Union[list, None], optional
         Time range to evaluate (default is None).
     tapers : Union[np.ndarray, None], optional
-        Precomputed tapers, given as [NW, K] or [tapers, eigenvalues] (default is None).
+        Precomputed, unscaled DPSS tapers with shape ``(n_samples, n_tapers)``.
+        They are scaled by ``sqrt(Fs)`` internally to match the Chronux point-process
+        normalization. Default is None.
     tapers_ts : Union[np.ndarray, None], optional
         Taper time series (default is None).
     nfft : Optional[int], optional
@@ -307,8 +309,12 @@ def mtspectrumpt(
     if tapers is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
         N = len(tapers_ts)
-        tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
+        tapers, _ = dpss(N, NW, n_tapers, return_ratios=True)
         tapers = tapers.T
+
+    # Point-process spectra use Chronux-normalized tapers. SciPy's DPSS output
+    # is unit-norm, so scale both generated and caller-supplied raw tapers here.
+    tapers = np.asarray(tapers) * np.sqrt(Fs)
 
     if tapers_ts is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
@@ -529,7 +535,9 @@ def mtcsdpt(
     time_support : Union[list, None], optional
         Time range to evaluate, by default None.
     tapers : Union[np.ndarray, None], optional
-        Precomputed tapers, given as [NW, K] or [tapers, eigenvalues], by default None.
+        Precomputed, unscaled DPSS tapers with shape ``(n_tapers, n_samples)``.
+        They are scaled by ``sqrt(Fs)`` internally to match the Chronux point-process
+        normalization. By default None.
     tapers_ts : Union[np.ndarray, None], optional
         Taper time series, by default None.
     nfft : Optional[int], optional
@@ -551,12 +559,12 @@ def mtcsdpt(
     if tapers is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
         N = len(tapers_ts)
-        tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
+        tapers, _ = dpss(N, NW, n_tapers, return_ratios=True)
 
     if tapers_ts is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
 
-    tapers = tapers.T
+    tapers = np.asarray(tapers).T * np.sqrt(Fs)
     N = len(tapers_ts)
 
     # Number of points in FFT
