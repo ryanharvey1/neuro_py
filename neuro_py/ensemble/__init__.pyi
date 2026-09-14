@@ -27,8 +27,8 @@ __all__ = [
     "observed_and_shuffled_correlation",
     "shuffled_significance",
     "decoding",
-    "weighted_corr_2d",
-    "weighted_corr_2d_jit",
+    "weighted_regression_2d",
+    "weighted_regression_2d_jit",
     "position_estimator",
     "bottom_up_replay_detection",
     "explained_variance",
@@ -70,8 +70,8 @@ from .replay import (
     position_estimator,
     shuffle_and_score,
     trajectory_score_bst,
-    weighted_corr_2d,
-    weighted_corr_2d_jit,
+    weighted_regression_2d,
+    weighted_regression_2d_jit,
     weighted_correlation,
 )
 from .similarity_index import similarity_index
