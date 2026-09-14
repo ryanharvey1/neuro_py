@@ -38,6 +38,7 @@ def source_starting(prefix):
         "simulate_noisy_linear",
         "simulate_reverse",
         "simulate_fragmented",
+        "simulate_noise_only",
     ],
 )
 def test_simulations_are_normalized_per_time_bin(name):
