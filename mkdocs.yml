@@ -6,6 +6,8 @@ extra_css:
   - stylesheets/extra.css
 extra_javascript:
   - javascripts/extra.js
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 theme:
   name: material
   palette:
@@ -60,6 +62,8 @@ markdown_extensions:
   - pymdownx.highlight:
       use_pygments: true
   - pymdownx.inlinehilite
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.tabbed:
       alternate_style: true
   - def_list
