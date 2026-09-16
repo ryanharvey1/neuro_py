@@ -4711,9 +4711,9 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <ol>
 <li><strong>Group-size normalization</strong></li>
 </ol>
-<p>$$</p>
-<p>\tilde X_i(t) = \frac{X_i(t)}{\sqrt{n_{g(i)}}}</p>
-<p>$$</p>
+<p>$$
+   \tilde X_i(t) = \frac{X_i(t)}{\sqrt{n_{g(i)}}}
+   $$</p>
 <p>where <span class="arithmatex">\(g(i)\)</span> is the group of neuron <span class="arithmatex">\(i\)</span>. Note that since <span class="arithmatex">\(X\)</span> is already
    per-neuron z-scored, this normalization does not re-standardise individual
    neurons — it scales each group's collective contribution to the
@@ -4721,13 +4721,12 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <ol>
 <li><strong>Block cross-group covariance matrix</strong></li>
 </ol>
-<p>$$</p>
-<p>C_{ij}=</p>
-<p>\begin{cases}</p>
-<p>\frac{1}{T}\sum_{t=1}^T \tilde X_i(t)\tilde X_j(t), &amp; g(i)\neq g(j)\</p>
-<p>0, &amp; g(i)=g(j)</p>
-<p>\end{cases}</p>
-<p>$$</p>
+<p>$$
+   C_{ij}=\begin{cases}
+   \frac{1}{T}\sum_{t=1}^T \tilde X_i(t)\tilde X_j(t), &amp; g(i)\neq g(j)\
+   0, &amp; g(i)=g(j)
+   \end{cases}
+   $$</p>
 <p>So within-group blocks are zero and only cross-group blocks are retained.</p>
 <ol>
 <li><strong>Subspace + ICA</strong></li>
@@ -4761,15 +4760,15 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <ol>
 <li><strong>Cross-area covariance</strong></li>
 </ol>
-<p>$$</p>
-<p>M = \frac{1}{T}X_1X_2^\top</p>
-<p>$$</p>
+<p>$$
+   M = \frac{1}{T}X_1X_2^\top
+   $$</p>
 <ol>
 <li><strong>SVD decomposition</strong></li>
 </ol>
-<p>$$</p>
-<p>M = U\Sigma V^\top</p>
-<p>$$</p>
+<p>$$
+   M = U\Sigma V^\top
+   $$</p>
 <p>where columns of <span class="arithmatex">\(U\)</span> and <span class="arithmatex">\(V\)</span> are group-specific spatial weights and diagonal entries of <span class="arithmatex">\(\Sigma\)</span> are coupling strengths.</p>
 <ol>
 <li>
@@ -4796,9 +4795,9 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <p>For component <span class="arithmatex">\(k\)</span>, compute projections of each group onto their respective
    spatial weights, z-score each projection across time, and take the
    element-wise product:</p>
-<p>$$</p>
-<p>a_k(t)=z!\left(\mathbf{u}_k^\top X_1\right)(t)\cdot z!\left(\mathbf{v}_k^\top X_2\right)(t)</p>
-<p>$$</p>
+<p>$$
+   a_k(t)=z!\left(\mathbf{u}_k^\top X_1\right)(t)\cdot z!\left(\mathbf{v}_k^\top X_2\right)(t)
+   $$</p>
 <p>Z-scoring centres each projection (removing the positive bias that a raw
    dot product accumulates even under no assembly activity) and normalises
    scale across components. Positive values indicate synchronous co-expression;
@@ -5103,12 +5102,12 @@ Cross-SVD assemblies (mean): 0.15
 </code></pre></div>
 <h3 id="section-55-visualizing-the-cross-region-matrix-used-for-detection">Section 5.5: Visualizing the Cross-Region Matrix Used for Detection<a class="headerlink" href="#section-55-visualizing-the-cross-region-matrix-used-for-detection" title="Permanent link">&para;</a></h3>
 <p>For cross-structural detection, the algorithm uses a group-normalized, block-structured cross-region covariance matrix:</p>
-<p>$$</p>
-<p>C = \begin{bmatrix}</p>
-<p>0 &amp; C_{AB} \</p>
-<p>C_{BA} &amp; 0</p>
-<p>\end{bmatrix}</p>
-<p>$$</p>
+<div class="arithmatex">\[
+C = \begin{bmatrix}
+0 &amp; C_{AB} \\
+C_{BA} &amp; 0
+\end{bmatrix}
+\]</div>
 <p>where within-region blocks are zero and only cross-region covariance terms are retained.</p>
 <p>The visualization below reproduces this matrix directly from the same z-scored activity used for assembly detection, so it is aligned with the actual model input rather than a generic masked map.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Visualize the cross-region matrix used by cross-structural detection</span>
