@@ -330,6 +330,45 @@ def test_mtspectrumpt():
     assert spec.index[np.argmax(spec.values)].astype(int) == 8
 
 
+def test_mtspectrumpt_scales_raw_precomputed_tapers():
+    """Precomputed SciPy DPSS tapers use the Chronux point-process scale."""
+    Fs = 100
+    fpass = [1, 20]
+    NW = 3
+    n_tapers = 5
+    taper_times = np.arange(0, 10, 1 / Fs)
+    nfft = 1024
+    spike_times = np.array([0.1, 0.3, 1.2, 3.4, 4.5, 7.8, 9.6])
+    data = np.empty(1, dtype=object)
+    data[0] = spike_times
+
+    raw_tapers, _ = dpss(len(taper_times), NW, n_tapers, return_ratios=True)
+    spectrum = px.mtspectrumpt(
+        data,
+        Fs,
+        fpass,
+        NW=NW,
+        n_tapers=n_tapers,
+        tapers=raw_tapers.T,
+        tapers_ts=taper_times,
+        nfft=nfft,
+    )
+
+    frequencies, findx = px.getfgrid(Fs, nfft, fpass)
+    transforms, _, _ = px.mtfftpt(
+        spike_times,
+        raw_tapers.T * np.sqrt(Fs),
+        nfft,
+        taper_times,
+        frequencies,
+        findx,
+    )
+    expected_power = np.real(np.mean(np.conj(transforms) * transforms, axis=1))
+
+    assert np.allclose(spectrum.index, frequencies)
+    assert np.allclose(spectrum.iloc[:, 0].to_numpy(), expected_power)
+
+
 def test_mtfftc():
     # Generate mock data
     data = np.random.randn(256)
