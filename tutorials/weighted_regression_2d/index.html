@@ -4433,11 +4433,11 @@
 posterior probability array with shape <code>(x, y, time)</code>. It returns
 <code>r2, x_traj, y_traj, slope_x, slope_y, mean_x, mean_y</code>.</p>
 <p>The fit minimizes posterior-weighted squared Euclidean residuals:
-$\hat{\mathbf p}(t)=\bar{\mathbf p}+\mathbf b(t-\bar t)$.
+<span class="arithmatex">\(\hat{\mathbf p}(t)=\bar{\mathbf p}+\mathbf b(t-\bar t)\)</span>.
 The variance-weighted multivariate coefficient of determination is</p>
-<p>$$R^2=1-\frac{\mathrm{SSE}}{\mathrm{SST}}
+<div class="arithmatex">\[R^2=1-\frac{\mathrm{SSE}}{\mathrm{SST}}
 =\frac{\operatorname{Cov}_w(X,T)^2+\operatorname{Cov}_w(Y,T)^2}
-{\operatorname{Var}_w(T)[\operatorname{Var}_w(X)+\operatorname{Var}_w(Y)]}.$$</p>
+{\operatorname{Var}_w(T)[\operatorname{Var}_w(X)+\operatorname{Var}_w(Y)]}.\]</div>
 <p><strong>The first returned value is R²</strong>, the fraction of total spatial variance
 explained by the fitted line, in [0,1]. It is unsigned. Slopes encode direction;
 the last two outputs are spatial means, not regression intercepts.
@@ -6333,6 +6333,10 @@ uses mean jump distance in cm; it is not a replay significance test.</p>
       <script src="../../assets/javascripts/bundle.8dcc8e9c.min.js"></script>
       
         <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

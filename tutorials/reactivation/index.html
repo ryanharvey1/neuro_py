@@ -4705,8 +4705,8 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 </li>
 </ul>
 <h3 id="section-522-mathematical-details-cross-ica-and-cross-svd">Section 5.2.2: Mathematical Details (Cross-ICA and Cross-SVD)<a class="headerlink" href="#section-522-mathematical-details-cross-ica-and-cross-svd" title="Permanent link">&para;</a></h3>
-<p>Let $X \in \mathbb{R}^{N \times T}$ be the neuron-by-time matrix after binning and per-neuron z-scoring.</p>
-<p>Let groups be indexed by $g \in {1,\dots,G}$ with group sizes $n_g$.</p>
+<p>Let <span class="arithmatex">\(X \in \mathbb{R}^{N \times T}\)</span> be the neuron-by-time matrix after binning and per-neuron z-scoring.</p>
+<p>Let groups be indexed by <span class="arithmatex">\(g \in \{1,\dots,G\}\)</span> with group sizes <span class="arithmatex">\(n_g\)</span>.</p>
 <h4 id="cross-ica-path-methodica-cross_structural">Cross-ICA path (<code>method='ica'</code> + <code>cross_structural</code>)<a class="headerlink" href="#cross-ica-path-methodica-cross_structural" title="Permanent link">&para;</a></h4>
 <ol>
 <li><strong>Group-size normalization</strong></li>
@@ -4714,10 +4714,10 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <p>$$</p>
 <p>\tilde X_i(t) = \frac{X_i(t)}{\sqrt{n_{g(i)}}}</p>
 <p>$$</p>
-<p>where $g(i)$ is the group of neuron $i$. Note that since $X$ is already
+<p>where <span class="arithmatex">\(g(i)\)</span> is the group of neuron <span class="arithmatex">\(i\)</span>. Note that since <span class="arithmatex">\(X\)</span> is already
    per-neuron z-scored, this normalization does not re-standardise individual
    neurons — it scales each group's collective contribution to the
-   cross-group covariance by $1/n_g$.</p>
+   cross-group covariance by <span class="arithmatex">\(1/n_g\)</span>.</p>
 <ol>
 <li><strong>Block cross-group covariance matrix</strong></li>
 </ol>
@@ -4732,17 +4732,17 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <ol>
 <li><strong>Subspace + ICA</strong></li>
 </ol>
-<p>Eigendecompose $C = Q\Lambda Q^\top$. Let $Q_k$ and $\Lambda_k$ denote the
-   eigenvectors and eigenvalues corresponding to the $k$ significant dimensions
+<p>Eigendecompose <span class="arithmatex">\(C = Q\Lambda Q^\top\)</span>. Let <span class="arithmatex">\(Q_k\)</span> and <span class="arithmatex">\(\Lambda_k\)</span> denote the
+   eigenvectors and eigenvalues corresponding to the <span class="arithmatex">\(k\)</span> significant dimensions
    (those exceeding the shuffle-based threshold). Project the group-normalized
    data into the significant subspace with eigenvalue weighting:</p>
 <p>$$
    P = \left(Q_k \odot \sqrt{\Lambda_k}\right)^\top \tilde{X}
    $$</p>
-<p>where $\odot$ denotes column-wise scaling of $Q_k$ by $\sqrt{\Lambda_k}$.
+<p>where <span class="arithmatex">\(\odot\)</span> denotes column-wise scaling of <span class="arithmatex">\(Q_k\)</span> by <span class="arithmatex">\(\sqrt{\Lambda_k}\)</span>.
    This whitens the projected dimensions by their coupling strength, so that
    ICA operates on variance-equalized components rather than raw projections
-   whose scale reflects eigenvalue magnitude. ICA is then run on $P^\top$, and
+   whose scale reflects eigenvalue magnitude. ICA is then run on <span class="arithmatex">\(P^\top\)</span>, and
    the resulting components are mapped back to the full neuron space and
    normalized to unit norm.</p>
 <ol>
@@ -4757,7 +4757,7 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 </li>
 </ol>
 <h4 id="cross-svd-path-methodcross_svd">Cross-SVD path (<code>method='cross_svd'</code>)<a class="headerlink" href="#cross-svd-path-methodcross_svd" title="Permanent link">&para;</a></h4>
-<p>For exactly two groups, split data into $X_1 \in \mathbb{R}^{N_1\times T}$ and $X_2 \in \mathbb{R}^{N_2\times T}$.</p>
+<p>For exactly two groups, split data into <span class="arithmatex">\(X_1 \in \mathbb{R}^{N_1\times T}\)</span> and <span class="arithmatex">\(X_2 \in \mathbb{R}^{N_2\times T}\)</span>.</p>
 <ol>
 <li><strong>Cross-area covariance</strong></li>
 </ol>
@@ -4770,7 +4770,7 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <p>$$</p>
 <p>M = U\Sigma V^\top</p>
 <p>$$</p>
-<p>where columns of $U$ and $V$ are group-specific spatial weights and diagonal entries of $\Sigma$ are coupling strengths.</p>
+<p>where columns of <span class="arithmatex">\(U\)</span> and <span class="arithmatex">\(V\)</span> are group-specific spatial weights and diagonal entries of <span class="arithmatex">\(\Sigma\)</span> are coupling strengths.</p>
 <ol>
 <li>
 <p><strong>Shuffle-based significance</strong></p>
@@ -4782,10 +4782,10 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <p>Compare observed singular values to null using <code>cross_svd_threshold_mode</code>:</p>
 <ul>
 <li>
-<p><code>per_rank</code>: $\sigma_k &gt; q_k$ (rank-wise null threshold).</p>
+<p><code>per_rank</code>: <span class="arithmatex">\(\sigma_k &gt; q_k\)</span> (rank-wise null threshold).</p>
 </li>
 <li>
-<p><code>max_stat</code>: $\sigma_k &gt; q_{\max}$ (single global threshold; stricter).</p>
+<p><code>max_stat</code>: <span class="arithmatex">\(\sigma_k &gt; q_{\max}\)</span> (single global threshold; stricter).</p>
 </li>
 </ul>
 </li>
@@ -4793,7 +4793,7 @@ class to identify assemblies and assess reactivation during post-task sleep</p>
 <p><strong>Time-resolved cross-area activity</strong></p>
 </li>
 </ol>
-<p>For component $k$, compute projections of each group onto their respective
+<p>For component <span class="arithmatex">\(k\)</span>, compute projections of each group onto their respective
    spatial weights, z-score each projection across time, and take the
    element-wise product:</p>
 <p>$$</p>
@@ -5659,6 +5659,10 @@ Only high nshu + high percentile recovers the true assembly count.
       <script src="../../assets/javascripts/bundle.8dcc8e9c.min.js"></script>
       
         <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

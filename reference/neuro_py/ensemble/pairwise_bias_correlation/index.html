@@ -5000,22 +5000,22 @@ each entry represents the normalized bias between neuron pairs.</p>
 
 <details class="note" open>
   <summary>Notes</summary>
-  <p>The probability-bias ( B_{ij} ) for neurons ( i ) and ( j ) is
+  <p>The probability-bias <span class="arithmatex">\( B_{ij} \)</span> for neurons <span class="arithmatex">\( i \)</span> and <span class="arithmatex">\( j \)</span> is
 computed as:
 [
 B_{ij} = \frac{nspikes_{ij}}{nspikes_i \cdot nspikes_j}
 ]
-where ( nspikes_{ij} ) is the count of spikes from neuron ( i )
-occurring before spikes from neuron ( j ). If there are no spikes for
+where <span class="arithmatex">\( nspikes_{ij} \)</span> is the count of spikes from neuron <span class="arithmatex">\( i \)</span>
+occurring before spikes from neuron <span class="arithmatex">\( j \)</span>. If there are no spikes for
 either neuron, the bias is set to 0.5 (neutral bias).</p>
 <p>The skew-bias matrix is computed as:
 [
 S_{ij} = 2 \cdot B_{ij} - 1
 ]
-where ( B_{ij} ) is the probability-bias matrix.</p>
-<p>The skew-bias matrix is a skew-symmetric matrix as ( S_{ij} = -S_{ji} ).
+where <span class="arithmatex">\( B_{ij} \)</span> is the probability-bias matrix.</p>
+<p>The skew-bias matrix is a skew-symmetric matrix as <span class="arithmatex">\( S_{ij} = -S_{ji} \)</span>.
 The values are normalized between -1 and 1. A value of 1 indicates that
-neuron ( i ) spikes before neuron ( j ) in all cases, while -1 indicates
+neuron <span class="arithmatex">\( i \)</span> spikes before neuron <span class="arithmatex">\( j \)</span> in all cases, while -1 indicates
 the opposite. A value of 0 indicates that the order of spikes is random.</p>
 </details>
 
@@ -5341,6 +5341,10 @@ the opposite. A value of 0 indicates that the order of spikes is random.</p>
       <script src="../../../../assets/javascripts/bundle.8dcc8e9c.min.js"></script>
       
         <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

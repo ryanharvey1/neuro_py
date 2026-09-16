@@ -4799,10 +4799,10 @@ WARNING:root:ignoring signal outside of support
 <p>We use the Joint PETH to quantify interactions between <strong>PFC spikes</strong> and <strong>hippocampal ripples</strong> conditioned on <strong>delta waves</strong>.</p>
 <p>First, we compute event-wise peri-event time histograms (PETHs) for both signals relative to the same delta events:</p>
 <ul>
-<li>$P_1(e,t)$: spike rate at time $t$ for delta event $e$</li>
-<li>$P_2(e,t)$: ripple rate at time $t$ for delta event $e$</li>
+<li><span class="arithmatex">\(P_1(e,t)\)</span>: spike rate at time <span class="arithmatex">\(t\)</span> for delta event <span class="arithmatex">\(e\)</span></li>
+<li><span class="arithmatex">\(P_2(e,t)\)</span>: ripple rate at time <span class="arithmatex">\(t\)</span> for delta event <span class="arithmatex">\(e\)</span></li>
 </ul>
-<p>Each matrix has shape $(N_{events} \times N_{time})$.</p>
+<p>Each matrix has shape <span class="arithmatex">\((N_{events} \times N_{time})\)</span>.</p>
 <h4 id="joint-interaction">Joint interaction<a class="headerlink" href="#joint-interaction" title="Permanent link">&para;</a></h4>
 <p>The joint time–time histogram is:</p>
 <p>$$
@@ -4812,22 +4812,22 @@ J(t_1,t_2)
 \sum_{e=1}^{N}
 P_1(e,t_1) P_2(e,t_2)
 $$</p>
-<p>This measures how often spikes at time $t_1$ and ripples at time $t_2$ co-occur across delta waves.</p>
+<p>This measures how often spikes at time <span class="arithmatex">\(t_1\)</span> and ripples at time <span class="arithmatex">\(t_2\)</span> co-occur across delta waves.</p>
 <h4 id="expected-interaction-independence-model">Expected interaction (independence model)<a class="headerlink" href="#expected-interaction-independence-model" title="Permanent link">&para;</a></h4>
 <p>To control for shared modulation by delta waves:</p>
-<p>$$
+<div class="arithmatex">\[
 E(t_1,t_2) = \bar{P}_1(t_1) \bar{P}_2(t_2)
-$$</p>
-<p>where $\bar{P}_i(t)$ is the average across events.</p>
+\]</div>
+<p>where <span class="arithmatex">\(\bar{P}_i(t)\)</span> is the average across events.</p>
 <h4 id="delta-corrected-interaction">Delta-corrected interaction<a class="headerlink" href="#delta-corrected-interaction" title="Permanent link">&para;</a></h4>
-<p>$$
+<div class="arithmatex">\[
 D(t_1,t_2) = J(t_1,t_2) - E(t_1,t_2)
-$$</p>
+\]</div>
 <ul>
-<li>$D&gt;0$: greater-than-expected co-occurrence</li>
-<li>$D&lt;0$: less-than-expected co-occurrence</li>
+<li><span class="arithmatex">\(D&gt;0\)</span>: greater-than-expected co-occurrence</li>
+<li><span class="arithmatex">\(D&lt;0\)</span>: less-than-expected co-occurrence</li>
 </ul>
-<p>Diagonal structure ($t_1=t_2$) reflects synchronous timing relative to delta; off-diagonal structure reflects lead–lag relationships.</p>
+<p>Diagonal structure (<span class="arithmatex">\(t_1=t_2\)</span>) reflects synchronous timing relative to delta; off-diagonal structure reflects lead–lag relationships.</p>
 <p>The Joint PETH therefore tests whether spike–ripple timing structure exists <strong>beyond shared modulation by delta waves</strong>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">window</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"PFC spikes"</span><span class="p">,</span> <span class="s2">"ripple"</span><span class="p">,</span> <span class="s2">"delta"</span><span class="p">]</span>
@@ -5055,6 +5055,10 @@ $$</p>
       <script src="../../assets/javascripts/bundle.8dcc8e9c.min.js"></script>
       
         <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>
