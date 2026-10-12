@@ -1,8 +1,14 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from numba import njit, prange
+from numba import njit
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 @njit(parallel=True, fastmath=True)
@@ -99,7 +105,7 @@ def decode(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
+    for i in prange(n_bins):  # numba parallel loop
         log_likelihood = log_p1 + log_p2 + np.sum(log_tc_flat * ct[i, :], axis=1)
         p[i, :] = np.exp(
             log_likelihood - np.max(log_likelihood)
@@ -209,7 +215,7 @@ def decode_with_prior_fallback(
     p = np.zeros((n_bins, n_spatial_bins))
 
     # Vectorized calculation of log probabilities
-    for i in prange(n_bins):  # ty: ignore[not-iterable]  # numba parallel loop
+    for i in prange(n_bins):  # numba parallel loop
         if not np.any(ct[i, :]):
             p[i, :] = occupancy_flat / occupancy_flat.sum()
             continue
