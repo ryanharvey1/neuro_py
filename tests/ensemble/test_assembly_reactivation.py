@@ -480,3 +480,66 @@ def test_assembly_reactivation_passes_n_jobs(monkeypatch):
     assert captured["cross_group_threshold_percentile"] == 90.0
     assert captured["cross_svd_threshold_mode"] == "max_stat"
     assert assembly_react.patterns is not None
+
+
+@pytest.mark.parametrize("method", ["ica", "pca"])
+@pytest.mark.parametrize("active_region", [0, 1])
+@pytest.mark.parametrize("restrict_epoch", [False, True])
+def test_cross_regional_activity_rejects_single_region_bursts(
+    method: str, active_region: int, restrict_epoch: bool
+) -> None:
+    """Stored cross-regional weights must not reactivate from one region alone."""
+    timestamps = [
+        np.array([0.15, 0.35, 0.65]) if index // 2 == active_region else np.array([])
+        for index in range(4)
+    ]
+    st = nel.SpikeTrainArray(
+        timestamps=timestamps, fs=20000, support=nel.EpochArray([[0.0, 1.0]])
+    )
+    react = assembly_reactivation.AssemblyReact(
+        method=method,
+        cross_structural=np.array(["CA1", "CA1", "PFC", "PFC"]),
+        z_mat_dt=0.05,
+    )
+    react.add_st(st)
+    react.patterns = np.full((1, 4), 0.5)
+    epoch = nel.EpochArray([[0.1, 0.8]]) if restrict_epoch else None
+    zactmat, time = react.get_z_mat(st if epoch is None else st[epoch])
+    assert np.any(zactmat[2 * active_region : 2 * active_region + 2] != 0)
+    activity = react.get_assembly_act(epoch=epoch)
+    assert isinstance(activity, nel.AnalogSignalArray)
+    np.testing.assert_allclose(activity.data, np.zeros((1, len(time))), atol=1e-12)
+    np.testing.assert_allclose(activity.time, time)
+    assert activity.fs == 1 / react.z_mat_dt
+
+
+@pytest.mark.parametrize("method", ["ica", "pca", "cross_svd"])
+def test_reactivation_activity_matches_group_projection_formula(method: str) -> None:
+    """Cross-ICA/PCA retain quadratic scale; cross-SVD retains its z-product scale."""
+    st = nel.SpikeTrainArray(
+        timestamps=[
+            np.array([0.1, 0.2, 0.7]),
+            np.array([0.2, 0.4, 0.8]),
+            np.array([0.1, 0.3, 0.9]),
+            np.array([0.3, 0.5, 0.7]),
+        ],
+        fs=20000,
+        support=nel.EpochArray([[0.0, 1.0]]),
+    )
+    react = assembly_reactivation.AssemblyReact(
+        method=method,
+        cross_structural=np.array(["CA1", "CA1", "PFC", "PFC"]),
+        z_mat_dt=0.05,
+    )
+    react.add_st(st)
+    react.patterns = np.array([[0.5, -0.5, 0.5, 0.5]])
+    zactmat, time = react.get_z_mat(st)
+    ca1 = react.patterns[:, :2] @ zactmat[:2]
+    pfc = react.patterns[:, 2:] @ zactmat[2:]
+    if method == "cross_svd":
+        expected = stats.zscore(ca1, axis=1) * stats.zscore(pfc, axis=1)
+    else:
+        expected = 2 * ca1 * pfc
+    activity = react.get_assembly_act()
+    np.testing.assert_allclose(activity.data, expected, atol=1e-12)
+    np.testing.assert_allclose(activity.time, time)

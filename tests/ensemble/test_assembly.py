@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from scipy import linalg, stats
 
 from neuro_py.ensemble import assembly
@@ -509,3 +510,92 @@ def test_compute_cross_area_activity_shape():
     activity = assembly.computeCrossAreaActivity(patterns, zactmat, groups)
     assert activity is not None
     assert activity.shape == (2, 50)
+
+
+@pytest.mark.parametrize("zerodiag", [True, False])
+def test_cross_structural_activity_excludes_within_group_pairs(zerodiag: bool) -> None:
+    """Single-region bursts must not activate a cross-regional assembly."""
+    patterns = np.array([[0.5, 0.5, 0.5, 0.5], [1.0, -1.0, 2.0, 0.0]])
+    groups = np.array(["CA1", "CA1", "PFC", "PFC"])
+    # CA1-only burst, PFC-only burst, joint burst, and opposite-signed bursts.
+    zactmat = np.array(
+        [[1, 0, 1, 1], [1, 0, 1, 1], [0, 1, 1, -1], [0, 1, 1, -1]], dtype=float
+    )
+    activity = assembly.computeAssemblyActivity(
+        patterns, zactmat, zerodiag=zerodiag, cross_structural=groups
+    )
+    np.testing.assert_allclose(activity, [[0, 0, 2, -2], [0, 0, 0, 0]])
+
+
+@pytest.mark.parametrize(
+    "groups", [np.array([0, 1, 0, 2, 1]), np.array(["A", "B", "A", "C", "B"])]
+)
+def test_cross_structural_activity_supports_interleaved_multiple_groups(
+    groups: NDArray[np.generic],
+) -> None:
+    """Each distinct group pair contributes twice to the quadratic score."""
+    rng = np.random.default_rng(42)
+    patterns = rng.normal(size=(2, 5))
+    zactmat = rng.normal(size=(5, 7))
+    original_patterns = patterns.copy()
+    original_activity = zactmat.copy()
+    projected = [
+        patterns[:, groups == group] @ zactmat[groups == group]
+        for group in np.unique(groups)
+    ]
+    expected = 2 * (
+        projected[0] * projected[1]
+        + projected[0] * projected[2]
+        + projected[1] * projected[2]
+    )
+    actual = assembly.computeAssemblyActivity(
+        patterns, zactmat, cross_structural=groups
+    )
+    np.testing.assert_allclose(actual, expected, atol=1e-12)
+    np.testing.assert_array_equal(patterns, original_patterns)
+    np.testing.assert_array_equal(zactmat, original_activity)
+
+
+@pytest.mark.parametrize("zerodiag", [True, False])
+def test_standard_activity_preserves_legacy_projection(zerodiag: bool) -> None:
+    """Unlabelled activity keeps the existing ordered-pair scale and self-term option."""
+    rng = np.random.default_rng(7)
+    patterns = rng.normal(size=(2, 4))
+    zactmat = rng.normal(size=(4, 6))
+    expected = (patterns @ zactmat) ** 2
+    if zerodiag:
+        expected -= patterns**2 @ zactmat**2
+    # The third positional argument remains zerodiag.
+    actual = assembly.computeAssemblyActivity(patterns, zactmat, zerodiag)
+    np.testing.assert_allclose(actual, expected, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "groups", [np.array(["A", "B"]), np.array([["A", "A", "B", "B"]])]
+)
+def test_cross_structural_activity_validates_labels(
+    groups: NDArray[np.generic],
+) -> None:
+    """Reject labels that cannot map one-to-one onto the activity rows."""
+    with pytest.raises(ValueError, match="cross_structural"):
+        assembly.computeAssemblyActivity(
+            np.ones((1, 4)), np.ones((4, 3)), cross_structural=groups
+        )
+
+
+def test_cross_structural_activity_single_group_is_zero() -> None:
+    actual = assembly.computeAssemblyActivity(
+        np.ones((1, 3)), np.ones((3, 4)), cross_structural=np.array(["CA1"] * 3)
+    )
+    np.testing.assert_array_equal(actual, np.zeros((1, 4)))
+
+
+def test_cross_structural_activity_empty_patterns() -> None:
+    assert (
+        assembly.computeAssemblyActivity(
+            np.empty((0, 4)),
+            np.ones((4, 3)),
+            cross_structural=np.array(["CA1", "CA1", "PFC", "PFC"]),
+        )
+        is None
+    )
