@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import nelpy as nel
 import numba
@@ -7,6 +7,12 @@ from nelpy import core
 from nelpy.core import EpochArray
 from numba import jit
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 def randomize_epochs(
@@ -462,7 +468,7 @@ def in_intervals_interval(
     array([nan,  0,  0,  0,  1,  1,  1, nan])
     """
     in_interval = np.full(timestamps.shape, np.nan)
-    for i in numba.prange(intervals.shape[0]):  # ty: ignore[not-iterable]  # numba loop
+    for i in prange(intervals.shape[0]):  # numba loop
         start, end = intervals[i]
         mask = (timestamps >= start) & (timestamps <= end)
         in_interval[mask] = i

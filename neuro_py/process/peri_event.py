@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
 
 import bottleneck as bn
 import numpy as np
@@ -12,13 +12,19 @@ from nelpy.core import (
     SpikeTrainArray,
 )
 from nelpy.core._eventarray import BinnedEventArray, EventArray
-from numba import jit, prange
+from numba import jit
 from numpy.typing import NDArray
 from scipy import stats
 from scipy.linalg import toeplitz
 from scipy.ndimage import gaussian_filter1d
 
 from neuro_py.process.intervals import in_intervals, split_epoch_by_width
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 @jit(nopython=True)
@@ -463,7 +469,7 @@ def peth_matrix(
 
     H = np.zeros((len(times), len(time_ref)))
 
-    for event_i in prange(len(time_ref)):  # ty: ignore[not-iterable]  # numba loop
+    for event_i in prange(len(time_ref)):  # numba loop
         H[:, event_i] = crossCorr(
             np.array([time_ref[event_i]]), data, bin_width, n_bins
         )

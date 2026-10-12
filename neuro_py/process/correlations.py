@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
@@ -10,6 +10,12 @@ from scipy import signal, stats
 from scipy.stats import poisson
 
 from neuro_py.process.peri_event import crossCorr, deconvolve_peth
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 def compute_AutoCorrs(
@@ -392,7 +398,7 @@ def event_triggered_cross_correlation(
 def _jit_event_corr(signal1_matrix, signal2_matrix):
     n_events, n_lags = signal1_matrix.shape
     out = np.zeros((n_events, 2 * n_lags - 1))
-    for i in numba.prange(n_events):  # ty: ignore[not-iterable]  # numba loop
+    for i in prange(n_events):  # numba loop
         s1 = signal1_matrix[i]
         s2 = signal2_matrix[i]
         s1c = s1 - np.mean(s1)
