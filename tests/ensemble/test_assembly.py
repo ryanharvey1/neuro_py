@@ -599,3 +599,65 @@ def test_cross_structural_activity_empty_patterns() -> None:
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["nan_signal", "nan_weights", "float32", "extreme", "object_labels", "nan_labels"],
+)
+def test_cross_projection_preserves_dense_edge_case_behavior(case: str) -> None:
+    patterns = np.array([[0.5, -0.5, 0.5, 0.5]])
+    zactmat = np.array([[1, 2, 3], [2, 1, 4], [3, 2, 1], [1, 4, 2]], dtype=float)
+    groups = np.array([0, 0, 1, 1])
+    if case == "nan_signal":
+        zactmat[0, 1] = np.nan
+    elif case == "nan_weights":
+        patterns[0, 0] = np.nan
+    elif case == "float32":
+        patterns = patterns.astype(np.float32)
+        zactmat = zactmat.astype(np.float32)
+    elif case == "extreme":
+        patterns *= 1e155
+        zactmat *= 1e-155
+    elif case == "object_labels":
+        groups = np.array([0, 0, "B", "B"], dtype=object)
+    elif case == "nan_labels":
+        groups = np.array([0, 0, 1, np.nan])
+    with np.errstate(over="ignore", invalid="ignore"):
+        matrix = np.outer(patterns[0], patterns[0])
+        np.fill_diagonal(matrix, 0)
+        matrix[groups[:, None] == groups[None, :]] = 0
+        expected = np.nansum(zactmat.T @ matrix * zactmat.T, axis=1)[None, :]
+        actual = assembly.computeAssemblyActivity(
+            patterns, zactmat, cross_structural=groups
+        )
+    np.testing.assert_allclose(actual, expected, equal_nan=True)
+
+
+def test_cross_projection_neuron_permutation_and_sign_invariance() -> None:
+    rng = np.random.default_rng(43)
+    groups = np.array(["CA1", "PFC", "CA1", "EC", "PFC", "EC"])
+    weights = rng.normal(size=(3, 6))
+    zactmat = rng.normal(size=(6, 17))
+    expected = np.zeros((3, 17))
+    for i in range(6):
+        for j in range(6):
+            if groups[i] != groups[j]:
+                expected += (
+                    weights[:, i, None] * weights[:, j, None] * zactmat[i] * zactmat[j]
+                )
+    order = rng.permutation(6)
+    actual = assembly.computeAssemblyActivity(
+        -weights[:, order], zactmat[order], cross_structural=groups[order]
+    )
+    np.testing.assert_allclose(actual, expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("patterns", [np.ones((1, 3)), np.ones(4)])
+def test_cross_projection_rejects_misaligned_weight_shape(
+    patterns: NDArray[np.float64],
+) -> None:
+    with pytest.raises(ValueError, match="neuron dimension"):
+        assembly.computeAssemblyActivity(
+            patterns, np.ones((4, 5)), cross_structural=np.array([0, 0, 1, 1])
+        )

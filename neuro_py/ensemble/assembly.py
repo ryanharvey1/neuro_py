@@ -1212,6 +1212,12 @@ def computeAssemblyActivity(
 
     same_group = None
     if cross_structural is not None:
+        if (
+            patterns.ndim != 2
+            or zactmat.ndim != 2
+            or patterns.shape[1] != zactmat.shape[0]
+        ):
+            raise ValueError("patterns and zactmat must agree on the neuron dimension")
         groups = np.asarray(cross_structural)
         if groups.ndim != 1:
             raise ValueError("cross_structural must be a one-dimensional array")
@@ -1221,6 +1227,33 @@ def computeAssemblyActivity(
                 f"number of neurons ({zactmat.shape[0]})"
             )
         same_group = groups[:, None] == groups[None, :]
+
+        # For ordinary finite float64 inputs, sum products of group projections
+        # instead of multiplying by an N-by-N masked weight outer product.
+        # Keep the original path for missing values, unusual categorical labels,
+        # other dtypes, and magnitudes where intermediate overflow can differ.
+        limit = np.sqrt(np.sqrt(np.finfo(float).max / (4 * max(1, len(groups) ** 2))))
+        simple_labels = groups.dtype.kind in "biufUS" and (
+            groups.dtype.kind != "f" or not np.isnan(groups).any()
+        )
+        if (
+            simple_labels
+            and patterns.dtype == np.float64
+            and zactmat.dtype == np.float64
+            and np.max(patterns, initial=0) <= limit
+            and np.min(patterns, initial=0) >= -limit
+            and np.max(zactmat, initial=0) <= limit
+            and np.min(zactmat, initial=0) >= -limit
+        ):
+            projected = [
+                patterns[:, groups == group] @ zactmat[groups == group]
+                for group in np.unique(groups)
+            ]
+            activity = np.zeros((len(patterns), zactmat.shape[1]))
+            for i, first in enumerate(projected):
+                for second in projected[i + 1 :]:
+                    activity += 2 * first * second
+            return activity
 
     # number of assemblies and time bins
     nassemblies = len(patterns)
