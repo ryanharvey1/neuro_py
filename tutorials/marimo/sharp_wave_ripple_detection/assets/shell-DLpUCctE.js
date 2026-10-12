@@ -1,1 +1,0 @@
-function e(e){return e===``?`''`:/^[\w@%+=:,./-]+$/.test(e)?e:`'${e.replaceAll(`'`,`'"'"'`)}'`}export{e as t};
