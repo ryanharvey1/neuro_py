@@ -208,10 +208,15 @@ def _find_waves(
     timestamps: NDArray[np.float64],
     fs: float,
     filter_band: tuple[float, float],
-    thresholds: tuple[float, float, float, float],
-    durations: tuple[float, float],
     threshold: float,
     edge_buffer: float,
+    *,
+    low_peak_threshold: float,
+    high_peak_threshold: float,
+    low_trough_threshold: float,
+    high_trough_threshold: float,
+    min_duration: float,
+    max_duration: float,
 ) -> tuple[pd.DataFrame, NDArray[np.float64]]:
     """Detect extrema independently; standardize amplitudes over all usable samples."""
     filtered_segments = []
@@ -257,14 +262,13 @@ def _find_waves(
         where = np.column_stack((first[valid], peak[valid], last[valid]))
         times = timestamps[start + where]
         z = (filtered[where] - mean) / std
-        low_peak, high_peak, low_trough, high_trough = thresholds
         length = times[:, 2] - times[:, 0]
         keep = (
-            (length >= durations[0])
-            & (length <= durations[1])
+            (length >= min_duration)
+            & (length <= max_duration)
             & (
-                ((z[:, 1] > high_peak) & (z[:, 2] <= -low_trough))
-                | ((z[:, 1] >= low_peak) & (z[:, 2] < -high_trough))
+                ((z[:, 1] > high_peak_threshold) & (z[:, 2] <= -low_trough_threshold))
+                | ((z[:, 1] >= low_peak_threshold) & (z[:, 2] < -high_trough_threshold))
             )
             & (z[:, 1] > z[:, 0])
             & (z[:, 1] - z[:, 2] > threshold)
@@ -407,8 +411,12 @@ def detect_delta_waves(
     emg_threshold: float = 0.6,
     ignore_intervals: nel.EpochArray | ArrayLike | None = None,
     threshold: float = 3.0,
-    thresholds: tuple[float, float, float, float] = (1.0, 3.0, 0.0, 1.5),
-    durations: tuple[float, float] = (0.15, 0.65),
+    low_peak_threshold: float = 1.0,
+    high_peak_threshold: float = 3.0,
+    low_trough_threshold: float = 0.0,
+    high_trough_threshold: float = 1.5,
+    min_duration: float = 0.15,
+    max_duration: float = 0.65,
     filter_band: tuple[float, float] = (0.5, 9.0),
     passband: tuple[float, float] = (1.0, 6.0),
     reject_artifacts: bool = True,
@@ -450,11 +458,24 @@ def detect_delta_waves(
         Excluded intervals in seconds. Events cannot cross these intervals.
     threshold : float, optional
         Strict minimum peak-to-final-trough amplitude in z units (default 3).
-    thresholds : tuple of four float, optional
-        Low/high peak and low/high absolute final-trough thresholds. Accept either
-        high peak with low trough, or low peak with high trough, as in FindDeltaWaves.
-    durations : tuple of float, optional
-        Inclusive minimum/maximum trough-to-trough duration in seconds (0.15, 0.65).
+    low_peak_threshold : float, optional
+        Minimum peak in z units when the final trough is below
+        -high_trough_threshold. Inclusive; default 1.0.
+    high_peak_threshold : float, optional
+        Minimum peak in z units when the final trough is at or below
+        -low_trough_threshold. Strict; default 3.0.
+    low_trough_threshold : float, optional
+        Minimum absolute negative final-trough amplitude in z units for the
+        high-peak condition. Inclusive; default 0.0.
+    high_trough_threshold : float, optional
+        Minimum absolute negative final-trough amplitude in z units for the
+        low-peak condition. Strict; default 1.5. Both peak and trough threshold
+        pairs must be nonnegative and ordered low <= high.
+    min_duration : float, optional
+        Inclusive minimum trough-to-trough duration in seconds; default 0.15.
+    max_duration : float, optional
+        Inclusive maximum trough-to-trough duration in seconds; default 0.65.
+        Must exceed min_duration.
     filter_band : tuple of float, optional
         Morphology filter cutoffs in Hz (0.5, 9). A fifth-order Chebyshev-II lowpass
         is subtracted for highpassing, followed by lowpassing, as in FilterLFP.
@@ -559,22 +580,23 @@ def detect_delta_waves(
     for name, band in (("filter_band", filter_band), ("passband", passband)):
         if len(band) != 2 or not (0 < band[0] < band[1] < fs / 2):
             raise ValueError(f"{name} must satisfy 0 < low < high < fs/2.")
-    if (
-        len(thresholds) != 4
-        or not np.isfinite(thresholds).all()
-        or min(thresholds) < 0
-        or thresholds[0] > thresholds[1]
-        or thresholds[2] > thresholds[3]
+    for name, value in (
+        ("low_peak_threshold", low_peak_threshold),
+        ("high_peak_threshold", high_peak_threshold),
+        ("low_trough_threshold", low_trough_threshold),
+        ("high_trough_threshold", high_trough_threshold),
     ):
-        raise ValueError(
-            "thresholds must contain ordered nonnegative low/high peak and trough pairs."
-        )
-    if (
-        len(durations) != 2
-        or not np.isfinite(durations).all()
-        or not (0 < durations[0] < durations[1])
-    ):
-        raise ValueError("durations must be positive increasing bounds in seconds.")
+        if not np.isfinite(value) or value < 0:
+            raise ValueError(f"{name} must be finite and nonnegative.")
+    if low_peak_threshold > high_peak_threshold:
+        raise ValueError("low_peak_threshold must be <= high_peak_threshold.")
+    if low_trough_threshold > high_trough_threshold:
+        raise ValueError("low_trough_threshold must be <= high_trough_threshold.")
+    for name, value in (("min_duration", min_duration), ("max_duration", max_duration)):
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be finite and positive, in seconds.")
+    if min_duration >= max_duration:
+        raise ValueError("min_duration must be less than max_duration.")
     if (
         not np.isfinite(threshold)
         or threshold < 0
@@ -626,7 +648,18 @@ def detect_delta_waves(
         data = data[:, detection_channel]
     cleaned = _clean_segments(data, segments, fs, reject_artifacts)
     events, intervals = _find_waves(
-        cleaned, times, fs, filter_band, thresholds, durations, threshold, edge_buffer
+        cleaned,
+        times,
+        fs,
+        filter_band,
+        threshold,
+        edge_buffer,
+        low_peak_threshold=low_peak_threshold,
+        high_peak_threshold=high_peak_threshold,
+        low_trough_threshold=low_trough_threshold,
+        high_trough_threshold=high_trough_threshold,
+        min_duration=min_duration,
+        max_duration=max_duration,
     )
     effective_threshold, firing_verified = threshold, False
     if verify_firing:
@@ -641,8 +674,12 @@ def detect_delta_waves(
     params = {
         "channel": candidates,
         "threshold": threshold,
-        "thresholds": thresholds,
-        "durations": durations,
+        "low_peak_threshold": low_peak_threshold,
+        "high_peak_threshold": high_peak_threshold,
+        "low_trough_threshold": low_trough_threshold,
+        "high_trough_threshold": high_trough_threshold,
+        "min_duration": min_duration,
+        "max_duration": max_duration,
         "filter_band": filter_band,
         "passband": passband,
         "fs": fs,

@@ -81,8 +81,50 @@ def test_native_sampling_rate_and_absolute_timestamps(fs):
 def test_threshold_and_duration_reject_candidates():
     t, x = _trace()
     assert _detect(x, t, threshold=100).empty
-    assert _detect(x, t, thresholds=(100, 100, 100, 100)).empty
-    assert _detect(x, t, durations=(0.6, 0.7)).empty
+    assert _detect(x, t, low_peak_threshold=100, high_peak_threshold=100).empty
+    assert _detect(x, t, min_duration=0.6, max_duration=0.7).empty
+
+
+@pytest.mark.parametrize(
+    "parameters, expected_count",
+    [
+        ({"low_peak_threshold": 10, "high_peak_threshold": 100}, 0),
+        ({"low_peak_threshold": 1, "high_peak_threshold": 100}, 3),
+        ({"high_peak_threshold": 3, "high_trough_threshold": 4}, 3),
+        ({"high_peak_threshold": 100, "high_trough_threshold": 4}, 0),
+        ({"low_trough_threshold": 4, "high_trough_threshold": 4}, 0),
+        ({"min_duration": 0.4}, 0),
+        ({"max_duration": 0.2}, 0),
+    ],
+)
+def test_named_thresholds_and_duration_bounds_control_acceptance(
+    parameters, expected_count
+):
+    t, x = _trace()
+    assert len(_detect(x, t, **parameters)) == expected_count
+
+
+@pytest.mark.parametrize(
+    "parameter",
+    [
+        "low_peak_threshold",
+        "high_peak_threshold",
+        "low_trough_threshold",
+        "high_trough_threshold",
+        "min_duration",
+        "max_duration",
+    ],
+)
+@pytest.mark.parametrize("value", [-1, np.nan, np.inf])
+def test_named_thresholds_and_durations_reject_invalid_values(parameter, value):
+    with pytest.raises(ValueError, match=parameter):
+        _detect(np.ones(2500), **{parameter: value})
+
+
+@pytest.mark.parametrize("parameter", ["min_duration", "max_duration"])
+def test_duration_bounds_must_be_positive(parameter):
+    with pytest.raises(ValueError, match=parameter):
+        _detect(np.ones(2500), **{parameter: 0})
 
 
 def test_restrictions_and_exclusions_are_not_bridged():
@@ -134,8 +176,9 @@ def test_empty_short_constant_and_nonfinite_signals(x):
         ({"fs": 0}, "fs"),
         ({"fs": np.nan}, "fs"),
         ({"filter_band": (9, 1)}, "filter_band"),
-        ({"thresholds": (3, 1, 0, 1)}, "thresholds"),
-        ({"durations": (0.6, 0.1)}, "durations"),
+        ({"low_peak_threshold": 4}, "low_peak_threshold"),
+        ({"low_trough_threshold": 2}, "low_trough_threshold"),
+        ({"min_duration": 0.6, "max_duration": 0.1}, "min_duration"),
         ({"threshold": -1}, "threshold"),
         ({"edge_buffer": -1}, "edge_buffer"),
         ({"emg_threshold": np.nan}, "emg_threshold"),
@@ -164,7 +207,15 @@ def test_session_loading_nrem_emg_and_mat_roundtrip(tmp_path):
         tmp_path / f"{tmp_path.name}.EMGFromLFP.LFP.mat",
         {"EMGFromLFP": {"timestamps": emg_t, "data": emg}},
     )
-    events = detect_delta_waves(tmp_path, reject_artifacts=False)
+    parameters = dict(
+        low_peak_threshold=0.5,
+        high_peak_threshold=2.0,
+        low_trough_threshold=0.1,
+        high_trough_threshold=1.0,
+        min_duration=0.2,
+        max_duration=0.5,
+    )
+    events = detect_delta_waves(tmp_path, reject_artifacts=False, **parameters)
     np.testing.assert_allclose(events.peaks, [5, 25], atol=0.02)
     saved = loadmat(
         events.attrs["event_file"], struct_as_record=False, squeeze_me=False
@@ -176,6 +227,12 @@ def test_session_loading_nrem_emg_and_mat_roundtrip(tmp_path):
     assert saved.detectorinfo[0, 0].detectionchannel1.item() == 1
     assert saved.detectorinfo[0, 0].detectionchannel.item() == 0
     assert saved.eventIDlabels.shape == (1, 1)
+    saved_parameters = saved.detectorinfo[0, 0].detectionparms[0, 0]
+    for name, value in parameters.items():
+        assert events.attrs["detectorinfo"]["detectionparms"][name] == value
+        assert getattr(saved_parameters, name).item() == value
+    assert not hasattr(saved_parameters, "thresholds")
+    assert not hasattr(saved_parameters, "durations")
 
 
 def test_existing_file_is_protected_and_another_name_can_be_saved(tmp_path):
