@@ -32,6 +32,7 @@ def _detect(x, t=None, **kwargs):
         emg_threshold=np.inf,
         save_mat=False,
         reject_artifacts=False,
+        verify_firing=False,
     )
     options.update(kwargs)
     return detect_delta_waves(**options)
@@ -39,7 +40,7 @@ def _detect(x, t=None, **kwargs):
 
 def _write_session(path, data, fs=250, tags=None, regions=None):
     session = {
-        "extracellular": {"srLfp": fs, "nChannels": data.shape[1]},
+        "extracellular": {"sr": 20000, "srLfp": fs, "nChannels": data.shape[1]},
         "channelTags": tags or {},
         "brainRegions": regions or {},
     }
@@ -215,7 +216,9 @@ def test_session_loading_nrem_emg_and_mat_roundtrip(tmp_path):
         min_duration=0.2,
         max_duration=0.5,
     )
-    events = detect_delta_waves(tmp_path, reject_artifacts=False, **parameters)
+    events = detect_delta_waves(
+        tmp_path, reject_artifacts=False, verify_firing=False, **parameters
+    )
     np.testing.assert_allclose(events.peaks, [5, 25], atol=0.02)
     saved = loadmat(
         events.attrs["event_file"], struct_as_record=False, squeeze_me=False
@@ -294,17 +297,96 @@ def test_relative_power_channel_selection_and_eeg_fallback(tmp_path):
         emg_threshold=np.inf,
         reject_artifacts=False,
         save_mat=False,
+        verify_firing=False,
     )
     assert events.attrs["detectorinfo"]["detectionchannel"] == 1
     np.testing.assert_allclose(events.peaks, [5, 15, 25], atol=0.02)
 
 
-def test_firing_verification_warns_when_unavailable():
+@pytest.mark.parametrize("spike_times", [None, [], [np.array([])]])
+def test_default_firing_verification_warns_when_unavailable(spike_times):
     t, x = _trace()
-    with pytest.warns(UserWarning, match="cortical spikes"):
-        events = _detect(x, t, verify_firing=True)
+    with pytest.warns(UserWarning, match="Cannot verify firing: no cortical cells"):
+        events = detect_delta_waves(
+            lfp=x,
+            fs=250,
+            timestamps=t,
+            nrem_restrict=False,
+            emg_threshold=np.inf,
+            reject_artifacts=False,
+            save_mat=False,
+            spike_times=spike_times,
+        )
     assert len(events) == 3
-    assert not events.attrs["detectorinfo"]["detectionparms"]["firing_verified"]
+    params = events.attrs["detectorinfo"]["detectionparms"]
+    assert params["verify_firing"]
+    assert not params["firing_verified"]
+    assert events.attrs["detectorinfo"]["threshold"] == 3.0
+
+
+def test_default_firing_verification_uses_available_spikes():
+    t, x = _trace()
+    spikes = np.arange(0, 30, 0.005)
+    keep = np.all(abs(spikes[:, None] - np.array([5, 15, 25])) > 0.08, axis=1)
+    events = detect_delta_waves(
+        lfp=x,
+        fs=250,
+        timestamps=t,
+        nrem_restrict=False,
+        emg_threshold=np.inf,
+        reject_artifacts=False,
+        save_mat=False,
+        spike_times=[spikes[keep]],
+    )
+    params = events.attrs["detectorinfo"]["detectionparms"]
+    assert params["verify_firing"]
+    assert params["firing_verified"]
+    assert 0 < len(events) < 3
+    assert events.attrs["detectorinfo"]["threshold"] > 3.0
+
+
+def test_session_without_cortical_cells_warns_and_retains_lfp_events(tmp_path):
+    _, x = _trace()
+    _write_session(tmp_path, x[:, None] * 100, tags={"Delta": {"channels": 1}})
+    trains = np.empty(2, dtype=object)
+    trains[0] = np.arange(0, 30, 0.1)
+    trains[1] = np.arange(0, 30, 0.15)
+    savemat(
+        tmp_path / f"{tmp_path.name}.cell_metrics.cellinfo.mat",
+        {
+            "cell_metrics": {
+                "UID": [1, 2],
+                "brainRegion": np.array(["CA1", "CA1"], dtype=object),
+                "spikes": {"times": trains},
+            },
+        },
+    )
+    with pytest.warns(UserWarning, match="Cannot verify firing: no cortical cells"):
+        events = detect_delta_waves(
+            tmp_path,
+            nrem_restrict=False,
+            emg_threshold=np.inf,
+            reject_artifacts=False,
+            save_mat=False,
+        )
+    np.testing.assert_allclose(events.peaks, [5, 15, 25], atol=0.02)
+    params = events.attrs["detectorinfo"]["detectionparms"]
+    assert params["verify_firing"]
+    assert not params["firing_verified"]
+
+
+def test_disabling_firing_verification_skips_spike_loading(tmp_path, monkeypatch):
+    t, x = _trace()
+
+    def unexpected_spike_load(*args, **kwargs):
+        pytest.fail("Spike loading must be skipped when verify_firing=False.")
+
+    monkeypatch.setattr(
+        "neuro_py.detectors.delta_wave.loading.load_spikes", unexpected_spike_load
+    )
+    events = _detect(x, t, basepath=tmp_path)
+    assert len(events) == 3
+    assert not events.attrs["detectorinfo"]["detectionparms"]["verify_firing"]
 
 
 def test_firing_verification_raises_cutoff_for_population_suppression():
@@ -353,6 +435,8 @@ def test_empty_nrem_returns_empty_events_with_metadata(tmp_path):
         tmp_path / f"{tmp_path.name}.SleepState.states.mat",
         {"SleepState": {"ints": {"NREMstate": np.empty((0, 2))}}},
     )
-    events = detect_delta_waves(tmp_path, emg_threshold=np.inf, save_mat=False)
+    events = detect_delta_waves(
+        tmp_path, emg_threshold=np.inf, save_mat=False, verify_firing=False
+    )
     assert events.empty
     assert events.attrs["detectorinfo"]["detectionintervals"].shape == (0, 2)

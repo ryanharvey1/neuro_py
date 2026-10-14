@@ -300,9 +300,16 @@ def _verify_firing(
 ) -> tuple[pd.DataFrame, float, bool]:
     """Raise the amplitude cutoff using amplitude-ordered population suppression."""
     trains = [np.asarray(train, dtype=float).reshape(-1) for train in spike_times]
-    if events.empty or not trains or not any(train.size for train in trains):
+    if events.empty:
         warnings.warn(
-            "No events or cortical spikes available to verify firing.", stacklevel=2
+            "Cannot verify firing: no delta waves were detected.", stacklevel=2
+        )
+        return events, threshold, False
+    if not trains or not any(train.size for train in trains):
+        warnings.warn(
+            "Cannot verify firing: no cortical cells with spike data are available; "
+            "retaining LFP detections.",
+            stacklevel=2,
         )
         return events, threshold, False
     if any(not np.isfinite(train).all() for train in trains):
@@ -421,7 +428,7 @@ def detect_delta_waves(
     passband: tuple[float, float] = (1.0, 6.0),
     reject_artifacts: bool = True,
     edge_buffer: float = 1.0,
-    verify_firing: bool = False,
+    verify_firing: bool = True,
     spike_times: Sequence[ArrayLike] | None = None,
     save_mat: bool = True,
     event_name: str = "deltaWaves",
@@ -487,9 +494,10 @@ def detect_delta_waves(
     edge_buffer : float, optional
         Exclude one second at each filtered segment edge to limit filter transients.
     verify_firing : bool, optional
-        Optionally raise the amplitude threshold using cortical firing suppression.
-        Default False, matching the MATLAB wrapper's documented default. Uses a
-        population PETH (+/-0.5 s, 10 ms bins, Gaussian sigma one bin), per-event
+        Raise the amplitude threshold using cortical firing suppression by default.
+        If no cortical cells with spike data are available, warn and retain LFP
+        detections with firing_verified=False in the metadata. Set False to disable.
+        Uses a population PETH (+/-0.5 s, 10 ms bins, Gaussian sigma one bin), per-event
         z scores within +/-50 ms, and a 100-event amplitude-ordered moving mean
         <= -0.5. This is an explicit heuristic, not a statistical significance test.
     spike_times : sequence of array_like, optional
@@ -663,7 +671,7 @@ def detect_delta_waves(
     )
     effective_threshold, firing_verified = threshold, False
     if verify_firing:
-        if spike_times is None and basepath is not None:
+        if not events.empty and spike_times is None and basepath is not None:
             spikes, _ = loading.load_spikes(
                 str(basepath), brainRegion=list(brain_regions)
             )
