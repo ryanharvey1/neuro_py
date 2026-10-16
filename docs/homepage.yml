@@ -81,6 +81,11 @@ modules:
 # Tutorials not listed here use auto-generated titles and a default icon.
 
 tutorials:
+  pychronux_tutorial:
+    icon: material-chart-bell-curve-cumulative
+    title: PyChronux Multitaper Analysis
+    description: Estimate spectra and frequency-specific spike-train coupling with DPSS multitapers.
+
   spatial_map:
     icon: material-map-marker-path
     title: Spatial Maps
