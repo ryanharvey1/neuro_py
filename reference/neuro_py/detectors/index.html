@@ -13,14 +13,14 @@
         <link rel="prev" href="../behavior/well_traversal_classification/">
       
       
-        <link rel="next" href="./dentate_spike/">
+        <link rel="next" href="./delta_wave/">
       
       
         
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.70">
+      <meta name="generator" content="zensical-0.0.71">
     
     
       
@@ -276,6 +276,8 @@
   
     
       
+      
+        
       
         
       
@@ -821,6 +823,8 @@
       
         
       
+        
+      
     
     
     
@@ -870,6 +874,33 @@
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
               
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./delta_wave/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  delta_wave
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
                 
               
                 
@@ -3146,6 +3177,8 @@
       
         
       
+        
+      
     
     
     
@@ -3311,6 +3344,33 @@
     
   
   Decoding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/delta_wave_detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Delta Wave Detection
 
     
   </span>
@@ -3776,6 +3836,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.detectors.detect_delta_waves" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        detect_delta_waves
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.detectors.detect_sharp_wave_ripples" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3813,6 +3884,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         hartigan_diptest
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.detectors.save_delta_wave_events" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        save_delta_wave_events
       </span>
     </span>
   </a>
@@ -3930,6 +4012,8 @@
       
         
           
+        
+      
         
       
         
@@ -7272,6 +7356,1150 @@ thresh, cross, bihist, diptest_result = bimodal_thresh(data)</p>
     <span class="n">cross</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"upints"</span><span class="p">:</span> <span class="n">upints</span><span class="p">,</span> <span class="s2">"downints"</span><span class="p">:</span> <span class="n">downints</span><span class="p">}</span>
 
     <span class="k">return</span> <span class="n">thresh</span><span class="p">,</span> <span class="n">cross</span><span class="p">,</span> <span class="n">bihist</span><span class="p">,</span> <span class="n">diptest_result</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.detectors.detect_delta_waves" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">detect_delta_waves</span><span class="p">(</span><span class="n">basepath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">lfp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timestamps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">brain_regions</span><span class="o">=</span><span class="n">_REGIONS</span><span class="p">,</span> <span class="n">detection_epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nrem_restrict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">emg_threshold</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">ignore_intervals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">low_peak_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">high_peak_threshold</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">low_trough_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">high_trough_threshold</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">min_duration</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">max_duration</span><span class="o">=</span><span class="mf">0.65</span><span class="p">,</span> <span class="n">filter_band</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">),</span> <span class="n">passband</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">),</span> <span class="n">reject_artifacts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">edge_buffer</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">verify_firing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spike_times</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="s1">'deltaWaves'</span><span class="p">)</span></code>
+
+<a href="#neuro_py.detectors.detect_delta_waves" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Detect cortical delta waves and optionally save a CellExplorer event file.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>basepath</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Session directory. Required for file-backed LFP, NREM/EMG metadata, or saving.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lfp</code>
+            </td>
+            <td>
+                  <code><span title="array_like">array_like</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Single-channel LFP, shape (n_samples,), in arbitrary consistent voltage units.
+Otherwise memory-map the session int16 .lfp (or .eeg) using session metadata.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>fs</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampling rate in Hz. Required with lfp; otherwise read srLfp/srLFP from session.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timestamps</code>
+            </td>
+            <td>
+                  <code><span title="array_like">array_like</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Strictly increasing sample timestamps in seconds. Defaults to arange(n)/fs.
+Gaps are allowed, but sampling within each segment must match fs.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>channel</code>
+            </td>
+            <td>
+                  <code>int or sequence of int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Zero-indexed detection channel, or candidates ranked by relative delta power.
+Defaults to a Delta channel tag, then matching brain-region channels. Bad
+channels are excluded. Metadata channel numbers are converted from MATLAB.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>brain_regions</code>
+            </td>
+            <td>
+                  <code>str or sequence of str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Region substrings for automatic channel selection and optional cortical spikes.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="neuro_py.detectors.delta_wave._REGIONS">_REGIONS</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>detection_epochs</code>
+            </td>
+            <td>
+                  <code><span title="nelpy.EpochArray">EpochArray</span> or <span title="array_like">array_like</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection intervals in seconds, intersected with NREM and low EMG if enabled.
+Empty intervals explicitly request no detection.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>nrem_restrict</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Restrict to SleepState.ints.NREMstate (default True). Requires basepath.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>emg_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Keep EMG &lt; 0.6 for at least one second. Set np.inf to disable; otherwise
+requires basepath and an EMGFromLFP.LFP.mat file.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.6</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ignore_intervals</code>
+            </td>
+            <td>
+                  <code><span title="nelpy.EpochArray">EpochArray</span> or <span title="array_like">array_like</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Excluded intervals in seconds. Events cannot cross these intervals.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Strict minimum peak-to-final-trough amplitude in z units (default 3).</p>
+              </div>
+            </td>
+            <td>
+                  <code>3.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>low_peak_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum peak in z units when the final trough is below
+-high_trough_threshold. Inclusive; default 1.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>high_peak_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum peak in z units when the final trough is at or below
+-low_trough_threshold. Strict; default 3.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>3.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>low_trough_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum absolute negative final-trough amplitude in z units for the
+high-peak condition. Inclusive; default 0.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>high_trough_threshold</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum absolute negative final-trough amplitude in z units for the
+low-peak condition. Strict; default 1.5. Both peak and trough threshold
+pairs must be nonnegative and ordered low &lt;= high.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>min_duration</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Inclusive minimum trough-to-trough duration in seconds; default 0.15.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.15</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_duration</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Inclusive maximum trough-to-trough duration in seconds; default 0.65.
+Must exceed min_duration.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.65</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter_band</code>
+            </td>
+            <td>
+                  <code>tuple of float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Morphology filter cutoffs in Hz (0.5, 9). A fifth-order Chebyshev-II lowpass
+is subtracted for highpassing, followed by lowpassing, as in FilterLFP.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(0.5, 9.0)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>passband</code>
+            </td>
+            <td>
+                  <code>tuple of float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Band for automatic relative-power channel selection only (1, 6 Hz).</p>
+              </div>
+            </td>
+            <td>
+                  <code>(1.0, 6.0)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reject_artifacts</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Exclude raw amplitudes &gt; 6 SD and raw differences &gt; 10 SD of the signal,
+padded by 0.5 and 0.1 seconds respectively. Default True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>edge_buffer</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Exclude one second at each filtered segment edge to limit filter transients.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verify_firing</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raise the amplitude threshold using cortical firing suppression by default.
+If no cortical cells with spike data are available, warn and retain LFP
+detections with firing_verified=False in the metadata. Set False to disable.
+Uses a population PETH (+/-0.5 s, 10 ms bins, Gaussian sigma one bin), per-event
+z scores within +/-50 ms, and a 100-event amplitude-ordered moving mean
+&lt;= -0.5. This is an explicit heuristic, not a statistical significance test.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spike_times</code>
+            </td>
+            <td>
+                  <code>sequence of array_like</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spike timestamps in seconds per cortical unit for firing verification.
+Otherwise load cortical cell metrics/spikes from basepath when requested.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>save_mat</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Save a CellExplorer event file by default. Requires basepath. Existing
+files always raise FileExistsError; use a distinct event_name to compare runs.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Event struct and filename component, default deltaWaves.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;deltaWaves&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One row per event with start, stop, timestamps, peaks, amplitude (zscore),
+amplitudeUnits, values (start/peak/final trough z scores), eventID,
+eventIDlabels, eventIDbinary, center and duration (seconds), plus individual
+start_value, peak_value, stop_value columns. Shared detectorinfo is in attrs,
+including exact usable intervals, parameters, and both channel conventions.
+attrs['event_file'] contains the output path when saved. Empty results retain
+the same columns and metadata.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Based on neurocode detect_delta_waves.m / FindDeltaWaves.m. Derivative extrema
+use an eighth-order 9 Hz Chebyshev-II lowpass and sample-SD normalization.
+Unlike the MATLAB implementation, filtering stays at the native sampling rate,
+uses stable second-order sections, and never interpolates across recording gaps,
+ignored epochs, NaNs, or artifacts. Z scores are pooled across usable segments.
+Missing required metadata raises an actionable error rather than silently
+dropping a requested restriction. No interactive channel picker is launched.</p>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">events</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="s2">"deltaWavesPython"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">events</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span><span class="n">lfp</span><span class="o">=</span><span class="n">trace</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">1250</span><span class="p">,</span> <span class="n">nrem_restrict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">emg_threshold</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/detectors/delta_wave.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span>
+<span class="normal">616</span>
+<span class="normal">617</span>
+<span class="normal">618</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span>
+<span class="normal">623</span>
+<span class="normal">624</span>
+<span class="normal">625</span>
+<span class="normal">626</span>
+<span class="normal">627</span>
+<span class="normal">628</span>
+<span class="normal">629</span>
+<span class="normal">630</span>
+<span class="normal">631</span>
+<span class="normal">632</span>
+<span class="normal">633</span>
+<span class="normal">634</span>
+<span class="normal">635</span>
+<span class="normal">636</span>
+<span class="normal">637</span>
+<span class="normal">638</span>
+<span class="normal">639</span>
+<span class="normal">640</span>
+<span class="normal">641</span>
+<span class="normal">642</span>
+<span class="normal">643</span>
+<span class="normal">644</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span>
+<span class="normal">655</span>
+<span class="normal">656</span>
+<span class="normal">657</span>
+<span class="normal">658</span>
+<span class="normal">659</span>
+<span class="normal">660</span>
+<span class="normal">661</span>
+<span class="normal">662</span>
+<span class="normal">663</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span>
+<span class="normal">670</span>
+<span class="normal">671</span>
+<span class="normal">672</span>
+<span class="normal">673</span>
+<span class="normal">674</span>
+<span class="normal">675</span>
+<span class="normal">676</span>
+<span class="normal">677</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span>
+<span class="normal">682</span>
+<span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span>
+<span class="normal">694</span>
+<span class="normal">695</span>
+<span class="normal">696</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span>
+<span class="normal">701</span>
+<span class="normal">702</span>
+<span class="normal">703</span>
+<span class="normal">704</span>
+<span class="normal">705</span>
+<span class="normal">706</span>
+<span class="normal">707</span>
+<span class="normal">708</span>
+<span class="normal">709</span>
+<span class="normal">710</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span>
+<span class="normal">714</span>
+<span class="normal">715</span>
+<span class="normal">716</span>
+<span class="normal">717</span>
+<span class="normal">718</span>
+<span class="normal">719</span>
+<span class="normal">720</span>
+<span class="normal">721</span>
+<span class="normal">722</span>
+<span class="normal">723</span>
+<span class="normal">724</span>
+<span class="normal">725</span>
+<span class="normal">726</span>
+<span class="normal">727</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detect_delta_waves</span><span class="p">(</span>
+    <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">lfp</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">timestamps</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">channel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">brain_regions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">_REGIONS</span><span class="p">,</span>
+    <span class="n">detection_epochs</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span> <span class="o">|</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nrem_restrict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">emg_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">ignore_intervals</span><span class="p">:</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span> <span class="o">|</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">low_peak_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">high_peak_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">low_trough_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">high_trough_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">min_duration</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>
+    <span class="n">max_duration</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.65</span><span class="p">,</span>
+    <span class="n">filter_band</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">9.0</span><span class="p">),</span>
+    <span class="n">passband</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">),</span>
+    <span class="n">reject_artifacts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">edge_buffer</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">verify_firing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">spike_times</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ArrayLike</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_mat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"deltaWaves"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Detect cortical delta waves and optionally save a CellExplorer event file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    basepath : str or pathlib.Path, optional</span>
+<span class="sd">        Session directory. Required for file-backed LFP, NREM/EMG metadata, or saving.</span>
+<span class="sd">    lfp : array_like, optional</span>
+<span class="sd">        Single-channel LFP, shape (n_samples,), in arbitrary consistent voltage units.</span>
+<span class="sd">        Otherwise memory-map the session int16 .lfp (or .eeg) using session metadata.</span>
+<span class="sd">    fs : float, optional</span>
+<span class="sd">        Sampling rate in Hz. Required with lfp; otherwise read srLfp/srLFP from session.</span>
+<span class="sd">    timestamps : array_like, optional</span>
+<span class="sd">        Strictly increasing sample timestamps in seconds. Defaults to arange(n)/fs.</span>
+<span class="sd">        Gaps are allowed, but sampling within each segment must match fs.</span>
+<span class="sd">    channel : int or sequence of int, optional</span>
+<span class="sd">        Zero-indexed detection channel, or candidates ranked by relative delta power.</span>
+<span class="sd">        Defaults to a Delta channel tag, then matching brain-region channels. Bad</span>
+<span class="sd">        channels are excluded. Metadata channel numbers are converted from MATLAB.</span>
+<span class="sd">    brain_regions : str or sequence of str, optional</span>
+<span class="sd">        Region substrings for automatic channel selection and optional cortical spikes.</span>
+<span class="sd">    detection_epochs : nel.EpochArray or array_like, optional</span>
+<span class="sd">        Detection intervals in seconds, intersected with NREM and low EMG if enabled.</span>
+<span class="sd">        Empty intervals explicitly request no detection.</span>
+<span class="sd">    nrem_restrict : bool, optional</span>
+<span class="sd">        Restrict to SleepState.ints.NREMstate (default True). Requires basepath.</span>
+<span class="sd">    emg_threshold : float, optional</span>
+<span class="sd">        Keep EMG &lt; 0.6 for at least one second. Set np.inf to disable; otherwise</span>
+<span class="sd">        requires basepath and an EMGFromLFP.LFP.mat file.</span>
+<span class="sd">    ignore_intervals : nel.EpochArray or array_like, optional</span>
+<span class="sd">        Excluded intervals in seconds. Events cannot cross these intervals.</span>
+<span class="sd">    threshold : float, optional</span>
+<span class="sd">        Strict minimum peak-to-final-trough amplitude in z units (default 3).</span>
+<span class="sd">    low_peak_threshold : float, optional</span>
+<span class="sd">        Minimum peak in z units when the final trough is below</span>
+<span class="sd">        -high_trough_threshold. Inclusive; default 1.0.</span>
+<span class="sd">    high_peak_threshold : float, optional</span>
+<span class="sd">        Minimum peak in z units when the final trough is at or below</span>
+<span class="sd">        -low_trough_threshold. Strict; default 3.0.</span>
+<span class="sd">    low_trough_threshold : float, optional</span>
+<span class="sd">        Minimum absolute negative final-trough amplitude in z units for the</span>
+<span class="sd">        high-peak condition. Inclusive; default 0.0.</span>
+<span class="sd">    high_trough_threshold : float, optional</span>
+<span class="sd">        Minimum absolute negative final-trough amplitude in z units for the</span>
+<span class="sd">        low-peak condition. Strict; default 1.5. Both peak and trough threshold</span>
+<span class="sd">        pairs must be nonnegative and ordered low &lt;= high.</span>
+<span class="sd">    min_duration : float, optional</span>
+<span class="sd">        Inclusive minimum trough-to-trough duration in seconds; default 0.15.</span>
+<span class="sd">    max_duration : float, optional</span>
+<span class="sd">        Inclusive maximum trough-to-trough duration in seconds; default 0.65.</span>
+<span class="sd">        Must exceed min_duration.</span>
+<span class="sd">    filter_band : tuple of float, optional</span>
+<span class="sd">        Morphology filter cutoffs in Hz (0.5, 9). A fifth-order Chebyshev-II lowpass</span>
+<span class="sd">        is subtracted for highpassing, followed by lowpassing, as in FilterLFP.</span>
+<span class="sd">    passband : tuple of float, optional</span>
+<span class="sd">        Band for automatic relative-power channel selection only (1, 6 Hz).</span>
+<span class="sd">    reject_artifacts : bool, optional</span>
+<span class="sd">        Exclude raw amplitudes &gt; 6 SD and raw differences &gt; 10 SD of the signal,</span>
+<span class="sd">        padded by 0.5 and 0.1 seconds respectively. Default True.</span>
+<span class="sd">    edge_buffer : float, optional</span>
+<span class="sd">        Exclude one second at each filtered segment edge to limit filter transients.</span>
+<span class="sd">    verify_firing : bool, optional</span>
+<span class="sd">        Raise the amplitude threshold using cortical firing suppression by default.</span>
+<span class="sd">        If no cortical cells with spike data are available, warn and retain LFP</span>
+<span class="sd">        detections with firing_verified=False in the metadata. Set False to disable.</span>
+<span class="sd">        Uses a population PETH (+/-0.5 s, 10 ms bins, Gaussian sigma one bin), per-event</span>
+<span class="sd">        z scores within +/-50 ms, and a 100-event amplitude-ordered moving mean</span>
+<span class="sd">        &lt;= -0.5. This is an explicit heuristic, not a statistical significance test.</span>
+<span class="sd">    spike_times : sequence of array_like, optional</span>
+<span class="sd">        Spike timestamps in seconds per cortical unit for firing verification.</span>
+<span class="sd">        Otherwise load cortical cell metrics/spikes from basepath when requested.</span>
+<span class="sd">    save_mat : bool, optional</span>
+<span class="sd">        Save a CellExplorer event file by default. Requires basepath. Existing</span>
+<span class="sd">        files always raise FileExistsError; use a distinct event_name to compare runs.</span>
+<span class="sd">    event_name : str, optional</span>
+<span class="sd">        Event struct and filename component, default deltaWaves.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        One row per event with start, stop, timestamps, peaks, amplitude (zscore),</span>
+<span class="sd">        amplitudeUnits, values (start/peak/final trough z scores), eventID,</span>
+<span class="sd">        eventIDlabels, eventIDbinary, center and duration (seconds), plus individual</span>
+<span class="sd">        start_value, peak_value, stop_value columns. Shared detectorinfo is in attrs,</span>
+<span class="sd">        including exact usable intervals, parameters, and both channel conventions.</span>
+<span class="sd">        attrs['event_file'] contains the output path when saved. Empty results retain</span>
+<span class="sd">        the same columns and metadata.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Based on neurocode detect_delta_waves.m / FindDeltaWaves.m. Derivative extrema</span>
+<span class="sd">    use an eighth-order 9 Hz Chebyshev-II lowpass and sample-SD normalization.</span>
+<span class="sd">    Unlike the MATLAB implementation, filtering stays at the native sampling rate,</span>
+<span class="sd">    uses stable second-order sections, and never interpolates across recording gaps,</span>
+<span class="sd">    ignored epochs, NaNs, or artifacts. Z scores are pooled across usable segments.</span>
+<span class="sd">    Missing required metadata raises an actionable error rather than silently</span>
+<span class="sd">    dropping a requested restriction. No interactive channel picker is launched.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; events = detect_delta_waves(basepath, event_name="deltaWavesPython")</span>
+<span class="sd">    &gt;&gt;&gt; events = detect_delta_waves(lfp=trace, fs=1250, nrem_restrict=False,</span>
+<span class="sd">    ...                             emg_threshold=np.inf, save_mat=False)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">save_mat</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"basepath is required when save_mat=True."</span><span class="p">)</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">_event_path</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">event_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">destination</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Refusing to overwrite </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2">; choose another event_name."</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">nrem_restrict</span> <span class="ow">or</span> <span class="n">emg_threshold</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="ow">and</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"NREM/EMG restrictions require basepath; disable them for array-only detection."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">emg_threshold</span><span class="p">)</span> <span class="ow">or</span> <span class="n">emg_threshold</span> <span class="o">==</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"emg_threshold must be finite or positive infinity."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">brain_regions</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">brain_regions</span> <span class="o">=</span> <span class="p">(</span><span class="n">brain_regions</span><span class="p">,)</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">lfp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Provide lfp or basepath."</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.session.mat"</span><span class="p">)[</span><span class="s2">"session"</span><span class="p">]</span>
+        <span class="n">extracellular</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="s2">"extracellular"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">extracellular</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"srLfp"</span><span class="p">,</span> <span class="n">extracellular</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"srLFP"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)))</span>
+        <span class="n">n_channels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">extracellular</span><span class="p">[</span><span class="s2">"nChannels"</span><span class="p">])</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="n">_channel_candidates</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">brain_regions</span><span class="p">,</span> <span class="n">n_channels</span><span class="p">)</span>
+        <span class="n">loaded</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">loadLFP</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">n_channels</span><span class="o">=</span><span class="n">n_channels</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">loaded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No .lfp or .eeg file in </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">sample_times</span> <span class="o">=</span> <span class="n">loaded</span>
+        <span class="k">if</span> <span class="n">timestamps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"timestamps may only be supplied with lfp."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lfp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"lfp must be a one-dimensional single-channel signal."</span><span class="p">)</span>
+        <span class="n">sample_times</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">if</span> <span class="n">timestamps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">or</span> <span class="n">channel</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Array input requires a single nonnegative integer channel label."</span>
+            <span class="p">)</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">channel</span><span class="p">)]</span> <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fs</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"fs must be a finite positive sampling rate in Hz."</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">band</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"filter_band"</span><span class="p">,</span> <span class="n">filter_band</span><span class="p">),</span> <span class="p">(</span><span class="s2">"passband"</span><span class="p">,</span> <span class="n">passband</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">band</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="n">band</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">band</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must satisfy 0 &lt; low &lt; high &lt; fs/2."</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">"low_peak_threshold"</span><span class="p">,</span> <span class="n">low_peak_threshold</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"high_peak_threshold"</span><span class="p">,</span> <span class="n">high_peak_threshold</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"low_trough_threshold"</span><span class="p">,</span> <span class="n">low_trough_threshold</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"high_trough_threshold"</span><span class="p">,</span> <span class="n">high_trough_threshold</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite and nonnegative."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">low_peak_threshold</span> <span class="o">&gt;</span> <span class="n">high_peak_threshold</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"low_peak_threshold must be &lt;= high_peak_threshold."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">low_trough_threshold</span> <span class="o">&gt;</span> <span class="n">high_trough_threshold</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"low_trough_threshold must be &lt;= high_trough_threshold."</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"min_duration"</span><span class="p">,</span> <span class="n">min_duration</span><span class="p">),</span> <span class="p">(</span><span class="s2">"max_duration"</span><span class="p">,</span> <span class="n">max_duration</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite and positive, in seconds."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">min_duration</span> <span class="o">&gt;=</span> <span class="n">max_duration</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"min_duration must be less than max_duration."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">threshold</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">edge_buffer</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">edge_buffer</span> <span class="o">&lt;</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"threshold and edge_buffer must be finite and nonnegative."</span><span class="p">)</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">fs</span>
+        <span class="k">if</span> <span class="n">sample_times</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sample_times</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">times</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span>
+        <span class="ow">or</span> <span class="n">times</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dt</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">dt</span> <span class="o">&lt;=</span> <span class="mf">1.5</span> <span class="o">/</span> <span class="n">fs</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">fs</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">))</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"timestamps must be finite, increasing, match lfp length and fs (gaps allowed)."</span>
+        <span class="p">)</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_epochs</span><span class="p">([[</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]])</span>
+        <span class="k">if</span> <span class="n">times</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="k">else</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">empty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">detection_epochs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span> <span class="o">&amp;</span> <span class="n">_epochs</span><span class="p">(</span><span class="n">detection_epochs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nrem_restrict</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">basepath</span><span class="p">))</span>
+        <span class="n">sleep</span> <span class="o">=</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.SleepState.states.mat"</span><span class="p">)[</span><span class="s2">"SleepState"</span><span class="p">]</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span> <span class="o">&amp;</span> <span class="n">_epochs</span><span class="p">(</span><span class="n">sleep</span><span class="p">[</span><span class="s2">"ints"</span><span class="p">][</span><span class="s2">"NREMstate"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">emg_threshold</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">low_emg</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_emg</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">basepath</span><span class="p">),</span> <span class="n">threshold</span><span class="o">=</span><span class="n">emg_threshold</span><span class="p">)</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span> <span class="o">&amp;</span> <span class="n">low_emg</span><span class="p">[</span><span class="n">low_emg</span><span class="o">.</span><span class="n">durations</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">ignore_intervals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ignored</span> <span class="o">=</span> <span class="n">_epochs</span><span class="p">(</span><span class="n">ignore_intervals</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ignored</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
+            <span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">ignored</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">_segments</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span>
+    <span class="n">detection_channel</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">candidates</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">segments</span><span class="p">:</span>
+            <span class="n">detection_channel</span> <span class="o">=</span> <span class="n">_select_channel</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">segments</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">passband</span>
+            <span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">detection_channel</span><span class="p">]</span>
+    <span class="n">cleaned</span> <span class="o">=</span> <span class="n">_clean_segments</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">segments</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">reject_artifacts</span><span class="p">)</span>
+    <span class="n">events</span><span class="p">,</span> <span class="n">intervals</span> <span class="o">=</span> <span class="n">_find_waves</span><span class="p">(</span>
+        <span class="n">cleaned</span><span class="p">,</span>
+        <span class="n">times</span><span class="p">,</span>
+        <span class="n">fs</span><span class="p">,</span>
+        <span class="n">filter_band</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">,</span>
+        <span class="n">edge_buffer</span><span class="p">,</span>
+        <span class="n">low_peak_threshold</span><span class="o">=</span><span class="n">low_peak_threshold</span><span class="p">,</span>
+        <span class="n">high_peak_threshold</span><span class="o">=</span><span class="n">high_peak_threshold</span><span class="p">,</span>
+        <span class="n">low_trough_threshold</span><span class="o">=</span><span class="n">low_trough_threshold</span><span class="p">,</span>
+        <span class="n">high_trough_threshold</span><span class="o">=</span><span class="n">high_trough_threshold</span><span class="p">,</span>
+        <span class="n">min_duration</span><span class="o">=</span><span class="n">min_duration</span><span class="p">,</span>
+        <span class="n">max_duration</span><span class="o">=</span><span class="n">max_duration</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">effective_threshold</span><span class="p">,</span> <span class="n">firing_verified</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">verify_firing</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">events</span><span class="o">.</span><span class="n">empty</span> <span class="ow">and</span> <span class="n">spike_times</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">basepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">spikes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loading</span><span class="o">.</span><span class="n">load_spikes</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">basepath</span><span class="p">),</span> <span class="n">brainRegion</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">brain_regions</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">spike_times</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">spikes</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">spikes</span><span class="o">.</span><span class="n">isempty</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">spikes</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">events</span><span class="p">,</span> <span class="n">effective_threshold</span><span class="p">,</span> <span class="n">firing_verified</span> <span class="o">=</span> <span class="n">_verify_firing</span><span class="p">(</span>
+            <span class="n">events</span><span class="p">,</span> <span class="n">spike_times</span> <span class="k">if</span> <span class="n">spike_times</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[],</span> <span class="n">threshold</span>
+        <span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"channel"</span><span class="p">:</span> <span class="n">candidates</span><span class="p">,</span>
+        <span class="s2">"threshold"</span><span class="p">:</span> <span class="n">threshold</span><span class="p">,</span>
+        <span class="s2">"low_peak_threshold"</span><span class="p">:</span> <span class="n">low_peak_threshold</span><span class="p">,</span>
+        <span class="s2">"high_peak_threshold"</span><span class="p">:</span> <span class="n">high_peak_threshold</span><span class="p">,</span>
+        <span class="s2">"low_trough_threshold"</span><span class="p">:</span> <span class="n">low_trough_threshold</span><span class="p">,</span>
+        <span class="s2">"high_trough_threshold"</span><span class="p">:</span> <span class="n">high_trough_threshold</span><span class="p">,</span>
+        <span class="s2">"min_duration"</span><span class="p">:</span> <span class="n">min_duration</span><span class="p">,</span>
+        <span class="s2">"max_duration"</span><span class="p">:</span> <span class="n">max_duration</span><span class="p">,</span>
+        <span class="s2">"filter_band"</span><span class="p">:</span> <span class="n">filter_band</span><span class="p">,</span>
+        <span class="s2">"passband"</span><span class="p">:</span> <span class="n">passband</span><span class="p">,</span>
+        <span class="s2">"fs"</span><span class="p">:</span> <span class="n">fs</span><span class="p">,</span>
+        <span class="s2">"nrem_restrict"</span><span class="p">:</span> <span class="n">nrem_restrict</span><span class="p">,</span>
+        <span class="s2">"emg_threshold"</span><span class="p">:</span> <span class="n">emg_threshold</span><span class="p">,</span>
+        <span class="s2">"reject_artifacts"</span><span class="p">:</span> <span class="n">reject_artifacts</span><span class="p">,</span>
+        <span class="s2">"edge_buffer"</span><span class="p">:</span> <span class="n">edge_buffer</span><span class="p">,</span>
+        <span class="s2">"brain_regions"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">brain_regions</span><span class="p">),</span>
+        <span class="s2">"verify_firing"</span><span class="p">:</span> <span class="n">verify_firing</span><span class="p">,</span>
+        <span class="s2">"firing_verified"</span><span class="p">:</span> <span class="n">firing_verified</span><span class="p">,</span>
+        <span class="s2">"ignore_intervals"</span><span class="p">:</span> <span class="n">_epochs</span><span class="p">(</span><span class="n">ignore_intervals</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">if</span> <span class="n">ignore_intervals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span>
+    <span class="p">}</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"detectorname"</span><span class="p">:</span> <span class="s2">"neuro_py.detectors.detect_delta_waves"</span><span class="p">,</span>
+        <span class="s2">"detectiondate"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s2">"detectionintervals"</span><span class="p">:</span> <span class="n">intervals</span><span class="p">,</span>
+        <span class="s2">"detectionparms"</span><span class="p">:</span> <span class="n">params</span><span class="p">,</span>
+        <span class="s2">"detectionchannel"</span><span class="p">:</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">detection_channel</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">detection_channel</span><span class="p">,</span>
+        <span class="s2">"detectionchannel1"</span><span class="p">:</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">detection_channel</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">detection_channel</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">"threshold"</span><span class="p">:</span> <span class="n">effective_threshold</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"timestamps"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">events</span><span class="p">[[</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"stop"</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()))</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">events</span><span class="p">[[</span><span class="s2">"start_value"</span><span class="p">,</span> <span class="s2">"peak_value"</span><span class="p">,</span> <span class="s2">"stop_value"</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+    <span class="p">)</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"amplitudeUnits"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"zscore"</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"eventID"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"eventIDlabels"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"delta"</span>
+    <span class="n">events</span><span class="p">[</span><span class="s2">"eventIDbinary"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">events</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"detectorinfo"</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+    <span class="k">if</span> <span class="n">save_mat</span><span class="p">:</span>
+        <span class="n">events</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"event_file"</span><span class="p">]</span> <span class="o">=</span> <span class="n">save_delta_wave_events</span><span class="p">(</span>
+            <span class="n">events</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">basepath</span><span class="p">),</span> <span class="n">event_name</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">events</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -10916,6 +12144,231 @@ caps bootstrap sample size at 2000 to maintain computational efficiency.</p>
 <div class="doc doc-object doc-function">
 
 
+<h2 id="neuro_py.detectors.save_delta_wave_events" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">save_delta_wave_events</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="s1">'deltaWaves'</span><span class="p">)</span></code>
+
+<a href="#neuro_py.detectors.save_delta_wave_events" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Save delta waves in CellExplorer format, refusing to overwrite any file.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>events</code>
+            </td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Table returned by :func:<code>detect_delta_waves</code>, including detector metadata
+in <code>events.attrs['detectorinfo']</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>basepath</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Existing session directory.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>MATLAB variable and filename component; defaults to <code>deltaWaves</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;deltaWaves&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Saved filename.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileExistsError">FileExistsError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The destination exists. Choose another event_name to retain both files.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/detectors/delta_wave.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_delta_wave_events</span><span class="p">(</span>
+    <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"deltaWaves"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Save delta waves in CellExplorer format, refusing to overwrite any file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    events : pandas.DataFrame</span>
+<span class="sd">        Table returned by :func:`detect_delta_waves`, including detector metadata</span>
+<span class="sd">        in ``events.attrs['detectorinfo']``.</span>
+<span class="sd">    basepath : str or pathlib.Path</span>
+<span class="sd">        Existing session directory.</span>
+<span class="sd">    event_name : str, optional</span>
+<span class="sd">        MATLAB variable and filename component; defaults to ``deltaWaves``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Saved filename.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileExistsError</span>
+<span class="sd">        The destination exists. Choose another event_name to retain both files.</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">_event_path</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">event_name</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"timestamps"</span><span class="p">:</span> <span class="n">events</span><span class="p">[[</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"stop"</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="s2">"amplitudeUnits"</span><span class="p">:</span> <span class="s2">"zscore"</span><span class="p">,</span>
+        <span class="s2">"eventIDlabels"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"delta"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">),</span>
+        <span class="s2">"eventIDbinary"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">"detectorinfo"</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"detectorinfo"</span><span class="p">],</span>
+        <span class="s2">"values"</span><span class="p">:</span> <span class="n">events</span><span class="p">[[</span><span class="s2">"start_value"</span><span class="p">,</span> <span class="s2">"peak_value"</span><span class="p">,</span> <span class="s2">"stop_value"</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"peaks"</span><span class="p">,</span> <span class="s2">"amplitude"</span><span class="p">,</span> <span class="s2">"center"</span><span class="p">,</span> <span class="s2">"duration"</span><span class="p">,</span> <span class="s2">"eventID"</span><span class="p">):</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Serialize before creating the destination so serialization errors leave no</span>
+    <span class="c1"># partial event file. Exclusive creation also closes the preflight race.</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+    <span class="n">savemat</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="p">{</span><span class="n">event_name</span><span class="p">:</span> <span class="n">data</span><span class="p">},</span> <span class="n">long_field_names</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"xb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="neuro_py.detectors.save_ripple_events" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">save_ripple_events</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">basepath</span><span class="p">,</span> <span class="n">detection_name</span><span class="o">=</span><span class="s1">'detect_sharp_wave_ripples'</span><span class="p">,</span> <span class="n">detection_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ripple_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">detection_epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="s1">'ripples'</span><span class="p">,</span> <span class="n">amplitude_units</span><span class="o">=</span><span class="s1">'a.u.'</span><span class="p">)</span></code>
 
@@ -11344,13 +12797,13 @@ caps bootstrap sample size at 2000 to maintain computational efficiency.</p>
         
         
           
-          <a href="./dentate_spike/" class="md-footer__link md-footer__link--next" aria-label="Next: dentate_spike">
+          <a href="./delta_wave/" class="md-footer__link md-footer__link--next" aria-label="Next: delta_wave">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                dentate_spike
+                delta_wave
               </div>
             </div>
             <div class="md-footer__button md-icon">
