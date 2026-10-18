@@ -1,5 +1,7 @@
 __all__ = [
     "DetectDS",
+    "detect_delta_waves",
+    "save_delta_wave_events",
     "detect_sharp_wave_ripples",
     "detect_up_down_states",
     "detect_up_down_states_bimodal_thresh",
@@ -9,6 +11,7 @@ __all__ = [
 ]
 
 from .dentate_spike import DetectDS
+from .delta_wave import detect_delta_waves, save_delta_wave_events
 from .sharp_wave_ripple import detect_sharp_wave_ripples, save_ripple_events
 from .up_down_state import (
     bimodal_thresh,
