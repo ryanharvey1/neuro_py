@@ -259,13 +259,7 @@ def _discover_tutorials() -> list[str]:
     """Return sorted list of tutorial stems (no extension)."""
     if not TUTORIALS_DIR.exists():
         return []
-    return sorted(
-        {
-            path.stem
-            for path in TUTORIALS_DIR.iterdir()
-            if path.is_file() and path.suffix in {".ipynb", ".md"}
-        }
-    )
+    return sorted(nb.stem for nb in TUTORIALS_DIR.glob("*.ipynb"))
 
 
 def _extract_repo_info(proj: dict) -> dict:
@@ -331,7 +325,7 @@ def generate_index() -> None:
 
     Every prebuild discovers:
     * Subpackages under ``neuro_py/``
-    * Tutorial notebooks and Markdown files under ``tutorials/``
+    * Tutorial notebooks under ``tutorials/``
     * Version, authors, dependencies, URLs from ``pyproject.toml``
     * Icons, descriptions, and tutorial titles from ``docs/homepage.yml``
     """
@@ -506,7 +500,7 @@ def generate_index() -> None:
     if tutorials:
         lines.append("## Tutorials")
         lines.append("")
-        lines.append("Learn by example with our tutorials:")
+        lines.append("Learn by example with our hands-on notebooks:")
         lines.append("")
         lines.append('<div class="grid cards" markdown>')
         lines.append("")
