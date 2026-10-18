@@ -77,10 +77,15 @@ modules:
       and manage recording session metadata.
 
 # Tutorial metadata — icon and display title override.
-# Key must match the notebook filename (without .ipynb).
+# Key must match the tutorial filename (without its extension).
 # Tutorials not listed here use auto-generated titles and a default icon.
 
 tutorials:
+  wavpack_compression:
+    icon: material-archive
+    title: WavPack Compression
+    description: Archive Intan .dat streams losslessly and restore them when needed.
+
   spatial_map:
     icon: material-map-marker-path
     title: Spatial Maps
