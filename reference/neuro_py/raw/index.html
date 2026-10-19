@@ -309,6 +309,8 @@
       
         
       
+        
+      
     
     
     
@@ -2390,6 +2392,8 @@
       
         
       
+        
+      
     
     
     
@@ -2483,6 +2487,33 @@
     
   
   spike_sorting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./wavpack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  wavpack
 
     
   </span>
@@ -3179,6 +3210,8 @@
       
         
       
+        
+      
     
     
     
@@ -3633,6 +3666,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../tutorials/wavpack_compression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  WavPack Compression
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../tutorials/weighted_regression_2d/" class="md-nav__link">
         
   
@@ -3709,6 +3769,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#neuro_py.raw.compress_dat" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        compress_dat
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#neuro_py.raw.cut_artifacts" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3724,6 +3795,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         cut_artifacts_intan
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neuro_py.raw.decompress_dat" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        decompress_dat
       </span>
     </span>
   </a>
@@ -3891,6 +3973,8 @@
       
         
       
+        
+      
     
     
     
@@ -3963,6 +4047,480 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.raw.compress_dat" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compress_dat</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">n_channels</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">'int16'</span><span class="p">,</span> <span class="n">executable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#neuro_py.raw.compress_dat" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compress an Intan .dat data stream into a lossless .wv archive.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Headerless, little-endian integer data, interleaved by sample:
+channel 1 at sample 1, channel 2 at sample 1, ..., channel 1 at sample 2.
+Pass the original binary file directly, without scaling or conversion.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_channels</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of values per sample frame actually saved in the file (1 to
+4096). Use 1 for time.dat and bit-packed digitalin.dat/digitalout.dat,
+not the number of active digital lines.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sample_rate</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampling rate of this stream in Hz, for example 20000 or 30000.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New .wv file. Defaults to input_path with its suffix replaced by .wv.
+The parent directory must exist. Existing files are never overwritten.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dtype</code>
+            </td>
+            <td>
+                  <code>(<span title="int16">int16</span>, <span title="uint16">uint16</span>, <span title="int32">int32</span>, <span title="uint32">uint32</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Original little-endian sample type. Default is "int16" for amplifier
+data. Use "int32" for time.dat and "uint16" for digital, analog,
+auxiliary, and supply streams. Unsigned values are reinterpreted as
+signed integers of the same width for encoding; their bits are never
+changed. There is no scaling, offset, or sample reordering.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;int16&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>executable</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to wavpack (wavpack.exe on Windows). By default, search PATH.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verify</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Re-read and decode the archive after writing to verify recovery using
+WavPack's MD5 check. Default is True. The original data's MD5 is stored
+even if this extra verification pass is disabled.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Absolute path to the completed .wv archive.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Invalid recording parameters, empty input, incomplete sample frames,
+or an output filename without the .wv extension.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileNotFoundError">FileNotFoundError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input, output directory, or WavPack executable is missing.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileExistsError">FileExistsError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The destination already exists, including the input itself.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Compression or verification fails, or the source changes during work.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>The source is never deleted. WavPack streams the recording using bounded
+memory; no entire-recording array is loaded into Python. A failed operation
+removes its temporary output. The archive stores channel count, sample rate,
+bit depth, and MD5. Keep info.rhd, session metadata, and each stream's dtype:
+WavPack stores unsigned streams as signed bit patterns; interpretation still
+uses the original Intan metadata. Compress each .dat stream separately.
+Structured spike.dat and .rhd/.rhs containers are not fixed-width streams
+supported by this function. Lossy and hybrid modes are not exposed.</p>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/raw/wavpack.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compress_dat</span><span class="p">(</span>
+    <span class="n">input_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">n_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"int16"</span><span class="p">,</span>
+    <span class="n">executable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compress an Intan .dat data stream into a lossless .wv archive.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_path : str or pathlib.Path</span>
+<span class="sd">        Headerless, little-endian integer data, interleaved by sample:</span>
+<span class="sd">        channel 1 at sample 1, channel 2 at sample 1, ..., channel 1 at sample 2.</span>
+<span class="sd">        Pass the original binary file directly, without scaling or conversion.</span>
+<span class="sd">    n_channels : int</span>
+<span class="sd">        Number of values per sample frame actually saved in the file (1 to</span>
+<span class="sd">        4096). Use 1 for time.dat and bit-packed digitalin.dat/digitalout.dat,</span>
+<span class="sd">        not the number of active digital lines.</span>
+<span class="sd">    sample_rate : int</span>
+<span class="sd">        Sampling rate of this stream in Hz, for example 20000 or 30000.</span>
+<span class="sd">    output_path : str or pathlib.Path, optional</span>
+<span class="sd">        New .wv file. Defaults to input_path with its suffix replaced by .wv.</span>
+<span class="sd">        The parent directory must exist. Existing files are never overwritten.</span>
+<span class="sd">    dtype : {"int16", "uint16", "int32", "uint32"}, optional</span>
+<span class="sd">        Original little-endian sample type. Default is "int16" for amplifier</span>
+<span class="sd">        data. Use "int32" for time.dat and "uint16" for digital, analog,</span>
+<span class="sd">        auxiliary, and supply streams. Unsigned values are reinterpreted as</span>
+<span class="sd">        signed integers of the same width for encoding; their bits are never</span>
+<span class="sd">        changed. There is no scaling, offset, or sample reordering.</span>
+<span class="sd">    executable : str or pathlib.Path, optional</span>
+<span class="sd">        Path to wavpack (wavpack.exe on Windows). By default, search PATH.</span>
+<span class="sd">    verify : bool, optional</span>
+<span class="sd">        Re-read and decode the archive after writing to verify recovery using</span>
+<span class="sd">        WavPack's MD5 check. Default is True. The original data's MD5 is stored</span>
+<span class="sd">        even if this extra verification pass is disabled.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pathlib.Path</span>
+<span class="sd">        Absolute path to the completed .wv archive.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        Invalid recording parameters, empty input, incomplete sample frames,</span>
+<span class="sd">        or an output filename without the .wv extension.</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        Input, output directory, or WavPack executable is missing.</span>
+<span class="sd">    FileExistsError</span>
+<span class="sd">        The destination already exists, including the input itself.</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        Compression or verification fails, or the source changes during work.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The source is never deleted. WavPack streams the recording using bounded</span>
+<span class="sd">    memory; no entire-recording array is loaded into Python. A failed operation</span>
+<span class="sd">    removes its temporary output. The archive stores channel count, sample rate,</span>
+<span class="sd">    bit depth, and MD5. Keep info.rhd, session metadata, and each stream's dtype:</span>
+<span class="sd">    WavPack stores unsigned streams as signed bit patterns; interpretation still</span>
+<span class="sd">    uses the original Intan metadata. Compress each .dat stream separately.</span>
+<span class="sd">    Structured spike.dat and .rhd/.rhs containers are not fixed-width streams</span>
+<span class="sd">    supported by this function. Lossy and hybrid modes are not exposed.</span>
+<span class="sd">    """</span>
+    <span class="n">n_channels</span> <span class="o">=</span> <span class="n">_positive_integer</span><span class="p">(</span><span class="n">n_channels</span><span class="p">,</span> <span class="s2">"n_channels"</span><span class="p">,</span> <span class="mi">4096</span><span class="p">)</span>
+    <span class="n">sample_rate</span> <span class="o">=</span> <span class="n">_positive_integer</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">,</span> <span class="s2">"sample_rate"</span><span class="p">,</span> <span class="mi">1_000_000_000</span><span class="p">)</span>
+    <span class="n">bit_depths</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"int16"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">"uint16"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">"int32"</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span> <span class="s2">"uint32"</span><span class="p">:</span> <span class="mi">32</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bit_depths</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dtype must be int16, uint16, int32, or uint32."</span><span class="p">)</span>
+    <span class="n">bits</span> <span class="o">=</span> <span class="n">bit_depths</span><span class="p">[</span><span class="n">dtype</span><span class="p">]</span>
+    <span class="n">bytes_per_frame</span> <span class="o">=</span> <span class="n">n_channels</span> <span class="o">*</span> <span class="p">(</span><span class="n">bits</span> <span class="o">//</span> <span class="mi">8</span><span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">_source</span><span class="p">(</span><span class="n">input_path</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">_destination</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="s2">".wv"</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">_signature</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">before</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">size</span> <span class="o">%</span> <span class="n">bytes_per_frame</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Input must contain complete, nonempty integer channel frames."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">size</span> <span class="o">//</span> <span class="n">bytes_per_frame</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">40</span><span class="p">)</span> <span class="o">-</span> <span class="mi">257</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Recording exceeds WavPack's maximum sample count."</span><span class="p">)</span>
+    <span class="n">program</span> <span class="o">=</span> <span class="n">_executable</span><span class="p">(</span><span class="s2">"wavpack"</span><span class="p">,</span> <span class="n">executable</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="o">=</span><span class="s2">".wavpack-"</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">output</span><span class="o">.</span><span class="n">parent</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">staged</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">/</span> <span class="n">output</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">arguments</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">program</span><span class="p">,</span>
+            <span class="c1"># Extended raw mode bypasses the CLI's conservative 256-channel</span>
+            <span class="c1"># default while retaining the format's real channel count.</span>
+            <span class="sa">f</span><span class="s2">"--raw-pcm</span><span class="si">{</span><span class="s1">'-ex'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">n_channels</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">256</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">="</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sample_rate</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">bits</span><span class="si">}</span><span class="s2">s,</span><span class="si">{</span><span class="n">n_channels</span><span class="si">}</span><span class="s2">,le"</span><span class="p">,</span>
+            <span class="s2">"--channel-order=..."</span><span class="p">,</span>
+            <span class="s2">"--pair-unassigned-chans"</span><span class="p">,</span>
+            <span class="s2">"-m"</span><span class="p">,</span>
+            <span class="s2">"-q"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">verify</span><span class="p">:</span>
+            <span class="n">arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"-v"</span><span class="p">)</span>
+        <span class="n">arguments</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">),</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">staged</span><span class="p">)])</span>
+        <span class="n">_run</span><span class="p">(</span><span class="n">arguments</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_signature</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">!=</span> <span class="n">before</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Source changed during compression; archive not published."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">staged</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">or</span> <span class="n">staged</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"WavPack did not create a nonempty archive."</span><span class="p">)</span>
+        <span class="n">_publish</span><span class="p">(</span><span class="n">staged</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
@@ -4650,6 +5208,396 @@ Assumes sorted and non-overlapping intervals.</p>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">_cut.dat has an incorrect size. "</span>
                     <span class="sa">f</span><span class="s2">"Expected </span><span class="si">{</span><span class="n">expected_size</span><span class="si">}</span><span class="s2"> bytes but found </span><span class="si">{</span><span class="n">actual_size</span><span class="si">}</span><span class="s2"> bytes."</span>
                 <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="neuro_py.raw.decompress_dat" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">decompress_dat</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">executable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#neuro_py.raw.decompress_dat" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Restore an Intan .dat recording from a standard lossless WavPack archive.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A lossless .wv archive of 16- or 32-bit integer samples, such as one
+created by compress_dat. Hybrid/lossy and other bit depths are rejected.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New .dat file. Defaults to input_path with its suffix replaced by .dat.
+Use a different filename if the original .dat is still present. The
+parent directory must exist. Existing files are never overwritten.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>executable</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> or <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to wvunpack (wvunpack.exe on Windows). By default, search PATH.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>verify</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Check restored bytes against the MD5 stored in the archive. Default
+is True, which requires an embedded MD5 (always stored by compress_dat).
+WavPack's block checks remain active when False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Absolute path to the restored, headerless .dat, with the original bytes.
+No dtype, channel count, or rate is needed for restoration.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output filename does not have the .dat extension.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileNotFoundError">FileNotFoundError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input, output directory, or WvUnpack executable is missing.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FileExistsError">FileExistsError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The destination already exists, including the archive itself.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The archive is unsupported, corrupt, changed during work, lacks an MD5
+required for verification, or cannot be completely decoded.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>The archive is never deleted. Raw-output mode prevents insertion of a WAV
+header. Decoding streams through WvUnpack using bounded memory. Temporary
+output is cleaned on failure; completed output is never overwritten.</p>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>neuro_py/raw/wavpack.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">decompress_dat</span><span class="p">(</span>
+    <span class="n">input_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">executable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Restore an Intan .dat recording from a standard lossless WavPack archive.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_path : str or pathlib.Path</span>
+<span class="sd">        A lossless .wv archive of 16- or 32-bit integer samples, such as one</span>
+<span class="sd">        created by compress_dat. Hybrid/lossy and other bit depths are rejected.</span>
+<span class="sd">    output_path : str or pathlib.Path, optional</span>
+<span class="sd">        New .dat file. Defaults to input_path with its suffix replaced by .dat.</span>
+<span class="sd">        Use a different filename if the original .dat is still present. The</span>
+<span class="sd">        parent directory must exist. Existing files are never overwritten.</span>
+<span class="sd">    executable : str or pathlib.Path, optional</span>
+<span class="sd">        Path to wvunpack (wvunpack.exe on Windows). By default, search PATH.</span>
+<span class="sd">    verify : bool, optional</span>
+<span class="sd">        Check restored bytes against the MD5 stored in the archive. Default</span>
+<span class="sd">        is True, which requires an embedded MD5 (always stored by compress_dat).</span>
+<span class="sd">        WavPack's block checks remain active when False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pathlib.Path</span>
+<span class="sd">        Absolute path to the restored, headerless .dat, with the original bytes.</span>
+<span class="sd">        No dtype, channel count, or rate is needed for restoration.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        The output filename does not have the .dat extension.</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        Input, output directory, or WvUnpack executable is missing.</span>
+<span class="sd">    FileExistsError</span>
+<span class="sd">        The destination already exists, including the archive itself.</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        The archive is unsupported, corrupt, changed during work, lacks an MD5</span>
+<span class="sd">        required for verification, or cannot be completely decoded.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The archive is never deleted. Raw-output mode prevents insertion of a WAV</span>
+<span class="sd">    header. Decoding streams through WvUnpack using bounded memory. Temporary</span>
+<span class="sd">    output is cleaned on failure; completed output is never overwritten.</span>
+<span class="sd">    """</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">_source</span><span class="p">(</span><span class="n">input_path</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">_destination</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="s2">".dat"</span><span class="p">)</span>
+    <span class="n">program</span> <span class="o">=</span> <span class="n">_executable</span><span class="p">(</span><span class="s2">"wvunpack"</span><span class="p">,</span> <span class="n">executable</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">_signature</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">_run</span><span class="p">([</span><span class="n">program</span><span class="p">,</span> <span class="s2">"-f"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">bits</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">supported</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">bits</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"int"</span>
+            <span class="ow">and</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">channels</span> <span class="o">&lt;=</span> <span class="mi">4096</span>
+            <span class="ow">and</span> <span class="n">samples</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">mode</span> <span class="o">&amp;</span> <span class="mh">0x2</span><span class="p">)</span>  <span class="c1"># MODE_LOSSLESS, from WavPack's public API.</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">mode</span> <span class="o">&amp;</span> <span class="mh">0x4</span>  <span class="c1"># MODE_HYBRID: reject even with a correction file.</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Cannot read WavPack recording metadata."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">supported</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">"Archive must contain lossless, non-hybrid 16/32-bit integers."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">verify</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[0-9a-fA-F]</span><span class="si">{32}</span><span class="s2">"</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Archive has no stored MD5; cannot verify exact recovery."</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="o">=</span><span class="s2">".wavpack-"</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">output</span><span class="o">.</span><span class="n">parent</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">staged</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">/</span> <span class="n">output</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">arguments</span> <span class="o">=</span> <span class="p">[</span><span class="n">program</span><span class="p">,</span> <span class="s2">"-r"</span><span class="p">,</span> <span class="s2">"-q"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">verify</span><span class="p">:</span>
+            <span class="n">arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"-m"</span><span class="p">)</span>
+        <span class="n">arguments</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">),</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">staged</span><span class="p">)])</span>
+        <span class="n">_run</span><span class="p">(</span><span class="n">arguments</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_signature</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">!=</span> <span class="n">before</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Archive changed during decompression; output not published."</span>
+            <span class="p">)</span>
+        <span class="n">expected_size</span> <span class="o">=</span> <span class="n">samples</span> <span class="o">*</span> <span class="n">channels</span> <span class="o">*</span> <span class="p">(</span><span class="n">bits</span> <span class="o">//</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">staged</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">or</span> <span class="n">staged</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">expected_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Restored recording size does not match archive metadata."</span>
+            <span class="p">)</span>
+        <span class="c1"># Native -m can report a mismatch without failing when an external file</span>
+        <span class="c1"># was encoded with different byte order, signedness, or channel order.</span>
+        <span class="c1"># Comparing the raw output itself makes exact recovery unambiguous.</span>
+        <span class="k">if</span> <span class="n">verify</span> <span class="ow">and</span> <span class="n">_md5</span><span class="p">(</span><span class="n">staged</span><span class="p">)</span> <span class="o">!=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Restored recording MD5 does not match the original bytes."</span>
+            <span class="p">)</span>
+        <span class="n">_publish</span><span class="p">(</span><span class="n">staged</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

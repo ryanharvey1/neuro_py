@@ -292,6 +292,7 @@ _MODULE_TITLES: dict[str, str] = {
 # Display-name overrides for tutorial titles.
 _TUTORIAL_TITLES: dict[str, str] = {
     "peth_tutorial": "PETH",
+    "wavpack_compression": "WavPack Compression",
 }
 
 
