@@ -346,6 +346,83 @@ def _verify_firing(
     return selected, cutoff, not selected.empty
 
 
+def _gamma_power_z(
+    values: NDArray[np.float64],
+    fs: float,
+    band: tuple[float, float],
+    smoothing: float,
+    baseline: float,
+) -> NDArray[np.float64]:
+    """Smooth bandpass power and standardize within a centered local window."""
+    if np.ptp(values) == 0:
+        return np.full_like(values, np.nan)
+    sos = signal.butter(4, band, btype="bandpass", fs=fs, output="sos")
+    filtered = signal.sosfiltfilt(sos, values)
+    smooth_samples = 2 * int(round(smoothing * fs / 2)) + 1
+    baseline_samples = 2 * int(round(baseline * fs / 2)) + 1
+    power = ndimage.uniform_filter1d(filtered**2, smooth_samples, mode="reflect")
+    # Center before computing moments to reduce cancellation for near-constant power.
+    power -= np.median(power)
+    mean = ndimage.uniform_filter1d(power, baseline_samples, mode="reflect")
+    variance = np.maximum(
+        ndimage.uniform_filter1d(power**2, baseline_samples, mode="reflect") - mean**2,
+        0,
+    )
+    std = np.sqrt(variance)
+    return np.divide(power - mean, std, out=np.full_like(power, np.nan), where=std > 0)
+
+
+def _restrict_gamma(
+    events: pd.DataFrame,
+    cleaned: list[tuple[int, NDArray[np.float64]]],
+    timestamps: NDArray[np.float64],
+    fs: float,
+    band: tuple[float, float],
+    threshold: float,
+    smoothing: float,
+    baseline: float,
+    min_duration: float,
+    edge_buffer: float,
+) -> tuple[pd.DataFrame, NDArray[np.float64]]:
+    """Require a low-gamma interval containing the delta peak, within its bounds."""
+    keep = np.zeros(len(events), dtype=bool)
+    intervals = []
+    guard = max(edge_buffer, smoothing / 2, 1 / band[0])
+    for start, values in cleaned:
+        left, right = (
+            timestamps[start] + guard,
+            timestamps[start + values.size - 1] - guard,
+        )
+        if right <= left:
+            continue
+        intervals.append([left, right])
+        rows = np.flatnonzero((events.start >= left) & (events.stop <= right))
+        if not rows.size:
+            continue
+        z = _gamma_power_z(values, fs, band, smoothing, baseline)
+        low = _bounds(np.isfinite(z) & (z <= threshold))
+        if not low.size:
+            continue
+        peaks = np.searchsorted(timestamps, events.peaks.to_numpy()[rows]) - start
+        which = np.searchsorted(low[:, 0], peaks, side="right") - 1
+        valid = which >= 0
+        which = np.maximum(which, 0)
+        valid &= peaks < low[which, 1]
+        event_start = np.searchsorted(timestamps, events.start.to_numpy()[rows]) - start
+        event_stop = (
+            np.searchsorted(timestamps, events.stop.to_numpy()[rows], side="right")
+            - start
+        )
+        overlap = np.minimum(low[which, 1], event_stop) - np.maximum(
+            low[which, 0], event_start
+        )
+        valid &= overlap >= int(np.ceil(min_duration * fs))
+        keep[rows] = valid
+    return events.loc[keep].reset_index(drop=True), np.asarray(
+        intervals, dtype=float
+    ).reshape(-1, 2)
+
+
 def _event_path(basepath: str | Path, event_name: str) -> Path:
     """Require an event name that is also a MATLAB struct identifier."""
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,62}", event_name):
@@ -430,6 +507,13 @@ def detect_delta_waves(
     edge_buffer: float = 1.0,
     verify_firing: bool = True,
     spike_times: Sequence[ArrayLike] | None = None,
+    gamma_channel: int | None = None,
+    gamma_lfp: ArrayLike | None = None,
+    gamma_band: tuple[float, float] = (100.0, 400.0),
+    gamma_threshold: float = 0.0,
+    gamma_smoothing: float = 0.08,
+    gamma_baseline: float = 20.0,
+    gamma_min_duration: float = 0.04,
     save_mat: bool = True,
     event_name: str = "deltaWaves",
 ) -> pd.DataFrame:
@@ -503,6 +587,32 @@ def detect_delta_waves(
     spike_times : sequence of array_like, optional
         Spike timestamps in seconds per cortical unit for firing verification.
         Otherwise load cortical cell metrics/spikes from basepath when requested.
+    gamma_channel : int, optional
+        Zero-indexed cortical high-gamma channel in the session LFP. Enables the
+        optional gamma-suppression check. Bad-tagged channels are rejected. With
+        array input, this is only a metadata label and gamma_lfp is required.
+    gamma_lfp : array_like, optional
+        Single-channel gamma-source voltage, shape (n_samples,), aligned exactly
+        with lfp, sharing fs and timestamps. Enables the check for array input.
+        Supply unfiltered voltage, not a precomputed power envelope. Missing or
+        constant gamma data cannot confirm an event and those events are rejected.
+    gamma_band : tuple of float, optional
+        Fourth-order Butterworth bandpass in Hz, applied forward and backward;
+        default (100, 400). Requires fs > 800 with the default band.
+        Only checked against Nyquist when gamma is enabled; never clipped silently.
+    gamma_threshold : float, optional
+        Maximum local z score of smoothed gamma power during a low-gamma interval;
+        default 0 (at or below the local mean). Lower values are more stringent.
+    gamma_smoothing : float, optional
+        Centered moving-mean squared-voltage window in seconds, default 0.08.
+        Smoothing and baseline windows are rounded to odd sample counts.
+    gamma_baseline : float, optional
+        Centered local mean/SD normalization window in seconds, default 20.
+        Must exceed gamma_smoothing. Windows reflect at each usable segment edge.
+    gamma_min_duration : float, optional
+        Minimum continuous low-gamma duration within the delta event in seconds,
+        default 0.04. The interval must contain the positive delta peak. Gamma
+        filtering only removes events; it does not move their trough boundaries.
     save_mat : bool, optional
         Save a CellExplorer event file by default. Requires basepath. Existing
         files always raise FileExistsError; use a distinct event_name to compare runs.
@@ -530,6 +640,15 @@ def detect_delta_waves(
     Missing required metadata raises an actionable error rather than silently
     dropping a requested restriction. No interactive channel picker is launched.
 
+    The optional gamma check is inspired by Levenstein et al. (2019),
+    doi:10.1038/s41467-019-10327-5: high-gamma suppression provides an LFP proxy
+    for reduced firing during a cortical DOWN state. This is an adaptation, not
+    their complete detector: we retain trough-based delta morphology, use local
+    mean/SD rather than nonparametric normalization, and expose a fixed gamma
+    threshold rather than calibrating thresholds from spikes. Processing never
+    bridges gaps, exclusions, nonfinite data, or rejected artifacts in either
+    channel. Existing firing verification remains an independent optional step.
+
     Examples
     --------
     >>> events = detect_delta_waves(basepath, event_name="deltaWavesPython")
@@ -552,8 +671,20 @@ def detect_delta_waves(
         raise ValueError("emg_threshold must be finite or positive infinity.")
     if isinstance(brain_regions, str):
         brain_regions = (brain_regions,)
+    if gamma_channel is not None and (
+        isinstance(gamma_channel, (bool, np.bool_))
+        or not isinstance(gamma_channel, (int, np.integer))
+        or gamma_channel < 0
+    ):
+        raise ValueError("gamma_channel must be a zero-indexed integer channel.")
+    gamma_enabled = gamma_channel is not None or gamma_lfp is not None
+    gamma_data = None
     session = {}
     if lfp is None:
+        if gamma_lfp is not None:
+            raise ValueError(
+                "gamma_lfp requires array input via lfp; use gamma_channel for a session."
+            )
         if basepath is None:
             raise ValueError("Provide lfp or basepath.")
         path = Path(basepath)
@@ -567,6 +698,14 @@ def detect_delta_waves(
         if loaded is None:
             raise FileNotFoundError(f"No .lfp or .eeg file in {path}.")
         data, sample_times = loaded
+        if gamma_channel is not None:
+            try:
+                _channel_candidates(session, gamma_channel, brain_regions, n_channels)
+            except ValueError as exc:
+                raise ValueError(
+                    "gamma_channel is out of range or tagged Bad."
+                ) from exc
+            gamma_data = data[:, gamma_channel]
         if timestamps is not None:
             raise ValueError("timestamps may only be supplied with lfp.")
     else:
@@ -583,11 +722,35 @@ def detect_delta_waves(
                 "Array input requires a single nonnegative integer channel label."
             )
         candidates = [int(channel)] if channel is not None else []
+        if gamma_channel is not None and gamma_lfp is None:
+            raise ValueError("gamma_channel with array input requires gamma_lfp.")
+        if gamma_lfp is not None:
+            gamma_data = np.asarray(gamma_lfp)
+            if gamma_data.ndim != 1 or gamma_data.shape != data.shape:
+                raise ValueError(
+                    "gamma_lfp must be one-dimensional and match lfp length."
+                )
     if fs is None or not np.isfinite(fs) or fs <= 0:
         raise ValueError("fs must be a finite positive sampling rate in Hz.")
     for name, band in (("filter_band", filter_band), ("passband", passband)):
         if len(band) != 2 or not (0 < band[0] < band[1] < fs / 2):
             raise ValueError(f"{name} must satisfy 0 < low < high < fs/2.")
+    if gamma_enabled:
+        if len(gamma_band) != 2 or not (0 < gamma_band[0] < gamma_band[1] < fs / 2):
+            raise ValueError(
+                "gamma_band must satisfy 0 < low < high < fs/2; increase fs or choose a supported band."
+            )
+        if not np.isfinite(gamma_threshold):
+            raise ValueError("gamma_threshold must be finite.")
+        for name, value in (
+            ("gamma_smoothing", gamma_smoothing),
+            ("gamma_baseline", gamma_baseline),
+            ("gamma_min_duration", gamma_min_duration),
+        ):
+            if not np.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} must be finite and positive, in seconds.")
+        if gamma_baseline <= gamma_smoothing:
+            raise ValueError("gamma_baseline must exceed gamma_smoothing.")
     for name, value in (
         ("low_peak_threshold", low_peak_threshold),
         ("high_peak_threshold", high_peak_threshold),
@@ -669,6 +832,30 @@ def detect_delta_waves(
         min_duration=min_duration,
         max_duration=max_duration,
     )
+    gamma_rejected = 0
+    if gamma_data is not None:
+        gamma_segments = _clean_segments(
+            gamma_data,
+            [(start, start + values.size) for start, values in cleaned],
+            fs,
+            reject_artifacts,
+        )
+        before_gamma = len(events)
+        events, gamma_intervals = _restrict_gamma(
+            events,
+            gamma_segments,
+            times,
+            fs,
+            gamma_band,
+            gamma_threshold,
+            gamma_smoothing,
+            gamma_baseline,
+            gamma_min_duration,
+            edge_buffer,
+        )
+        gamma_rejected = before_gamma - len(events)
+        usable = _epochs(intervals) & _epochs(gamma_intervals)
+        intervals = np.empty((0, 2)) if usable.isempty else usable.data
     effective_threshold, firing_verified = threshold, False
     if verify_firing:
         if not events.empty and spike_times is None and basepath is not None:
@@ -698,6 +885,14 @@ def detect_delta_waves(
         "brain_regions": list(brain_regions),
         "verify_firing": verify_firing,
         "firing_verified": firing_verified,
+        "gamma_enabled": gamma_enabled,
+        "gamma_channel": [] if gamma_channel is None else int(gamma_channel),
+        "gamma_band": gamma_band,
+        "gamma_threshold": gamma_threshold,
+        "gamma_smoothing": gamma_smoothing,
+        "gamma_baseline": gamma_baseline,
+        "gamma_min_duration": gamma_min_duration,
+        "gamma_rejected": gamma_rejected,
         "ignore_intervals": _epochs(ignore_intervals).data
         if ignore_intervals is not None
         else np.empty((0, 2)),
@@ -709,6 +904,8 @@ def detect_delta_waves(
         "detectionparms": params,
         "detectionchannel": [] if detection_channel is None else detection_channel,
         "detectionchannel1": [] if detection_channel is None else detection_channel + 1,
+        "gammachannel": [] if gamma_channel is None else int(gamma_channel),
+        "gammachannel1": [] if gamma_channel is None else int(gamma_channel) + 1,
         "threshold": effective_threshold,
     }
     events["timestamps"] = list(map(tuple, events[["start", "stop"]].to_numpy()))
