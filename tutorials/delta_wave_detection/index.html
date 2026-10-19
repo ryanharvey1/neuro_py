@@ -3514,6 +3514,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#optional-high-gamma-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional high-gamma confirmation
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional high-gamma confirmation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#follow-the-decision-from-voltage-to-local-power" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Follow the decision from voltage to local power
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choose-the-channel-and-tune-the-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Choose the channel and tune the confirmation
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#3-restrict-detection-and-exclude-an-interval" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3972,6 +4011,45 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         After morphology: default firing verification may raise <code>threshold</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-high-gamma-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional high-gamma confirmation
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional high-gamma confirmation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#follow-the-decision-from-voltage-to-local-power" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Follow the decision from voltage to local power
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choose-the-channel-and-tune-the-confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Choose the channel and tune the confirmation
       </span>
     </span>
   </a>
@@ -4767,6 +4845,234 @@ artifact rejection, and <code>verify_firing</code> to enable/disable firing refi
 The effective post-verification amplitude cutoff is saved as
 <code>events.attrs["detectorinfo"]["threshold"]</code>; the requested initial settings are in
 <code>events.attrs["detectorinfo"]["detectionparms"]</code>.</p>
+<h2 id="optional-high-gamma-confirmation">Optional high-gamma confirmation<a class="headerlink" href="#optional-high-gamma-confirmation" title="Permanent link">&para;</a></h2>
+<p>A large slow voltage deflection can resemble a delta wave while the local network
+is still active. High-gamma power provides a complementary measure: a drop in this
+power can support the interpretation that the positive delta peak marks a cortical
+DOWN state with reduced population firing.</p>
+<p><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6554409/#Sec10">Levenstein et al. (2019), <em>Slow wave detection</em></a>
+combined delta peaks with suppression of <strong>100–400 Hz</strong> power, smoothed over
+<strong>80 ms</strong> and normalized within a <strong>20 s</strong> neighborhood. Their thresholds were
+calibrated against spikes and they required overlapping delta and gamma events.</p>
+<p>Our optional check adapts that idea to the existing detector. It bandpasses a
+user-selected gamma voltage channel, smooths its squared voltage, and computes
+local mean/SD z scores. An event survives only if a continuous interval at or below
+<code>gamma_threshold</code> contains the <strong>positive delta peak</strong> and occupies at least
+<code>gamma_min_duration</code> <strong>within the original trough-to-trough event</strong>. Accepted event
+boundaries and delta amplitudes stay unchanged. This is a confirmation step,
+not a reproduction of the paper's full detector: normalization is conventional
+mean/SD, and the exposed threshold is not automatically calibrated from spikes.</p>
+<p>The synthetic example has three equally valid delta waveforms. Gamma is suppressed
+at 5 and 25 s but increases at 15 s. The gamma check should reject only the middle
+wave. We use <strong>1250 Hz</strong> sampling because the default 400 Hz upper cutoff needs
+<code>fs &gt; 800</code>; the earlier 250 Hz example cannot support that band.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndimage</span><span class="p">,</span> <span class="n">signal</span>
+
+<span class="n">gamma_demo_fs</span> <span class="o">=</span> <span class="mi">1250</span>
+<span class="n">gamma_demo_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">gamma_demo_fs</span><span class="p">)</span>
+<span class="n">gamma_demo_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">818</span><span class="p">)</span>
+<span class="n">gamma_demo_delta</span> <span class="o">=</span> <span class="n">gamma_demo_rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">gamma_demo_time</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">25</span><span class="p">):</span>
+    <span class="n">relative</span> <span class="o">=</span> <span class="n">gamma_demo_time</span> <span class="o">-</span> <span class="n">peak</span>
+    <span class="n">gamma_demo_delta</span> <span class="o">+=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">relative</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">relative</span> <span class="o">/</span> <span class="mf">0.15</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">gamma_demo_sos</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">butter</span><span class="p">(</span>
+    <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">400</span><span class="p">),</span> <span class="n">btype</span><span class="o">=</span><span class="s2">"bandpass"</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">gamma_demo_fs</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">"sos"</span>
+<span class="p">)</span>
+<span class="n">gamma_demo_voltage</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sosfiltfilt</span><span class="p">(</span>
+    <span class="n">gamma_demo_sos</span><span class="p">,</span> <span class="n">gamma_demo_rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">gamma_demo_time</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">gamma_demo_envelope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gamma_demo_time</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">25</span><span class="p">):</span>
+    <span class="n">gamma_demo_envelope</span> <span class="o">*=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">gamma_demo_time</span> <span class="o">-</span> <span class="n">peak</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.22</span><span class="p">)</span> <span class="o">**</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">gamma_demo_envelope</span> <span class="o">+=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">gamma_demo_time</span> <span class="o">-</span> <span class="mi">15</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.22</span><span class="p">)</span> <span class="o">**</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">gamma_demo_voltage</span> <span class="o">*=</span> <span class="n">gamma_demo_envelope</span>
+
+<span class="n">gamma_options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">gamma_band</span><span class="o">=</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">400.0</span><span class="p">),</span>
+    <span class="n">gamma_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>       <span class="c1"># at or below the local mean power</span>
+    <span class="n">gamma_smoothing</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span>     <span class="c1"># seconds</span>
+    <span class="n">gamma_baseline</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>      <span class="c1"># seconds</span>
+    <span class="n">gamma_min_duration</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>  <span class="c1"># seconds of continuous suppression containing the peak</span>
+<span class="p">)</span>
+<span class="n">gamma_demo_options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">lfp</span><span class="o">=</span><span class="n">gamma_demo_delta</span><span class="p">,</span> <span class="n">timestamps</span><span class="o">=</span><span class="n">gamma_demo_time</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">gamma_demo_fs</span><span class="p">,</span>
+    <span class="n">nrem_restrict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">emg_threshold</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">reject_artifacts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verify_firing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">detection_options</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">gamma_demo_candidates</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span><span class="o">**</span><span class="n">gamma_demo_options</span><span class="p">)</span>
+<span class="n">gamma_demo_confirmed</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">gamma_demo_options</span><span class="p">,</span> <span class="n">gamma_lfp</span><span class="o">=</span><span class="n">gamma_demo_voltage</span><span class="p">,</span> <span class="o">**</span><span class="n">gamma_options</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gamma_demo_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">gamma_demo_confirmed</span><span class="o">.</span><span class="n">peaks</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">25</span><span class="p">],</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Delta morphology: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gamma_demo_candidates</span><span class="p">)</span><span class="si">}</span><span class="s2"> events; with gamma confirmation: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gamma_demo_confirmed</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">gamma_demo_confirmed</span><span class="p">[[</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"peaks"</span><span class="p">,</span> <span class="s2">"stop"</span><span class="p">,</span> <span class="s2">"amplitude"</span><span class="p">]])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Delta morphology: 3 events; with gamma confirmation: 2
+</code></pre></div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>start</th>
+      <th>peaks</th>
+      <th>stop</th>
+      <th>amplitude</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>4.8456</td>
+      <td>4.9992</td>
+      <td>5.1528</td>
+      <td>12.876074</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>24.8456</td>
+      <td>24.9992</td>
+      <td>25.1528</td>
+      <td>12.871615</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="follow-the-decision-from-voltage-to-local-power">Follow the decision from voltage to local power<a class="headerlink" href="#follow-the-decision-from-voltage-to-local-power" title="Permanent link">&para;</a></h3>
+<p>Each column follows the same candidate through three views. The shaded strip is
+the delta event's original duration; the dashed vertical line is its positive
+peak. The bottom row shows the signal used for the gamma decision. Blue shading
+marks power below the threshold, and the black bar marks the required 40 ms
+duration centered on the peak for reference. Suppression may be asymmetric; the
+actual rule requires the peak to lie anywhere inside a sufficiently long interval.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reproduce the documented power calculation for plotting, without private APIs.</span>
+<span class="n">gamma_demo_filtered</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sosfiltfilt</span><span class="p">(</span><span class="n">gamma_demo_sos</span><span class="p">,</span> <span class="n">gamma_demo_voltage</span><span class="p">)</span>
+<span class="n">gamma_demo_smooth_samples</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_smoothing"</span><span class="p">]</span> <span class="o">*</span> <span class="n">gamma_demo_fs</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">gamma_demo_baseline_samples</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_baseline"</span><span class="p">]</span> <span class="o">*</span> <span class="n">gamma_demo_fs</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">gamma_demo_power</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">uniform_filter1d</span><span class="p">(</span>
+    <span class="n">gamma_demo_filtered</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">gamma_demo_smooth_samples</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reflect"</span>
+<span class="p">)</span>
+<span class="n">gamma_demo_power</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">gamma_demo_power</span><span class="p">)</span>
+<span class="n">gamma_demo_mean</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">uniform_filter1d</span><span class="p">(</span><span class="n">gamma_demo_power</span><span class="p">,</span> <span class="n">gamma_demo_baseline_samples</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reflect"</span><span class="p">)</span>
+<span class="n">gamma_demo_sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+    <span class="n">ndimage</span><span class="o">.</span><span class="n">uniform_filter1d</span><span class="p">(</span><span class="n">gamma_demo_power</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">gamma_demo_baseline_samples</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reflect"</span><span class="p">)</span>
+    <span class="o">-</span> <span class="n">gamma_demo_mean</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">))</span>
+<span class="n">gamma_demo_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
+    <span class="n">gamma_demo_power</span> <span class="o">-</span> <span class="n">gamma_demo_mean</span><span class="p">,</span> <span class="n">gamma_demo_sd</span><span class="p">,</span>
+    <span class="n">out</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">gamma_demo_power</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">gamma_demo_sd</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">gamma_fig</span><span class="p">,</span> <span class="n">gamma_axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="s2">"col"</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="s2">"row"</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s2">"constrained"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gamma_demo_candidates</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
+    <span class="n">peak</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">peaks</span>
+    <span class="n">view</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gamma_demo_time</span> <span class="o">-</span> <span class="n">peak</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">0.55</span>
+    <span class="n">relative</span> <span class="o">=</span> <span class="n">gamma_demo_time</span><span class="p">[</span><span class="n">view</span><span class="p">]</span> <span class="o">-</span> <span class="n">peak</span>
+    <span class="n">accepted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">gamma_demo_confirmed</span><span class="o">.</span><span class="n">peaks</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.02</span><span class="p">))</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="s2">"#28794f"</span> <span class="k">if</span> <span class="n">accepted</span> <span class="k">else</span> <span class="s2">"#b13f42"</span>
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">gamma_axes</span><span class="p">[:,</span> <span class="n">column</span><span class="p">]:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">peak</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">peak</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.4"</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">"--"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">"top"</span><span class="p">,</span> <span class="s2">"right"</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">relative</span><span class="p">,</span> <span class="n">gamma_demo_delta</span><span class="p">[</span><span class="n">view</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#343d59"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'Keep'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">accepted</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'Reject'</span><span class="si">}</span><span class="s2">: wave near </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span><span class="si">}</span><span class="s2"> s"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s2">"bold"</span>
+    <span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">relative</span><span class="p">,</span> <span class="n">gamma_demo_voltage</span><span class="p">[</span><span class="n">view</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#5b80ad"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">relative</span><span class="p">,</span> <span class="n">gamma_demo_z</span><span class="p">[</span><span class="n">view</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#285d87"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_threshold"</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#9b4f21"</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">":"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span>
+        <span class="n">relative</span><span class="p">,</span> <span class="n">gamma_demo_z</span><span class="p">[</span><span class="n">view</span><span class="p">],</span> <span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_threshold"</span><span class="p">],</span>
+        <span class="n">where</span><span class="o">=</span><span class="n">gamma_demo_z</span><span class="p">[</span><span class="n">view</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_threshold"</span><span class="p">],</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">"#5b9dcc"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">half_duration</span> <span class="o">=</span> <span class="n">gamma_options</span><span class="p">[</span><span class="s2">"gamma_min_duration"</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="o">-</span><span class="n">half_duration</span><span class="p">,</span> <span class="n">half_duration</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.95</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.95</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Time from delta peak (s)"</span><span class="p">)</span>
+<span class="n">gamma_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Delta-source voltage</span><span class="se">\n</span><span class="s2">(arbitrary units)"</span><span class="p">)</span>
+<span class="n">gamma_axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Gamma-source voltage</span><span class="se">\n</span><span class="s2">(arbitrary units)"</span><span class="p">)</span>
+<span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Smoothed gamma power</span><span class="se">\n</span><span class="s2">(local z score)"</span><span class="p">)</span>
+<span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.03</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span> <span class="s2">"Dotted line: threshold = 0</span><span class="se">\n</span><span class="s2">Black bar: 40 ms"</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">gamma_axes</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"top"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">gamma_fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Same delta morphology, different evidence for a DOWN state"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<p><img alt="png" src="../delta_wave_detection_files/delta_wave_detection_17_0.png" /></p>
+<h3 id="choose-the-channel-and-tune-the-confirmation">Choose the channel and tune the confirmation<a class="headerlink" href="#choose-the-channel-and-tune-the-confirmation" title="Permanent link">&para;</a></h3>
+<p>For a session, pass <strong><code>gamma_channel=&lt;zero-indexed cortical channel&gt;</code></strong>. It may be
+the delta channel or a separate channel from the same cortical population. The
+detector reads a view of that channel from the existing LFP memmap. For arrays,
+use <strong><code>gamma_lfp=voltage</code></strong> with exactly the same sample count, timestamps and
+sampling rate as <code>lfp</code>; there is no implicit resampling. An optional <code>gamma_channel</code>
+then serves only as an array-channel label. Supply raw voltage, not power values.</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gamma_band</code></td>
+<td><code>(100, 400)</code> Hz</td>
+<td>Frequencies used as the activity proxy; both cutoffs must lie below Nyquist.</td>
+</tr>
+<tr>
+<td><code>gamma_threshold</code></td>
+<td><code>0.0</code> local SD</td>
+<td>Power must be at or below this value; negative values demand stronger suppression.</td>
+</tr>
+<tr>
+<td><code>gamma_smoothing</code></td>
+<td><code>0.08</code> s</td>
+<td>Power averaging window; larger windows blur brief transitions.</td>
+</tr>
+<tr>
+<td><code>gamma_baseline</code></td>
+<td><code>20.0</code> s</td>
+<td>Local normalization window; must exceed the smoothing window.</td>
+</tr>
+<tr>
+<td><code>gamma_min_duration</code></td>
+<td><code>0.04</code> s</td>
+<td>Continuous suppression within the event, containing its positive peak.</td>
+</tr>
+</tbody>
+</table>
+<p>The default threshold is an exposed starting point, <strong>not a cutoff established by
+the paper</strong>. Check wave-triggered gamma and, when available, spikes in your own
+recording before choosing it. A channel with gamma power that tracks cortical
+firing is more useful than an arbitrary channel; line noise, muscle activity and
+channel location can affect this proxy. Stronger suppression requirements improve
+selectivity but may discard real waves with weak gamma modulation.</p>
+<p>Both channels respect the same NREM/EMG and interval restrictions. NaNs, timestamp
+gaps and rejected artifacts split the data; filtering and local normalization never
+join across them. Missing/constant gamma voltage cannot confirm a wave. Local
+windows reflect at segment edges, with the configured edge buffer excluded.</p>
+<p>Gamma confirmation runs <strong>before</strong> the independent <code>verify_firing</code> step, whose
+default remains <code>True</code>. Gamma does not replace the missing-cortical-cells warning.
+Here we disabled firing verification because the simulation has no spike trains.
+The metadata records all gamma settings, the source channel in both numbering
+conventions, and <code>gamma_rejected</code> (the count removed before firing refinement).
+No gamma source means no gamma filtering and the original behavior.</p>
 <h2 id="3-restrict-detection-and-exclude-an-interval">3. Restrict detection and exclude an interval<a class="headerlink" href="#3-restrict-detection-and-exclude-an-interval" title="Permanent link">&para;</a></h2>
 <p><code>detection_epochs</code> and <code>ignore_intervals</code> accept <code>(n_intervals, 2)</code> arrays in
 seconds or <code>nelpy.EpochArray</code> objects. The following example keeps the first and
@@ -4933,7 +5239,7 @@ an <code>(n_events, 3)</code> values array. Zero-event and one-event exports pre
 </div>
 
 <div class="highlight"><pre><span></span><code>{'detectorname': 'neuro_py.detectors.detect_delta_waves',
- 'detectiondate': '2026-10-15T00:23:51.386412+00:00',
+ 'detectiondate': '2026-10-19T14:31:11.444120+00:00',
  'detectionintervals': array([[ 1.   , 28.996]]),
  'detectionparms': {'channel': [],
   'threshold': 3.0,
@@ -4953,9 +5259,19 @@ an <code>(n_events, 3)</code> values array. Zero-event and one-event exports pre
   'brain_regions': ['PFC', 'MEC', 'LEC', 'EC', 'ILA', 'PL', 'Cortex', 'CTX'],
   'verify_firing': False,
   'firing_verified': False,
+  'gamma_enabled': False,
+  'gamma_channel': [],
+  'gamma_band': (100.0, 400.0),
+  'gamma_threshold': 0.0,
+  'gamma_smoothing': 0.08,
+  'gamma_baseline': 20.0,
+  'gamma_min_duration': 0.04,
+  'gamma_rejected': 0,
   'ignore_intervals': array([], shape=(0, 2), dtype=float64)},
  'detectionchannel': [],
  'detectionchannel1': [],
+ 'gammachannel': [],
+ 'gammachannel1': [],
  'threshold': 3.0}
 </code></pre></div>
 <h2 id="5-save-the-default-filename-customize-it-and-verify-overwrite-protection">5. Save the default filename, customize it, and verify overwrite protection<a class="headerlink" href="#5-save-the-default-filename-customize-it-and-verify-overwrite-protection" title="Permanent link">&para;</a></h2>
@@ -5009,14 +5325,20 @@ disable a restriction explicitly. This run keeps the default artifact rejection.
 export cell is controlled by <code>SAVE_SESSION_EVENTS</code>. Its event name defaults to
 <code>deltaWaves</code>; choose a custom name to keep an existing detection alongside it.</p>
 <p>The session workflow uses default firing verification and loads spikes from matching cortical regions. If none are available, it warns and retains the LFP detections.</p>
+<p>Set <code>session_gamma_channel</code> below to a zero-indexed cortical channel to use the optional gamma confirmation with <code>gamma_options</code> from the synthetic example. Its default <code>None</code> preserves the delta-only workflow. Keep saving disabled while comparing detectors; choose a distinct <code>session_event_name</code>, such as <code>deltaWavesGamma</code>, to save a comparison.</p>
 <div class="highlight"><pre><span></span><code><span class="n">RUN_SESSION</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">basepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="sa">r</span><span class="s2">"S:\data\HMC\HMC1\day8"</span><span class="p">)</span>
 <span class="n">SAVE_SESSION_EVENTS</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">session_event_name</span> <span class="o">=</span> <span class="s2">"deltaWaves_test"</span>
+<span class="c1"># Set to a zero-indexed cortical channel to enable gamma confirmation.</span>
+<span class="n">session_gamma_channel</span> <span class="o">=</span> <span class="kc">None</span>
 
 <span class="n">session_events</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="k">if</span> <span class="n">RUN_SESSION</span><span class="p">:</span>
-    <span class="n">session_events</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="o">**</span><span class="n">detection_options</span><span class="p">,</span> <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">session_events</span> <span class="o">=</span> <span class="n">detect_delta_waves</span><span class="p">(</span>
+        <span class="n">basepath</span><span class="p">,</span> <span class="o">**</span><span class="n">detection_options</span><span class="p">,</span> <span class="n">gamma_channel</span><span class="o">=</span><span class="n">session_gamma_channel</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">gamma_options</span><span class="p">,</span> <span class="n">save_mat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Detected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">session_events</span><span class="p">)</span><span class="si">}</span><span class="s2"> delta waves in </span><span class="si">{</span><span class="n">basepath</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
     <span class="n">display</span><span class="p">(</span><span class="n">session_events</span><span class="p">[[</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"peaks"</span><span class="p">,</span> <span class="s2">"stop"</span><span class="p">,</span> <span class="s2">"duration"</span><span class="p">,</span> <span class="s2">"amplitude"</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
     <span class="n">display</span><span class="p">(</span><span class="n">session_events</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"detectorinfo"</span><span class="p">])</span>
@@ -5096,7 +5418,7 @@ export cell is controlled by <code>SAVE_SESSION_EVENTS</code>. Its event name de
 </div>
 
 <div class="highlight"><pre><span></span><code>{'detectorname': 'neuro_py.detectors.detect_delta_waves',
- 'detectiondate': '2026-10-15T00:26:58.883097+00:00',
+ 'detectiondate': '2026-10-19T14:36:44.079849+00:00',
  'detectionintervals': array([[   75.    ,    86.    ],
         [  119.    ,   184.    ],
         [  212.    ,   256.    ],
@@ -5212,9 +5534,19 @@ export cell is controlled by <code>SAVE_SESSION_EVENTS</code>. Its event name de
   'brain_regions': ['PFC', 'MEC', 'LEC', 'EC', 'ILA', 'PL', 'Cortex', 'CTX'],
   'verify_firing': True,
   'firing_verified': True,
+  'gamma_enabled': False,
+  'gamma_channel': [],
+  'gamma_band': (100.0, 400.0),
+  'gamma_threshold': 0.0,
+  'gamma_smoothing': 0.08,
+  'gamma_baseline': 20.0,
+  'gamma_min_duration': 0.04,
+  'gamma_rejected': 0,
   'ignore_intervals': array([], shape=(0, 2), dtype=float64)},
  'detectionchannel': 53,
  'detectionchannel1': 54,
+ 'gammachannel': [],
+ 'gammachannel1': [],
  'threshold': 3.001950806448198}
 </code></pre></div>
 <p>Plot the first session wave using a short slice of the memory-mapped recording.
@@ -5252,7 +5584,7 @@ the plot is skipped.</p>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
     <span class="k">del</span> <span class="n">session_lfp</span><span class="p">,</span> <span class="n">session_times</span><span class="p">,</span> <span class="n">loaded</span>
 </code></pre></div>
-<p><img alt="png" src="../delta_wave_detection_files/delta_wave_detection_23_0.png" /></p>
+<p><img alt="png" src="../delta_wave_detection_files/delta_wave_detection_28_0.png" /></p>
 <div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">SAVE_SESSION_EVENTS</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">session_events</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Run the session detection cell before saving its events."</span><span class="p">)</span>
