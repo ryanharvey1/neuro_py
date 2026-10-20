@@ -77,8 +77,8 @@ After a completed pass, the next invocation starts a refresh. Unchanged source
 size/mtime fingerprints reuse the metadata cache. Source changes or size-limit
 changes that alter a source's eligibility trigger re-extraction. Raising the
 limit reuses already eligible unchanged metadata. `--restart` starts discovery
-again while keeping
-unchanged metadata reusable; use it after changing the configured inputs during
+again while keeping unchanged metadata reusable; use it after changing the
+configured inputs during
 an unfinished pass. There is no automatic scheduler or background scan on MCP
 startup. Budgets are checked between directories: one network operation or MAT
 load can exceed the requested duration.
@@ -92,6 +92,11 @@ directories containing a matching `basename.session.mat` or
 `basename.cell_metrics.cellinfo.mat`. Both files are not required. Nested roots
 and catalog overlap are deduplicated by normalized accessible path. Different
 UNC aliases or differently named mounts are not resolved into one identity.
+
+Use the same path mappings in the index configuration and MCP launch command.
+Map every drive letter in a Windows catalog to its corresponding scanned UNC
+root; otherwise the drive-letter and UNC registrations can be counted as
+different session folders.
 
 Inaccessible subtrees produce explicit root errors. Previously discovered
 sessions are retained when traversal has errors, since inaccessibility is not
