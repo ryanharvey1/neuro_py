@@ -24,7 +24,14 @@ from typing import Any, Iterator
 import numpy as np
 import pandas as pd
 
-from neuro_py.mcp.dataset import SOURCES, _bounded, _identity, _json_safe, _page
+from neuro_py.mcp.dataset import (
+    SOURCES,
+    _bounded,
+    _identity,
+    _json_safe,
+    _page,
+    _search_fields,
+)
 
 SCHEMA_VERSION = 1
 EXCLUDED_DIRS = {
@@ -217,21 +224,53 @@ class MetadataIndex:
         finally:
             connection.close()
 
-    def _rows(self) -> Iterator[dict[str, Any]]:
-        with self._connect() as connection:
-            memberships: dict[str, list[str]] = {}
-            for item in connection.execute("SELECT session_id, root FROM memberships"):
-                memberships.setdefault(item["session_id"], []).append(item["root"])
-            for row in connection.execute("SELECT * FROM sessions ORDER BY basepath"):
-                data = json.loads(row["payload"])
-                data.update(
-                    {
-                        "session_id": row["session_id"],
-                        "basepath": row["basepath"],
-                        "roots": sorted(memberships.get(row["session_id"], [])),
-                    }
-                )
-                yield data
+    def _rows(self, connection: sqlite3.Connection) -> Iterator[dict[str, Any]]:
+        memberships: dict[str, list[str]] = {}
+        for item in connection.execute("SELECT session_id, root FROM memberships"):
+            memberships.setdefault(item["session_id"], []).append(item["root"])
+        for row in connection.execute("SELECT * FROM sessions ORDER BY basepath"):
+            data = json.loads(row["payload"])
+            data.update(
+                {
+                    "session_id": row["session_id"],
+                    "basepath": row["basepath"],
+                    "roots": sorted(memberships.get(row["session_id"], [])),
+                }
+            )
+            yield data
+
+    def _page_token(
+        self,
+        connection: sqlite3.Connection,
+        parameters: dict[str, Any],
+        offset: int,
+        supplied: str | None,
+    ) -> str:
+        if offset and not supplied:
+            raise ValueError("Nonzero offset requires page_token from the first page.")
+        # Hash the query-visible data inside the same read transaction as the
+        # result. This works with existing read-only caches and detects updates
+        # from older builders or other processes, without a schema migration.
+        digest = hashlib.sha256(json.dumps(parameters, sort_keys=True).encode())
+        for statement in (
+            "SELECT session_id, basepath, fingerprint, payload FROM sessions "
+            "ORDER BY session_id",
+            "SELECT session_id, root, generation FROM memberships "
+            "ORDER BY session_id, root",
+        ):
+            digest.update(statement.encode())
+            for row in connection.execute(statement):
+                for value in row:
+                    encoded = value.encode("utf-8")
+                    digest.update(len(encoded).to_bytes(8, "big"))
+                    digest.update(encoded)
+        token = digest.hexdigest()
+        if supplied is not None and supplied != token:
+            raise ValueError(
+                "Pagination token is stale or the query changed. Discard earlier "
+                "pages and restart at offset=0 without page_token."
+            )
+        return token
 
     def get_entry(self, session_id: str) -> dict[str, Any] | None:
         """Resolve an indexed session ID to a registered session folder.
@@ -269,28 +308,31 @@ class MetadataIndex:
             Per-root progress, metadata completeness, and last observation times.
         """
         with self._connect() as connection:
-            roots = [
-                dict(row)
-                for row in connection.execute("SELECT * FROM roots ORDER BY root")
-            ]
-            total = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
-            statuses = dict(
-                connection.execute(
-                    "SELECT json_extract(payload, '$.status'), COUNT(*) "
-                    "FROM sessions GROUP BY 1"
-                ).fetchall()
-            )
-            pending = connection.execute("SELECT COUNT(*) FROM pending").fetchone()[0]
-            settings_exist = connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'"
+            connection.execute("BEGIN")
+            return self._status(connection)
+
+    def _status(self, connection: sqlite3.Connection) -> dict[str, Any]:
+        roots = [
+            dict(row) for row in connection.execute("SELECT * FROM roots ORDER BY root")
+        ]
+        total = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        statuses = dict(
+            connection.execute(
+                "SELECT json_extract(payload, '$.status'), COUNT(*) "
+                "FROM sessions GROUP BY 1"
+            ).fetchall()
+        )
+        pending = connection.execute("SELECT COUNT(*) FROM pending").fetchone()[0]
+        settings_exist = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'"
+        ).fetchone()
+        policy = (
+            connection.execute(
+                "SELECT value FROM settings WHERE key='discovery_policy'"
             ).fetchone()
-            policy = (
-                connection.execute(
-                    "SELECT value FROM settings WHERE key='discovery_policy'"
-                ).fetchone()
-                if settings_exist
-                else None
-            )
+            if settings_exist
+            else None
+        )
         for root in roots:
             root["errors"] = json.loads(root["errors"])
             root.pop("generation", None)
@@ -323,6 +365,9 @@ class MetadataIndex:
         offset: int = 0,
         limit: int = 50,
         recording_regions: list[str] | None = None,
+        fields: list[str] | None = None,
+        page_token: str | None = None,
+        query_context: str = "",
     ) -> dict[str, Any]:
         """Find sessions using cached metadata and AND-combined literal filters.
 
@@ -344,6 +389,13 @@ class MetadataIndex:
             whether sorted cells exist or their metadata could be indexed.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        fields : list of str, optional
+            Top-level fields to return. Omit for full metadata; ["basepath"]
+            returns compact results with the same filters and total count.
+        page_token : str, optional
+            Token returned by the first page; required for nonzero offsets.
+        query_context : str, optional
+            Additional caller context bound to the pagination token.
 
         Returns
         -------
@@ -351,85 +403,119 @@ class MetadataIndex:
             Matching sessions, filtered total, coverage, and pagination.
         """
         _page(pd.DataFrame(), offset, limit)
+        fields = _search_fields(fields)
+        if fields and "in_session_list" in fields:
+            raise ValueError("in_session_list requires a Dataset catalog context")
         unknown = set(products or []) - set(INDEX_FILES)
         if unknown:
             raise ValueError(f"Unknown products: {sorted(unknown)}")
-        found = []
-        total = 0
-        for row in self._rows():
-            if paths is not None and _identity(row["basepath"]) not in paths:
-                continue
-            metadata = row.get("metadata", {})
-            if any(
-                not _matches(metadata.get("recording_regions", []), term)
-                for term in recording_regions or []
-            ):
-                continue
-            groups = [
-                g
-                for g in metadata.get("cell_groups", [])
-                if include_bad_units or not g["bad_unit"]
-            ]
-            if cell_type:
-                groups = [g for g in groups if _matches([g["cell_type"]], cell_type)]
-            if any(
-                not _matches(metadata.get("environments", []), term)
-                for term in environments or []
-            ):
-                continue
-            if any(
-                not _matches([g["region"] for g in groups], term)
-                for term in regions or []
-            ):
-                continue
-            if cell_type and not groups:
-                continue
-            if any(
-                not row.get("files", {}).get(p, {}).get("present", False)
-                for p in products or []
-            ):
-                continue
-            if any(
-                not _matches(row.get("event_types", []), term)
-                for term in event_types or []
-            ):
-                continue
-            text = "\n".join(
-                [
-                    row["basepath"],
-                    *metadata.get("animals", []),
-                    *metadata.get("environments", []),
-                    *[g["region"] for g in groups],
-                    *[g["cell_type"] for g in groups],
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            token = self._page_token(
+                connection,
+                {
+                    "method": "search",
+                    "query": query,
+                    "environments": environments,
+                    "regions": regions,
+                    "cell_type": cell_type,
+                    "products": products,
+                    "event_types": event_types,
+                    "include_bad_units": include_bad_units,
+                    "paths": sorted(paths) if paths is not None else None,
+                    "recording_regions": recording_regions,
+                    "fields": fields,
+                    "context": query_context,
+                },
+                offset,
+                page_token,
+            )
+            found = []
+            total = 0
+            for row in self._rows(connection):
+                if paths is not None and _identity(row["basepath"]) not in paths:
+                    continue
+                metadata = row.get("metadata", {})
+                if any(
+                    not _matches(metadata.get("recording_regions", []), term)
+                    for term in recording_regions or []
+                ):
+                    continue
+                groups = [
+                    g
+                    for g in metadata.get("cell_groups", [])
+                    if include_bad_units or not g["bad_unit"]
                 ]
+                if cell_type:
+                    groups = [
+                        g for g in groups if _matches([g["cell_type"]], cell_type)
+                    ]
+                if any(
+                    not _matches(metadata.get("environments", []), term)
+                    for term in environments or []
+                ):
+                    continue
+                if any(
+                    not _matches([g["region"] for g in groups], term)
+                    for term in regions or []
+                ):
+                    continue
+                if cell_type and not groups:
+                    continue
+                if any(
+                    not row.get("files", {}).get(p, {}).get("present", False)
+                    for p in products or []
+                ):
+                    continue
+                if any(
+                    not _matches(row.get("event_types", []), term)
+                    for term in event_types or []
+                ):
+                    continue
+                text = "\n".join(
+                    [
+                        row["basepath"],
+                        *metadata.get("animals", []),
+                        *metadata.get("environments", []),
+                        *[g["region"] for g in groups],
+                        *[g["cell_type"] for g in groups],
+                    ]
+                )
+                if query.casefold() not in text.casefold():
+                    continue
+                selected = [
+                    g
+                    for g in groups
+                    if not regions
+                    or any(_matches([g["region"]], term) for term in regions)
+                ]
+                row["matching_cell_count"] = (
+                    sum(g["count"] for g in selected)
+                    if "cell_count_total" in metadata
+                    else None
+                )
+                if offset <= total < offset + limit:
+                    found.append(
+                        {field: row.get(field) for field in fields}
+                        if fields is not None
+                        else row
+                    )
+                total += 1
+            return _bounded(
+                {
+                    "status": "ok",
+                    "coverage": self._status(connection),
+                    "page_token": token,
+                    "total_rows": total,
+                    "offset": offset,
+                    "limit": limit,
+                    "next_offset": offset + limit if offset + limit < total else None,
+                    "columns": fields
+                    if fields is not None
+                    else list(dict.fromkeys(key for row in found for key in row)),
+                    "rows": found,
+                }
             )
-            if query.casefold() not in text.casefold():
-                continue
-            selected = [
-                g
-                for g in groups
-                if not regions or any(_matches([g["region"]], term) for term in regions)
-            ]
-            row["matching_cell_count"] = (
-                sum(g["count"] for g in selected)
-                if "cell_count_total" in metadata
-                else None
-            )
-            if offset <= total < offset + limit:
-                found.append(row)
-            total += 1
-        return _bounded(
-            {
-                "status": "ok",
-                "coverage": self.status(),
-                "total_rows": total,
-                "offset": offset,
-                "limit": limit,
-                "next_offset": offset + limit if offset + limit < total else None,
-                "columns": list(dict.fromkeys(key for row in found for key in row)),
-                "rows": found,
-            }
-        )
 
     def summarize(
         self,
@@ -437,6 +523,8 @@ class MetadataIndex:
         paths: set[str] | None = None,
         offset: int = 0,
         limit: int = 50,
+        page_token: str | None = None,
+        query_context: str = "",
     ) -> dict[str, Any]:
         """Count sessions by a metadata category without accessing the shares.
 
@@ -449,6 +537,10 @@ class MetadataIndex:
             Restrict to normalized session-list paths, or None for all sessions.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        page_token : str, optional
+            First-page token, required for nonzero offsets.
+        query_context : str, optional
+            Additional caller context bound to the pagination token.
 
         Returns
         -------
@@ -457,56 +549,73 @@ class MetadataIndex:
         """
         if facet not in FACETS:
             raise ValueError(f"facet must be one of {sorted(FACETS)}")
-        counts: Counter[str] = Counter()
-        unknown = total = 0
-        for row in self._rows():
-            if paths is not None and _identity(row["basepath"]) not in paths:
-                continue
-            total += 1
-            metadata = row.get("metadata", {})
-            if facet in {"region", "cell_type"}:
-                labels = {
-                    g[facet]
-                    for g in metadata.get("cell_groups", [])
-                    if not g["bad_unit"] and g[facet]
-                }
-            elif facet == "product":
-                labels = {
-                    key
-                    for key, value in row.get("files", {}).items()
-                    if value["present"]
-                }
-            elif facet == "recording_region":
-                labels = set(metadata.get("recording_regions", []))
-            elif facet == "status":
-                labels = {row["status"]}
-            elif facet in {"root", "event_type"}:
-                labels = set(row.get("roots" if facet == "root" else "event_types", []))
-            else:
-                labels = set(
-                    metadata.get(
-                        "environments" if facet == "environment" else "animals", []
+        _page(pd.DataFrame(), offset, limit)
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            token = self._page_token(
+                connection,
+                {
+                    "method": "summary",
+                    "facet": facet,
+                    "paths": sorted(paths) if paths is not None else None,
+                    "context": query_context,
+                },
+                offset,
+                page_token,
+            )
+            counts: Counter[str] = Counter()
+            unknown = total = 0
+            for row in self._rows(connection):
+                if paths is not None and _identity(row["basepath"]) not in paths:
+                    continue
+                total += 1
+                metadata = row.get("metadata", {})
+                if facet in {"region", "cell_type"}:
+                    labels = {
+                        g[facet]
+                        for g in metadata.get("cell_groups", [])
+                        if not g["bad_unit"] and g[facet]
+                    }
+                elif facet == "product":
+                    labels = {
+                        key
+                        for key, value in row.get("files", {}).items()
+                        if value["present"]
+                    }
+                elif facet == "recording_region":
+                    labels = set(metadata.get("recording_regions", []))
+                elif facet == "status":
+                    labels = {row["status"]}
+                elif facet in {"root", "event_type"}:
+                    labels = set(
+                        row.get("roots" if facet == "root" else "event_types", [])
                     )
-                )
-            counts.update(labels)
-            unknown += not bool(labels)
-        frame = pd.DataFrame(
-            [
-                {"label": label, "session_count": count}
-                for label, count in sorted(counts.items())
-            ],
-            columns=pd.Index(["label", "session_count"]),
-        )
-        return _bounded(
-            {
-                "status": "ok",
-                "facet": facet,
-                "sessions_in_scope": total,
-                "sessions_without_label": unknown,
-                "coverage": self.status(),
-                **_page(frame, offset, limit),
-            }
-        )
+                else:
+                    labels = set(
+                        metadata.get(
+                            "environments" if facet == "environment" else "animals", []
+                        )
+                    )
+                counts.update(labels)
+                unknown += not bool(labels)
+            frame = pd.DataFrame(
+                [
+                    {"label": label, "session_count": count}
+                    for label, count in sorted(counts.items())
+                ],
+                columns=pd.Index(["label", "session_count"]),
+            )
+            return _bounded(
+                {
+                    "status": "ok",
+                    "facet": facet,
+                    "sessions_in_scope": total,
+                    "sessions_without_label": unknown,
+                    "coverage": self._status(connection),
+                    "page_token": token,
+                    **_page(frame, offset, limit),
+                }
+            )
 
 
 class IndexBuilder:

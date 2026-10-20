@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from scipy.io import savemat
@@ -100,10 +101,176 @@ def test_scope_preserves_session_list_and_allows_reads_of_discovered_sessions(
     assert dataset.summarize_index(scope="session_list")["sessions_in_scope"] == 1
     assert Dataset(index_db=cache).search_sessions()["total_rows"] == 2
     first = dataset.search_sessions(limit=1)
-    second = dataset.search_sessions(offset=first["next_offset"], limit=1)
+    second = dataset.search_sessions(
+        offset=first["next_offset"], limit=1, page_token=first["page_token"]
+    )
     assert first["total_rows"] == second["total_rows"] == 2
     assert first["rows"][0]["session_id"] != second["rows"][0]["session_id"]
     assert second["next_offset"] is None
+
+
+def test_pagination_rejects_refresh_even_when_total_count_is_unchanged(tmp_path):
+    paths = [tmp_path / name for name in ("a", "b", "c", "e")]
+    for path in paths:
+        path.mkdir()
+    a, b, c, e = paths
+    cache = tmp_path / "private" / "index.sqlite"
+    IndexBuilder(cache).build(sessions=[a, c, e])
+    index = MetadataIndex(cache)
+    first = index.search(limit=2)
+    assert [Path(row["basepath"]).name for row in first["rows"]] == ["a", "c"]
+    IndexBuilder(cache).build(sessions=[a, b, c])
+    assert index.search()["total_rows"] == first["total_rows"] == 3
+    with pytest.raises(ValueError, match="restart at offset=0"):
+        index.search(
+            offset=first["next_offset"], limit=2, page_token=first["page_token"]
+        )
+    restarted = index.search(limit=2)
+    last = index.search(
+        offset=restarted["next_offset"], limit=2, page_token=restarted["page_token"]
+    )
+    assert [Path(row["basepath"]).name for row in restarted["rows"] + last["rows"]] == [
+        "a",
+        "b",
+        "c",
+    ]
+
+
+def test_summary_pagination_detects_metadata_only_changes(indexed):
+    first = indexed.summarize("region", limit=1)
+    with sqlite3.connect(indexed.path) as connection:
+        key, payload = connection.execute(
+            "SELECT session_id, payload FROM sessions"
+        ).fetchone()
+        data = json.loads(payload)
+        data["metadata"]["cell_groups"][0]["region"] = "CA2"
+        connection.execute(
+            "UPDATE sessions SET payload=? WHERE session_id=?", (json.dumps(data), key)
+        )
+    with pytest.raises(ValueError, match="stale"):
+        indexed.summarize("region", offset=1, limit=1, page_token=first["page_token"])
+
+
+def test_tokens_require_same_filters_projection_and_catalog(indexed, session, tmp_path):
+    first = indexed.search(regions=["CA1"], fields=["basepath"])
+    with pytest.raises(ValueError, match="requires page_token"):
+        indexed.search(offset=1)
+    with pytest.raises(ValueError, match="stale"):
+        indexed.search(
+            regions=["PFC"], fields=["basepath"], page_token=first["page_token"]
+        )
+    with pytest.raises(ValueError, match="stale"):
+        indexed.search(regions=["CA1"], page_token=first["page_token"])
+    with pytest.raises(ValueError, match="requires page_token"):
+        indexed.summarize(offset=1)
+    with pytest.raises(ValueError, match="stale"):
+        indexed.summarize(page_token=first["page_token"])
+    csv = tmp_path / "catalog.csv"
+    pd.DataFrame({"basepath": [str(session)]}).to_csv(csv, index=False)
+    registered = Dataset(catalogs=[csv], index_db=indexed.path)
+    unregistered = Dataset(index_db=indexed.path)
+    page = registered.search_sessions(fields=["in_session_list"])
+    assert page["rows"] == [{"in_session_list": True}]
+    with pytest.raises(ValueError, match="stale"):
+        unregistered.search_sessions(
+            fields=["in_session_list"], page_token=page["page_token"]
+        )
+    page = registered.search_sessions(scope="all")
+    with pytest.raises(ValueError, match="stale"):
+        registered.search_sessions(scope="session_list", page_token=page["page_token"])
+
+
+def test_each_query_uses_one_snapshot_during_concurrent_refresh(indexed, monkeypatch):
+    original = indexed._rows
+
+    def refresh_during_read(connection):
+        for row in original(connection):
+            with sqlite3.connect(indexed.path) as writer:
+                writer.execute("DELETE FROM sessions")
+                writer.execute("DELETE FROM memberships")
+            yield row
+
+    monkeypatch.setattr(indexed, "_rows", refresh_during_read)
+    page = indexed.search()
+    assert page["total_rows"] == page["coverage"]["session_count"] == 1
+    assert indexed.status()["session_count"] == 0
+
+
+def test_compact_fields_apply_before_response_limit_and_preserve_ids(
+    indexed, session, tmp_path
+):
+    with sqlite3.connect(indexed.path) as connection:
+        key, payload = connection.execute(
+            "SELECT session_id,payload FROM sessions"
+        ).fetchone()
+        data = json.loads(payload)
+        data["metadata"]["large_note"] = "x" * 128_000
+        connection.execute(
+            "UPDATE sessions SET payload=? WHERE session_id=?", (json.dumps(data), key)
+        )
+    with pytest.raises(ValueError, match="128 KB"):
+        indexed.search()
+    assert indexed.search(fields=["basepath"])["rows"] == [{"basepath": str(session)}]
+    csv = tmp_path / "mapped.csv"
+    pd.DataFrame({"basepath": [r"Z:\day01"]}).to_csv(csv, index=False)
+    dataset = Dataset(
+        catalogs=[csv], path_maps=[("Z:\\", str(session.parent))], index_db=indexed.path
+    )
+    full_id = dataset.list_sessions()["rows"][0]["session_id"]
+    projected = dataset.search_sessions(
+        fields=["session_id", "basepath", "in_session_list"], regions=["CA1"]
+    )
+    assert projected["rows"] == [
+        {"session_id": full_id, "basepath": str(session), "in_session_list": True}
+    ]
+    assert dataset.search_sessions(fields=["basepath"])["rows"] == [
+        {"basepath": str(session)}
+    ]
+    for fields in ([], ["unknown"], ["basepath", "unknown"]):
+        with pytest.raises(ValueError, match="fields"):
+            dataset.search_sessions(fields=fields)
+
+
+def test_compact_paths_return_200_rows_and_complete_stable_pagination(tmp_path):
+    cache = tmp_path / "private" / "index.sqlite"
+    paths = [tmp_path / "recordings" / f"day{index:03}" for index in range(205)]
+    IndexBuilder(cache).build(sessions=paths)
+    dataset = Dataset(index_db=cache)
+    first = dataset.search_sessions(fields=["basepath"], limit=200)
+    second = dataset.search_sessions(
+        fields=["basepath"],
+        limit=200,
+        offset=first["next_offset"],
+        page_token=first["page_token"],
+    )
+    rows = first["rows"] + second["rows"]
+    assert first["columns"] == ["basepath"]
+    assert first["total_rows"] == second["total_rows"] == len(rows) == 205
+    assert {row["basepath"] for row in rows} == {str(path) for path in paths}
+    assert all(set(row) == {"basepath"} for row in rows)
+    assert second["next_offset"] is None
+
+
+def test_partial_region_matching_preserves_ca1_layer_labels(session, tmp_path):
+    labels = ["ca1so", "ca1sp", "ca1sr", "ca1slm"]
+    savemat(
+        session / (session.name + ".cell_metrics.cellinfo.mat"),
+        {
+            "cell_metrics": {
+                "UID": [1, 2, 3, 4],
+                "brainRegion": np.asarray(labels, dtype=object),
+                "putativeCellType": ["Pyramidal Cell"] * 4,
+            }
+        },
+    )
+    cache = tmp_path / "private" / "index.sqlite"
+    IndexBuilder(cache).build(sessions=[session])
+    result = MetadataIndex(cache).search(regions=["CA1"])
+    assert result["total_rows"] == 1
+    assert result["rows"][0]["matching_cell_count"] == 4
+    assert {
+        group["region"] for group in result["rows"][0]["metadata"]["cell_groups"]
+    } == set(labels)
 
 
 def test_queries_never_read_source_files(indexed, monkeypatch):

@@ -177,6 +177,13 @@ Users do not need to memorize tool names; these prompts give the AI a starting
 workflow. Later questions can use ordinary language, such as "Find cheeseboard
 sessions with CA1 pyramidal cells in my session list."
 
+For complete basepath lists, ask the AI to use indexed
+`search_sessions(fields=["basepath"], limit=200)` and follow every page. Indexed
+searches and summaries return a `page_token` which must accompany later
+`next_offset` requests with the same filters. A stale token means the index
+changed: discard accumulated pages and restart at offset zero. See
+[compact results and safe pagination](mcp-index.md#compact-basepath-lists-and-safe-pagination).
+
 ## Tools
 
 | Tool | Purpose |

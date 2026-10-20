@@ -17,7 +17,10 @@ INSTRUCTIONS = (
     "and summarize_dataset for the index. Check get_index_status: coverage may "
     "be incomplete and metadata is cached. Use returned session_id values. "
     "Times are session-relative seconds; cell identity is (session_id, UID). "
-    "Preserve labels. Missing data is not empty data. Follow next_offset for pages."
+    "Preserve labels. Missing data is not empty data. Follow next_offset for pages. "
+    "For indexed searches and summaries pass the returned page_token on later "
+    "pages; discard earlier pages and restart at offset zero if it is stale. "
+    "Use search_sessions(fields=['basepath'], limit=200) for compact path lists."
 )
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
@@ -82,6 +85,8 @@ def create_server(dataset: Dataset) -> FastMCP:
         offset: int = 0,
         limit: int = 20,
         recording_regions: list[str] | None = None,
+        fields: list[str] | None = None,
+        page_token: str | None = None,
     ) -> dict[str, Any]:
         """Find sessions across indexed shares, or within the user's session list.
 
@@ -104,6 +109,13 @@ def create_server(dataset: Dataset) -> FastMCP:
             All indexed sessions or paths in the user's registered session CSVs.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        fields : list of str, optional
+            Top-level fields to return. Use ["basepath"] with limit=200 for
+            compact path lists, or include session_id and in_session_list.
+            Omit for full metadata. Filters do not depend on selected fields.
+        page_token : str, optional
+            First-page token, required for nonzero offsets. Discard prior pages
+            and restart at offset zero without a token if it becomes stale.
 
         Returns
         -------
@@ -123,6 +135,8 @@ def create_server(dataset: Dataset) -> FastMCP:
             offset,
             limit,
             recording_regions=recording_regions,
+            fields=fields,
+            page_token=page_token,
         )
 
     @server.tool(annotations=READ_ONLY)
@@ -131,6 +145,7 @@ def create_server(dataset: Dataset) -> FastMCP:
         scope: str = "all",
         offset: int = 0,
         limit: int = 50,
+        page_token: str | None = None,
     ) -> dict[str, Any]:
         """Count indexed sessions by metadata category and report scan coverage.
 
@@ -143,6 +158,9 @@ def create_server(dataset: Dataset) -> FastMCP:
             All indexed sessions or only the user's registered session-list paths.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        page_token : str, optional
+            First-page token, required for nonzero offsets. Restart at offset
+            zero if the index or query changes.
 
         Returns
         -------
@@ -150,7 +168,9 @@ def create_server(dataset: Dataset) -> FastMCP:
             Label/session-count table and discovery coverage. Product counts
             indicate file presence, not validated signal contents or trial counts.
         """
-        return dataset.summarize_index(facet, scope, offset, limit)
+        return dataset.summarize_index(
+            facet, scope, offset, limit, page_token=page_token
+        )
 
     @server.tool(annotations=READ_ONLY)
     def get_session(session_id: str) -> dict[str, Any]:

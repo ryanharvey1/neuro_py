@@ -58,6 +58,33 @@ def test_stdio_roundtrip(catalog, session, tmp_path):
                     },
                 )
                 assert indexed.structuredContent["total_rows"] == 1
+                compact = await client.call_tool(
+                    "search_sessions",
+                    {
+                        "fields": ["basepath"],
+                        "limit": 200,
+                        "environments": ["linear"],
+                        "regions": ["CA1"],
+                    },
+                )
+                assert compact.structuredContent["rows"] == [{"basepath": str(session)}]
+                compact_last = await client.call_tool(
+                    "search_sessions",
+                    {
+                        "fields": ["basepath"],
+                        "limit": 200,
+                        "environments": ["linear"],
+                        "regions": ["CA1"],
+                        "offset": 1,
+                        "page_token": compact.structuredContent["page_token"],
+                    },
+                )
+                assert compact_last.structuredContent["rows"] == []
+                stale = await client.call_tool(
+                    "search_sessions",
+                    {"fields": ["basepath"], "offset": 1, "page_token": "stale"},
+                )
+                assert stale.isError
                 summary = await client.call_tool(
                     "summarize_dataset", {"facet": "region"}
                 )

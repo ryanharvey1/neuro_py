@@ -18,6 +18,19 @@ if TYPE_CHECKING:
 
 MAX_ROWS = 200
 MAX_RESPONSE_BYTES = 128_000
+SEARCH_FIELDS = {
+    "session_id",
+    "basepath",
+    "roots",
+    "status",
+    "metadata",
+    "errors",
+    "files",
+    "event_types",
+    "observed_at",
+    "matching_cell_count",
+    "in_session_list",
+}
 SOURCES = {
     "epochs": ".session.mat",
     "cells": ".cell_metrics.cellinfo.mat",
@@ -100,6 +113,16 @@ def _page(frame: pd.DataFrame, offset: int, limit: int) -> dict[str, Any]:
 
 def _contains(series: pd.Series, text: str) -> pd.Series:
     return series.astype("string").str.contains(text, case=False, regex=False, na=False)
+
+
+def _search_fields(fields: list[str] | None) -> list[str] | None:
+    if fields is None:
+        return None
+    if not fields or set(fields) - SEARCH_FIELDS:
+        raise ValueError(
+            f"fields must be a nonempty selection from {sorted(SEARCH_FIELDS)}"
+        )
+    return list(dict.fromkeys(fields))
 
 
 def _search_values(value: Any) -> str:
@@ -251,6 +274,8 @@ class Dataset:
         offset: int = 0,
         limit: int = 20,
         recording_regions: list[str] | None = None,
+        fields: list[str] | None = None,
+        page_token: str | None = None,
     ) -> dict[str, Any]:
         """Find indexed sessions within the session list or across discovery roots.
 
@@ -270,6 +295,12 @@ class Dataset:
             All indexed sessions or only paths from the registered session list.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        fields : list of str, optional
+            Top-level result fields; ["basepath"] returns compact session lists.
+            Omit for full metadata. Filtering is independent of selected fields.
+        page_token : str, optional
+            Token from the first page, required when offset is nonzero. Restart
+            at offset zero if the index, filters, or catalog have changed.
 
         Returns
         -------
@@ -278,6 +309,24 @@ class Dataset:
         """
         if self._index is None:
             raise ValueError("No index configured. Build one and supply --index-db.")
+        fields = _search_fields(fields)
+        registered = {
+            _identity(row["basepath"]): row["session_id"]
+            for row in self._sessions.values()
+        }
+        index_fields = (
+            list(
+                dict.fromkeys(
+                    [
+                        "session_id",
+                        "basepath",
+                        *[field for field in fields if field != "in_session_list"],
+                    ]
+                )
+            )
+            if fields is not None
+            else None
+        )
         result = self._index.search(
             query,
             environments,
@@ -290,17 +339,21 @@ class Dataset:
             offset,
             limit,
             recording_regions=recording_regions,
+            fields=index_fields,
+            page_token=page_token,
+            query_context=json.dumps([registered, fields], sort_keys=True),
         )
-        registered = {
-            _identity(row["basepath"]): row["session_id"]
-            for row in self._sessions.values()
-        }
         for row in result["rows"]:
             existing = registered.get(_identity(row["basepath"]))
             row["in_session_list"] = existing is not None
             if existing is not None:
                 row["session_id"] = existing
-        if result["rows"]:
+        if fields is not None:
+            result["rows"] = [
+                {field: row.get(field) for field in fields} for row in result["rows"]
+            ]
+            result["columns"] = fields
+        elif result["rows"]:
             result["columns"].append("in_session_list")
         result["scope"] = scope
         return _bounded(result)
@@ -311,6 +364,7 @@ class Dataset:
         scope: str = "all",
         offset: int = 0,
         limit: int = 50,
+        page_token: str | None = None,
     ) -> dict[str, Any]:
         """Summarize indexed metadata with explicit discovery coverage.
 
@@ -323,6 +377,9 @@ class Dataset:
             All indexed sessions or only registered session-list paths.
         offset, limit : int, optional
             Page offset and row limit (1..200).
+        page_token : str, optional
+            First-page token, required for nonzero offsets. Restart at offset
+            zero if the index or query has changed.
 
         Returns
         -------
@@ -331,7 +388,14 @@ class Dataset:
         """
         if self._index is None:
             raise ValueError("No index configured. Build one and supply --index-db.")
-        result = self._index.summarize(facet, self._scope_paths(scope), offset, limit)
+        result = self._index.summarize(
+            facet,
+            self._scope_paths(scope),
+            offset,
+            limit,
+            page_token=page_token,
+            query_context=scope,
+        )
         result["scope"] = scope
         return result
 

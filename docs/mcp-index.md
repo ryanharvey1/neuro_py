@@ -146,7 +146,11 @@ Example questions:
 For example, `search_sessions(environments=["linear"], regions=["CA1", "PFC"],
 cell_type="Pyr", products=["ripples", "sleep_states"])` requires all those
 conditions. Environment and region/type matches are literal case-insensitive
-substrings. Region and cell type must occur together in the same cell group;
+substrings: `CA1` includes labels such as `ca1so`, `ca1sp`, `ca1sr`, and
+`ca1slm`. Original labels remain in the metadata. A substring can also match
+other labels such as `ACA1`; inspect the region summary and returned labels
+when anatomical specificity matters. Region and cell type must occur together
+in the same cell group;
 CA1 interneurons plus PFC pyramidal cells do not satisfy "CA1 pyramidal".
 Tagged bad units are excluded by default. Set `include_bad_units=true` when
 their presence matters. Original labels are retained; no region aliases are
@@ -157,6 +161,42 @@ when there are no sorted cells. Use the `recording_region` summary facet for
 those labels, and `region` for regions containing indexed non-bad cells. The
 index also retains session animal names and available `sr`, `srLfp`, and
 `nChannels` metadata. Sample rates retain the source convention of Hz.
+
+## Compact basepath lists and safe pagination
+
+For a reusable session list, request only the basepath field. All filters and
+the total count retain their usual meaning:
+
+```json
+{
+  "scope": "all",
+  "environments": ["linear"],
+  "regions": ["CA1"],
+  "fields": ["basepath"],
+  "limit": 200
+}
+```
+
+Call `search_sessions` with these arguments. Each row contains only `basepath`;
+counts, cached coverage, `next_offset`, and `page_token` remain at the response's
+top level. To retain IDs and catalog membership, request
+`fields=["session_id", "basepath", "in_session_list"]` instead. Omit `fields`
+for full metadata. Projection happens before the response-size limit, so large
+metadata do not prevent a compact path list from being returned.
+
+Both `search_sessions` and `summarize_dataset` return a `page_token`. When
+`next_offset` is not null, repeat the same query with `offset=next_offset` and
+the returned `page_token`. Nonzero offsets require a token; changing filters,
+scope, or selected fields requires starting a new query at offset zero.
+Changing the page size is allowed.
+
+Each indexed query reads results and coverage from one SQLite read snapshot.
+If indexed session data change between pages, the next request returns a stale
+token error. Discard all accumulated pages and restart at `offset=0` without a
+token. An unchanged total count alone is not sufficient to detect a refresh.
+This detects refreshes by other processes and works with existing read-only
+indexes without rebuilding them. Catalog-only `list_sessions` and the live
+session table tools retain their existing pagination behavior.
 
 ## Interpret results correctly
 
