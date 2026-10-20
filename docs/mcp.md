@@ -40,13 +40,19 @@ for protocol messages on STDIO; connect it through an MCP client to call tools.
 Prefer a CSV or explicit folders for large network shares. Root discovery walks
 the selected subtree, so choose an experiment folder rather than an entire drive.
 
-Example CSV:
+Only a `basepath` column is required. A standard session list works directly:
 
 ```csv
-basepath,animal,environment,cohort
-/data/rat01/day01,rat01,linear,control
-/data/rat02/day01,rat02,cheeseboard,control
+basepath
+/data/rat01/day01
+/data/rat02/day01
 ```
+
+Additional columns such as animal, environment, or cohort are optional catalog
+annotations. You do not need to add them: `get_epochs` and `get_cells` read the
+recording's epoch and cell metadata directly from the session files. With a
+basepath-only catalog, `list_sessions` searches the paths; it does not automatically
+index the metadata inside every session.
 
 Relative CSV paths resolve against the CSV directory. Repeated session rows are
 deduplicated by normalized source path, while distinct metadata registrations
