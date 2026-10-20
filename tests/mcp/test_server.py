@@ -13,13 +13,25 @@ from mcp import ClientSession, StdioServerParameters  # noqa: E402
 from mcp.client.stdio import stdio_client  # noqa: E402
 
 
-def test_stdio_roundtrip(catalog):
+def test_stdio_roundtrip(catalog, session, tmp_path):
+    from neuro_py.mcp.index import IndexBuilder
+
+    cache = tmp_path / "private" / "index.sqlite"
+    IndexBuilder(cache).build(roots=[session.parent])
+
     async def exercise():
         environment = dict(os.environ)
         environment["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
         parameters = StdioServerParameters(
             command=sys.executable,
-            args=["-m", "neuro_py.mcp.server", "--catalog", str(catalog)],
+            args=[
+                "-m",
+                "neuro_py.mcp.server",
+                "--catalog",
+                str(catalog),
+                "--index-db",
+                str(cache),
+            ],
             env=environment,
         )
         async with stdio_client(parameters) as (read, write):
@@ -27,15 +39,32 @@ def test_stdio_roundtrip(catalog):
                 initialized = await client.initialize()
                 assert "session_id" in initialized.instructions
                 tools = (await client.list_tools()).tools
-                assert len(tools) == 8
+                assert len(tools) == 11
                 assert all(t.annotations.readOnlyHint for t in tools)
                 assert all(t.outputSchema for t in tools)
                 conventions = await client.read_resource("cellexplorer://conventions")
                 assert "cell_identity" in conventions.contents[0].text
                 described = await client.call_tool("describe_dataset")
                 assert described.structuredContent["session_count"] == 1
+                status = await client.call_tool("get_index_status")
+                assert status.structuredContent["discovery_complete"]
+                indexed = await client.call_tool(
+                    "search_sessions",
+                    {
+                        "environments": ["linear"],
+                        "regions": ["CA1"],
+                        "cell_type": "Pyr",
+                        "scope": "session_list",
+                    },
+                )
+                assert indexed.structuredContent["total_rows"] == 1
+                summary = await client.call_tool(
+                    "summarize_dataset", {"facet": "region"}
+                )
+                assert summary.structuredContent["total_rows"] == 2
                 found = await client.call_tool("list_sessions", {"query": "rat01"})
                 session_id = found.structuredContent["rows"][0]["session_id"]
+                assert indexed.structuredContent["rows"][0]["session_id"] == session_id
                 for name in [
                     "get_session",
                     "get_epochs",

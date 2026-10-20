@@ -39,6 +39,8 @@ pip install -e .[dl]
 For read-only AI access to CellExplorer datasets, install `pip install -e ".[mcp]"`
 and see the [MCP server guide](docs/mcp.md). Each user supplies their own session
 catalog or data root; no lab-specific paths are required.
+The optional [metadata index](docs/mcp-index.md) adds resumable discovery across
+recording shares and searches by environment, region, cell type, and file type.
 
 ```python
 import neuro_py as npy

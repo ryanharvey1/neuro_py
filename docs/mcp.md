@@ -54,6 +54,9 @@ recording's epoch and cell metadata directly from the session files. With a
 basepath-only catalog, `list_sessions` searches the paths; it does not automatically
 index the metadata inside every session.
 
+For metadata searches across multiple shares and beyond a session list, enable
+the optional [automatic metadata index](mcp-index.md).
+
 Relative CSV paths resolve against the CSV directory. Repeated session rows are
 deduplicated by normalized source path, while distinct metadata registrations
 are preserved. Blank paths are ignored. Catalog files and registrations are read
@@ -109,6 +112,9 @@ This prototype provides local STDIO only.
 | `get_trials` | Read stored trial intervals and labels. |
 | `get_ripples` | Read ripple intervals and metrics using loader event handling. |
 | `get_sleep_states` | Read intervals for one sleep-state key. |
+| `get_index_status` | Report optional metadata-index coverage and scan errors. |
+| `search_sessions` | Find indexed sessions by task, region/type, and file availability. |
+| `summarize_dataset` | Count indexed sessions by metadata category. |
 
 All tools declare read-only annotations. The `cellexplorer://conventions` resource
 provides the same interpretation rules as `describe_dataset`. Session-specific
@@ -158,8 +164,10 @@ Pagination bounds the response, not the loader's memory use: MAT files may load
 in full, including when selecting cell metrics or sleep intervals. This version
 does not expose raw spikes, position samples, continuous LFP, arbitrary event
 types, or analysis execution. Add bounded time windows, loader-aware memory
-limits, and explicit provenance before extending those capabilities. There is
-no background indexing or cross-session computation.
+limits, and explicit provenance before extending those capabilities. Metadata
+indexing and cross-session metadata summaries are available through the optional
+[index builder](mcp-index.md). Scientific analysis execution remains outside
+these tools.
 
 Register only trusted CellExplorer directories. The server reads files using the
 launching user's account; it is not a multi-user authorization boundary. It has

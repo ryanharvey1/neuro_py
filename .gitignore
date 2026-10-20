@@ -162,3 +162,4 @@ logs/
 
 # custom outputs
 results/
+.neuro-py-mcp/

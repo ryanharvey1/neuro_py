@@ -8,10 +8,13 @@ import json
 import ntpath
 import os
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    from neuro_py.mcp.index import MetadataIndex
 
 MAX_ROWS = 200
 MAX_RESPONSE_BYTES = 128_000
@@ -123,6 +126,8 @@ class Dataset:
     path_maps : list of tuple of str, optional
         Old and new path prefixes. Longest matching prefix wins. Session IDs
         use the original catalog path, so remapping does not change them.
+    index_db : pathlib.Path, optional
+        Existing private metadata index. Enables discovery beyond the CSV list.
     """
 
     def __init__(
@@ -131,8 +136,10 @@ class Dataset:
         sessions: list[Path] | None = None,
         roots: list[Path] | None = None,
         path_maps: list[tuple[str, str]] | None = None,
+        index_db: Path | None = None,
     ) -> None:
         self._sessions: dict[str, dict[str, Any]] = {}
+        self._index: MetadataIndex | None = None
         self._maps = sorted(path_maps or [], key=lambda x: len(x[0]), reverse=True)
         for filename in catalogs or []:
             filename = filename.resolve(strict=True)
@@ -160,7 +167,11 @@ class Dataset:
             for source in sorted(root.rglob("*.session.mat")):
                 if source.name == source.parent.name + ".session.mat":
                     self._register(str(source.parent), str(root), {})
-        if not self._sessions:
+        if index_db is not None:
+            from neuro_py.mcp.index import MetadataIndex
+
+            self._index = MetadataIndex(index_db)
+        if not self._sessions and self._index is None:
             raise ValueError(
                 "No sessions registered. Supply a catalog, session, or root."
             )
@@ -197,7 +208,132 @@ class Dataset:
         try:
             return self._sessions[session_id]
         except KeyError as error:
+            if self._index is not None:
+                entry = self._index.get_entry(session_id)
+                if entry is not None:
+                    return entry
             raise ValueError("Unknown session_id. Call list_sessions first.") from error
+
+    def _scope_paths(self, scope: str) -> set[str] | None:
+        if scope == "all":
+            return None
+        if scope == "session_list":
+            return {_identity(entry["basepath"]) for entry in self._sessions.values()}
+        raise ValueError("scope must be all or session_list")
+
+    def index_status(self) -> dict[str, Any]:
+        """Report discovery coverage without reading network shares.
+
+        Returns
+        -------
+        dict
+            Cached progress, or disabled status when no index was configured.
+        """
+        if self._index is None:
+            return {
+                "status": "disabled",
+                "hint": "Build an index, then supply --index-db.",
+            }
+        result = self._index.status()
+        result["session_list_count"] = len(self._sessions)
+        return _bounded(result)
+
+    def search_sessions(
+        self,
+        query: str = "",
+        environments: list[str] | None = None,
+        regions: list[str] | None = None,
+        cell_type: str = "",
+        products: list[str] | None = None,
+        event_types: list[str] | None = None,
+        include_bad_units: bool = False,
+        scope: str = "all",
+        offset: int = 0,
+        limit: int = 20,
+        recording_regions: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Find indexed sessions within the session list or across discovery roots.
+
+        Parameters
+        ----------
+        query : str, optional
+            Literal path, animal, environment, region, or cell-type substring.
+        environments, regions, products, event_types : list of str, optional
+            AND-combined metadata filters. Products are exact file-type keys.
+        cell_type : str, optional
+            Cell-type substring required within each requested region.
+        recording_regions : list of str, optional
+            Session-recorded region labels, independent of sorted cell counts.
+        include_bad_units : bool, optional
+            Include tagged bad cells for cell matching; default False.
+        scope : {"all", "session_list"}, optional
+            All indexed sessions or only paths from the registered session list.
+        offset, limit : int, optional
+            Page offset and row limit (1..200).
+
+        Returns
+        -------
+        dict
+            Matching sessions, usable session IDs, and cached discovery coverage.
+        """
+        if self._index is None:
+            raise ValueError("No index configured. Build one and supply --index-db.")
+        result = self._index.search(
+            query,
+            environments,
+            regions,
+            cell_type,
+            products,
+            event_types,
+            include_bad_units,
+            self._scope_paths(scope),
+            offset,
+            limit,
+            recording_regions=recording_regions,
+        )
+        registered = {
+            _identity(row["basepath"]): row["session_id"]
+            for row in self._sessions.values()
+        }
+        for row in result["rows"]:
+            existing = registered.get(_identity(row["basepath"]))
+            row["in_session_list"] = existing is not None
+            if existing is not None:
+                row["session_id"] = existing
+        if result["rows"]:
+            result["columns"].append("in_session_list")
+        result["scope"] = scope
+        return _bounded(result)
+
+    def summarize_index(
+        self,
+        facet: str = "environment",
+        scope: str = "all",
+        offset: int = 0,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Summarize indexed metadata with explicit discovery coverage.
+
+        Parameters
+        ----------
+        facet : str, optional
+            environment, region, cell_type, animal, product, event_type, root,
+            or status. Region/type facets exclude tagged bad units.
+        scope : {"all", "session_list"}, optional
+            All indexed sessions or only registered session-list paths.
+        offset, limit : int, optional
+            Page offset and row limit (1..200).
+
+        Returns
+        -------
+        dict
+            Session counts by source label, unknown counts, and scan coverage.
+        """
+        if self._index is None:
+            raise ValueError("No index configured. Build one and supply --index-db.")
+        result = self._index.summarize(facet, self._scope_paths(scope), offset, limit)
+        result["scope"] = scope
+        return result
 
     def _source(self, entry: dict[str, Any], product: str) -> Path:
         return Path(entry["basepath"]) / (entry["basename"] + SOURCES[product])
@@ -219,6 +355,7 @@ class Dataset:
         return _bounded(
             {
                 "session_count": len(self._sessions),
+                "metadata_index": self.index_status(),
                 "products": SOURCES,
                 "conventions": CONVENTIONS,
                 "versions": versions,

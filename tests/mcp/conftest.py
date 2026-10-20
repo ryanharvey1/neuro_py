@@ -18,6 +18,9 @@ def session(tmp_path):
         ".session.mat",
         {
             "session": {
+                "animal": {"name": "rat01"},
+                "brainRegions": {"CA1": {"channels": [1, 2]}, "PFC": {"channels": [3]}},
+                "extracellular": {"sr": 30000.0, "srLfp": 1250.0, "nChannels": 3},
                 "epochs": np.array(
                     [
                         {
@@ -40,7 +43,7 @@ def session(tmp_path):
                         },
                     ],
                     dtype=object,
-                )
+                ),
             }
         },
     )

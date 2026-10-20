@@ -76,6 +76,7 @@ all = [
 
 [project.scripts]
 neuro-py-mcp = "neuro_py.mcp.server:main"
+neuro-py-mcp-index = "neuro_py.mcp.index:main"
 
 [project.urls]
 "Homepage" = "https://github.com/ryanharvey1/neuro_py/"
