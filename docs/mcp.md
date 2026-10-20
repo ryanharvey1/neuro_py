@@ -100,6 +100,83 @@ Codex supports local STDIO servers and project or user MCP configuration; see th
 A hosted client needs a separately implemented and authenticated remote transport.
 This prototype provides local STDIO only.
 
+## Let your AI set up and connect
+
+Paste the following into a **local coding assistant with terminal and configuration
+file access**, replacing the paths. It authorizes the assistant to install the
+dependencies and configure the connection. A chat without those capabilities can
+explain the setup, but cannot perform the local installation itself.
+
+```text
+Set up and connect neuro_py's CellExplorer MCP server in this AI client.
+
+My neuro_py checkout: [absolute path to neuro_py]
+My session CSV: [absolute path to sessions.csv; only basepath is required]
+My existing metadata index: [absolute path to index.sqlite, or none]
+
+Read docs/mcp.md from that checkout and perform the setup. Use a suitable existing
+Python environment or create a dedicated virtual environment. Verify the checkout
+contains neuro_py/mcp/server.py and install it with the optional MCP dependencies
+using python -m pip install -e ".[mcp]". Use that environment's absolute Python path
+to launch python -m neuro_py.mcp.server with my CSV and, if provided, my existing
+index. Register it as a local STDIO server named cellexplorer in this client's MCP
+configuration, preserving unrelated settings and server entries. Ask only for
+essential information you cannot determine from the supplied paths and environment.
+
+Verify installation and registration. If a client reload or restart is needed,
+tell me exactly what to do. Once the tools are available, call describe_dataset,
+list_sessions, and get_index_status. Distinguish configuration saved from an
+actual successful tool connection; do not claim success until those calls work.
+
+Then tell me how many sessions are in my list, preview up to five, and explain
+whether indexed metadata is available and how complete its coverage is. Use my
+session list as the default query scope. Keep data and index files private, and
+start a new metadata crawl only when I request one and specify discovery roots.
+```
+
+For Codex, the assistant can register a server with the CLI, for example:
+
+```powershell
+codex mcp add cellexplorer -- 'C:\path\to\environment\python.exe' -m neuro_py.mcp.server --catalog 'C:\lab\sessions.csv'
+```
+
+Supply `--index-db` and its absolute path after the catalog argument when using
+an existing index. Inspect an existing `cellexplorer` entry before updating it.
+`codex mcp list` verifies registration. Actual calls from the AI client verify
+connection and access to the tools. Follow the client's reload/restart procedure
+when needed; registration alone does not make new tools available in every
+already-open chat. See the [official MCP setup instructions](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+The ordinary ChatGPT website does not read local Codex configuration. This setup
+prompt is for a client with local execution and STDIO MCP support. Connecting a
+hosted client requires a separately supported remote integration.
+
+## Start using the connected server
+
+After setup, users can paste this shorter prompt into a new chat:
+
+```text
+Use the connected CellExplorer MCP to explore my recordings. Start with
+describe_dataset, list_sessions, and get_index_status. Report my session-list
+count and preview up to five sessions. If an index is available, summarize the
+environments, recorded regions, and file types within my session list. Distinguish
+the indexed subset from my full list, and report incomplete coverage or unknown
+metadata explicitly. Use the MCP tools for data access and keep my session list
+as the default scope unless I ask for discovery across all indexed shares.
+```
+
+For broader discovery, a follow-up can be:
+
+```text
+Search all indexed shares, including sessions outside my CSV. Summarize the
+recorded environments, regions, and file types, and report scan coverage and
+metadata gaps so I can tell whether the inventory is complete.
+```
+
+Users do not need to memorize tool names; these prompts give the AI a starting
+workflow. Later questions can use ordinary language, such as "Find cheeseboard
+sessions with CA1 pyramidal cells in my session list."
+
 ## Tools
 
 | Tool | Purpose |
@@ -118,14 +195,14 @@ This prototype provides local STDIO only.
 
 All tools declare read-only annotations. The `cellexplorer://conventions` resource
 provides the same interpretation rules as `describe_dataset`. Session-specific
-tools accept only an ID returned by `list_sessions`; model calls cannot register
+tools accept only an ID returned by `list_sessions` or `search_sessions`; model calls cannot register
 arbitrary files or execute Python.
 
 A typical request is: "Find rat01 sessions, inspect the available files, then
 show CA1 pyramidal cell metadata and the original task epochs for one session."
-Search examines supplied catalog text; it does not infer animal, region, or task
-from MAT data across the whole dataset. A catalog with only paths will support
-path searches. Use `get_cells` or `get_epochs` for recording-level details.
+`list_sessions` searches supplied catalog text. A catalog with only paths supports
+path searches. Use `search_sessions` for indexed metadata discovery, and
+`get_cells` or `get_epochs` for recording-level details.
 
 ## Output and scientific conventions
 

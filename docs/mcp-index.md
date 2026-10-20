@@ -99,6 +99,11 @@ the cache; use a separate cache when changing the set of accessible datasets.
 
 ## Connect the index to MCP
 
+For AI-assisted installation and connection, copy the
+[setup prompt](mcp.md#let-your-ai-set-up-and-connect) and supply your existing
+index path. For everyday questions, use the
+[first-use prompt](mcp.md#start-using-the-connected-server).
+
 Keep the usual catalog and add the existing cache:
 
 ```bash
