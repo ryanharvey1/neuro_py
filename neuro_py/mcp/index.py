@@ -684,9 +684,21 @@ class IndexBuilder:
                 {"observed": observed, "max_source_bytes": self.max_source_bytes},
                 sort_keys=True,
             )
+            previous = (
+                json.loads(prior["fingerprint"])
+                if prior and prior["fingerprint"] != "unavailable"
+                else {}
+            )
+            same_eligibility = all(
+                (source["size_bytes"] > previous.get("max_source_bytes", 0))
+                == (source["size_bytes"] > self.max_source_bytes)
+                for product in ("epochs", "cells")
+                if (source := observed["files"][product])["present"]
+            )
             if (
                 prior
-                and prior["fingerprint"] == fingerprint
+                and previous.get("observed") == observed
+                and same_eligibility
                 and all(
                     value in {"missing_file", "source_exceeds_size_limit"}
                     for value in json.loads(prior["payload"])["errors"].values()

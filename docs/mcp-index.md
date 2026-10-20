@@ -74,8 +74,10 @@ and balances progress across roots. A crash can cause the current directory to
 be retried; it does not require restarting the whole scan.
 
 After a completed pass, the next invocation starts a refresh. Unchanged source
-size/mtime fingerprints reuse the metadata cache. Source changes or a changed
-size limit trigger re-extraction. `--restart` starts discovery again while keeping
+size/mtime fingerprints reuse the metadata cache. Source changes or size-limit
+changes that alter a source's eligibility trigger re-extraction. Raising the
+limit reuses already eligible unchanged metadata. `--restart` starts discovery
+again while keeping
 unchanged metadata reusable; use it after changing the configured inputs during
 an unfinished pass. There is no automatic scheduler or background scan on MCP
 startup. Budgets are checked between directories: one network operation or MAT

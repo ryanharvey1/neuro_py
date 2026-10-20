@@ -225,6 +225,20 @@ def test_missing_fields_large_sources_and_corrupt_files_are_not_false_absence(
     assert index.status()["metadata_status_counts"] == {"partial": 1}
 
 
+def test_size_limit_changes_reuse_sources_with_unchanged_eligibility(
+    indexed, session, monkeypatch
+):
+    def no_reload(*args, **kwargs):
+        raise AssertionError("Unchanged eligible metadata should remain cached")
+
+    monkeypatch.setattr("neuro_py.mcp.index._extract", no_reload)
+    IndexBuilder(indexed.path, max_source_bytes=512_000_000).build(
+        roots=[session.parent]
+    )
+    assert indexed.search(regions=["CA1"])["total_rows"] == 1
+    assert indexed.status()["metadata_status_counts"] == {"ok": 1}
+
+
 def test_inaccessible_roots_preserve_previous_discoveries(
     indexed, session, monkeypatch
 ):
