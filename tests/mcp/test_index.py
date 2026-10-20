@@ -288,7 +288,7 @@ def test_recycling_snapshots_and_extra_excluded_dirs_are_not_discovered(
 ):
     root = tmp_path / "share"
     root.mkdir()
-    for name in ["#recycle", "#snapshot", "@eaDir", "custom_archive"]:
+    for name in ["#recycle", "#snapshot", "@eaDir", ".phy", "custom_archive"]:
         shutil.copytree(session, root / name / "day01")
     shutil.copytree(session, root / "rat01" / "day01")
     cache = tmp_path / "private" / "index.sqlite"
@@ -296,6 +296,50 @@ def test_recycling_snapshots_and_extra_excluded_dirs_are_not_discovered(
     assert status["session_count"] == 1
     assert status["discovery_complete"]
     assert "#recycle" in status["discovery_policy"]["excluded_directory_names"]
+
+
+def test_new_exclusions_remove_queued_descendants_without_network_reads(
+    session, tmp_path, monkeypatch
+):
+    root = session.parent
+    cache = tmp_path / "private" / "index.sqlite"
+    IndexBuilder(cache).build(roots=[root], max_directories=1)
+    # Simulate an old queue that had already descended into a large cache.
+    with sqlite3.connect(cache) as connection:
+        for path in [root / "rat02" / ".PHY" / "a", root / "cache" / "nested"]:
+            connection.execute(
+                "INSERT INTO pending VALUES (?,?)", (str(root), str(path))
+            )
+        connection.execute(
+            "UPDATE settings SET value=? WHERE key='discovery_policy'",
+            (json.dumps({"excluded_directory_names": []}),),
+        )
+    import os
+
+    original = os.scandir
+
+    def no_cache_reads(path):
+        assert ".phy" not in str(path).casefold()
+        assert "cache" not in Path(path).parts
+        return original(path)
+
+    monkeypatch.setattr("neuro_py.mcp.index.os.scandir", no_cache_reads)
+    status = IndexBuilder(cache, exclude_dirs=["cache"]).build(roots=[root])
+    assert status["discovery_complete"]
+    assert status["session_count"] == 1
+    assert status["pending_directories"] == 0
+
+
+def test_exclusions_preserve_explicit_session_list_entries(session, tmp_path):
+    cache = tmp_path / "private" / "index.sqlite"
+    builder = IndexBuilder(cache, exclude_dirs=[session.name])
+    # Keep a pending explicit registration while changing the exclusion policy.
+    builder.build(sessions=[session, tmp_path / "offline"], max_directories=1)
+    status = IndexBuilder(cache, exclude_dirs=["offline"]).build(
+        sessions=[session, tmp_path / "offline"]
+    )
+    assert status["session_count"] == 2
+    assert status["metadata_status_counts"]["unavailable"] == 1
 
 
 def test_second_writer_is_rejected_without_changing_the_index(indexed, session):

@@ -30,6 +30,7 @@ SCHEMA_VERSION = 1
 EXCLUDED_DIRS = {
     ".git",
     ".venv",
+    ".phy",
     "__pycache__",
     "#recycle",
     "#snapshot",
@@ -633,6 +634,42 @@ class IndexBuilder:
             (json.dumps(errors), root),
         )
 
+    def _prune_pending(self, connection: sqlite3.Connection) -> None:
+        # A resumed queue can contain millions of descendants of a newly
+        # excluded cache. Remove them locally without visiting the share.
+        prior = connection.execute(
+            "SELECT value FROM settings WHERE key='discovery_policy'"
+        ).fetchone()
+        previous = (
+            set(json.loads(prior[0]).get("excluded_directory_names", []))
+            if prior
+            else set()
+        )
+        added = self.exclude_dirs - previous
+        if not added:
+            return
+
+        def excluded(root: str, path: str) -> bool:
+            if root == "session-list":
+                return False
+            relative = path[len(root) :].replace("\\", "/").casefold()
+            return bool(added.intersection(relative.split("/")))
+
+        connection.create_function("excluded_pending", 2, excluded, deterministic=True)
+        # Rebuild the queue in its original order rather than individually
+        # deleting millions of rows and updating both indexes for every row.
+        connection.execute(
+            "CREATE TEMP TABLE retained_pending AS "
+            "SELECT rowid AS queue_order, root, path FROM pending "
+            "WHERE NOT excluded_pending(root, path)"
+        )
+        connection.execute("DELETE FROM pending")
+        connection.execute(
+            "INSERT INTO pending(rowid, root, path) "
+            "SELECT queue_order, root, path FROM retained_pending ORDER BY queue_order"
+        )
+        connection.execute("DROP TABLE retained_pending")
+
     def _session(
         self, connection: sqlite3.Connection, path: Path, root: str, generation: str
     ) -> None:
@@ -766,6 +803,7 @@ class IndexBuilder:
         with self._writer_lock():
             self._initialize()
             with self._connect() as connection:
+                self._prune_pending(connection)
                 connection.execute(
                     "INSERT OR REPLACE INTO settings VALUES (?,?)",
                     (

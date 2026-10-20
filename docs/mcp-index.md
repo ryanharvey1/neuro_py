@@ -153,6 +153,12 @@ index also retains session animal names and available `sr`, `srLfp`, and
 
 ## Interpret results correctly
 
+Discovery skips Phy's `.phy` cache directories as well as the system and
+development directories listed in `discovery_policy`. Adding an exclusion
+also removes its already-queued descendants when resuming an older crawl;
+the builder does not need to visit those cache folders on the network.
+Explicit session-list registrations are still processed.
+
 Every query includes cached scan coverage. `discovery_complete=false` means the
 results are not an exhaustive inventory of the configured roots. A complete
 discovery can still have incomplete per-session metadata; inspect
