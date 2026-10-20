@@ -86,6 +86,7 @@ plugins:
               - "!^tests$"
 nav:
 - Home: index.md
+- Dataset MCP server: mcp.md
 - API Reference:
   - Overview: reference/index.md
   - behavior:
