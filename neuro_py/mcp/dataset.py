@@ -72,6 +72,14 @@ def _identity(path: str) -> str:
     return os.path.normpath(path)
 
 
+def _recording_path(path: Path) -> Path:
+    """Keep parent aliases, but use the target basename for a renamed session link."""
+    resolved = path.resolve()
+    if os.path.normcase(path.name) != os.path.normcase(resolved.name):
+        return resolved
+    return path
+
+
 def _json_safe(value: Any) -> Any:
     if value is None or value is pd.NA:
         return None
@@ -165,7 +173,7 @@ class Dataset:
         self._index: MetadataIndex | None = None
         self._maps = sorted(path_maps or [], key=lambda x: len(x[0]), reverse=True)
         for filename in catalogs or []:
-            filename = filename.resolve(strict=True)
+            filename = Path(os.path.abspath(filename))
             frame = pd.read_csv(filename, dtype=str, keep_default_na=False)
             if "basepath" not in frame:
                 raise ValueError(f"{filename}: expected a basepath column.")
@@ -174,7 +182,8 @@ class Dataset:
                 if not path:
                     continue
                 if not Path(path).is_absolute() and not PureWindowsPath(path).drive:
-                    path = str((filename.parent / path).resolve())
+                    # Match the index's lexical paths without resolving symlinks.
+                    path = os.path.abspath(filename.parent / path)
                 metadata = {
                     k: v
                     for k, v in row.items()
@@ -182,13 +191,13 @@ class Dataset:
                 }
                 self._register(path, str(filename), metadata)
         for path in sessions or []:
-            self._register(str(path.resolve()), "explicit", {})
+            self._register(os.path.abspath(path), "explicit", {})
         for root in roots or []:
-            root = root.resolve(strict=True)
+            root = Path(os.path.abspath(root))
             if not root.is_dir():
                 raise ValueError(f"Not a directory: {root}")
             for source in sorted(root.rglob("*.session.mat")):
-                if source.name == source.parent.name + ".session.mat":
+                if source.name == _recording_path(source.parent).name + ".session.mat":
                     self._register(str(source.parent), str(root), {})
         if index_db is not None:
             from neuro_py.mcp.index import MetadataIndex
@@ -399,9 +408,6 @@ class Dataset:
         result["scope"] = scope
         return result
 
-    def _source(self, entry: dict[str, Any], product: str) -> Path:
-        return Path(entry["basepath"]) / (entry["basename"] + SOURCES[product])
-
     def describe(self) -> dict[str, Any]:
         """Return dataset conventions and runtime versions.
 
@@ -484,9 +490,10 @@ class Dataset:
         """
         entry = self._entry(session_id)
         available = Path(entry["basepath"]).is_dir()
+        recording = _recording_path(Path(entry["basepath"]))
         files = {}
         for product in SOURCES:
-            source = self._source(entry, product)
+            source = recording / (recording.name + SOURCES[product])
             stat = source.stat() if available and source.is_file() else None
             files[product] = {
                 "path": str(source),
@@ -497,6 +504,7 @@ class Dataset:
         return _bounded(
             {
                 **entry,
+                "basename": recording.name,
                 "status": "ok" if available else "unavailable",
                 "files": files,
             }
@@ -547,11 +555,12 @@ class Dataset:
         if state not in {"WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"}:
             raise ValueError("Unsupported sleep-state key.")
         entry = self._entry(session_id)
-        source = self._source(entry, product)
+        recording = _recording_path(Path(entry["basepath"]))
+        source = recording / (recording.name + SOURCES[product])
         result = {
             "session_id": session_id,
             "basepath": entry["basepath"],
-            "basename": entry["basename"],
+            "basename": recording.name,
             "product": product,
             "source": str(source),
             "parameters": {
@@ -580,7 +589,7 @@ class Dataset:
         result["source_mtime_ns"] = stat.st_mtime_ns
         from neuro_py.io import loading
 
-        basepath = entry["basepath"]
+        basepath = str(recording)
         if product == "cells":
             frame = loading.load_cell_metrics(basepath, only_metrics=True)
         elif product == "epochs":

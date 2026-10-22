@@ -1,9 +1,42 @@
 """Small CellExplorer files that exercise the real neuro_py loaders."""
 
+import os
+import subprocess
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 from scipy.io import savemat
+
+
+@pytest.fixture
+def directory_alias():
+    """Create POSIX symlinks or unprivileged Windows directory junctions."""
+
+    def create(alias: Path, target: Path) -> None:
+        if os.name == "nt":
+            quoted_alias = str(alias).replace("'", "''")
+            quoted_target = str(target).replace("'", "''")
+            subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    f"New-Item -ItemType Junction -Path '{quoted_alias}' "
+                    f"-Target '{quoted_target}' | Out-Null",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        else:
+            alias.symlink_to(target, target_is_directory=True)
+        assert alias.samefile(target)
+
+    return create
 
 
 @pytest.fixture
