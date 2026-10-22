@@ -44,7 +44,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Local read-only MCP access to registered CellExplorer datasets.
-mcp = ["mcp>=1.12,<2"]
+mcp = ["mcp>=1.30,<2"]
 # For deep-learning decoders and training pipelines
 dl = [
     "lightning>=2.4.0",
@@ -65,7 +65,7 @@ dev = [
 ]
 # An "all" group that combines all optional groups
 all = [
-    "mcp>=1.12,<2",
+    "mcp>=1.30,<2",
     "lightning>=2.4.0",
     "tensorboard>=2.18.0",
     "zensical>=0.0.23",

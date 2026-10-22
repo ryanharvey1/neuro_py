@@ -56,7 +56,7 @@ jobs:
       - name: Test minimum MCP SDK on minimum Python
         if: matrix.python-version == '3.10'
         run: |
-          pip install "mcp==1.12.0"
+          pip install "mcp==1.30.0"
           python tools/run_pytest.py tests/mcp -q
 
   base-smoke:
