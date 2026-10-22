@@ -68,9 +68,20 @@ Catalog entries, explicit session folders, and startup discovery roots preserve
 symbolic-link path spellings, matching the metadata index. Use the same alias
 in the catalog and index roots so session-list searches and summaries match.
 Different aliases to the same directory remain distinct session identities.
+The catalog filename also retains its alias: relative entries are interpreted
+from the parent directory of the CSV path you supplied, including when that
+directory is a symbolic link or junction.
 Session IDs for symlinked relative paths, explicit folders, or startup roots
 that older versions dereferenced can change; refresh them with `list_sessions`
 after restarting the server.
+
+A session alias can have a different name from its recording target, for example
+`session_shortcut` pointing to `rat01/day01`. The alias remains the session's
+registered `basepath` and identity, while discovery, indexing, and live reads use
+the target's `day01` filename prefix and the existing loaders. Live responses
+report the recording `basename` and actual file path in `source`; loader table
+columns keep the loader's recording metadata. Parent-directory aliases whose
+session basename is unchanged are retained for file access as well.
 
 Windows mapped drives can be replaced with UNC paths without editing the CSV:
 
@@ -278,8 +289,11 @@ missing versus empty data, path mapping, pagination, payload limits, and a real
 MCP STDIO client/server round trip. Protocol tests skip when the optional SDK is
 absent; catalog and loader tests still run. Base-package users need no MCP SDK.
 
-On POSIX, `tests/mcp/test_paths.py` also checks that relative/absolute catalogs,
+`tests/mcp/test_paths.py` also checks that relative/absolute catalogs,
 explicit folders, and startup roots agree with indexed symlink paths, including
 session-list searches, summaries, IDs, and live epoch reads. Cache-containment
 tests cover both root and explicit-session inputs and verify rejection before
 creating the cache directory, database, or lock.
+These tests use symbolic links on POSIX and directory junctions on Windows.
+They also cover catalogs beneath aliased directories and renamed session aliases
+across mapped catalogs, discovery, indexing, and every live data product.

@@ -30,6 +30,7 @@ from neuro_py.mcp.dataset import (
     _identity,
     _json_safe,
     _page,
+    _recording_path,
     _search_fields,
 )
 
@@ -91,9 +92,10 @@ def _matches(labels: list[str], text: str) -> bool:
 
 
 def _observe(path: Path) -> dict[str, Any]:
+    recording = _recording_path(path)
     files: dict[str, Any] = {}
     for product, suffix in INDEX_FILES.items():
-        source = path / (path.name + suffix)
+        source = recording / (recording.name + suffix)
         try:
             info = source.stat(follow_symlinks=False)
             files[product] = {
@@ -103,17 +105,22 @@ def _observe(path: Path) -> dict[str, Any]:
             }
         except FileNotFoundError:
             files[product] = {"present": False}
-    with os.scandir(path) as entries:
+    with os.scandir(recording) as entries:
         events = sorted(
             {
-                entry.name[len(path.name) + 1 : -len(".events.mat")]
+                entry.name[len(recording.name) + 1 : -len(".events.mat")]
                 for entry in entries
-                if entry.name.startswith(path.name + ".")
+                if entry.name.startswith(recording.name + ".")
                 and entry.name.endswith(".events.mat")
                 and entry.is_file(follow_symlinks=False)
             }
         )
-    return {"files": files, "event_types": events}
+    observed: dict[str, Any] = {"files": files, "event_types": events}
+    if recording != path:
+        # Bind the fingerprint to the target of a renamed directory alias.
+        # Ordinary registrations retain their existing fingerprints.
+        observed["recording_path"] = str(recording)
+    return observed
 
 
 def _extract(
@@ -122,6 +129,7 @@ def _extract(
     from neuro_py.io import loading
     from neuro_py.io.matlab import load_mat
 
+    path = Path(observed.get("recording_path", str(path)))
     metadata: dict[str, Any] = {"environments": [], "animals": [], "cell_groups": []}
     errors: dict[str, str] = {}
     for product in ("epochs", "cells"):
@@ -1059,8 +1067,11 @@ class IndexBuilder:
                             children.append((root, entry.path))
                     else:
                         filenames.add(os.path.normcase(entry.name))
+            # Descendant links/junctions are skipped; only an explicit root can
+            # alias a differently named recording folder.
+            basename = _recording_path(path).name if str(path) == root else path.name
             if any(
-                os.path.normcase(path.name + suffix) in filenames
+                os.path.normcase(basename + suffix) in filenames
                 for suffix in (SOURCES["epochs"], SOURCES["cells"])
             ):
                 self._session(connection, path, root, generation)

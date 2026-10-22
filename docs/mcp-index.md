@@ -99,6 +99,11 @@ Catalog registration and discovery retain the same symbolic-link spelling;
 relative CSV entries are made absolute without dereferencing links. Use the same
 alias in the catalog and discovery roots for session-list queries. This also
 applies to explicit session folders and server startup discovery roots.
+Relative entries in a CSV beneath an aliased directory retain that parent alias.
+If a session alias changes the final folder name, the builder uses the resolved
+recording target to inventory and load its standard files, while keeping the
+alias path for session identity and scope. That recording target is included in
+the source fingerprint; existing ordinary-session fingerprints stay compatible.
 An explicitly supplied root may contain symbolic-link components; links found
 beneath that root are skipped during traversal.
 
