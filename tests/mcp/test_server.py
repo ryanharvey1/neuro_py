@@ -21,7 +21,15 @@ def test_stdio_roundtrip(catalog, session, tmp_path):
 
     async def exercise():
         environment = dict(os.environ)
-        environment["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
+        environment["PYTHONPATH"] = os.pathsep.join(
+            filter(
+                None,
+                [
+                    str(Path(__file__).resolve().parents[2]),
+                    environment.get("PYTHONPATH"),
+                ],
+            )
+        )
         parameters = StdioServerParameters(
             command=sys.executable,
             args=[

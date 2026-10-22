@@ -1,6 +1,7 @@
-"""Local STDIO MCP server. Only startup configuration can register file paths."""
+"""Local STDIO MCP server. Only startup configuration can register file paths.
 
-from __future__ import annotations
+MCP 1.12 requires evaluated annotations when registering tools.
+"""
 
 import argparse
 from pathlib import Path
