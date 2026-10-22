@@ -58,6 +58,9 @@ WAL mode for a single scanner and concurrent readers; it is not intended to run
 from an SMB/NFS share. The cache directory `.neuro-py-mcp/` is Git-ignored.
 New cache directories/files use restrictive permissions on POSIX. On Windows,
 choose a private folder with the appropriate inherited access permissions.
+The builder checks resolved filesystem paths before creating the cache directory
+or lock, so a symbolic-link alias cannot place the cache inside a recording root
+or explicitly registered session folder.
 
 ## Resume and refresh
 
@@ -92,6 +95,12 @@ directories containing a matching `basename.session.mat` or
 `basename.cell_metrics.cellinfo.mat`. Both files are not required. Nested roots
 and catalog overlap are deduplicated by normalized accessible path. Different
 UNC aliases or differently named mounts are not resolved into one identity.
+Catalog registration and discovery retain the same symbolic-link spelling;
+relative CSV entries are made absolute without dereferencing links. Use the same
+alias in the catalog and discovery roots for session-list queries. This also
+applies to explicit session folders and server startup discovery roots.
+An explicitly supplied root may contain symbolic-link components; links found
+beneath that root are skipped during traversal.
 
 Use the same path mappings in the index configuration and MCP launch command.
 Map every drive letter in a Windows catalog to its corresponding scanned UNC

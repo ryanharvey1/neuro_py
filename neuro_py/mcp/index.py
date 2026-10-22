@@ -915,8 +915,8 @@ class IndexBuilder:
         if not roots and not sessions:
             raise ValueError("Supply discovery roots or session folders")
         for root in [*roots, *(sessions or [])]:
-            root = Path(os.path.abspath(root))
-            if self.path.is_relative_to(root):
+            # Check physical containment independently of lexical session IDs.
+            if self.path.is_relative_to(root.resolve()):
                 raise ValueError("The index cache must be outside recording roots")
         started = time.monotonic()
         scanned = 0

@@ -174,7 +174,8 @@ class Dataset:
                 if not path:
                     continue
                 if not Path(path).is_absolute() and not PureWindowsPath(path).drive:
-                    path = str((filename.parent / path).resolve())
+                    # Match the index's lexical paths without resolving symlinks.
+                    path = os.path.abspath(filename.parent / path)
                 metadata = {
                     k: v
                     for k, v in row.items()
@@ -182,9 +183,9 @@ class Dataset:
                 }
                 self._register(path, str(filename), metadata)
         for path in sessions or []:
-            self._register(str(path.resolve()), "explicit", {})
+            self._register(os.path.abspath(path), "explicit", {})
         for root in roots or []:
-            root = root.resolve(strict=True)
+            root = Path(os.path.abspath(root))
             if not root.is_dir():
                 raise ValueError(f"Not a directory: {root}")
             for source in sorted(root.rglob("*.session.mat")):

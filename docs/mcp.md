@@ -64,6 +64,14 @@ at startup; restart the server after changing them. Session IDs are derived from
 the original registered path and survive path remapping. They are not universal
 identifiers across independently renamed or relocated datasets.
 
+Catalog entries, explicit session folders, and startup discovery roots preserve
+symbolic-link path spellings, matching the metadata index. Use the same alias
+in the catalog and index roots so session-list searches and summaries match.
+Different aliases to the same directory remain distinct session identities.
+Session IDs for symlinked relative paths, explicit folders, or startup roots
+that older versions dereferenced can change; refresh them with `list_sessions`
+after restarting the server.
+
 Windows mapped drives can be replaced with UNC paths without editing the CSV:
 
 ```powershell
@@ -269,3 +277,9 @@ UID preservation, bad-unit tags, trial labels, ripple flags/manual additions,
 missing versus empty data, path mapping, pagination, payload limits, and a real
 MCP STDIO client/server round trip. Protocol tests skip when the optional SDK is
 absent; catalog and loader tests still run. Base-package users need no MCP SDK.
+
+On POSIX, `tests/mcp/test_paths.py` also checks that relative/absolute catalogs,
+explicit folders, and startup roots agree with indexed symlink paths, including
+session-list searches, summaries, IDs, and live epoch reads. Cache-containment
+tests cover both root and explicit-session inputs and verify rejection before
+creating the cache directory, database, or lock.
