@@ -4051,7 +4051,10 @@ paths resolve against the command's working directory.</p>
 WAL mode for a single scanner and concurrent readers; it is not intended to run
 from an SMB/NFS share. The cache directory <code>.neuro-py-mcp/</code> is Git-ignored.
 New cache directories/files use restrictive permissions on POSIX. On Windows,
-choose a private folder with the appropriate inherited access permissions.</p>
+choose a private folder with the appropriate inherited access permissions.
+The builder checks resolved filesystem paths before creating the cache directory
+or lock, so a symbolic-link alias cannot place the cache inside a recording root
+or explicitly registered session folder.</p>
 <h2 id="resume-and-refresh">Resume and refresh<a class="headerlink" href="#resume-and-refresh" title="Permanent link">&para;</a></h2>
 <p>A broad share scan may take a long time. Budget a run when needed:</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>neuro_py.mcp.index<span class="w"> </span>--config<span class="w"> </span>private-index-config.json<span class="w"> </span>--max-seconds<span class="w"> </span><span class="m">300</span>
@@ -4078,7 +4081,18 @@ JSON configuration. It recognizes
 directories containing a matching <code>basename.session.mat</code> or
 <code>basename.cell_metrics.cellinfo.mat</code>. Both files are not required. Nested roots
 and catalog overlap are deduplicated by normalized accessible path. Different
-UNC aliases or differently named mounts are not resolved into one identity.</p>
+UNC aliases or differently named mounts are not resolved into one identity.
+Catalog registration and discovery retain the same symbolic-link spelling;
+relative CSV entries are made absolute without dereferencing links. Use the same
+alias in the catalog and discovery roots for session-list queries. This also
+applies to explicit session folders and server startup discovery roots.
+Relative entries in a CSV beneath an aliased directory retain that parent alias.
+If a session alias changes the final folder name, the builder uses the resolved
+recording target to inventory and load its standard files, while keeping the
+alias path for session identity and scope. That recording target is included in
+the source fingerprint; existing ordinary-session fingerprints stay compatible.
+An explicitly supplied root may contain symbolic-link components; links found
+beneath that root are skipped during traversal.</p>
 <p>Use the same path mappings in the index configuration and MCP launch command.
 Map every drive letter in a Windows catalog to its corresponding scanned UNC
 root; otherwise the drive-letter and UNC registrations can be counted as
