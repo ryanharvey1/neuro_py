@@ -209,8 +209,52 @@ class kernelReducedRankRegressor(BaseEstimator):
         return Yhat
 
     def rrr_scorer(self, Yhat: NDArray[Any], Ytest: NDArray[Any]) -> float:
-        diag_corr = (np.diag(np.corrcoef(Ytest, Yhat))).mean()
-        return diag_corr
+        """Return mean Pearson correlation of corresponding predicted targets.
+
+        Parameters
+        ----------
+        Yhat : np.ndarray
+            Predictions with shape (n_samples, n_targets), or (n_samples,).
+        Ytest : np.ndarray
+            Observed targets with the same shape as predictions.
+
+        Returns
+        -------
+        float
+            Mean correlation across targets. Returns NaN if any target has
+            constant or nonfinite observed or predicted values.
+
+        Raises
+        ------
+        ValueError
+            If shapes differ, dimensionality is not 1 or 2, or fewer than two
+            samples or no targets are supplied.
+        """
+        predictions = np.asarray(Yhat, dtype=float)
+        targets = np.asarray(Ytest, dtype=float)
+        if predictions.shape != targets.shape or targets.ndim not in (1, 2):
+            raise ValueError(
+                "Predictions and targets must have matching 1D or 2D shapes"
+            )
+        if targets.ndim == 1:
+            targets = targets[:, None]
+            predictions = predictions[:, None]
+        if targets.shape[0] < 2 or targets.shape[1] == 0:
+            raise ValueError("At least two samples and one target are required")
+
+        targets = targets - targets.mean(axis=0)
+        predictions = predictions - predictions.mean(axis=0)
+        numerator = np.sum(targets * predictions, axis=0)
+        denominator = np.sqrt(
+            np.sum(targets**2, axis=0) * np.sum(predictions**2, axis=0)
+        )
+        correlations = np.divide(
+            numerator,
+            denominator,
+            out=np.full(targets.shape[1], np.nan),
+            where=denominator > 0,
+        )
+        return float(np.clip(correlations, -1, 1).mean())
 
     ## Optional
     def get_params(  # ty: ignore[missing-override-decorator]
