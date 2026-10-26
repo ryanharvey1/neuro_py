@@ -2646,7 +2646,10 @@ def load_spikes(
     remove_bad_unit : bool, optional
         If True, do not load bad cells (tagged in CE), by default True.
     brain_state : List[str], optional
-        List of brain states to restrict spikes to, by default [].
+        Brain states whose union is used to restrict spikes, by default [].
+        Missing states contribute no intervals and emit a warning. Existing
+        behavior for an unavailable state file is preserved: return unfiltered
+        spikes after the state loader warns.
     other_metric : Union[str, None], optional
         Metric to restrict spikes to, by default None.
     other_metric_value : Union[str, None], optional
@@ -2813,13 +2816,21 @@ def load_spikes(
         # get brain states
         brain_states = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"]
         if any(state not in brain_states for state in brain_state):
-            assert print("not correct brain state. Pick one", brain_states)
-        else:
-            state_dict = load_SleepState_states(basepath)
-            if state_dict is None:
-                return st, cell_metrics
-            state_epoch = nel.EpochArray(state_dict[brain_state[0]])
-            st = st[state_epoch]
+            raise ValueError(
+                f"brain_state must contain only states from {brain_states}"
+            )
+        state_dict = load_SleepState_states(basepath)
+        if state_dict is None:
+            return st, cell_metrics
+        state_epoch = nel.EpochArray()
+        for state in dict.fromkeys(brain_state):
+            if state not in state_dict:
+                warnings.warn(f"Brain state {state!r} is missing; treating it as empty")
+                continue
+            state_epoch = state_epoch | nel.EpochArray(state_dict[state])
+        # Restrict once to the merged union so overlaps cannot duplicate spikes,
+        # and the caller's existing support and unit selection remain in force.
+        st = st[state_epoch.merge()]
 
     return st, cell_metrics
 
