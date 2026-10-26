@@ -11113,23 +11113,23 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3106</span>
-<span class="normal">3107</span>
-<span class="normal">3108</span>
-<span class="normal">3109</span>
-<span class="normal">3110</span>
-<span class="normal">3111</span>
-<span class="normal">3112</span>
-<span class="normal">3113</span>
-<span class="normal">3114</span>
-<span class="normal">3115</span>
-<span class="normal">3116</span>
-<span class="normal">3117</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3117</span>
 <span class="normal">3118</span>
 <span class="normal">3119</span>
 <span class="normal">3120</span>
 <span class="normal">3121</span>
-<span class="normal">3122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="normal">3122</span>
+<span class="normal">3123</span>
+<span class="normal">3124</span>
+<span class="normal">3125</span>
+<span class="normal">3126</span>
+<span class="normal">3127</span>
+<span class="normal">3128</span>
+<span class="normal">3129</span>
+<span class="normal">3130</span>
+<span class="normal">3131</span>
+<span class="normal">3132</span>
+<span class="normal">3133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_channel_tags</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load channel tags from session file.</span>
 
@@ -11242,18 +11242,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2827</span>
-<span class="normal">2828</span>
-<span class="normal">2829</span>
-<span class="normal">2830</span>
-<span class="normal">2831</span>
-<span class="normal">2832</span>
-<span class="normal">2833</span>
-<span class="normal">2834</span>
-<span class="normal">2835</span>
-<span class="normal">2836</span>
-<span class="normal">2837</span>
-<span class="normal">2838</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2838</span>
 <span class="normal">2839</span>
 <span class="normal">2840</span>
 <span class="normal">2841</span>
@@ -11313,7 +11302,18 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">2895</span>
 <span class="normal">2896</span>
 <span class="normal">2897</span>
-<span class="normal">2898</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_deepSuperficialfromRipple</span><span class="p">(</span>
+<span class="normal">2898</span>
+<span class="normal">2899</span>
+<span class="normal">2900</span>
+<span class="normal">2901</span>
+<span class="normal">2902</span>
+<span class="normal">2903</span>
+<span class="normal">2904</span>
+<span class="normal">2905</span>
+<span class="normal">2906</span>
+<span class="normal">2907</span>
+<span class="normal">2908</span>
+<span class="normal">2909</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_deepSuperficialfromRipple</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bypass_mismatch_exception</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -11842,18 +11842,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3208</span>
-<span class="normal">3209</span>
-<span class="normal">3210</span>
-<span class="normal">3211</span>
-<span class="normal">3212</span>
-<span class="normal">3213</span>
-<span class="normal">3214</span>
-<span class="normal">3215</span>
-<span class="normal">3216</span>
-<span class="normal">3217</span>
-<span class="normal">3218</span>
-<span class="normal">3219</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3219</span>
 <span class="normal">3220</span>
 <span class="normal">3221</span>
 <span class="normal">3222</span>
@@ -11884,7 +11873,18 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3247</span>
 <span class="normal">3248</span>
 <span class="normal">3249</span>
-<span class="normal">3250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_emg</span><span class="p">(</span>
+<span class="normal">3250</span>
+<span class="normal">3251</span>
+<span class="normal">3252</span>
+<span class="normal">3253</span>
+<span class="normal">3254</span>
+<span class="normal">3255</span>
+<span class="normal">3256</span>
+<span class="normal">3257</span>
+<span class="normal">3258</span>
+<span class="normal">3259</span>
+<span class="normal">3260</span>
+<span class="normal">3261</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_emg</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -12223,18 +12223,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3253</span>
-<span class="normal">3254</span>
-<span class="normal">3255</span>
-<span class="normal">3256</span>
-<span class="normal">3257</span>
-<span class="normal">3258</span>
-<span class="normal">3259</span>
-<span class="normal">3260</span>
-<span class="normal">3261</span>
-<span class="normal">3262</span>
-<span class="normal">3263</span>
-<span class="normal">3264</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3264</span>
 <span class="normal">3265</span>
 <span class="normal">3266</span>
 <span class="normal">3267</span>
@@ -12269,7 +12258,18 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3296</span>
 <span class="normal">3297</span>
 <span class="normal">3298</span>
-<span class="normal">3299</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_events</span><span class="p">(</span>
+<span class="normal">3299</span>
+<span class="normal">3300</span>
+<span class="normal">3301</span>
+<span class="normal">3302</span>
+<span class="normal">3303</span>
+<span class="normal">3304</span>
+<span class="normal">3305</span>
+<span class="normal">3306</span>
+<span class="normal">3307</span>
+<span class="normal">3308</span>
+<span class="normal">3309</span>
+<span class="normal">3310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_events</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epoch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_pandas</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -12392,18 +12392,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3125</span>
-<span class="normal">3126</span>
-<span class="normal">3127</span>
-<span class="normal">3128</span>
-<span class="normal">3129</span>
-<span class="normal">3130</span>
-<span class="normal">3131</span>
-<span class="normal">3132</span>
-<span class="normal">3133</span>
-<span class="normal">3134</span>
-<span class="normal">3135</span>
-<span class="normal">3136</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3136</span>
 <span class="normal">3137</span>
 <span class="normal">3138</span>
 <span class="normal">3139</span>
@@ -12411,7 +12400,18 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3141</span>
 <span class="normal">3142</span>
 <span class="normal">3143</span>
-<span class="normal">3144</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_extracellular_metadata</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="normal">3144</span>
+<span class="normal">3145</span>
+<span class="normal">3146</span>
+<span class="normal">3147</span>
+<span class="normal">3148</span>
+<span class="normal">3149</span>
+<span class="normal">3150</span>
+<span class="normal">3151</span>
+<span class="normal">3152</span>
+<span class="normal">3153</span>
+<span class="normal">3154</span>
+<span class="normal">3155</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_extracellular_metadata</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load extracellular metadata from session file.</span>
 
@@ -12836,18 +12836,7 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2973</span>
-<span class="normal">2974</span>
-<span class="normal">2975</span>
-<span class="normal">2976</span>
-<span class="normal">2977</span>
-<span class="normal">2978</span>
-<span class="normal">2979</span>
-<span class="normal">2980</span>
-<span class="normal">2981</span>
-<span class="normal">2982</span>
-<span class="normal">2983</span>
-<span class="normal">2984</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2984</span>
 <span class="normal">2985</span>
 <span class="normal">2986</span>
 <span class="normal">2987</span>
@@ -12966,7 +12955,18 @@ The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration
 <span class="normal">3100</span>
 <span class="normal">3101</span>
 <span class="normal">3102</span>
-<span class="normal">3103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_manipulation</span><span class="p">(</span>
+<span class="normal">3103</span>
+<span class="normal">3104</span>
+<span class="normal">3105</span>
+<span class="normal">3106</span>
+<span class="normal">3107</span>
+<span class="normal">3108</span>
+<span class="normal">3109</span>
+<span class="normal">3110</span>
+<span class="normal">3111</span>
+<span class="normal">3112</span>
+<span class="normal">3113</span>
+<span class="normal">3114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_manipulation</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">struct_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_epoch_array</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -13179,18 +13179,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2901</span>
-<span class="normal">2902</span>
-<span class="normal">2903</span>
-<span class="normal">2904</span>
-<span class="normal">2905</span>
-<span class="normal">2906</span>
-<span class="normal">2907</span>
-<span class="normal">2908</span>
-<span class="normal">2909</span>
-<span class="normal">2910</span>
-<span class="normal">2911</span>
-<span class="normal">2912</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2912</span>
 <span class="normal">2913</span>
 <span class="normal">2914</span>
 <span class="normal">2915</span>
@@ -13248,7 +13237,18 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2967</span>
 <span class="normal">2968</span>
 <span class="normal">2969</span>
-<span class="normal">2970</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_mua_events</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">2970</span>
+<span class="normal">2971</span>
+<span class="normal">2972</span>
+<span class="normal">2973</span>
+<span class="normal">2974</span>
+<span class="normal">2975</span>
+<span class="normal">2976</span>
+<span class="normal">2977</span>
+<span class="normal">2978</span>
+<span class="normal">2979</span>
+<span class="normal">2980</span>
+<span class="normal">2981</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_mua_events</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Loads the MUA data from the basepath.</span>
 <span class="sd">    Meant to load .mat file created by find_HSE.m.</span>
@@ -13554,18 +13554,7 @@ Meant to load .mat file created by find_HSE.m.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/io/loading.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3147</span>
-<span class="normal">3148</span>
-<span class="normal">3149</span>
-<span class="normal">3150</span>
-<span class="normal">3151</span>
-<span class="normal">3152</span>
-<span class="normal">3153</span>
-<span class="normal">3154</span>
-<span class="normal">3155</span>
-<span class="normal">3156</span>
-<span class="normal">3157</span>
-<span class="normal">3158</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3158</span>
 <span class="normal">3159</span>
 <span class="normal">3160</span>
 <span class="normal">3161</span>
@@ -13612,7 +13601,18 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">3202</span>
 <span class="normal">3203</span>
 <span class="normal">3204</span>
-<span class="normal">3205</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="normal">3205</span>
+<span class="normal">3206</span>
+<span class="normal">3207</span>
+<span class="normal">3208</span>
+<span class="normal">3209</span>
+<span class="normal">3210</span>
+<span class="normal">3211</span>
+<span class="normal">3212</span>
+<span class="normal">3213</span>
+<span class="normal">3214</span>
+<span class="normal">3215</span>
+<span class="normal">3216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_probe_layout</span><span class="p">(</span><span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load electrode coordinates and grouping from the session.extracellular.mat file.</span>
 
@@ -14108,7 +14108,10 @@ Meant to load .mat file created by find_HSE.m.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>List of brain states to restrict spikes to, by default [].</p>
+                <p>Brain states whose union is used to restrict spikes, by default [].
+Missing states contribute no intervals and emit a warning. Existing
+behavior for an unavailable state file is preserved: return unfiltered
+spikes after the state loader warns.</p>
               </div>
             </td>
             <td>
@@ -14425,7 +14428,18 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="normal">2821</span>
 <span class="normal">2822</span>
 <span class="normal">2823</span>
-<span class="normal">2824</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_spikes</span><span class="p">(</span>
+<span class="normal">2824</span>
+<span class="normal">2825</span>
+<span class="normal">2826</span>
+<span class="normal">2827</span>
+<span class="normal">2828</span>
+<span class="normal">2829</span>
+<span class="normal">2830</span>
+<span class="normal">2831</span>
+<span class="normal">2832</span>
+<span class="normal">2833</span>
+<span class="normal">2834</span>
+<span class="normal">2835</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_spikes</span><span class="p">(</span>
     <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">putativeCellType</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="n">brainRegion</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
@@ -14451,7 +14465,10 @@ Meant to load .mat file created by find_HSE.m.</p>
 <span class="sd">    remove_bad_unit : bool, optional</span>
 <span class="sd">        If True, do not load bad cells (tagged in CE), by default True.</span>
 <span class="sd">    brain_state : List[str], optional</span>
-<span class="sd">        List of brain states to restrict spikes to, by default [].</span>
+<span class="sd">        Brain states whose union is used to restrict spikes, by default [].</span>
+<span class="sd">        Missing states contribute no intervals and emit a warning. Existing</span>
+<span class="sd">        behavior for an unavailable state file is preserved: return unfiltered</span>
+<span class="sd">        spikes after the state loader warns.</span>
 <span class="sd">    other_metric : Union[str, None], optional</span>
 <span class="sd">        Metric to restrict spikes to, by default None.</span>
 <span class="sd">    other_metric_value : Union[str, None], optional</span>
@@ -14618,13 +14635,21 @@ Meant to load .mat file created by find_HSE.m.</p>
         <span class="c1"># get brain states</span>
         <span class="n">brain_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"WAKEstate"</span><span class="p">,</span> <span class="s2">"NREMstate"</span><span class="p">,</span> <span class="s2">"REMstate"</span><span class="p">,</span> <span class="s2">"THETA"</span><span class="p">,</span> <span class="s2">"nonTHETA"</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">brain_states</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">brain_state</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"not correct brain state. Pick one"</span><span class="p">,</span> <span class="n">brain_states</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">load_SleepState_states</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">st</span><span class="p">,</span> <span class="n">cell_metrics</span>
-            <span class="n">state_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">brain_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
-            <span class="n">st</span> <span class="o">=</span> <span class="n">st</span><span class="p">[</span><span class="n">state_epoch</span><span class="p">]</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"brain_state must contain only states from </span><span class="si">{</span><span class="n">brain_states</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">load_SleepState_states</span><span class="p">(</span><span class="n">basepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">st</span><span class="p">,</span> <span class="n">cell_metrics</span>
+        <span class="n">state_epoch</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">brain_state</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Brain state </span><span class="si">{</span><span class="n">state</span><span class="si">!r}</span><span class="s2"> is missing; treating it as empty"</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">state_epoch</span> <span class="o">=</span> <span class="n">state_epoch</span> <span class="o">|</span> <span class="n">nel</span><span class="o">.</span><span class="n">EpochArray</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">state</span><span class="p">])</span>
+        <span class="c1"># Restrict once to the merged union so overlaps cannot duplicate spikes,</span>
+        <span class="c1"># and the caller's existing support and unit selection remain in force.</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">st</span><span class="p">[</span><span class="n">state_epoch</span><span class="o">.</span><span class="n">merge</span><span class="p">()]</span>
 
     <span class="k">return</span> <span class="n">st</span><span class="p">,</span> <span class="n">cell_metrics</span>
 </code></pre></div></td></tr></table></div>
