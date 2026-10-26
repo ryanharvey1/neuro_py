@@ -25,6 +25,8 @@ def get_significant_events(
         The array of scores for which to calculate significant events.
     shuffled_scores : np.ndarray
         The array of scores obtained from randomized data (shape: (n_shuffles, n_events)).
+        Nonfinite draws are excluded separately for each event from p-value
+        denominators, percentile thresholds, and standardized scores.
     q : float, optional
         Percentile to compute, which must be between 0 and 100 inclusive (default is 95).
     tail : str, optional
@@ -38,55 +40,68 @@ def get_significant_events(
         The p-values.
     stddev : np.ndarray
         The standard deviation of the scores in terms of the shuffled scores.
+
+    Notes
+    -----
+    Nonfinite observations and events with no finite shuffled scores are not
+    significant: their p-value is 1 and standardized score is NaN. Percentile
+    selection and the finite-sample p-value correction are otherwise unchanged.
     """
-    # check shape and correct if needed
-    scores_array = np.asarray(scores)
-    if isinstance(scores, list) | isinstance(scores, np.ndarray):
-        if shuffled_scores.shape[1] != len(scores_array):
-            shuffled_scores = shuffled_scores.T
-
-    n = shuffled_scores.shape[0]
-    if tail == "both":
-        r = np.sum(np.abs(shuffled_scores) >= np.abs(scores_array), axis=0)
-    elif tail == "right":
-        r = np.sum(shuffled_scores >= scores_array, axis=0)
-    elif tail == "left":
-        r = np.sum(shuffled_scores <= scores_array, axis=0)
-    else:
+    scores_array = np.atleast_1d(np.asarray(scores, dtype=float))
+    if scores_array.ndim != 1:
+        raise ValueError("scores must be one-dimensional")
+    shuffled_scores = np.asarray(shuffled_scores, dtype=float)
+    if shuffled_scores.ndim == 1 and scores_array.size == 1:
+        shuffled_scores = shuffled_scores[:, None]
+    if shuffled_scores.ndim != 2:
+        raise ValueError("shuffled_scores must have shape (n_shuffles, n_events)")
+    if shuffled_scores.shape[1] != scores_array.size:
+        if shuffled_scores.shape[0] != scores_array.size:
+            raise ValueError("shuffled_scores must have one column per observed score")
+        shuffled_scores = shuffled_scores.T
+    if tail not in ("both", "right", "left"):
         raise ValueError("tail must be 'left', 'right', or 'both'")
-    pvalues = (r + 1) / (n + 1)
+    if not np.isfinite(q) or not 0 <= q <= 100:
+        raise ValueError("q must be between 0 and 100")
 
-    # set nan scores to 1
-    if isinstance(np.isnan(scores_array), np.ndarray):
-        pvalues[np.isnan(scores_array)] = 1
-
-    sig_event_idx = np.array([], dtype=int)
+    # Each event has its own number of usable null draws. Nonfinite draws
+    # cannot contribute to the denominator without contributing comparisons.
+    valid = np.isfinite(shuffled_scores)
+    n = valid.sum(axis=0)
+    values = np.where(valid, shuffled_scores, np.nan)
+    observed = scores_array
     if tail == "both":
-        threshold = np.percentile(np.abs(shuffled_scores), axis=0, q=q)
-        sig_event_idx = np.where(np.abs(scores_array) > threshold)[0]
-    elif tail == "right":
-        threshold = np.percentile(shuffled_scores, axis=0, q=q)
-        sig_event_idx = np.where(scores_array > threshold)[0]
-    elif tail == "left":
-        threshold = np.percentile(shuffled_scores, axis=0, q=100 - q)
-        sig_event_idx = np.where(scores_array < threshold)[0]
+        np.abs(values, out=values)
+        observed = np.abs(scores_array)
+    if tail == "left":
+        r = np.sum(valid & (values <= observed), axis=0)
+    else:
+        r = np.sum(valid & (values >= observed), axis=0)
 
-    # calculate how many standard deviations away from shuffle
-    stddev = np.array([], dtype=float)
-    if tail == "both":
-        stddev = (
-            np.abs(scores_array) - np.nanmean(np.abs(shuffled_scores), axis=0)
-        ) / np.nanstd(np.abs(shuffled_scores), axis=0)
-    elif tail == "right":
-        stddev = (scores_array - np.nanmean(shuffled_scores, axis=0)) / np.nanstd(
-            shuffled_scores, axis=0
+    testable = np.isfinite(scores_array) & (n > 0)
+    pvalues = np.ones(scores_array.size, dtype=float)
+    pvalues[testable] = (r[testable] + 1) / (n[testable] + 1)
+    threshold = np.full(scores_array.size, np.nan)
+    stddev = np.full(scores_array.size, np.nan)
+    if np.any(testable):
+        usable = values[:, testable]
+        threshold[testable] = np.nanpercentile(
+            usable, q=100 - q if tail == "left" else q, axis=0
         )
-    elif tail == "left":
-        stddev = (np.nanmean(shuffled_scores, axis=0) - scores_array) / np.nanstd(
-            shuffled_scores, axis=0
+        null_mean = np.nanmean(usable, axis=0)
+        null_std = np.nanstd(usable, axis=0)
+        delta = (
+            null_mean - observed[testable]
+            if tail == "left"
+            else observed[testable] - null_mean
         )
+        # Constant nulls retain the existing inf/NaN standardized-score behavior.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            stddev[testable] = delta / null_std
 
-    return np.atleast_1d(sig_event_idx), np.atleast_1d(pvalues), np.atleast_1d(stddev)
+    significant = observed < threshold if tail == "left" else observed > threshold
+    sig_event_idx = np.flatnonzero(testable & significant)
+    return sig_event_idx, pvalues, stddev
 
 
 def confidence_intervals(
