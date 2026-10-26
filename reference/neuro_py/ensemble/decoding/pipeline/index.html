@@ -4555,14 +4555,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">535</span>
-<span class="normal">536</span>
-<span class="normal">537</span>
-<span class="normal">538</span>
-<span class="normal">539</span>
-<span class="normal">540</span>
-<span class="normal">541</span>
-<span class="normal">542</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">542</span>
 <span class="normal">543</span>
 <span class="normal">544</span>
 <span class="normal">545</span>
@@ -4577,7 +4570,14 @@
 <span class="normal">554</span>
 <span class="normal">555</span>
 <span class="normal">556</span>
-<span class="normal">557</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_model</span><span class="p">(</span><span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_model</span><span class="p">(</span><span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Create a model based on the given hyperparameters.</span>
 
@@ -4740,14 +4740,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">761</span>
-<span class="normal">762</span>
-<span class="normal">763</span>
-<span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
-<span class="normal">768</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">768</span>
 <span class="normal">769</span>
 <span class="normal">770</span>
 <span class="normal">771</span>
@@ -4811,7 +4804,14 @@
 <span class="normal">829</span>
 <span class="normal">830</span>
 <span class="normal">831</span>
-<span class="normal">832</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_model</span><span class="p">(</span>
+<span class="normal">832</span>
+<span class="normal">833</span>
+<span class="normal">834</span>
+<span class="normal">835</span>
+<span class="normal">836</span>
+<span class="normal">837</span>
+<span class="normal">838</span>
+<span class="normal">839</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_model</span><span class="p">(</span>
     <span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">ohe</span><span class="p">:</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">OneHotEncoder</span><span class="p">,</span>
     <span class="n">predictor</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -5650,14 +5650,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">408</span>
 <span class="normal">409</span>
 <span class="normal">410</span>
 <span class="normal">411</span>
@@ -5751,7 +5744,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">499</span>
 <span class="normal">500</span>
 <span class="normal">501</span>
-<span class="normal">502</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">minibatchify</span><span class="p">(</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">minibatchify</span><span class="p">(</span>
     <span class="n">Xtrain</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span>
     <span class="n">ytrain</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span>
     <span class="n">Xval</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span>
@@ -6057,14 +6057,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">329</span>
 <span class="normal">330</span>
 <span class="normal">331</span>
 <span class="normal">332</span>
@@ -6133,7 +6126,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">395</span>
 <span class="normal">396</span>
 <span class="normal">397</span>
-<span class="normal">398</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">normalize_format_trial_segs</span><span class="p">(</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">normalize_format_trial_segs</span><span class="p">(</span>
     <span class="n">nsv_train</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">nsv_rest</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">bv_train</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -6318,14 +6318,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">512</span>
 <span class="normal">513</span>
 <span class="normal">514</span>
 <span class="normal">515</span>
@@ -6345,7 +6338,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">529</span>
 <span class="normal">530</span>
 <span class="normal">531</span>
-<span class="normal">532</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">normalize_labels</span><span class="p">(</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">normalize_labels</span><span class="p">(</span>
     <span class="n">y_train</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">y_val</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">y_test</span><span class="p">:</span> <span class="n">NDArray</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -6500,14 +6500,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1089</span>
-<span class="normal">1090</span>
-<span class="normal">1091</span>
-<span class="normal">1092</span>
-<span class="normal">1093</span>
-<span class="normal">1094</span>
-<span class="normal">1095</span>
-<span class="normal">1096</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1096</span>
 <span class="normal">1097</span>
 <span class="normal">1098</span>
 <span class="normal">1099</span>
@@ -6571,7 +6564,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">1157</span>
 <span class="normal">1158</span>
 <span class="normal">1159</span>
-<span class="normal">1160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict_models_folds</span><span class="p">(</span>
+<span class="normal">1160</span>
+<span class="normal">1161</span>
+<span class="normal">1162</span>
+<span class="normal">1163</span>
+<span class="normal">1164</span>
+<span class="normal">1165</span>
+<span class="normal">1166</span>
+<span class="normal">1167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict_models_folds</span><span class="p">(</span>
     <span class="n">partitions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">]],</span>
     <span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">bv_models_folds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
@@ -6847,14 +6847,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
-<span class="normal">563</span>
-<span class="normal">564</span>
-<span class="normal">565</span>
-<span class="normal">566</span>
-<span class="normal">567</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">567</span>
 <span class="normal">568</span>
 <span class="normal">569</span>
 <span class="normal">570</span>
@@ -7045,7 +7038,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">755</span>
 <span class="normal">756</span>
 <span class="normal">757</span>
-<span class="normal">758</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">preprocess_data</span><span class="p">(</span>
+<span class="normal">758</span>
+<span class="normal">759</span>
+<span class="normal">760</span>
+<span class="normal">761</span>
+<span class="normal">762</span>
+<span class="normal">763</span>
+<span class="normal">764</span>
+<span class="normal">765</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">preprocess_data</span><span class="p">(</span>
     <span class="n">hyperparams</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">ohe</span><span class="p">:</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">OneHotEncoder</span><span class="p">,</span>
     <span class="n">nsv_train</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -7415,14 +7415,7 @@ time bins used for prediction" x "number of neurons".</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">835</span>
-<span class="normal">836</span>
-<span class="normal">837</span>
-<span class="normal">838</span>
-<span class="normal">839</span>
-<span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">842</span>
 <span class="normal">843</span>
 <span class="normal">844</span>
 <span class="normal">845</span>
@@ -7433,7 +7426,14 @@ time bins used for prediction" x "number of neurons".</p>
 <span class="normal">850</span>
 <span class="normal">851</span>
 <span class="normal">852</span>
-<span class="normal">853</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_nsv_intrialsegs</span><span class="p">(</span><span class="n">nsv_trialsegs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="normal">853</span>
+<span class="normal">854</span>
+<span class="normal">855</span>
+<span class="normal">856</span>
+<span class="normal">857</span>
+<span class="normal">858</span>
+<span class="normal">859</span>
+<span class="normal">860</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_nsv_intrialsegs</span><span class="p">(</span><span class="n">nsv_trialsegs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Shuffle neural state variables within trial segments.</span>
 
@@ -7661,14 +7661,7 @@ fold, and the evaluation metrics for each fold.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/ensemble/decoding/pipeline.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 856</span>
-<span class="normal"> 857</span>
-<span class="normal"> 858</span>
-<span class="normal"> 859</span>
-<span class="normal"> 860</span>
-<span class="normal"> 861</span>
-<span class="normal"> 862</span>
-<span class="normal"> 863</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 863</span>
 <span class="normal"> 864</span>
 <span class="normal"> 865</span>
 <span class="normal"> 866</span>
@@ -7891,7 +7884,14 @@ fold, and the evaluation metrics for each fold.</p>
 <span class="normal">1083</span>
 <span class="normal">1084</span>
 <span class="normal">1085</span>
-<span class="normal">1086</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train_model</span><span class="p">(</span>
+<span class="normal">1086</span>
+<span class="normal">1087</span>
+<span class="normal">1088</span>
+<span class="normal">1089</span>
+<span class="normal">1090</span>
+<span class="normal">1091</span>
+<span class="normal">1092</span>
+<span class="normal">1093</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train_model</span><span class="p">(</span>
     <span class="n">partitions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span>
         <span class="n">Tuple</span><span class="p">[</span>
             <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -8220,7 +8220,10 @@ fold, and the evaluation metrics for each fold.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Normalized train data, normalized rest features, and normalization parameters.</p>
+                <p>Normalized train data, normalized rest features, and normalization parameters.
+Dense trial arrays use floating-point storage even for integer spike
+counts. Ragged object arrays retain their trial container and store
+floating-point values within each trial.</p>
               </div>
             </td>
           </tr>
@@ -8320,7 +8323,14 @@ fold, and the evaluation metrics for each fold.</p>
 <span class="normal">316</span>
 <span class="normal">317</span>
 <span class="normal">318</span>
-<span class="normal">319</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">zscore_trial_segs</span><span class="p">(</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">zscore_trial_segs</span><span class="p">(</span>
     <span class="n">train</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">,</span>
     <span class="n">rest_feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normparams</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -8341,6 +8351,9 @@ fold, and the evaluation metrics for each fold.</p>
 <span class="sd">    -------</span>
 <span class="sd">    Tuple[NDArray, List[NDArray], Dict[str, Any]]</span>
 <span class="sd">        Normalized train data, normalized rest features, and normalization parameters.</span>
+<span class="sd">        Dense trial arrays use floating-point storage even for integer spike</span>
+<span class="sd">        counts. Ragged object arrays retain their trial container and store</span>
+<span class="sd">        floating-point values within each trial.</span>
 <span class="sd">    """</span>
     <span class="n">is_2D</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="n">concat_train</span> <span class="o">=</span> <span class="n">train</span> <span class="k">if</span> <span class="n">is_2D</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">train</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
@@ -8366,7 +8379,9 @@ fold, and the evaluation metrics for each fold.</p>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">normed_train</span><span class="p">[:,</span> <span class="n">train_nan_cols</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">normed_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+        <span class="n">normed_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span>
+            <span class="n">train</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">train</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">object</span> <span class="k">else</span> <span class="nb">float</span>
+        <span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">nsvstseg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">train</span><span class="p">):</span>
             <span class="n">zscored</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
                 <span class="n">nsvstseg</span> <span class="o">-</span> <span class="n">train_mean</span><span class="p">,</span> <span class="n">train_std</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">train_notnan_cols</span>
@@ -8390,7 +8405,9 @@ fold, and the evaluation metrics for each fold.</p>
                     <span class="n">normed_feats</span><span class="p">[:,</span> <span class="n">train_nan_cols</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">normed_rest_feats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normed_feats</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">normed_feats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
+                <span class="n">normed_feats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span>
+                    <span class="n">feats</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">object</span> <span class="k">else</span> <span class="nb">float</span>
+                <span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">trialSegROI</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feats</span><span class="p">):</span>
                     <span class="n">zscored</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
                         <span class="n">feats</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">train_mean</span><span class="p">,</span> <span class="n">train_std</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">train_notnan_cols</span>
