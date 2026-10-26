@@ -2008,6 +2008,87 @@ def test_load_spikes_with_support():
         assert st.support is not None
 
 
+@pytest.fixture
+def spike_state_data(monkeypatch):
+    metrics = pd.DataFrame({"UID": [11, 22, 33], "bad_unit": [False, True, False]})
+    spikes = [
+        np.array([0.2, 2.2, 4.2]),
+        np.array([0.3, 2.3]),
+        np.array([0.4, 2.4, 4.4, 5.4]),
+    ]
+    states = {
+        "WAKEstate": np.array([[0.0, 1.0]]),
+        "NREMstate": np.array([[2.0, 3.0]]),
+        "REMstate": np.empty((0, 2)),
+        "THETA": np.array([[0.1, 0.8], [2.1, 2.8]]),
+    }
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_extracellular_metadata", lambda _: {"sr": 20000}
+    )
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_cell_metrics", lambda _: (metrics, {"spikes": spikes})
+    )
+    monkeypatch.setattr("neuro_py.io.loading.load_SleepState_states", lambda _: states)
+    return states
+
+
+@pytest.mark.parametrize(
+    "selection, expected",
+    [
+        (["WAKEstate", "NREMstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["NREMstate", "WAKEstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["WAKEstate", "THETA", "WAKEstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["WAKEstate", "REMstate"], [[0.2], [0.4]]),
+        ("NREMstate", [[2.2], [2.4]]),
+    ],
+)
+def test_load_spikes_restricts_to_state_union(spike_state_data, selection, expected):
+    st, metrics = load_spikes("session", brain_state=selection)
+    assert isinstance(st, nel.SpikeTrainArray)
+    assert metrics.UID.tolist() == [11, 33]
+    assert st.n_units == len(metrics)
+    for actual, wanted in zip(st.data, expected):
+        np.testing.assert_allclose(actual, wanted)
+    np.testing.assert_array_equal(spike_state_data["NREMstate"], np.array([[2.0, 3.0]]))
+
+
+def test_load_spikes_state_union_respects_existing_support(spike_state_data):
+    st, metrics = load_spikes(
+        "session",
+        brain_state=["WAKEstate", "NREMstate"],
+        support=nel.EpochArray([[2.0, 2.5]]),
+    )
+    assert metrics.UID.tolist() == [11, 33]
+    np.testing.assert_allclose(st.data[0], [2.2])
+    np.testing.assert_allclose(st.data[1], [2.4])
+    np.testing.assert_allclose(st.support.data, [[2.0, 2.5]])
+
+
+def test_load_spikes_missing_state_contributes_no_unrestricted_spikes(spike_state_data):
+    with pytest.warns(UserWarning, match="nonTHETA.*missing"):
+        st, _ = load_spikes("session", brain_state=["WAKEstate", "nonTHETA"])
+    np.testing.assert_allclose(st.data[0], [0.2])
+
+
+def test_load_spikes_empty_state_selection_returns_empty_spikes(spike_state_data):
+    st, metrics = load_spikes("session", brain_state=["REMstate"])
+    assert st.isempty
+    assert metrics.UID.tolist() == [11, 33]
+
+
+def test_load_spikes_unavailable_states_preserve_existing_fallback(
+    spike_state_data, monkeypatch
+):
+    monkeypatch.setattr("neuro_py.io.loading.load_SleepState_states", lambda _: None)
+    st, _ = load_spikes("session", brain_state=["WAKEstate", "NREMstate"])
+    np.testing.assert_allclose(st.data[0], [0.2, 2.2, 4.2])
+
+
+def test_load_spikes_invalid_state_is_rejected(spike_state_data):
+    with pytest.raises(ValueError, match="brain_state"):
+        load_spikes("session", brain_state=["WAKEstate", "unknown"])
+
+
 def test_load_spikes_filter_by_stable():
     """Test loading filtering by stable cells."""
     with tempfile.TemporaryDirectory() as temp_dir:
