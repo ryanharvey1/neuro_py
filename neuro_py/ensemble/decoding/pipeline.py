@@ -247,6 +247,9 @@ def zscore_trial_segs(
     -------
     Tuple[NDArray, List[NDArray], Dict[str, Any]]
         Normalized train data, normalized rest features, and normalization parameters.
+        Dense trial arrays use floating-point storage even for integer spike
+        counts. Ragged object arrays retain their trial container and store
+        floating-point values within each trial.
     """
     is_2D = train[0].ndim == 1
     concat_train = train if is_2D else np.concatenate(train).astype(float)
@@ -272,7 +275,9 @@ def zscore_trial_segs(
         else:
             normed_train[:, train_nan_cols] = 0
     else:
-        normed_train = np.empty_like(train)
+        normed_train = np.empty_like(
+            train, dtype=object if np.asarray(train).dtype == object else float
+        )
         for i, nsvstseg in enumerate(train):
             zscored = np.divide(
                 nsvstseg - train_mean, train_std, where=train_notnan_cols
@@ -296,7 +301,9 @@ def zscore_trial_segs(
                     normed_feats[:, train_nan_cols] = 0
                 normed_rest_feats.append(normed_feats)
             else:
-                normed_feats = np.empty_like(feats)
+                normed_feats = np.empty_like(
+                    feats, dtype=object if np.asarray(feats).dtype == object else float
+                )
                 for i, trialSegROI in enumerate(feats):
                     zscored = np.divide(
                         feats[i] - train_mean, train_std, where=train_notnan_cols
