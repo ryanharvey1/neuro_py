@@ -7243,7 +7243,25 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">1526</span>
 <span class="normal">1527</span>
 <span class="normal">1528</span>
-<span class="normal">1529</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpatialMap</span><span class="p">(</span><span class="n">NDimensionalBinner</span><span class="p">):</span>
+<span class="normal">1529</span>
+<span class="normal">1530</span>
+<span class="normal">1531</span>
+<span class="normal">1532</span>
+<span class="normal">1533</span>
+<span class="normal">1534</span>
+<span class="normal">1535</span>
+<span class="normal">1536</span>
+<span class="normal">1537</span>
+<span class="normal">1538</span>
+<span class="normal">1539</span>
+<span class="normal">1540</span>
+<span class="normal">1541</span>
+<span class="normal">1542</span>
+<span class="normal">1543</span>
+<span class="normal">1544</span>
+<span class="normal">1545</span>
+<span class="normal">1546</span>
+<span class="normal">1547</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpatialMap</span><span class="p">(</span><span class="n">NDimensionalBinner</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    SpatialMap: make a spatial map tuning curve</span>
 <span class="sd">        maps timestamps or continuous signals onto positions</span>
@@ -8020,7 +8038,21 @@ In the future, these should be stored for all sub fields.</p>
 <span class="sd">        -------</span>
 <span class="sd">        np.ndarray</span>
 <span class="sd">            P-values for the spatial information.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Uses at most ``n_shuff`` running position samples as shuffles. For short</span>
+<span class="sd">        recordings, p-values use the actual number generated. The requested</span>
+<span class="sd">        ``n_shuff`` value is preserved. At least one running sample and a</span>
+<span class="sd">        positive integer shuffle count are required.</span>
 <span class="sd">        """</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n_shuff must be a positive integer"</span><span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">create_shuffled_coordinates</span><span class="p">(</span>
             <span class="n">X</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_shuff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span>
@@ -8090,21 +8122,25 @@ In the future, these should be stored for all sub fields.</p>
         <span class="c1"># the null distribution reflects the actual samples used for mapping</span>
         <span class="c1"># (avoid pulling non-running or gap samples into shuffles).</span>
         <span class="n">pos_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">run_epochs</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Spatial information shuffling requires running position samples"</span>
+            <span class="p">)</span>
         <span class="n">pos_data_shuff</span> <span class="o">=</span> <span class="n">create_shuffled_coordinates</span><span class="p">(</span><span class="n">pos_run</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">n_shuff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
 
         <span class="c1"># construct tuning curves for each position shuffle</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_shuff</span><span class="p">:</span>
-            <span class="n">num_cores</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+            <span class="n">num_cores</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_data_shuff</span><span class="p">))</span>
             <span class="n">shuffle_spatial_info</span> <span class="o">=</span> <span class="n">Parallel</span><span class="p">(</span><span class="n">n_jobs</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)(</span>
                 <span class="n">delayed</span><span class="p">(</span><span class="n">get_spatial_infos</span><span class="p">)(</span>
-                    <span class="n">pos_data_shuff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
+                    <span class="n">shuffled_pos</span><span class="p">,</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
                 <span class="p">)</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">shuffled_pos</span> <span class="ow">in</span> <span class="n">pos_data_shuff</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">shuffle_spatial_info</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">get_spatial_infos</span><span class="p">(</span><span class="n">pos_data_shuff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
+                <span class="n">get_spatial_infos</span><span class="p">(</span><span class="n">shuffled_pos</span><span class="p">,</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">shuffled_pos</span> <span class="ow">in</span> <span class="n">pos_data_shuff</span>
             <span class="p">]</span>
 
         <span class="c1"># calculate p values for the obs vs null</span>
@@ -9221,25 +9257,7 @@ each detected field.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1184</span>
-<span class="normal">1185</span>
-<span class="normal">1186</span>
-<span class="normal">1187</span>
-<span class="normal">1188</span>
-<span class="normal">1189</span>
-<span class="normal">1190</span>
-<span class="normal">1191</span>
-<span class="normal">1192</span>
-<span class="normal">1193</span>
-<span class="normal">1194</span>
-<span class="normal">1195</span>
-<span class="normal">1196</span>
-<span class="normal">1197</span>
-<span class="normal">1198</span>
-<span class="normal">1199</span>
-<span class="normal">1200</span>
-<span class="normal">1201</span>
-<span class="normal">1202</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1202</span>
 <span class="normal">1203</span>
 <span class="normal">1204</span>
 <span class="normal">1205</span>
@@ -9316,7 +9334,25 @@ each detected field.</p>
 <span class="normal">1276</span>
 <span class="normal">1277</span>
 <span class="normal">1278</span>
-<span class="normal">1279</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1279</span>
+<span class="normal">1280</span>
+<span class="normal">1281</span>
+<span class="normal">1282</span>
+<span class="normal">1283</span>
+<span class="normal">1284</span>
+<span class="normal">1285</span>
+<span class="normal">1286</span>
+<span class="normal">1287</span>
+<span class="normal">1288</span>
+<span class="normal">1289</span>
+<span class="normal">1290</span>
+<span class="normal">1291</span>
+<span class="normal">1292</span>
+<span class="normal">1293</span>
+<span class="normal">1294</span>
+<span class="normal">1295</span>
+<span class="normal">1296</span>
+<span class="normal">1297</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Find place fields in the spatial maps.</span>
 
 <span class="sd">    This method detects place fields from the spatial maps and calculates</span>
@@ -10286,25 +10322,7 @@ where <code>basepath</code> is the base path of the data.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1281</span>
-<span class="normal">1282</span>
-<span class="normal">1283</span>
-<span class="normal">1284</span>
-<span class="normal">1285</span>
-<span class="normal">1286</span>
-<span class="normal">1287</span>
-<span class="normal">1288</span>
-<span class="normal">1289</span>
-<span class="normal">1290</span>
-<span class="normal">1291</span>
-<span class="normal">1292</span>
-<span class="normal">1293</span>
-<span class="normal">1294</span>
-<span class="normal">1295</span>
-<span class="normal">1296</span>
-<span class="normal">1297</span>
-<span class="normal">1298</span>
-<span class="normal">1299</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1299</span>
 <span class="normal">1300</span>
 <span class="normal">1301</span>
 <span class="normal">1302</span>
@@ -10382,7 +10400,25 @@ where <code>basepath</code> is the base path of the data.</p>
 <span class="normal">1374</span>
 <span class="normal">1375</span>
 <span class="normal">1376</span>
-<span class="normal">1377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_mat_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">UID</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1377</span>
+<span class="normal">1378</span>
+<span class="normal">1379</span>
+<span class="normal">1380</span>
+<span class="normal">1381</span>
+<span class="normal">1382</span>
+<span class="normal">1383</span>
+<span class="normal">1384</span>
+<span class="normal">1385</span>
+<span class="normal">1386</span>
+<span class="normal">1387</span>
+<span class="normal">1388</span>
+<span class="normal">1389</span>
+<span class="normal">1390</span>
+<span class="normal">1391</span>
+<span class="normal">1392</span>
+<span class="normal">1393</span>
+<span class="normal">1394</span>
+<span class="normal">1395</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_mat_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">UID</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Save firing rate map data to a .mat file in MATLAB format.</span>
 
 <span class="sd">    The saved file will contain the following variables:</span>
@@ -10525,6 +10561,14 @@ spatial information against the null distribution are calculated.</p>
     </table>
 
 
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Uses at most <code>n_shuff</code> running position samples as shuffles. For short
+recordings, p-values use the actual number generated. The requested
+<code>n_shuff</code> value is preserved. At least one running sample and a
+positive integer shuffle count are required.</p>
+</details>
+
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1077</span>
@@ -10632,7 +10676,25 @@ spatial information against the null distribution are calculated.</p>
 <span class="normal">1179</span>
 <span class="normal">1180</span>
 <span class="normal">1181</span>
-<span class="normal">1182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_spatial_information</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="normal">1182</span>
+<span class="normal">1183</span>
+<span class="normal">1184</span>
+<span class="normal">1185</span>
+<span class="normal">1186</span>
+<span class="normal">1187</span>
+<span class="normal">1188</span>
+<span class="normal">1189</span>
+<span class="normal">1190</span>
+<span class="normal">1191</span>
+<span class="normal">1192</span>
+<span class="normal">1193</span>
+<span class="normal">1194</span>
+<span class="normal">1195</span>
+<span class="normal">1196</span>
+<span class="normal">1197</span>
+<span class="normal">1198</span>
+<span class="normal">1199</span>
+<span class="normal">1200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_spatial_information</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Shuffle spatial information and compute p-values for observed vs. null.</span>
 
 <span class="sd">    This method creates shuffled coordinates of the position data and computes</span>
@@ -10643,7 +10705,21 @@ spatial information against the null distribution are calculated.</p>
 <span class="sd">    -------</span>
 <span class="sd">    np.ndarray</span>
 <span class="sd">        P-values for the spatial information.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses at most ``n_shuff`` running position samples as shuffles. For short</span>
+<span class="sd">    recordings, p-values use the actual number generated. The requested</span>
+<span class="sd">    ``n_shuff`` value is preserved. At least one running sample and a</span>
+<span class="sd">    positive integer shuffle count are required.</span>
 <span class="sd">    """</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n_shuff must be a positive integer"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">create_shuffled_coordinates</span><span class="p">(</span>
         <span class="n">X</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">n_shuff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span>
@@ -10713,21 +10789,25 @@ spatial information against the null distribution are calculated.</p>
     <span class="c1"># the null distribution reflects the actual samples used for mapping</span>
     <span class="c1"># (avoid pulling non-running or gap samples into shuffles).</span>
     <span class="n">pos_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">run_epochs</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">isempty</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Spatial information shuffling requires running position samples"</span>
+        <span class="p">)</span>
     <span class="n">pos_data_shuff</span> <span class="o">=</span> <span class="n">create_shuffled_coordinates</span><span class="p">(</span><span class="n">pos_run</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">n_shuff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
 
     <span class="c1"># construct tuning curves for each position shuffle</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_shuff</span><span class="p">:</span>
-        <span class="n">num_cores</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+        <span class="n">num_cores</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_data_shuff</span><span class="p">))</span>
         <span class="n">shuffle_spatial_info</span> <span class="o">=</span> <span class="n">Parallel</span><span class="p">(</span><span class="n">n_jobs</span><span class="o">=</span><span class="n">num_cores</span><span class="p">)(</span>
             <span class="n">delayed</span><span class="p">(</span><span class="n">get_spatial_infos</span><span class="p">)(</span>
-                <span class="n">pos_data_shuff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
+                <span class="n">shuffled_pos</span><span class="p">,</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>
             <span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">shuffled_pos</span> <span class="ow">in</span> <span class="n">pos_data_shuff</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">shuffle_spatial_info</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">get_spatial_infos</span><span class="p">(</span><span class="n">pos_data_shuff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shuff</span><span class="p">)</span>
+            <span class="n">get_spatial_infos</span><span class="p">(</span><span class="n">shuffled_pos</span><span class="p">,</span> <span class="n">pos_run</span><span class="o">.</span><span class="n">abscissa_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">shuffled_pos</span> <span class="ow">in</span> <span class="n">pos_data_shuff</span>
         <span class="p">]</span>
 
     <span class="c1"># calculate p values for the obs vs null</span>
