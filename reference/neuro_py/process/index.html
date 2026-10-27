@@ -7049,9 +7049,7 @@ https://github.com/HoniSanders/measure_phaseprec/blob/master/cl_corr.m</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1627</span>
-<span class="normal">1628</span>
-<span class="normal">1629</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1629</span>
 <span class="normal">1630</span>
 <span class="normal">1631</span>
 <span class="normal">1632</span>
@@ -7079,7 +7077,9 @@ https://github.com/HoniSanders/measure_phaseprec/blob/master/cl_corr.m</p>
 <span class="normal">1654</span>
 <span class="normal">1655</span>
 <span class="normal">1656</span>
-<span class="normal">1657</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">count_events</span><span class="p">(</span>
+<span class="normal">1657</span>
+<span class="normal">1658</span>
+<span class="normal">1659</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">count_events</span><span class="p">(</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">time_ref</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">time_range</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -7272,9 +7272,7 @@ Defaults to 'binary'.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1340</span>
-<span class="normal">1341</span>
-<span class="normal">1342</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1342</span>
 <span class="normal">1343</span>
 <span class="normal">1344</span>
 <span class="normal">1345</span>
@@ -7357,7 +7355,9 @@ Defaults to 'binary'.</p>
 <span class="normal">1422</span>
 <span class="normal">1423</span>
 <span class="normal">1424</span>
-<span class="normal">1425</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">count_in_interval</span><span class="p">(</span>
+<span class="normal">1425</span>
+<span class="normal">1426</span>
+<span class="normal">1427</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">count_in_interval</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">event_starts</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">event_stops</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
@@ -8752,9 +8752,7 @@ and scales them by the square root of the sampling frequency.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1804</span>
-<span class="normal">1805</span>
-<span class="normal">1806</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1806</span>
 <span class="normal">1807</span>
 <span class="normal">1808</span>
 <span class="normal">1809</span>
@@ -8860,7 +8858,9 @@ and scales them by the square root of the sampling frequency.</p>
 <span class="normal">1909</span>
 <span class="normal">1910</span>
 <span class="normal">1911</span>
-<span class="normal">1912</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_spiking_threshold</span><span class="p">(</span>
+<span class="normal">1912</span>
+<span class="normal">1913</span>
+<span class="normal">1914</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_spiking_threshold</span><span class="p">(</span>
     <span class="n">spikes</span><span class="p">:</span> <span class="n">SpikeTrainArray</span><span class="p">,</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">window</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
@@ -9076,7 +9076,8 @@ based on the timestamps.</p>
             <td>
               <div class="doc-md-description">
                 <p>A list containing two elements: the start and stop times relative to an event
-for the time interval of signal averaging. Default is [-0.5, 0.5].</p>
+for the half-open interval [start, stop). Default is [-0.5, 0.5].
+Output lags are <code>start + arange(n_bins) / sampling_rate</code>.</p>
               </div>
             </td>
             <td>
@@ -9178,7 +9179,9 @@ If <code>return_average</code> is False, returns the full event-triggered averag
 <li>The function filters out events that do not fit within the valid range of the signal
 considering the specified window size.</li>
 <li>If the <code>sampling_rate</code> is not provided, it is calculated based on the timestamps.</li>
-<li>The function handles both regular and irregular sampling of the signal.</li>
+<li>The function handles both regular and irregular sampling of the signal.
+  Off-grid targets are linearly interpolated; aligned targets use the
+  original samples. Missing event windows retain NaNs in individual outputs.</li>
 </ul>
 </details>
 
@@ -9195,58 +9198,7 @@ considering the specified window size.</li>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">804</span>
-<span class="normal">805</span>
-<span class="normal">806</span>
-<span class="normal">807</span>
-<span class="normal">808</span>
-<span class="normal">809</span>
-<span class="normal">810</span>
-<span class="normal">811</span>
-<span class="normal">812</span>
-<span class="normal">813</span>
-<span class="normal">814</span>
-<span class="normal">815</span>
-<span class="normal">816</span>
-<span class="normal">817</span>
-<span class="normal">818</span>
-<span class="normal">819</span>
-<span class="normal">820</span>
-<span class="normal">821</span>
-<span class="normal">822</span>
-<span class="normal">823</span>
-<span class="normal">824</span>
-<span class="normal">825</span>
-<span class="normal">826</span>
-<span class="normal">827</span>
-<span class="normal">828</span>
-<span class="normal">829</span>
-<span class="normal">830</span>
-<span class="normal">831</span>
-<span class="normal">832</span>
-<span class="normal">833</span>
-<span class="normal">834</span>
-<span class="normal">835</span>
-<span class="normal">836</span>
-<span class="normal">837</span>
-<span class="normal">838</span>
-<span class="normal">839</span>
-<span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span>
-<span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span>
-<span class="normal">851</span>
-<span class="normal">852</span>
-<span class="normal">853</span>
-<span class="normal">854</span>
-<span class="normal">855</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">855</span>
 <span class="normal">856</span>
 <span class="normal">857</span>
 <span class="normal">858</span>
@@ -9364,7 +9316,19 @@ considering the specified window size.</li>
 <span class="normal">970</span>
 <span class="normal">971</span>
 <span class="normal">972</span>
-<span class="normal">973</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_average</span><span class="p">(</span>
+<span class="normal">973</span>
+<span class="normal">974</span>
+<span class="normal">975</span>
+<span class="normal">976</span>
+<span class="normal">977</span>
+<span class="normal">978</span>
+<span class="normal">979</span>
+<span class="normal">980</span>
+<span class="normal">981</span>
+<span class="normal">982</span>
+<span class="normal">983</span>
+<span class="normal">984</span>
+<span class="normal">985</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_average</span><span class="p">(</span>
     <span class="n">timestamps</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">signal</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]],</span>
@@ -9391,7 +9355,8 @@ considering the specified window size.</li>
 <span class="sd">        based on the timestamps.</span>
 <span class="sd">    window : List[float], optional</span>
 <span class="sd">        A list containing two elements: the start and stop times relative to an event</span>
-<span class="sd">        for the time interval of signal averaging. Default is [-0.5, 0.5].</span>
+<span class="sd">        for the half-open interval [start, stop). Default is [-0.5, 0.5].</span>
+<span class="sd">        Output lags are ``start + arange(n_bins) / sampling_rate``.</span>
 <span class="sd">    return_average : bool, optional</span>
 <span class="sd">        Whether to return the average of the event-triggered average. Defaults to True.</span>
 <span class="sd">        If False, returns the full event-triggered average matrix (n_samples x n_signals x n_events).</span>
@@ -9416,6 +9381,8 @@ considering the specified window size.</li>
 <span class="sd">    considering the specified window size.</span>
 <span class="sd">    - If the `sampling_rate` is not provided, it is calculated based on the timestamps.</span>
 <span class="sd">    - The function handles both regular and irregular sampling of the signal.</span>
+<span class="sd">      Off-grid targets are linearly interpolated; aligned targets use the</span>
+<span class="sd">      original samples. Missing event windows retain NaNs in individual outputs.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -9427,113 +9394,71 @@ considering the specified window size.</li>
 <span class="sd">    ...    timestamps, signal, events, window=[-0.5, 0.5], return_average=False</span>
 <span class="sd">    ... )</span>
 <span class="sd">    """</span>
-    <span class="c1"># Basic input validation</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">window</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">window</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"'window' must be [start, stop] with start &lt; stop"</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">signal</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
+    <span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+    <span class="n">events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"timestamps must be a one-dimensional array with at least two samples"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">timestamps</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"timestamps must be finite and strictly increasing"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"signal must have one row per timestamp"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">events</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"events must be one-dimensional"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">sampling_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">sampling_rate</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">stats</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
-
-    <span class="n">window_starttime</span><span class="p">,</span> <span class="n">window_stoptime</span> <span class="o">=</span> <span class="n">window</span>
-    <span class="n">window_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(((</span><span class="n">window_stoptime</span> <span class="o">-</span> <span class="n">window_starttime</span><span class="p">)</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)))</span>
-    <span class="n">time_lags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">window_starttime</span><span class="p">,</span> <span class="n">window_stoptime</span><span class="p">,</span> <span class="n">window_bins</span><span class="p">)</span>
-
-    <span class="c1"># Filter events that fit within the signal range</span>
-    <span class="n">min_timestamp</span><span class="p">,</span> <span class="n">max_timestamp</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">events</span> <span class="o">+</span> <span class="n">window_starttime</span> <span class="o">&gt;=</span> <span class="n">min_timestamp</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
-        <span class="n">events</span> <span class="o">+</span> <span class="n">window_stoptime</span> <span class="o">&lt;=</span> <span class="n">max_timestamp</span>
+        <span class="n">sampling_rate</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">stats</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">time_lags</span> <span class="o">=</span> <span class="n">_event_time_lags</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">)</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)))</span>
+    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">events</span> <span class="o">+</span> <span class="n">time_lags</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">tolerance</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">events</span> <span class="o">+</span> <span class="n">time_lags</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">tolerance</span><span class="p">)</span>
     <span class="p">)</span>
-
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">):</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"No events found within the valid signal range"</span><span class="p">)</span>
-        <span class="n">empty_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">window_bins</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">return_average</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">empty_shape</span><span class="p">)</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">)</span> <span class="k">if</span> <span class="n">return_pandas</span> <span class="k">else</span> <span class="n">result</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">return_average</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
             <span class="p">),</span> <span class="n">time_lags</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">empty_shape</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">),),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">time_lags</span>
-
-    <span class="c1"># Initialize result matrix: (window_bins, n_signals, n_events) - keep all events</span>
-    <span class="n">result_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">window_bins</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-
-    <span class="c1"># For regular sampling, use fast indexing approach similar to event_triggered_average_fast</span>
-    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">))</span>
-    <span class="n">data_is_regular</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
-    <span class="n">use_interpolation</span> <span class="o">=</span> <span class="n">irregular_sampling</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">data_is_regular</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_interpolation</span><span class="p">:</span>
-        <span class="c1"># Fast path: regular sampling - use direct indexing like event_triggered_average_fast</span>
-        <span class="c1"># Match the exact indexing logic from event_triggered_average_fast</span>
-        <span class="n">start_time</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Cache start time for efficiency</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">event</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">events</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>  <span class="c1"># Skip invalid events (already filled with NaN)</span>
-                <span class="k">continue</span>
-
-            <span class="c1"># Convert event time to sample indices, accounting for timestamp start time</span>
-            <span class="n">event_sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">event</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span>
-            <span class="n">ts_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-                <span class="n">event_sample</span> <span class="o">-</span> <span class="n">window_bins</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-                <span class="n">event_sample</span> <span class="o">+</span> <span class="n">window_bins</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-
-            <span class="c1"># Check bounds</span>
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ts_idx</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ts_idx</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span>
-                <span class="n">result_matrix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="n">ts_idx</span><span class="p">,</span> <span class="p">:]</span>
-            <span class="c1"># If bounds check fails, keep as NaN (already initialized)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Slow path: irregular sampling - use interpolation but vectorized</span>
-        <span class="n">target_times_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
-            <span class="n">window_starttime</span><span class="p">,</span> <span class="n">window_stoptime</span><span class="p">,</span> <span class="n">window_bins</span>
-        <span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">event</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">events</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>  <span class="c1"># Skip invalid events (already filled with NaN)</span>
-                <span class="k">continue</span>
-
-            <span class="n">target_times</span> <span class="o">=</span> <span class="n">target_times_template</span> <span class="o">+</span> <span class="n">event</span>
-
-            <span class="c1"># Find the range of timestamps that covers our target times</span>
-            <span class="n">start_search</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span>
-                <span class="n">timestamps</span><span class="p">,</span> <span class="n">target_times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">dt</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"left"</span>
-            <span class="p">)</span>
-            <span class="n">stop_search</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span>
-                <span class="n">timestamps</span><span class="p">,</span> <span class="n">target_times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span>
-            <span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">start_search</span> <span class="o">&gt;=</span> <span class="n">stop_search</span><span class="p">:</span>
-                <span class="c1"># Keep as NaN (already initialized)</span>
-                <span class="k">continue</span>
-
-            <span class="c1"># Extract relevant data for this event</span>
-            <span class="n">event_timestamps</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[</span><span class="n">start_search</span><span class="p">:</span><span class="n">stop_search</span><span class="p">]</span>
-            <span class="n">event_signal</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="n">start_search</span><span class="p">:</span><span class="n">stop_search</span><span class="p">,</span> <span class="p">:]</span>
-
-            <span class="c1"># Vectorized interpolation for all channels at once</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">event_timestamps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-                    <span class="n">result_matrix</span><span class="p">[:,</span> <span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
-                        <span class="n">target_times</span><span class="p">,</span> <span class="n">event_timestamps</span><span class="p">,</span> <span class="n">event_signal</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span>
-                    <span class="p">)</span>
-            <span class="c1"># If interpolation fails, keep as NaN (already initialized)</span>
-
-    <span class="c1"># Return results</span>
-    <span class="k">if</span> <span class="n">return_average</span><span class="p">:</span>
-        <span class="n">result_avg</span> <span class="o">=</span> <span class="n">bn</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">result_matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
         <span class="k">if</span> <span class="n">return_pandas</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-                <span class="n">result_avg</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">result_avg</span><span class="p">,</span> <span class="n">time_lags</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">time_lags</span>
+
+    <span class="n">regular</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">regular</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">irregular_sampling</span><span class="p">:</span>
+        <span class="n">result_matrix</span> <span class="o">=</span> <span class="n">_extract_regular_events</span><span class="p">(</span>
+            <span class="n">signal</span><span class="p">,</span> <span class="p">(</span><span class="n">events</span> <span class="o">-</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">time_lags</span> <span class="o">*</span> <span class="n">sampling_rate</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="n">result_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">event_i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">):</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="n">events</span><span class="p">[</span><span class="n">event_i</span><span class="p">]</span> <span class="o">+</span> <span class="n">time_lags</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">side</span><span class="o">=</span><span class="s2">"left"</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">result_matrix</span><span class="p">[:,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">event_i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+                    <span class="n">targets</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">],</span> <span class="n">signal</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">,</span> <span class="n">channel</span><span class="p">]</span>
+                <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_average</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">result_matrix</span><span class="p">,</span> <span class="n">time_lags</span>
+    <span class="n">result_avg</span> <span class="o">=</span> <span class="n">bn</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">result_matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_pandas</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">result_avg</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result_avg</span><span class="p">,</span> <span class="n">time_lags</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -9623,7 +9548,8 @@ considering the specified window size.</li>
             <td>
               <div class="doc-md-description">
                 <p>A list or tuple specifying the time window (in seconds) to average the signal
-around each event. Defaults to [-0.5, 0.5].</p>
+around each event as a half-open interval [start, stop).
+Defaults to [-0.5, 0.5]. Lags have spacing <code>1 / sampling_rate</code>.</p>
               </div>
             </td>
             <td>
@@ -9708,24 +9634,14 @@ If <code>return_average</code> is False, returns the full event-triggered averag
 <li>The function filters out events that do not fit within the valid range of the signal
 considering the specified window size.</li>
 <li>Assumes the signal starts at time 0.</li>
+<li>Off-grid targets are linearly interpolated. Output uses floating-point
+  storage so invalid event windows remain NaN for integer input recordings.</li>
 </ul>
 </details>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 976</span>
-<span class="normal"> 977</span>
-<span class="normal"> 978</span>
-<span class="normal"> 979</span>
-<span class="normal"> 980</span>
-<span class="normal"> 981</span>
-<span class="normal"> 982</span>
-<span class="normal"> 983</span>
-<span class="normal"> 984</span>
-<span class="normal"> 985</span>
-<span class="normal"> 986</span>
-<span class="normal"> 987</span>
-<span class="normal"> 988</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 988</span>
 <span class="normal"> 989</span>
 <span class="normal"> 990</span>
 <span class="normal"> 991</span>
@@ -9798,7 +9714,9 @@ considering the specified window size.</li>
 <span class="normal">1058</span>
 <span class="normal">1059</span>
 <span class="normal">1060</span>
-<span class="normal">1061</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_average_fast</span><span class="p">(</span>
+<span class="normal">1061</span>
+<span class="normal">1062</span>
+<span class="normal">1063</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_average_fast</span><span class="p">(</span>
     <span class="n">signal</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">sampling_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -9822,7 +9740,8 @@ considering the specified window size.</li>
 
 <span class="sd">    window : Union[list, Tuple[float, float]], optional</span>
 <span class="sd">        A list or tuple specifying the time window (in seconds) to average the signal</span>
-<span class="sd">        around each event. Defaults to [-0.5, 0.5].</span>
+<span class="sd">        around each event as a half-open interval [start, stop).</span>
+<span class="sd">        Defaults to [-0.5, 0.5]. Lags have spacing ``1 / sampling_rate``.</span>
 
 <span class="sd">    return_average : bool, optional</span>
 <span class="sd">        Whether to return the average of the event-triggered average. Defaults to True.</span>
@@ -9846,44 +9765,33 @@ considering the specified window size.</li>
 <span class="sd">    - The function filters out events that do not fit within the valid range of the signal</span>
 <span class="sd">    considering the specified window size.</span>
 <span class="sd">    - Assumes the signal starts at time 0.</span>
+<span class="sd">    - Off-grid targets are linearly interpolated. Output uses floating-point</span>
+<span class="sd">      storage so invalid event windows remain NaN for integer input recordings.</span>
 <span class="sd">    """</span>
 
-    <span class="n">window_starttime</span><span class="p">,</span> <span class="n">window_stoptime</span> <span class="o">=</span> <span class="n">window</span>
-    <span class="n">window_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(((</span><span class="n">window_stoptime</span> <span class="o">-</span> <span class="n">window_starttime</span><span class="p">)</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)))</span>
-    <span class="n">time_lags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">window_starttime</span><span class="p">,</span> <span class="n">window_stoptime</span><span class="p">,</span> <span class="n">window_bins</span><span class="p">)</span>
-
-    <span class="c1"># Create valid mask instead of filtering events</span>
-    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">events</span> <span class="o">*</span> <span class="n">sampling_rate</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
-        <span class="n">events</span> <span class="o">*</span> <span class="n">sampling_rate</span> <span class="o">&lt;</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Initialize result matrix with all events, filled with NaN</span>
-    <span class="n">avg_signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">signal</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Process only valid events</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">event</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">events</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>  <span class="c1"># Skip invalid events (already filled with NaN)</span>
-            <span class="k">continue</span>
-
-        <span class="n">ts_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">event</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">event</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_lags</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-        <span class="n">avg_signal</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[:,</span> <span class="n">ts_idx</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="n">return_pandas</span> <span class="ow">and</span> <span class="n">return_average</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-            <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">,</span>
-            <span class="n">columns</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">bn</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">avg_signal</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+    <span class="n">events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"signal must have shape (channels, timepoints) with nonempty timepoints"</span>
         <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">return_average</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">bn</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">avg_signal</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">time_lags</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">events</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"events must be one-dimensional"</span><span class="p">)</span>
+    <span class="n">time_lags</span> <span class="o">=</span> <span class="n">_event_time_lags</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">)</span>
+    <span class="c1"># Floating storage is essential: invalid events must remain missing even</span>
+    <span class="c1"># when the source recording uses an integer dtype.</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">_extract_regular_events</span><span class="p">(</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">events</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">time_lags</span> <span class="o">*</span> <span class="n">sampling_rate</span>
+    <span class="p">)</span>
+    <span class="n">avg_signal</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_average</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">avg_signal</span><span class="p">,</span> <span class="n">time_lags</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">bn</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">avg_signal</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_pandas</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">time_lags</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">time_lags</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -11630,9 +11538,7 @@ and each row corresponds to a cell, normalized between 0 and 1.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1432</span>
-<span class="normal">1433</span>
-<span class="normal">1434</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1434</span>
 <span class="normal">1435</span>
 <span class="normal">1436</span>
 <span class="normal">1437</span>
@@ -11822,7 +11728,9 @@ and each row corresponds to a cell, normalized between 0 and 1.</p>
 <span class="normal">1621</span>
 <span class="normal">1622</span>
 <span class="normal">1623</span>
-<span class="normal">1624</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_rank_order</span><span class="p">(</span>
+<span class="normal">1624</span>
+<span class="normal">1625</span>
+<span class="normal">1626</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_rank_order</span><span class="p">(</span>
     <span class="n">st</span><span class="p">:</span> <span class="n">SpikeTrainArray</span><span class="p">,</span>  <span class="c1"># Assuming 'nelpy.array' is a custom type</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="n">EpochArray</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"peak_fr"</span><span class="p">,</span>  <span class="c1"># 'first_spike' or 'peak_fr'</span>
@@ -16084,9 +15992,7 @@ and returns the power spectrum as a pandas Series.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1735</span>
-<span class="normal">1736</span>
-<span class="normal">1737</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1737</span>
 <span class="normal">1738</span>
 <span class="normal">1739</span>
 <span class="normal">1740</span>
@@ -16150,7 +16056,9 @@ and returns the power spectrum as a pandas Series.</p>
 <span class="normal">1798</span>
 <span class="normal">1799</span>
 <span class="normal">1800</span>
-<span class="normal">1801</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">nearest_event_delay</span><span class="p">(</span>
+<span class="normal">1801</span>
+<span class="normal">1802</span>
+<span class="normal">1803</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">nearest_event_delay</span><span class="p">(</span>
     <span class="n">ts_1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">ts_2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -18199,9 +18107,7 @@ crossCorr : Cross-correlogram computation</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1064</span>
-<span class="normal">1065</span>
-<span class="normal">1066</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1066</span>
 <span class="normal">1067</span>
 <span class="normal">1068</span>
 <span class="normal">1069</span>
@@ -18472,7 +18378,9 @@ crossCorr : Cross-correlogram computation</p>
 <span class="normal">1334</span>
 <span class="normal">1335</span>
 <span class="normal">1336</span>
-<span class="normal">1337</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">peth</span><span class="p">(</span>
+<span class="normal">1337</span>
+<span class="normal">1338</span>
+<span class="normal">1339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">peth</span><span class="p">(</span>
     <span class="n">data</span><span class="p">,</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">window</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -19757,9 +19665,7 @@ to each interval.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/peri_event.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1660</span>
-<span class="normal">1661</span>
-<span class="normal">1662</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1662</span>
 <span class="normal">1663</span>
 <span class="normal">1664</span>
 <span class="normal">1665</span>
@@ -19829,7 +19735,9 @@ to each interval.</p>
 <span class="normal">1729</span>
 <span class="normal">1730</span>
 <span class="normal">1731</span>
-<span class="normal">1732</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="normal">1732</span>
+<span class="normal">1733</span>
+<span class="normal">1734</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">relative_times</span><span class="p">(</span>
     <span class="n">t</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">intervals</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">values</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
