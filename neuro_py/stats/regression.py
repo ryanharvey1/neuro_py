@@ -277,16 +277,30 @@ class kernelReducedRankRegressor(BaseEstimator):
         X : np.ndarray
             The test data features.
         y_true : np.ndarray
-            The true target values.
+            The true target values, with shape (n_samples, n_targets).
+            A one-dimensional array is also accepted for a single target.
 
         Returns
         -------
         float
-            The mean squared error of the predictions.
+            Squared error averaged once across all samples and targets.
+
+        Raises
+        ------
+        ValueError
+            If target and prediction shapes differ or contain no observations.
         """
-        Yhat = self.predict(X).real
-        MSE = (np.power((y_true - Yhat), 2) / np.prod(y_true.shape)).mean()
-        return MSE
+        predictions = np.asarray(self.predict(X).real, dtype=float)
+        targets = np.asarray(y_true, dtype=float)
+        if predictions.ndim == 1:
+            predictions = predictions[:, None]
+        if targets.ndim == 1:
+            targets = targets[:, None]
+        if targets.ndim != 2 or targets.shape != predictions.shape or targets.size == 0:
+            raise ValueError(
+                "Targets and predictions must have the same nonempty shape"
+            )
+        return float(np.mean((targets - predictions) ** 2))
 
     def score(self, X: NDArray[Any], Y: NDArray[Any]) -> float:
         """Score the model."""
