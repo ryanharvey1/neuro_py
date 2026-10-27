@@ -144,6 +144,14 @@ class ExplainedVariance(object):
                 if window is None entire time period is considered, in seconds, by default 900
         slideby : int, optional
             slide window by this much, in seconds, by default None
+
+        Notes
+        -----
+        Fixed and sliding windows are generated separately inside each connected
+        epoch component. All complete windows are retained; incomplete trailing
+        portions are omitted. Correlations exclude gaps in the requested epochs.
+        With ``window=None``, one measurement uses the entire epoch union, with
+        its start/stop envelope used only as the public window/time label.
         """
         self.st = st
         self.template = template
@@ -156,7 +164,7 @@ class ExplainedVariance(object):
         self.__validate_input()
         self.__calculate()
 
-    def __validate_input(self):
+    def __validate_input(self) -> None:
         """Validate input parameters."""
         assert isinstance(self.st, SpikeTrainArray)
         assert isinstance(self.template, EpochArray)
@@ -165,10 +173,19 @@ class ExplainedVariance(object):
         assert isinstance(self.bin_size, (float, int))
         assert isinstance(self.window, (int, type(None)))
         assert isinstance(self.slideby, (int, type(None)))
+        if self.bin_size <= 0 or not np.isfinite(self.bin_size):
+            raise ValueError("bin_size must be finite and positive")
+        if self.window is not None and self.window <= 0:
+            raise ValueError("window must be positive")
+        if self.slideby is not None and self.slideby <= 0:
+            raise ValueError("slideby must be positive")
+        if self.template.isempty or self.matching.isempty or self.control.isempty:
+            raise ValueError("template, matching, and control epochs must be nonempty")
 
-    def __calculate(self):
+    def __calculate(self) -> None:
         """processing steps for explained variance calculation."""
         control_window_size, matching_window_size, slideby = self.__get_window_sizes()
+        self.__validate_window_sizes(control_window_size, matching_window_size)
 
         self.matching_windows = self.__get_windows_array(
             self.matching, matching_window_size, slideby
@@ -176,46 +193,55 @@ class ExplainedVariance(object):
         self.control_windows = self.__get_windows_array(
             self.control, control_window_size, slideby
         )
-        self.__validate_window_sizes(control_window_size, matching_window_size)
         self.template_corr = self.__get_template_corr()
         self.__calculate_pairwise_correlations()
         self.__calculate_partial_correlations()
 
-    def __get_window_sizes(self):
-        """Get window sizes for control and matching periods."""
+    def __get_window_sizes(self) -> tuple[float, float, float | None]:
+        """Keep fractional durations when using the entire requested epoch union."""
         if self.window is None:
-            control_window_size = np.array(self.control.duration).astype(int)
-            matching_window_size = np.array(self.matching.duration).astype(int)
-            slideby = None
-        elif self.slideby is None:
-            control_window_size = self.window
-            matching_window_size = self.window
-            slideby = None
-        else:
-            control_window_size = self.window
-            matching_window_size = self.window
-            slideby = self.slideby
-        return control_window_size, matching_window_size, slideby
+            return (
+                float(self.control.merge().duration),
+                float(self.matching.merge().duration),
+                None,
+            )
+        return float(self.window), float(self.window), self.slideby
 
-    def __get_windows_array(self, epoch_array, window_size, slideby):
-        """Get windows array for control and matching periods."""
-        if slideby is not None:
-            array = np.arange(epoch_array.start, epoch_array.stop)
-            windows = np.lib.stride_tricks.sliding_window_view(array, window_size)
-            windows = windows[::slideby, [0, -1]]
-        elif np.array(epoch_array.duration) == window_size:
-            windows = np.array([[epoch_array.start, epoch_array.stop]])
-        else:
-            array = np.arange(epoch_array.start, epoch_array.stop, window_size)
-            windows = np.array([array[:-1], array[1:]]).T
-        return windows
+    def __get_windows_array(
+        self, epoch_array: EpochArray, window_size: float, slideby: float | None
+    ) -> NDArray[np.float64]:
+        """Build full-duration windows inside each connected epoch component."""
+        components = epoch_array.merge()
+        if self.window is None:
+            # This envelope labels one aggregate measurement. Correlation below
+            # restricts the bins to the actual epoch union, excluding every gap.
+            return np.array([[components.start, components.stop]], dtype=float)
+        step = window_size if slideby is None else slideby
+        windows = []
+        for start, stop in components.data:
+            available_steps = (stop - start - window_size) / step
+            tolerance = max(1e-10, 8 * np.finfo(float).eps * abs(available_steps))
+            if available_steps < -tolerance:
+                continue
+            count = int(np.floor(available_steps + tolerance)) + 1
+            starts = start + np.arange(count) * step
+            windows.append(
+                np.column_stack((starts, np.minimum(starts + window_size, stop)))
+            )
+        if not windows:
+            raise ValueError(
+                "No complete window fits within the requested epoch components"
+            )
+        return np.vstack(windows)
 
-    def __validate_window_sizes(self, control_window_size, matching_window_size):
-        """Validate window sizes."""
-        assert control_window_size <= self.control.duration, (
+    def __validate_window_sizes(
+        self, control_window_size: float, matching_window_size: float
+    ) -> None:
+        """Validate sizes before generating windows."""
+        assert control_window_size <= self.control.merge().duration, (
             "window is bigger than control"
         )
-        assert matching_window_size <= self.matching.duration, (
+        assert matching_window_size <= self.matching.merge().duration, (
             "window is bigger than matching"
         )
 
@@ -224,10 +250,14 @@ class ExplainedVariance(object):
         self.bst = self.st.bin(ds=self.bin_size)
         return self.__get_pairwise_corr(self.bst[self.template].data)
 
-    def __calculate_pairwise_correlations(self):
+    def __calculate_pairwise_correlations(self) -> None:
         """Calculate pairwise correlations for matching and control periods."""
-        self.matching_paircorr = self.__time_resolved_correlation(self.matching_windows)
-        self.control_paircorr = self.__time_resolved_correlation(self.control_windows)
+        self.matching_paircorr = self.__time_resolved_correlation(
+            self.matching_windows, self.matching
+        )
+        self.control_paircorr = self.__time_resolved_correlation(
+            self.control_windows, self.control
+        )
 
     @staticmethod
     def __get_pairwise_corr(bst_data):
@@ -235,19 +265,17 @@ class ExplainedVariance(object):
         corr = np.corrcoef(bst_data)
         return corr[np.tril_indices(corr.shape[0], k=-1)]
 
-    def __time_resolved_correlation(self, windows):
-        """Calculate pairwise correlations for given windows."""
+    def __time_resolved_correlation(
+        self, windows: NDArray[np.float64], epochs: EpochArray
+    ) -> NDArray[np.float64]:
+        """Correlate bins inside both each window and the requested epoch union."""
         paircorr = []
-        bst_data = self.bst.data
-        bin_centers = self.bst.bin_centers
-
-        for w in windows:
-            start, stop = w
-            idx = (bin_centers > start) & (bin_centers < stop)
-            corr = np.corrcoef(bst_data[:, idx])
+        restricted = self.bst[epochs.merge()]
+        for window in windows:
+            bst_data = restricted[EpochArray(window)].data
+            corr = np.corrcoef(bst_data)
             paircorr.append(corr[np.tril_indices(corr.shape[0], k=-1)])
-
-        return np.array(paircorr)
+        return np.asarray(paircorr)
 
     def __calculate_partial_correlations(self):
         """Calculate partial correlations."""
