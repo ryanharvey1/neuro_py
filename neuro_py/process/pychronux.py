@@ -228,6 +228,18 @@ def mtfftpt(
     return J, Msp, Nsp
 
 
+def _point_tapers(tapers: NDArray[Any], n_samples: int) -> NDArray[Any]:
+    """Normalize supplied point-process tapers to (samples, tapers)."""
+    tapers = np.asarray(tapers)
+    if tapers.ndim != 2:
+        raise ValueError("tapers must be a two-dimensional sample/taper matrix")
+    if tapers.shape[0] == n_samples:
+        return tapers
+    if tapers.shape[1] == n_samples:
+        return tapers.T
+    raise ValueError("tapers must have one sample dimension matching tapers_ts")
+
+
 def mtspectrumpt(
     data: NDArray[Any],
     Fs: int,
@@ -314,6 +326,7 @@ def mtspectrumpt(
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
 
     N = len(tapers_ts)
+    tapers = _point_tapers(tapers, N)
     # number of points in fft of prolates
     if nfft is None:
         nfft = np.max([int(2 ** np.ceil(np.log2(N))), N])
@@ -508,6 +521,8 @@ def mtcsdpt(
     tapers: Union[NDArray[Any], None] = None,
     tapers_ts: Union[NDArray[Any], None] = None,
     nfft: Optional[int] = None,
+    *,
+    return_complex: bool = False,
 ) -> pd.DataFrame:
     """
     Multitaper cross-spectral density (CSD) for point processes.
@@ -535,10 +550,14 @@ def mtcsdpt(
     nfft : Optional[int], optional
         Number of points for FFT, by default None.
 
+    return_complex : bool, optional
+        Return the full complex cross-spectrum when True. Default False retains
+        the historical real cospectrum for existing callers.
+
     Returns
     -------
     pd.DataFrame
-        Cross-spectral density between the two point processes.
+        Cross-spectral density (or its real component by default).
     """
     if time_support is not None:
         mintime, maxtime = time_support
@@ -552,12 +571,13 @@ def mtcsdpt(
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
         N = len(tapers_ts)
         tapers, eigens = dpss(N, NW, n_tapers, return_ratios=True)
+        tapers = tapers.T
 
     if tapers_ts is None:
         tapers_ts = np.arange(mintime - dt, maxtime + dt, dt)
 
-    tapers = tapers.T
     N = len(tapers_ts)
+    tapers = _point_tapers(tapers, N)
 
     # Number of points in FFT
     if nfft is None:
@@ -569,7 +589,9 @@ def mtcsdpt(
     J2, Msp2, Nsp2 = mtfftpt(data2, tapers, nfft, tapers_ts, f, findx)
 
     # Cross-spectral density: Sxy = mean(conjugate(J1) * J2)
-    csd = np.real(np.mean(np.conj(J1) * J2, axis=1))
+    csd = np.mean(np.conj(J1) * J2, axis=1)
+    if not return_complex:
+        csd = csd.real
 
     csd_df = pd.DataFrame({"CSD": csd}, index=f)
     return csd_df
@@ -617,28 +639,58 @@ def mtcoherencept(
     -------
     pd.DataFrame
         Coherence between the two point processes.
-    """
-    # Check if data is a single unit and put in array
-    if isinstance(data1, np.ndarray):
-        data1 = np.array([data1])
-    if isinstance(data2, np.ndarray):
-        data2 = np.array([data2])
 
-    # Compute power spectral densities (PSD) for both spike trains
+    Notes
+    -----
+    Both auto-spectra and the complex cross-spectrum use a shared time grid,
+    support, taper set and FFT size. Supplied tapers may be samples-by-tapers
+    or its transpose. Zero-power frequencies have undefined (NaN) coherence.
+    """
+    data1 = np.asarray(data1, dtype=float)
+    data2 = np.asarray(data2, dtype=float)
+    if data1.ndim != 1 or data2.ndim != 1:
+        raise ValueError("Each spike train must be one-dimensional")
+    if not np.all(np.isfinite(data1)) or not np.all(np.isfinite(data2)):
+        raise ValueError("Spike times must be finite")
+    if time_support is None:
+        combined = np.concatenate((data1, data2))
+        if combined.size == 0:
+            raise ValueError("time_support is required for two empty spike trains")
+        time_support = [float(combined.min()), float(combined.max())]
+    if tapers_ts is None:
+        dt = 1 / Fs
+        tapers_ts = np.arange(time_support[0] - dt, time_support[1] + dt, dt)
+    if tapers is None:
+        tapers = dpss(len(tapers_ts), NW, n_tapers).T
+    tapers = _point_tapers(tapers, len(tapers_ts))
+    if nfft is None:
+        nfft = max(int(2 ** np.ceil(np.log2(len(tapers_ts)))), len(tapers_ts))
+
+    # All three spectra must use the identical support, time origin, tapers,
+    # and FFT grid. Otherwise their normalization describes different estimates.
     psd1 = mtspectrumpt(
-        data1, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
+        data1[None, :], Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
     )
     psd2 = mtspectrumpt(
-        data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
+        data2[None, :], Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
     )
-
-    # Compute cross-spectral density (CSD) between the two spike trains
     csd = mtcsdpt(
-        data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
+        data1,
+        data2,
+        Fs,
+        fpass,
+        NW,
+        n_tapers,
+        time_support,
+        tapers,
+        tapers_ts,
+        nfft,
+        return_complex=True,
     )
-
-    # Calculate coherence: |Sxy(f)|^2 / (Sxx(f) * Syy(f))
-    coherence = np.abs(csd["CSD"].values) ** 2 / (psd1.values * psd2.values).flatten()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        coherence = (
+            np.abs(csd["CSD"].values) ** 2 / (psd1.values * psd2.values).flatten()
+        )
 
     # Return coherence as a pandas DataFrame
     coherence_df = pd.DataFrame(
