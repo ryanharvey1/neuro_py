@@ -117,7 +117,8 @@ def confidence_intervals(
     Parameters
     ----------
     X : np.ndarray
-        A numpy ndarray of shape (n_signals, n_samples).
+        A numpy ndarray of shape (n_samples, n_signals). NaN observations
+        are omitted independently in each signal's t-interval.
     conf : float, optional
         Confidence level value (default is 0.95).
     estimator : Callable, optional
@@ -141,7 +142,7 @@ def confidence_intervals(
             interval = [
                 stats.t.interval(
                     conf,
-                    len(a) - 1,
+                    np.count_nonzero(~np.isnan(a)) - 1,
                     loc=estimator(a),
                     scale=stats.sem(a, nan_policy="omit"),
                 )
