@@ -59,7 +59,8 @@ def test_event_triggered_average():
         timestamps, signal, events, sampling_rate=10, window=[-5, 5]
     )
     assert all(result_sta.T[0] == signal)
-    assert all(time_lags == np.linspace(-5, 5, 100))
+    # A half-open 10 Hz grid has 0.1 s spacing and excludes the stop time.
+    np.testing.assert_allclose(time_lags, -5 + np.arange(100) / 10)
 
 
 def test_event_triggered_average_return_individual():
@@ -280,7 +281,7 @@ def test_event_triggered_average_large_window():
 def test_event_triggered_average_sampling_rate_detection():
     """Test automatic sampling rate detection."""
     # Regular sampling
-    timestamps = np.linspace(0, 10, num=1000)  # 100 Hz
+    timestamps = np.arange(1000) / 100  # Exactly 100 Hz; linspace includes the stop.
     signal = np.random.randn(1000, 1)
     events = np.array([5])
 
