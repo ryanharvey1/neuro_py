@@ -155,7 +155,6 @@ def test_average_only_path_does_not_allocate_full_event_cube(monkeypatch):
 @pytest.mark.parametrize("fortran", [False, True])
 def test_batched_extraction_matches_direct_sample_windows(fortran):
     rng = np.random.default_rng(4)
-    times = np.arange(1000) / 100
     signal = rng.normal(size=(1000, 5))
     if fortran:
         signal = np.asfortranarray(signal)
@@ -187,3 +186,21 @@ def test_regular_extraction_keeps_original_round_to_even_event_ties():
         values, np.array([3.005, 3.015]), 100, [-0.13, 0.27], return_average=False
     )
     np.testing.assert_array_equal(result[0, 0], [287, 289])
+
+
+@pytest.mark.parametrize("fast", [False, True])
+@pytest.mark.parametrize("average", [False, True])
+def test_empty_channel_arrays_preserve_output_axes(fast, average):
+    times = np.arange(1000) / 100
+    signal = np.empty((1000, 0))
+    if fast:
+        result, lags = event_triggered_average_fast(
+            signal.T, np.array([2, 3]), 100, return_average=average
+        )
+        expected = (0, len(lags))
+    else:
+        result, lags = event_triggered_average(
+            times, signal, [2, 3], 100, return_average=average
+        )
+        expected = (len(lags), 0)
+    assert result.shape == (expected if average else expected + (2,))

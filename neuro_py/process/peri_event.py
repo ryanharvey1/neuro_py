@@ -838,8 +838,9 @@ def _extract_regular_events(
     """Extract bounded event batches, streaming sums/counts for average-only calls."""
     n_lags, n_channels = len(lag_samples), signal.shape[1]
     accumulator_dtype = np.result_type(dtype, float)
-    total = np.zeros((n_lags, n_channels), dtype=accumulator_dtype)
-    counts = np.zeros((n_lags, n_channels), dtype=np.int64)
+    accumulator_shape = (n_lags, n_channels) if return_average else (0, 0)
+    total = np.zeros(accumulator_shape, dtype=accumulator_dtype)
+    counts = np.zeros(accumulator_shape, dtype=np.int64)
     if return_average:
         result = np.full((n_lags, n_channels), np.nan, dtype=dtype)
     else:
@@ -847,6 +848,8 @@ def _extract_regular_events(
         result = np.full(
             (len(event_samples), n_lags, n_channels), np.nan, dtype=dtype
         ).transpose(1, 2, 0)
+    if n_channels == 0 or len(event_samples) == 0:
+        return result
     targets = event_samples + lag_samples[0]
     # Preserve the original nearest-event-sample convention, including ties.
     # Window alignment depends on its requested start, not half its length.
