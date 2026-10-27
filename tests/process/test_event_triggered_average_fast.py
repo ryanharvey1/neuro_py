@@ -9,7 +9,7 @@ def test_event_triggered_average_fast():
     # make 5 random signals
     x = np.random.rand(5, 100_000)
     # create 100_000 timestamps at 1000 Hz
-    ts = np.linspace(0, 100, 100_000)
+    ts = np.arange(100_000) / 1000
     # 5 random timestamps from 0 to 10
     ts_rand = np.random.choice(ts, 5)
     # set the 5 signals to 5 at the random timestamps
@@ -24,4 +24,4 @@ def test_event_triggered_average_fast():
         return_pandas=True,
     )
     # assert that the psth peak is at the middle of the window
-    assert np.allclose(psth.index[np.argmax(psth.values, axis=0)], 0, atol=1e-3)
+    assert np.allclose(psth.index[np.argmax(psth.values, axis=0)], 0, atol=1e-12)
