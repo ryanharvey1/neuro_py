@@ -825,30 +825,57 @@ def _event_time_lags(
     return bounds[0] + np.arange(count, dtype=float) / sampling_rate
 
 
+_EVENT_MAX_CHUNK_VALUES = 500_000
+
+
 def _extract_regular_events(
-    signal: NDArray[Any], event_samples: NDArray[Any], lag_samples: NDArray[Any]
-) -> NDArray[np.float64]:
-    """Extract exact targets from a samples-by-channels array, interpolating off-grid."""
-    result = np.full((len(lag_samples), signal.shape[1], len(event_samples)), np.nan)
-    for event_i, event in enumerate(event_samples):
-        if not np.isfinite(event):
-            continue
-        targets = event + lag_samples
-        rounded = np.rint(targets)
-        tolerance = 8 * np.finfo(float).eps * np.maximum(1.0, np.abs(targets))
-        targets = np.where(np.abs(targets - rounded) <= tolerance, rounded, targets)
-        if targets[0] < 0 or targets[-1] > signal.shape[0] - 1:
-            continue
-        lower = np.floor(targets).astype(np.intp)
-        fraction = targets - lower
-        if np.all(fraction == 0):
-            result[:, :, event_i] = signal[lower]
+    signal: NDArray[Any],
+    event_samples: NDArray[Any],
+    lag_samples: NDArray[Any],
+    return_average: bool = False,
+    dtype: np.dtype[Any] = np.dtype(float),
+) -> NDArray[Any]:
+    """Extract bounded event batches, streaming sums/counts for average-only calls."""
+    n_lags, n_channels = len(lag_samples), signal.shape[1]
+    accumulator_dtype = np.result_type(dtype, float)
+    accumulator_shape = (n_lags, n_channels) if return_average else (0, 0)
+    total = np.zeros(accumulator_shape, dtype=accumulator_dtype)
+    counts = np.zeros(accumulator_shape, dtype=np.int64)
+    if return_average:
+        result = np.full((n_lags, n_channels), np.nan, dtype=dtype)
+    else:
+        # Store each event contiguously while preserving the public axis order.
+        result = np.full(
+            (len(event_samples), n_lags, n_channels), np.nan, dtype=dtype
+        ).transpose(1, 2, 0)
+    if n_channels == 0 or len(event_samples) == 0:
+        return result
+    targets = event_samples + lag_samples[0]
+    # Preserve the original nearest-event-sample convention, including ties.
+    # Window alignment depends on its requested start, not half its length.
+    starts = np.rint(event_samples) + np.rint(lag_samples[0])
+    tolerance = 8 * np.finfo(float).eps * np.maximum(1.0, np.abs(targets))
+    valid = np.flatnonzero(
+        np.isfinite(starts)
+        & (targets >= -tolerance)
+        & (targets + n_lags - 1 <= signal.shape[0] - 1 + tolerance)
+        & (starts >= 0)
+        & (starts + n_lags - 1 <= signal.shape[0] - 1)
+    )
+    base = starts[valid].astype(np.intp)
+    offsets = np.arange(n_lags)
+    batch_size = max(1, _EVENT_MAX_CHUNK_VALUES // max(1, n_lags * n_channels))
+    for first in range(0, len(valid), batch_size):
+        last = first + batch_size
+        indices = base[first:last, None] + offsets[None, :]
+        values = np.asarray(signal[indices], dtype=dtype)
+        if return_average:
+            total += np.nansum(values, axis=0, dtype=accumulator_dtype)
+            counts += np.sum(~np.isnan(values), axis=0)
         else:
-            upper = np.minimum(lower + 1, signal.shape[0] - 1)
-            # Cast before arithmetic so integer subtraction cannot overflow.
-            left = np.asarray(signal[lower], dtype=float)
-            right = np.asarray(signal[upper], dtype=float)
-            result[:, :, event_i] = left + fraction[:, None] * (right - left)
+            result[:, :, valid[first:last]] = values.transpose(1, 2, 0)
+    if return_average:
+        np.divide(total, counts, out=result, where=counts > 0)
     return result
 
 
@@ -904,9 +931,11 @@ def event_triggered_average(
     - The function filters out events that do not fit within the valid range of the signal
     considering the specified window size.
     - If the `sampling_rate` is not provided, it is calculated based on the timestamps.
-    - The function handles both regular and irregular sampling of the signal.
-      Off-grid targets are linearly interpolated; aligned targets use the
-      original samples. Missing event windows retain NaNs in individual outputs.
+    - Regular recordings use nearest-sample extraction: event times and the
+      window start offset are rounded to sample indices. Output lags describe
+      the requested grid. Set ``irregular_sampling=True`` to interpolate at the
+      exact requested times, including on a regular recording. Irregular
+      recordings are always interpolated. Missing windows retain NaNs.
 
     Examples
     --------
@@ -956,7 +985,10 @@ def event_triggered_average(
     regular = np.allclose(np.diff(timestamps), 1 / sampling_rate, rtol=1e-6, atol=1e-12)
     if regular and not irregular_sampling:
         result_matrix = _extract_regular_events(
-            signal, (events - timestamps[0]) * sampling_rate, time_lags * sampling_rate
+            signal,
+            (events - timestamps[0]) * sampling_rate,
+            time_lags * sampling_rate,
+            return_average=return_average,
         )
     else:
         result_matrix = np.full((len(time_lags), signal.shape[1], len(events)), np.nan)
@@ -977,7 +1009,11 @@ def event_triggered_average(
                 )
     if not return_average:
         return result_matrix, time_lags
-    result_avg = bn.nanmean(result_matrix, axis=2)
+    result_avg = (
+        result_matrix
+        if regular and not irregular_sampling
+        else bn.nanmean(result_matrix, axis=2)
+    )
     if return_pandas:
         return pd.DataFrame(
             result_avg, index=time_lags, columns=np.arange(signal.shape[1])
@@ -1034,8 +1070,12 @@ def event_triggered_average_fast(
     - The function filters out events that do not fit within the valid range of the signal
     considering the specified window size.
     - Assumes the signal starts at time 0.
-    - Off-grid targets are linearly interpolated. Output uses floating-point
-      storage so invalid event windows remain NaN for integer input recordings.
+    - Event times and the window start offset are rounded to sample indices,
+      preserving nearest-sample extraction on regular recordings. Output lags
+      describe the requested grid. Use ``event_triggered_average`` with
+      ``irregular_sampling=True`` when exact-time interpolation is needed.
+      Output uses floating-point storage so invalid event windows remain NaN.
+      Float32/float64 input dtypes are retained; integer inputs use float64.
     """
 
     signal = np.asarray(signal)
@@ -1050,12 +1090,19 @@ def event_triggered_average_fast(
     # Floating storage is essential: invalid events must remain missing even
     # when the source recording uses an integer dtype.
     samples = _extract_regular_events(
-        signal.T, events * sampling_rate, time_lags * sampling_rate
+        signal.T,
+        events * sampling_rate,
+        time_lags * sampling_rate,
+        return_average=return_average,
+        dtype=(
+            signal.dtype
+            if np.issubdtype(signal.dtype, np.floating) and signal.dtype.itemsize >= 4
+            else np.dtype(float)
+        ),
     )
-    avg_signal = samples.transpose(1, 0, 2)
     if not return_average:
-        return avg_signal, time_lags
-    result = bn.nanmean(avg_signal, axis=2)
+        return samples.transpose(1, 0, 2), time_lags
+    result = samples.T
     if return_pandas:
         return pd.DataFrame(
             result.T, index=time_lags, columns=np.arange(signal.shape[0])
