@@ -367,6 +367,13 @@ def event_triggered_wavelet(
     freqs : 1d array
         Frequencies used in the wavelet transform.
 
+    Notes
+    -----
+    Events are sampled on a half-open [-max_lag, max_lag) grid with spacing
+    1/fs. Off-grid targets are interpolated. Only complete event windows enter
+    the average; if none are valid, the function warns and returns NaN arrays.
+    Serial and parallel execution use the same extraction and counting rules.
+
     Examples
     -------
     >>> from neuro_py.lfp.spectral import event_triggered_wavelet
@@ -430,79 +437,95 @@ def event_triggered_wavelet(
     >>> plt.gca().set_title("PFC during 23Hz stim in behavior", y=1)
     """
 
-    signal_ = signal.copy()
-    if whiten:
-        signal_ = whiten_lfp(signal, order=whiten_order)
+    from neuro_py.process.peri_event import _event_time_lags
 
-    # set up frequency range
-    freqs = np.arange(freq_min, freq_max, freq_step)
-    # set up time range
-    if fs is None:
-        ds = timestamps[1] - timestamps[0]
-        fs = 1 / ds
-    # Create times array based on the sample rate (fs)
-    times = np.arange(-max_lag, max_lag, 1 / fs)
-    # Number of samples corresponding to the time window around each event
-    n_samples = int(max_lag * 2 * fs)
-
-    # Ensure the length of times matches n_samples
-    if len(times) != n_samples:
-        times = np.linspace(-max_lag, max_lag, n_samples)
-
-    n_freqs = len(freqs)
-    n_samples = len(times)
-
-    # set up mwt and sigs to store results
-    mwt = np.zeros((n_freqs, n_samples))
-    sigs = np.zeros(n_samples)
-
-    event_i = 0
-
-    def process_event(start):
-        nonlocal event_i
-        nonlocal mwt
-        nonlocal sigs
-
-        if start + max_lag > timestamps.max() or start - max_lag < timestamps.min():
-            return None, None
-
-        idx = (timestamps >= start - max_lag) & (timestamps <= start + max_lag)
-
-        mwt_partial = np.abs(
-            compute_wavelet_transform(sig=signal_[idx], fs=fs, freqs=freqs, **kwargs)
+    timestamps = np.asarray(timestamps, dtype=float)
+    signal = np.asarray(signal)
+    events = np.atleast_1d(np.asarray(events, dtype=float))
+    if timestamps.ndim != 1 or timestamps.size < 2:
+        raise ValueError("timestamps must contain at least two samples")
+    if not np.all(np.isfinite(timestamps)) or np.any(np.diff(timestamps) <= 0):
+        raise ValueError("timestamps must be finite and strictly increasing")
+    if signal.ndim != 1 or signal.size != timestamps.size:
+        raise ValueError("signal must be one-dimensional with one value per timestamp")
+    if events.ndim != 1:
+        raise ValueError("events must be one-dimensional")
+    if not np.isfinite(max_lag) or max_lag <= 0:
+        raise ValueError("max_lag must be finite and positive")
+    if (
+        not (np.isfinite(freq_min) and np.isfinite(freq_max) and np.isfinite(freq_step))
+        or freq_min <= 0
+        or freq_step <= 0
+        or freq_max <= freq_min
+    ):
+        raise ValueError(
+            "frequency bounds and step must be finite, positive and increasing"
         )
+    if fs is None:
+        fs = float(1 / np.median(np.diff(timestamps)))
+    times = _event_time_lags([-max_lag, max_lag], fs)
+    freqs = np.arange(freq_min, freq_max, freq_step)
+    signal_ = whiten_lfp(signal, order=whiten_order) if whiten else signal
+    mwt = np.zeros((len(freqs), len(times)))
+    sigs = np.zeros(len(times))
+    tolerance = 8 * np.finfo(float).eps * max(1.0, np.max(np.abs(timestamps)))
 
-        return mwt_partial, signal[idx]
+    def process_event(start: float) -> tuple[NDArray[Any], NDArray[Any]] | None:
+        if not np.isfinite(start):
+            return None
+        targets = start + times
+        if (
+            targets[0] < timestamps[0] - tolerance
+            or targets[-1] > timestamps[-1] + tolerance
+        ):
+            return None
+        targets = np.clip(targets, timestamps[0], timestamps[-1])
+        lower = max(0, int(np.searchsorted(timestamps, targets[0], side="right")) - 1)
+        upper = min(
+            len(timestamps),
+            int(np.searchsorted(timestamps, targets[-1], side="left")) + 1,
+        )
+        # Resample onto the declared event-relative grid. Inclusive timestamp
+        # masks otherwise return N+1 samples for sample-aligned events.
+        segment = np.interp(targets, timestamps[lower:upper], signal_[lower:upper])
+        raw = np.interp(targets, timestamps[lower:upper], signal[lower:upper])
+        transformed = np.abs(
+            compute_wavelet_transform(sig=segment, fs=fs, freqs=freqs, **kwargs)
+        )
+        return transformed, raw
 
-    if parallel:
-        with ThreadPoolExecutor() as executor:
-            results = list(executor.map(process_event, events))
-
-        for mwt_partial, sig_partial in results:
-            if mwt_partial is not None:
-                # samples might be missing if the event is too close to the edge
-                if mwt_partial.shape[1] != n_samples:
-                    continue
-                mwt += mwt_partial
-                sigs += sig_partial
-                event_i += 1
+    event_count = 0
+    executor = ThreadPoolExecutor() if parallel else None
+    try:
+        results = (
+            executor.map(process_event, events)
+            if executor is not None
+            else map(process_event, events)
+        )
+        for result in results:
+            if result is None:
+                continue
+            transformed, raw = result
+            if transformed.shape != mwt.shape:
+                raise ValueError("Wavelet transform returned an unexpected event shape")
+            mwt += transformed
+            sigs += raw
+            event_count += 1
+    finally:
+        if executor is not None:
+            executor.shutdown()
+    if event_count:
+        mwt /= event_count
+        sigs /= event_count
     else:
-        for start in events:
-            mwt_partial, sig_partial = process_event(start)
-            if mwt_partial is not None:
-                mwt += mwt_partial
-                sigs += sig_partial
-                event_i += 1
-
-    mwt /= event_i
-    sigs /= event_i
-
+        warnings.warn("No events found within the valid signal range")
+        mwt.fill(np.nan)
+        sigs.fill(np.nan)
     if return_pandas:
-        mwt = pd.DataFrame(mwt.T, index=times, columns=freqs)
-        sigs = pd.Series(sigs, index=times)
-        return mwt, sigs
-    else:
-        return mwt, sigs, times, freqs
+        return pd.DataFrame(mwt.T, index=times, columns=freqs), pd.Series(
+            sigs, index=times
+        )
+    return mwt, sigs, times, freqs
 
 
 def compute_wavelet_transform(

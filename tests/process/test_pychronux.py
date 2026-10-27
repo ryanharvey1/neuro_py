@@ -540,8 +540,14 @@ def test_mtcoherencept():
     times_2 = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
 
     coherence_df = px.mtcoherencept(times_1, times_2, Fs, fpass, NW, n_tapers)
-    # peak is at 8 Hz
-    peak_freq = coherence_df.index[np.argmax(coherence_df["Coherence"])]
+    # Coherence measures consistency, not spectral power: shared rate structure
+    # can have higher coherence near DC than at the burst frequency. Verify
+    # strong coherence at 8 Hz and locate the oscillatory peak in the PSD.
+    burst_bin = np.argmin(np.abs(coherence_df.index.to_numpy() - burst_frequency))
+    assert coherence_df["Coherence"].iloc[burst_bin] > 0.9
+    spectrum = px.mtspectrumpt(np.array([times_1]), Fs, fpass, NW, n_tapers)
+    oscillatory = spectrum.loc[spectrum.index > 0]
+    peak_freq = oscillatory.index[np.argmax(oscillatory.iloc[:, 0])]
     assert np.isclose(peak_freq, 8, atol=0.2), (
         f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
     )
