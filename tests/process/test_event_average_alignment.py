@@ -100,3 +100,65 @@ def test_invalid_windows_are_rejected(window):
 def test_invalid_sample_rates_are_rejected(rate):
     with pytest.raises(ValueError, match="sampling_rate"):
         event_triggered_average_fast(np.ones((1, 10)), np.array([0.5]), rate)
+
+
+@pytest.mark.parametrize("budget", [1, 12, 500_000])
+def test_streaming_means_match_individual_windows_with_missing_samples(
+    monkeypatch, budget
+):
+    import neuro_py.process.peri_event as module
+
+    monkeypatch.setattr(module, "_EVENT_MAX_CHUNK_VALUES", budget)
+    times = np.arange(101) / 10
+    signal = np.column_stack((times, 2 * times))
+    signal[11, 0] = np.nan
+    events = np.array([1.0, 1.05, 2, 3.025, -1, np.nan])
+    individual, lags = event_triggered_average_fast(
+        signal.T, events, 10, [0, 0.4], return_average=False
+    )
+    expected = np.nanmean(individual, axis=2)
+    average, _ = event_triggered_average_fast(signal.T, events, 10, [0, 0.4])
+    np.testing.assert_allclose(average, expected, atol=1e-12)
+    # Exact-grid finite sample is retained even next to a missing sample.
+    assert individual[0, 0, 0] == 1.0
+    general, _ = event_triggered_average(times, signal, events, 10, [0, 0.4])
+    np.testing.assert_allclose(general.T, expected, atol=1e-12)
+
+
+def test_average_only_path_does_not_allocate_full_event_cube(monkeypatch):
+    import neuro_py.process.peri_event as module
+
+    original = module.np.full
+    shapes = []
+
+    def record(shape, *args, **kwargs):
+        shapes.append(shape)
+        return original(shape, *args, **kwargs)
+
+    monkeypatch.setattr(module.np, "full", record)
+    result, _ = event_triggered_average_fast(
+        np.ones((8, 10_000)), np.linspace(1, 8, 1000), 1000, [-0.1, 0.1]
+    )
+    np.testing.assert_array_equal(result, 1)
+    assert all(len(shape) <= 2 for shape in shapes)
+
+
+@pytest.mark.parametrize("fortran", [False, True])
+def test_batched_extraction_matches_direct_interpolation(fortran):
+    rng = np.random.default_rng(4)
+    times = np.arange(1000) / 100
+    signal = rng.normal(size=(1000, 5))
+    if fortran:
+        signal = np.asfortranarray(signal)
+    events = np.array([2, 3.005, 4.003, 7])
+    actual, lags = event_triggered_average_fast(
+        signal.T, events, 100, [-0.13, 0.27], return_average=False
+    )
+    expected = np.stack(
+        [
+            np.stack([np.interp(event + lags, times, col) for col in signal.T])
+            for event in events
+        ],
+        axis=2,
+    )
+    np.testing.assert_allclose(actual, expected, atol=1e-12)
