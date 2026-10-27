@@ -4869,6 +4869,14 @@ representing the intervals of artefacts and noise.</p>
     </table>
 
 
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Events are sampled on a half-open [-max_lag, max_lag) grid with spacing
+1/fs. Off-grid targets are interpolated. Only complete event windows enter
+the average; if none are valid, the function warns and returns NaN arrays.
+Serial and parallel execution use the same extraction and counting rules.</p>
+</details>
+
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.lfp.spectral</span><span class="w"> </span><span class="kn">import</span> <span class="n">event_triggered_wavelet</span>
 </code></pre></div>
@@ -5130,7 +5138,30 @@ representing the intervals of artefacts and noise.</p>
 <span class="normal">502</span>
 <span class="normal">503</span>
 <span class="normal">504</span>
-<span class="normal">505</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_wavelet</span><span class="p">(</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">event_triggered_wavelet</span><span class="p">(</span>
     <span class="n">signal</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">timestamps</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">events</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
@@ -5190,6 +5221,13 @@ representing the intervals of artefacts and noise.</p>
 <span class="sd">        Time points for each sample in the output.</span>
 <span class="sd">    freqs : 1d array</span>
 <span class="sd">        Frequencies used in the wavelet transform.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Events are sampled on a half-open [-max_lag, max_lag) grid with spacing</span>
+<span class="sd">    1/fs. Off-grid targets are interpolated. Only complete event windows enter</span>
+<span class="sd">    the average; if none are valid, the function warns and returns NaN arrays.</span>
+<span class="sd">    Serial and parallel execution use the same extraction and counting rules.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    -------</span>
@@ -5254,79 +5292,95 @@ representing the intervals of artefacts and noise.</p>
 <span class="sd">    &gt;&gt;&gt; plt.gca().set_title("PFC during 23Hz stim in behavior", y=1)</span>
 <span class="sd">    """</span>
 
-    <span class="n">signal_</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">whiten</span><span class="p">:</span>
-        <span class="n">signal_</span> <span class="o">=</span> <span class="n">whiten_lfp</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">whiten_order</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">neuro_py.process.peri_event</span><span class="w"> </span><span class="kn">import</span> <span class="n">_event_time_lags</span>
 
-    <span class="c1"># set up frequency range</span>
-    <span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">freq_min</span><span class="p">,</span> <span class="n">freq_max</span><span class="p">,</span> <span class="n">freq_step</span><span class="p">)</span>
-    <span class="c1"># set up time range</span>
-    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">fs</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">ds</span>
-    <span class="c1"># Create times array based on the sample rate (fs)</span>
-    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">max_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">fs</span><span class="p">)</span>
-    <span class="c1"># Number of samples corresponding to the time window around each event</span>
-    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_lag</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
-
-    <span class="c1"># Ensure the length of times matches n_samples</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n_samples</span><span class="p">:</span>
-        <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">max_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
-
-    <span class="n">n_freqs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span>
-    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
-
-    <span class="c1"># set up mwt and sigs to store results</span>
-    <span class="n">mwt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_freqs</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">))</span>
-    <span class="n">sigs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
-
-    <span class="n">event_i</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">process_event</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
-        <span class="k">nonlocal</span> <span class="n">event_i</span>
-        <span class="k">nonlocal</span> <span class="n">mwt</span>
-        <span class="k">nonlocal</span> <span class="n">sigs</span>
-
-        <span class="k">if</span> <span class="n">start</span> <span class="o">+</span> <span class="n">max_lag</span> <span class="o">&gt;</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="ow">or</span> <span class="n">start</span> <span class="o">-</span> <span class="n">max_lag</span> <span class="o">&lt;</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">min</span><span class="p">():</span>
-            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-
-        <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">timestamps</span> <span class="o">&gt;=</span> <span class="n">start</span> <span class="o">-</span> <span class="n">max_lag</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">timestamps</span> <span class="o">&lt;=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">max_lag</span><span class="p">)</span>
-
-        <span class="n">mwt_partial</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
-            <span class="n">compute_wavelet_transform</span><span class="p">(</span><span class="n">sig</span><span class="o">=</span><span class="n">signal_</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freqs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+    <span class="n">events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"timestamps must contain at least two samples"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">timestamps</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"timestamps must be finite and strictly increasing"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">signal</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"signal must be one-dimensional with one value per timestamp"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">events</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"events must be one-dimensional"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">max_lag</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_lag</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"max_lag must be finite and positive"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">freq_min</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">freq_max</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">freq_step</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="n">freq_min</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="ow">or</span> <span class="n">freq_step</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="ow">or</span> <span class="n">freq_max</span> <span class="o">&lt;=</span> <span class="n">freq_min</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"frequency bounds and step must be finite, positive and increasing"</span>
         <span class="p">)</span>
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)))</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">_event_time_lags</span><span class="p">([</span><span class="o">-</span><span class="n">max_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">],</span> <span class="n">fs</span><span class="p">)</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">freq_min</span><span class="p">,</span> <span class="n">freq_max</span><span class="p">,</span> <span class="n">freq_step</span><span class="p">)</span>
+    <span class="n">signal_</span> <span class="o">=</span> <span class="n">whiten_lfp</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">whiten_order</span><span class="p">)</span> <span class="k">if</span> <span class="n">whiten</span> <span class="k">else</span> <span class="n">signal</span>
+    <span class="n">mwt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">freqs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)))</span>
+    <span class="n">sigs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)))</span>
 
-        <span class="k">return</span> <span class="n">mwt_partial</span><span class="p">,</span> <span class="n">signal</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_event</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">times</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">tolerance</span>
+            <span class="ow">or</span> <span class="n">targets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">tolerance</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">lower</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">upper</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">timestamps</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">side</span><span class="o">=</span><span class="s2">"left"</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Resample onto the declared event-relative grid. Inclusive timestamp</span>
+        <span class="c1"># masks otherwise return N+1 samples for sample-aligned events.</span>
+        <span class="n">segment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">[</span><span class="n">lower</span><span class="p">:</span><span class="n">upper</span><span class="p">],</span> <span class="n">signal_</span><span class="p">[</span><span class="n">lower</span><span class="p">:</span><span class="n">upper</span><span class="p">])</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">[</span><span class="n">lower</span><span class="p">:</span><span class="n">upper</span><span class="p">],</span> <span class="n">signal</span><span class="p">[</span><span class="n">lower</span><span class="p">:</span><span class="n">upper</span><span class="p">])</span>
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+            <span class="n">compute_wavelet_transform</span><span class="p">(</span><span class="n">sig</span><span class="o">=</span><span class="n">segment</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freqs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">transformed</span><span class="p">,</span> <span class="n">raw</span>
 
-    <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process_event</span><span class="p">,</span> <span class="n">events</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">mwt_partial</span><span class="p">,</span> <span class="n">sig_partial</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">mwt_partial</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># samples might be missing if the event is too close to the edge</span>
-                <span class="k">if</span> <span class="n">mwt_partial</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n_samples</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">mwt</span> <span class="o">+=</span> <span class="n">mwt_partial</span>
-                <span class="n">sigs</span> <span class="o">+=</span> <span class="n">sig_partial</span>
-                <span class="n">event_i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">event_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">if</span> <span class="n">parallel</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process_event</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">executor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="nb">map</span><span class="p">(</span><span class="n">process_event</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">transformed</span><span class="p">,</span> <span class="n">raw</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">if</span> <span class="n">transformed</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">mwt</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wavelet transform returned an unexpected event shape"</span><span class="p">)</span>
+            <span class="n">mwt</span> <span class="o">+=</span> <span class="n">transformed</span>
+            <span class="n">sigs</span> <span class="o">+=</span> <span class="n">raw</span>
+            <span class="n">event_count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">executor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">event_count</span><span class="p">:</span>
+        <span class="n">mwt</span> <span class="o">/=</span> <span class="n">event_count</span>
+        <span class="n">sigs</span> <span class="o">/=</span> <span class="n">event_count</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
-            <span class="n">mwt_partial</span><span class="p">,</span> <span class="n">sig_partial</span> <span class="o">=</span> <span class="n">process_event</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mwt_partial</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">mwt</span> <span class="o">+=</span> <span class="n">mwt_partial</span>
-                <span class="n">sigs</span> <span class="o">+=</span> <span class="n">sig_partial</span>
-                <span class="n">event_i</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="n">mwt</span> <span class="o">/=</span> <span class="n">event_i</span>
-    <span class="n">sigs</span> <span class="o">/=</span> <span class="n">event_i</span>
-
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"No events found within the valid signal range"</span><span class="p">)</span>
+        <span class="n">mwt</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">sigs</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">return_pandas</span><span class="p">:</span>
-        <span class="n">mwt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mwt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">freqs</span><span class="p">)</span>
-        <span class="n">sigs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">sigs</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">times</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">mwt</span><span class="p">,</span> <span class="n">sigs</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">mwt</span><span class="p">,</span> <span class="n">sigs</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">freqs</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mwt</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">freqs</span><span class="p">),</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+            <span class="n">sigs</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">times</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">mwt</span><span class="p">,</span> <span class="n">sigs</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">freqs</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
