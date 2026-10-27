@@ -17,10 +17,11 @@ def test_event_triggered_wavelet():
     # Assert that the output shapes are correct
     assert mwt.shape == (
         24,
-        199,
+        200,
     )  # Adjust according to your frequency range and max_lag
-    assert sigs.shape == (199,)
-    assert times.shape == (199,)
+    assert sigs.shape == (200,)
+    assert times.shape == (200,)
+    np.testing.assert_allclose(np.diff(times), timestamps[1] - timestamps[0])
     assert freqs.shape == (24,)
 
     # Assert that the average signal is within expected range
@@ -42,10 +43,11 @@ def test_event_triggered_wavelet():
     # Assert that the output shapes are correct
     assert mwt.shape == (
         24,
-        181,
+        182,
     )  # Adjust according to your frequency range and max_lag
-    assert sigs.shape == (181,)
-    assert times.shape == (181,)
+    assert sigs.shape == (182,)
+    assert times.shape == (182,)
+    np.testing.assert_allclose(np.diff(times), timestamps[1] - timestamps[0])
     assert freqs.shape == (24,)
 
     # Assert that the average signal is within expected range
