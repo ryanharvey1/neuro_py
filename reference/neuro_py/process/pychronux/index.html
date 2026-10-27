@@ -5286,31 +5286,16 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
     </table>
 
 
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Both auto-spectra and the complex cross-spectrum use a shared time grid,
+support, taper set and FFT size. Supplied tapers may be samples-by-tapers
+or its transpose. Zero-power frequencies have undefined (NaN) coherence.</p>
+</details>
+
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">578</span>
-<span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span>
-<span class="normal">585</span>
-<span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
-<span class="normal">590</span>
-<span class="normal">591</span>
-<span class="normal">592</span>
-<span class="normal">593</span>
-<span class="normal">594</span>
-<span class="normal">595</span>
-<span class="normal">596</span>
-<span class="normal">597</span>
-<span class="normal">598</span>
-<span class="normal">599</span>
-<span class="normal">600</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">600</span>
 <span class="normal">601</span>
 <span class="normal">602</span>
 <span class="normal">603</span>
@@ -5357,7 +5342,59 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 <span class="normal">644</span>
 <span class="normal">645</span>
 <span class="normal">646</span>
-<span class="normal">647</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtcoherencept</span><span class="p">(</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span>
+<span class="normal">655</span>
+<span class="normal">656</span>
+<span class="normal">657</span>
+<span class="normal">658</span>
+<span class="normal">659</span>
+<span class="normal">660</span>
+<span class="normal">661</span>
+<span class="normal">662</span>
+<span class="normal">663</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span>
+<span class="normal">670</span>
+<span class="normal">671</span>
+<span class="normal">672</span>
+<span class="normal">673</span>
+<span class="normal">674</span>
+<span class="normal">675</span>
+<span class="normal">676</span>
+<span class="normal">677</span>
+<span class="normal">678</span>
+<span class="normal">679</span>
+<span class="normal">680</span>
+<span class="normal">681</span>
+<span class="normal">682</span>
+<span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span>
+<span class="normal">694</span>
+<span class="normal">695</span>
+<span class="normal">696</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtcoherencept</span><span class="p">(</span>
     <span class="n">data1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">data2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -5399,28 +5436,58 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 <span class="sd">    -------</span>
 <span class="sd">    pd.DataFrame</span>
 <span class="sd">        Coherence between the two point processes.</span>
-<span class="sd">    """</span>
-    <span class="c1"># Check if data is a single unit and put in array</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-        <span class="n">data1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data1</span><span class="p">])</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-        <span class="n">data2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data2</span><span class="p">])</span>
 
-    <span class="c1"># Compute power spectral densities (PSD) for both spike trains</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Both auto-spectra and the complex cross-spectrum use a shared time grid,</span>
+<span class="sd">    support, taper set and FFT size. Supplied tapers may be samples-by-tapers</span>
+<span class="sd">    or its transpose. Zero-power frequencies have undefined (NaN) coherence.</span>
+<span class="sd">    """</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">data2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">data2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Each spike train must be one-dimensional"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data1</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data2</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Spike times must be finite"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">time_support</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">combined</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"time_support is required for two empty spike trains"</span><span class="p">)</span>
+        <span class="n">time_support</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">max</span><span class="p">())]</span>
+    <span class="k">if</span> <span class="n">tapers_ts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">Fs</span>
+        <span class="n">tapers_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">time_support</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">dt</span><span class="p">,</span> <span class="n">time_support</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tapers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tapers</span> <span class="o">=</span> <span class="n">dpss</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">),</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">tapers</span> <span class="o">=</span> <span class="n">_point_tapers</span><span class="p">(</span><span class="n">tapers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">nfft</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nfft</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">)))),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">))</span>
+
+    <span class="c1"># All three spectra must use the identical support, time origin, tapers,</span>
+    <span class="c1"># and FFT grid. Otherwise their normalization describes different estimates.</span>
     <span class="n">psd1</span> <span class="o">=</span> <span class="n">mtspectrumpt</span><span class="p">(</span>
-        <span class="n">data1</span><span class="p">,</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">time_support</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">nfft</span>
+        <span class="n">data1</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">time_support</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">nfft</span>
     <span class="p">)</span>
     <span class="n">psd2</span> <span class="o">=</span> <span class="n">mtspectrumpt</span><span class="p">(</span>
-        <span class="n">data2</span><span class="p">,</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">time_support</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">nfft</span>
+        <span class="n">data2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">time_support</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">nfft</span>
     <span class="p">)</span>
-
-    <span class="c1"># Compute cross-spectral density (CSD) between the two spike trains</span>
     <span class="n">csd</span> <span class="o">=</span> <span class="n">mtcsdpt</span><span class="p">(</span>
-        <span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">,</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">time_support</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">nfft</span>
+        <span class="n">data1</span><span class="p">,</span>
+        <span class="n">data2</span><span class="p">,</span>
+        <span class="n">Fs</span><span class="p">,</span>
+        <span class="n">fpass</span><span class="p">,</span>
+        <span class="n">NW</span><span class="p">,</span>
+        <span class="n">n_tapers</span><span class="p">,</span>
+        <span class="n">time_support</span><span class="p">,</span>
+        <span class="n">tapers</span><span class="p">,</span>
+        <span class="n">tapers_ts</span><span class="p">,</span>
+        <span class="n">nfft</span><span class="p">,</span>
+        <span class="n">return_complex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
-
-    <span class="c1"># Calculate coherence: |Sxy(f)|^2 / (Sxx(f) * Syy(f))</span>
-    <span class="n">coherence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">csd</span><span class="p">[</span><span class="s2">"CSD"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">psd1</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">psd2</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">coherence</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">csd</span><span class="p">[</span><span class="s2">"CSD"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">psd1</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">psd2</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="p">)</span>
 
     <span class="c1"># Return coherence as a pandas DataFrame</span>
     <span class="n">coherence_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
@@ -5437,7 +5504,7 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 
 
 <h2 id="neuro_py.process.pychronux.mtcsdpt" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">mtcsdpt</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">,</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">n_tapers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">time_support</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tapers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">mtcsdpt</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">,</span> <span class="n">Fs</span><span class="p">,</span> <span class="n">fpass</span><span class="p">,</span> <span class="n">NW</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">n_tapers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">time_support</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tapers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">return_complex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#neuro_py.process.pychronux.mtcsdpt" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5618,6 +5685,23 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>return_complex</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Return the full complex cross-spectrum when True. Default False retains
+the historical real cospectrum for existing callers.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -5637,7 +5721,7 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Cross-spectral density between the two point processes.</p>
+                <p>Cross-spectral density (or its real component by default).</p>
               </div>
             </td>
           </tr>
@@ -5647,20 +5731,7 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">500</span>
-<span class="normal">501</span>
-<span class="normal">502</span>
-<span class="normal">503</span>
-<span class="normal">504</span>
-<span class="normal">505</span>
-<span class="normal">506</span>
-<span class="normal">507</span>
-<span class="normal">508</span>
-<span class="normal">509</span>
-<span class="normal">510</span>
-<span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">513</span>
 <span class="normal">514</span>
 <span class="normal">515</span>
 <span class="normal">516</span>
@@ -5722,7 +5793,29 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 <span class="normal">572</span>
 <span class="normal">573</span>
 <span class="normal">574</span>
-<span class="normal">575</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtcsdpt</span><span class="p">(</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtcsdpt</span><span class="p">(</span>
     <span class="n">data1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">data2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -5733,6 +5826,8 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
     <span class="n">tapers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tapers_ts</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nfft</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">return_complex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Multitaper cross-spectral density (CSD) for point processes.</span>
@@ -5760,10 +5855,14 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 <span class="sd">    nfft : Optional[int], optional</span>
 <span class="sd">        Number of points for FFT, by default None.</span>
 
+<span class="sd">    return_complex : bool, optional</span>
+<span class="sd">        Return the full complex cross-spectrum when True. Default False retains</span>
+<span class="sd">        the historical real cospectrum for existing callers.</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    pd.DataFrame</span>
-<span class="sd">        Cross-spectral density between the two point processes.</span>
+<span class="sd">        Cross-spectral density (or its real component by default).</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">time_support</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">mintime</span><span class="p">,</span> <span class="n">maxtime</span> <span class="o">=</span> <span class="n">time_support</span>
@@ -5777,12 +5876,13 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
         <span class="n">tapers_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mintime</span> <span class="o">-</span> <span class="n">dt</span><span class="p">,</span> <span class="n">maxtime</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
         <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">)</span>
         <span class="n">tapers</span><span class="p">,</span> <span class="n">eigens</span> <span class="o">=</span> <span class="n">dpss</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">NW</span><span class="p">,</span> <span class="n">n_tapers</span><span class="p">,</span> <span class="n">return_ratios</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">tapers</span> <span class="o">=</span> <span class="n">tapers</span><span class="o">.</span><span class="n">T</span>
 
     <span class="k">if</span> <span class="n">tapers_ts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tapers_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mintime</span> <span class="o">-</span> <span class="n">dt</span><span class="p">,</span> <span class="n">maxtime</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
-    <span class="n">tapers</span> <span class="o">=</span> <span class="n">tapers</span><span class="o">.</span><span class="n">T</span>
     <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">)</span>
+    <span class="n">tapers</span> <span class="o">=</span> <span class="n">_point_tapers</span><span class="p">(</span><span class="n">tapers</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
 
     <span class="c1"># Number of points in FFT</span>
     <span class="k">if</span> <span class="n">nfft</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -5794,7 +5894,9 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
     <span class="n">J2</span><span class="p">,</span> <span class="n">Msp2</span><span class="p">,</span> <span class="n">Nsp2</span> <span class="o">=</span> <span class="n">mtfftpt</span><span class="p">(</span><span class="n">data2</span><span class="p">,</span> <span class="n">tapers</span><span class="p">,</span> <span class="n">nfft</span><span class="p">,</span> <span class="n">tapers_ts</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">findx</span><span class="p">)</span>
 
     <span class="c1"># Cross-spectral density: Sxy = mean(conjugate(J1) * J2)</span>
-    <span class="n">csd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">J1</span><span class="p">)</span> <span class="o">*</span> <span class="n">J2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">csd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">J1</span><span class="p">)</span> <span class="o">*</span> <span class="n">J2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_complex</span><span class="p">:</span>
+        <span class="n">csd</span> <span class="o">=</span> <span class="n">csd</span><span class="o">.</span><span class="n">real</span>
 
     <span class="n">csd_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"CSD"</span><span class="p">:</span> <span class="n">csd</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">csd_df</span>
@@ -5922,20 +6024,7 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span>
-<span class="normal">336</span>
-<span class="normal">337</span>
-<span class="normal">338</span>
-<span class="normal">339</span>
-<span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">345</span>
 <span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
@@ -5960,7 +6049,20 @@ Only frequencies within the range defined by <code>fpass</code> are returned.</p
 <span class="normal">367</span>
 <span class="normal">368</span>
 <span class="normal">369</span>
-<span class="normal">370</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtfftc</span><span class="p">(</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtfftc</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">tapers</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">nfft</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -6473,20 +6575,7 @@ and returns the power spectrum as a pandas Series.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">386</span>
 <span class="normal">387</span>
 <span class="normal">388</span>
 <span class="normal">389</span>
@@ -6515,7 +6604,20 @@ and returns the power spectrum as a pandas Series.</p>
 <span class="normal">412</span>
 <span class="normal">413</span>
 <span class="normal">414</span>
-<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtspectrumc</span><span class="p">(</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtspectrumc</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fpass</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">tapers</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -6775,19 +6877,7 @@ and returns the power spectrum as a pandas Series.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
@@ -6873,7 +6963,20 @@ and returns the power spectrum as a pandas Series.</p>
 <span class="normal">326</span>
 <span class="normal">327</span>
 <span class="normal">328</span>
-<span class="normal">329</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtspectrumpt</span><span class="p">(</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mtspectrumpt</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">fpass</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -6959,6 +7062,7 @@ and returns the power spectrum as a pandas Series.</p>
         <span class="n">tapers_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mintime</span> <span class="o">-</span> <span class="n">dt</span><span class="p">,</span> <span class="n">maxtime</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
     <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tapers_ts</span><span class="p">)</span>
+    <span class="n">tapers</span> <span class="o">=</span> <span class="n">_point_tapers</span><span class="p">(</span><span class="n">tapers</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
     <span class="c1"># number of points in fft of prolates</span>
     <span class="k">if</span> <span class="n">nfft</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">nfft</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">N</span><span class="p">))),</span> <span class="n">N</span><span class="p">])</span>
@@ -7144,20 +7248,7 @@ The time-bandwidth product is used to compute the tapers.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/process/pychronux.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
-<span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">431</span>
 <span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
@@ -7223,7 +7314,20 @@ The time-bandwidth product is used to compute the tapers.</p>
 <span class="normal">494</span>
 <span class="normal">495</span>
 <span class="normal">496</span>
-<span class="normal">497</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">point_spectra</span><span class="p">(</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">point_spectra</span><span class="p">(</span>
     <span class="n">times</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">Fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1250</span><span class="p">,</span>
     <span class="n">freq_range</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
