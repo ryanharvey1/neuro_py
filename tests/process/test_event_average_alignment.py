@@ -204,3 +204,87 @@ def test_empty_channel_arrays_preserve_output_axes(fast, average):
         )
         expected = (len(lags), 0)
     assert result.shape == (expected if average else expected + (2,))
+
+
+@pytest.mark.parametrize("sampling_rate", [None, 100])
+@pytest.mark.parametrize("average", [False, True])
+def test_float32_regular_timestamps_preserve_nearest_samples_and_missing_data(
+    sampling_rate, average
+):
+    times = (np.arange(1001) / 100).astype(np.float32)
+    signal = np.zeros(1001)
+    signal[122], signal[123] = np.nan, 9
+    result, lags = event_triggered_average(
+        times, signal, [1.23], sampling_rate, [-0.01, 0.01], return_average=average
+    )
+    expected = np.array([[np.nan], [9]])
+    np.testing.assert_allclose(result, expected if average else expected[:, :, None])
+    np.testing.assert_allclose(lags, [-0.01, 0])
+
+
+def test_float32_regular_average_keeps_streaming_path(monkeypatch):
+    import neuro_py.process.peri_event as module
+
+    def interpolation_is_unexpected(*args, **kwargs):
+        pytest.fail("regular float32 timestamps must use nearest-sample extraction")
+
+    monkeypatch.setattr(module.np, "interp", interpolation_is_unexpected)
+    times = (np.arange(10001) / 1000).astype(np.float32)
+    result, _ = event_triggered_average(
+        times, np.ones((len(times), 8)), np.linspace(1, 8, 1000), 1000, [-0.1, 0.1]
+    )
+    np.testing.assert_array_equal(result, 1)
+
+
+def test_inferred_float32_rate_does_not_add_bin_from_rounded_endpoint():
+    times = (np.arange(1000) / 100).astype(np.float32)
+    result, lags = event_triggered_average(
+        times, np.ones(len(times)), [5.0], window=[-0.1, 0.1]
+    )
+    assert result.shape == (20, 1)
+    assert len(lags) == 20
+
+
+def test_low_precision_clock_does_not_hide_missing_samples():
+    times = (10000 + np.arange(1001) / 1000).astype(np.float32)
+    times = np.delete(times, 100)
+    signal = 3 + 2 * (times.astype(float) - 10000)
+    result, lags = event_triggered_average(
+        times, signal, [10000.1], 1000, [-0.01, 0.01]
+    )
+    np.testing.assert_allclose(result[:, 0], 3 + 2 * (0.1 + lags), atol=1e-10)
+
+
+@pytest.mark.parametrize("force_interpolation", [False, True])
+def test_float32_irregular_or_explicit_interpolation_uses_exact_times(
+    force_interpolation,
+):
+    times = (np.arange(1001) / 100).astype(np.float32)
+    if not force_interpolation:
+        times[1:-1] += (0.002 * np.sin(np.arange(999))).astype(np.float32)
+    values = 3 + 2 * times.astype(float)
+    result, lags = event_triggered_average(
+        times, values, [5.035], 100, [-0.1, 0.1], irregular_sampling=force_interpolation
+    )
+    np.testing.assert_allclose(result[:, 0], 3 + 2 * (5.035 + lags), atol=1e-12)
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+@pytest.mark.parametrize("average", [False, True])
+def test_fast_complex_responses_preserve_imaginary_values_and_nan_windows(
+    dtype, average
+):
+    values = np.arange(102).reshape(2, 51)
+    signal = (values + 1j * (3 - 2 * values)).astype(dtype)
+    signal[0, 19] = np.nan
+    events = np.array([0, 2, 3, -1, np.nan])
+    expected = np.full((2, 3, 5), np.nan, dtype=dtype)
+    expected[:, :, 1] = signal[:, 19:22]
+    expected[:, :, 2] = signal[:, 29:32]
+    result, _ = event_triggered_average_fast(
+        signal, events, 10, [-0.1, 0.2], return_average=average
+    )
+    assert result.dtype == dtype
+    np.testing.assert_allclose(
+        result, np.nanmean(expected, axis=2) if average else expected
+    )

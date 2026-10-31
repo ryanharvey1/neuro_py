@@ -88,3 +88,33 @@ def test_irregular_timestamps_and_nonzero_origin_use_event_relative_grid():
     )
     np.testing.assert_allclose(raw, 3 + 2 * (0.5 + frame.index), atol=1e-10)
     assert frame.shape == (40, 1)
+
+
+@pytest.mark.parametrize("origin", [0, 10000, 1000000])
+@pytest.mark.parametrize("sample_count", [12500, 12501])
+@pytest.mark.parametrize("max_lag, count", [(0.5, 1250), (0.50004, 1251)])
+def test_inferred_regular_rate_keeps_lag_count_independent_of_clock_origin(
+    origin, max_lag, count, sample_count
+):
+    times = origin + np.arange(sample_count) / 1250
+    values = np.sin(2 * np.pi * 10 * np.arange(sample_count) / 1250)
+    power, raw, lags, frequencies = event_triggered_wavelet(
+        values,
+        times,
+        np.array([origin + 5.0001]),
+        max_lag=max_lag,
+        freq_min=10,
+        freq_max=20,
+        freq_step=10,
+        whiten=False,
+        parallel=False,
+    )
+    assert power.shape == (len(frequencies), count)
+    assert raw.shape == (count,)
+    # An inferred rate cannot recover time precision lost at the clock origin.
+    np.testing.assert_allclose(
+        lags,
+        -max_lag + np.arange(count) / 1250,
+        atol=max(1e-12, np.spacing(float(origin + 10))),
+    )
+    np.testing.assert_allclose(raw, np.interp(origin + 5.0001 + lags, times, values))
