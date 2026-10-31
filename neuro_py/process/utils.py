@@ -53,6 +53,9 @@ def circular_shift(m: NDArray[Any], s: NDArray[Any]) -> NDArray[Any]:
         return m.copy()
     # Index both dimensions explicitly: MATLAB's one-based column-major linear
     # indices cannot be applied to NumPy's zero-based row-major flattening.
+    # Widen before modulo: NumPy 2 cannot cast a long axis length to int8/uint8.
+    # Keep unsigned shifts unsigned until reduction so uint64 extrema are exact.
+    s = s.astype(np.uint64 if s.dtype.kind == "u" else np.int64, copy=False)
     # Reduce shifts first to avoid signed overflow for extreme integer values.
     if s.size == n_columns:
         shifts = (s % n_rows).astype(np.intp)

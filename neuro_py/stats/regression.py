@@ -242,18 +242,23 @@ class kernelReducedRankRegressor(BaseEstimator):
         if targets.shape[0] < 2 or targets.shape[1] == 0:
             raise ValueError("At least two samples and one target are required")
 
-        targets = targets - targets.mean(axis=0)
-        predictions = predictions - predictions.mean(axis=0)
-        numerator = np.sum(targets * predictions, axis=0)
-        denominator = np.sqrt(
-            np.sum(targets**2, axis=0) * np.sum(predictions**2, axis=0)
-        )
-        correlations = np.divide(
-            numerator,
-            denominator,
-            out=np.full(targets.shape[1], np.nan),
-            where=denominator > 0,
-        )
+        if (
+            not np.all(np.isfinite(targets))
+            or not np.all(np.isfinite(predictions))
+            or np.any(np.all(targets == targets[0], axis=0))
+            or np.any(np.all(predictions == predictions[0], axis=0))
+        ):
+            return float("nan")
+        # Pearson correlation is invariant to positive column scaling. Scale
+        # before centering as even a mean or subtraction can overflow, then
+        # normalize each vector separately instead of multiplying squared norms.
+        targets = targets / np.max(np.abs(targets), axis=0)
+        predictions = predictions / np.max(np.abs(predictions), axis=0)
+        targets -= targets.mean(axis=0)
+        predictions -= predictions.mean(axis=0)
+        targets /= np.sqrt(np.sum(targets**2, axis=0))
+        predictions /= np.sqrt(np.sum(predictions**2, axis=0))
+        correlations = np.sum(targets * predictions, axis=0)
         return float(np.clip(correlations, -1, 1).mean())
 
     ## Optional

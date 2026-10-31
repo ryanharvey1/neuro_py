@@ -28,6 +28,32 @@ def test_constant_target_correlation_is_undefined():
     assert np.isnan(kernelReducedRankRegressor().rrr_scorer(np.ones(5), np.arange(5)))
 
 
+@pytest.mark.parametrize("scale", [1e-300, 1e-100, 1.0, 1e100, 1e308])
+def test_scorer_is_invariant_to_extreme_finite_scales(scale):
+    from scipy.stats import pearsonr
+
+    target = np.array([[-1, 0.5], [0, -1], [1, 0.25]])
+    prediction = np.array([[-0.75, 1], [0.25, -0.5], [1, 0.5]])
+    expected = np.mean(
+        [pearsonr(x, y).statistic for x, y in zip(target.T, prediction.T)]
+    )
+    with np.errstate(over="raise", invalid="raise", divide="raise"):
+        result = kernelReducedRankRegressor().rrr_scorer(
+            prediction * scale, target * scale
+        )
+    assert result == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("constant_prediction", [False, True])
+def test_decimal_constant_correlation_is_undefined(constant_prediction):
+    constant = np.full(30, 0.1)
+    varying = np.arange(30)
+    prediction, target = (
+        (constant, varying) if constant_prediction else (varying, constant)
+    )
+    assert np.isnan(kernelReducedRankRegressor().rrr_scorer(prediction, target))
+
+
 @pytest.mark.parametrize(
     "prediction, target",
     [
