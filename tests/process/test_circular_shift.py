@@ -40,8 +40,31 @@ def test_extreme_shifts_and_noncontiguous_inputs(unsigned):
         else np.array([0, -1, np.iinfo(np.int64).min, np.iinfo(np.int64).max])
     )
     expected = np.column_stack(
-        [np.roll(matrix[:, col], int(shift)) for col, shift in enumerate(shifts)]
+        [
+            np.roll(matrix[:, col], int(shift) % matrix.shape[0])
+            for col, shift in enumerate(shifts)
+        ]
     )
+    np.testing.assert_array_equal(circular_shift(matrix, shifts), expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
+)
+@pytest.mark.parametrize("columns", [False, True])
+def test_shift_dtypes_work_when_axis_length_exceeds_dtype_range(dtype, columns):
+    matrix = np.arange(900).reshape((300, 3) if columns else (3, 300))
+    limits = np.iinfo(dtype)
+    shifts = np.array([limits.min, 1, limits.max], dtype=dtype)
+    # Python integer arithmetic provides an independent, overflow-free oracle.
+    expected = np.empty_like(matrix)
+    for index, shift in enumerate(shifts):
+        indices = [(sample - int(shift)) % 300 for sample in range(300)]
+        if columns:
+            expected[:, index] = matrix[indices, index]
+        else:
+            expected[index] = matrix[index, indices]
     np.testing.assert_array_equal(circular_shift(matrix, shifts), expected)
 
 

@@ -270,12 +270,38 @@ class ExplainedVariance(object):
     ) -> NDArray[np.float64]:
         """Correlate bins inside both each window and the requested epoch union."""
         paircorr = []
-        restricted = self.bst[epochs.merge()]
+        requested = epochs.merge()
         for window in windows:
-            bst_data = restricted[EpochArray(window)].data
+            bst_data = self.__get_window_data(requested[EpochArray(window)])
             corr = np.corrcoef(bst_data)
             paircorr.append(corr[np.tril_indices(corr.shape[0], k=-1)])
         return np.asarray(paircorr)
+
+    def __get_window_data(self, epochs: EpochArray) -> NDArray[Any]:
+        """Select complete bins without copying the full recording per window."""
+        # Keep nelpy's epoch/support intersection and complete-bin semantics.
+        # BinnedSpikeTrainArray indexing deep-copies all counts and spike times
+        # before restricting. Use its actual edges (not centers +/- ds/2) to
+        # obtain views instead; concatenate only when a window spans a gap.
+        components = self.bst.support[epochs].merge()
+        if components.isempty:
+            return self.bst.data[:, :0]
+        pieces = []
+        edges, centers = self.bst.bins, self.bst.bin_centers
+        for start, stop in components.data:
+            first = int(np.searchsorted(edges, start, side="left"))
+            last = int(np.searchsorted(edges, stop, side="right")) - 1
+            # A sub-bin component contains no complete bins. In particular, do
+            # not pass reversed edge bounds back to nelpy's EpochArray.
+            if first >= last:
+                continue
+            left, right = np.searchsorted(centers, [edges[first], edges[last]])
+            pieces.append(self.bst.data[:, left:right])
+        if not pieces:
+            return self.bst.data[:, :0]
+        if len(pieces) == 1:
+            return pieces[0]
+        return np.concatenate(pieces, axis=1)
 
     def __calculate_partial_correlations(self):
         """Calculate partial correlations."""
