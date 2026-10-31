@@ -249,11 +249,13 @@ class kernelReducedRankRegressor(BaseEstimator):
             or np.any(np.all(predictions == predictions[0], axis=0))
         ):
             return float("nan")
-        # Pearson correlation is invariant to positive column scaling. Scale
-        # before centering as even a mean or subtraction can overflow, then
-        # normalize each vector separately instead of multiplying squared norms.
-        targets = targets / np.max(np.abs(targets), axis=0)
-        predictions = predictions / np.max(np.abs(predictions), axis=0)
+        # Power-of-two scaling is exact in binary arithmetic, preserving small
+        # variations on large offsets while preventing mean/subtraction overflow.
+        # Normalize vectors separately instead of multiplying squared norms.
+        _, target_exponents = np.frexp(np.max(np.abs(targets), axis=0))
+        _, prediction_exponents = np.frexp(np.max(np.abs(predictions), axis=0))
+        targets = np.ldexp(targets, -target_exponents)
+        predictions = np.ldexp(predictions, -prediction_exponents)
         targets -= targets.mean(axis=0)
         predictions -= predictions.mean(axis=0)
         targets /= np.sqrt(np.sum(targets**2, axis=0))
