@@ -17,6 +17,23 @@ from neuro_py.process.intervals import (
 class TestFindIntersectingIntervals:
     """Tests for find_intersecting_intervals function."""
 
+    def test_boolean_overlap_matches_independent_union_for_many_components(self):
+        rng = np.random.default_rng(74)
+        queries = np.sort(rng.uniform(-5, 205, size=(200, 2)), axis=1)
+        reference = np.column_stack((np.arange(100) * 2, np.arange(100) * 2 + 1))
+        first, second = nel.EpochArray(queries), nel.EpochArray(reference)
+        expected = np.array(
+            [
+                any(min(stop, b) > max(start, a) for a, b in reference)
+                for start, stop in first.data
+            ]
+        )
+        np.testing.assert_array_equal(
+            find_intersecting_intervals(first, second), expected
+        )
+        durations = find_intersecting_intervals(first, second, return_indices=False)
+        np.testing.assert_array_equal(durations > 0, expected)
+
     def test_touching_component_does_not_hide_later_overlap(self):
         first = nel.EpochArray([[1, 4]])
         second = nel.EpochArray([[0, 1], [2, 3]])

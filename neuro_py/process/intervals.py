@@ -199,7 +199,9 @@ def overlap_intersect(
 
 
 @jit(nopython=True)
-def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List[float]:
+def _find_intersecting_intervals(
+    set1: NDArray[Any], set2: NDArray[Any], stop_on_first: bool = False
+) -> List[float]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
@@ -209,6 +211,8 @@ def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List
         An array of intervals represented as pairs of start and end times.
     set2 : ndarray
         An array of intervals represented as pairs of start and end times.
+    stop_on_first : bool, optional
+        Stop after the first positive overlap when only existence is needed.
 
     Returns
     -------
@@ -226,6 +230,8 @@ def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List
                 break
             if end2 > start1:
                 intersection += min(end1, end2) - max(start1, start2)
+                if stop_on_first and intersection > 0:
+                    break
         intersecting_intervals.append(intersection)
 
     return intersecting_intervals
@@ -275,7 +281,9 @@ def find_intersecting_intervals(
     else:
         # Merge the reference intervals so shared coverage is never counted twice.
         intersection = np.array(
-            _find_intersecting_intervals(set1.data, set2.merge().data)
+            _find_intersecting_intervals(
+                set1.data, set2.merge().data, stop_on_first=return_indices
+            )
         )
     if return_indices:
         return intersection > 0
