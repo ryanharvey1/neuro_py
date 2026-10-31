@@ -437,9 +437,15 @@ def event_triggered_wavelet(
     >>> plt.gca().set_title("PFC during 23Hz stim in behavior", y=1)
     """
 
-    from neuro_py.process.peri_event import _event_time_lags
+    from neuro_py.process.peri_event import _event_sampling_info, _event_time_lags
 
-    timestamps = np.asarray(timestamps, dtype=float)
+    timestamps = np.asarray(timestamps)
+    timestamp_precision = float(
+        np.finfo(timestamps.dtype).eps
+        if timestamps.dtype.kind == "f"
+        else np.finfo(float).eps
+    )
+    timestamps = timestamps.astype(float, copy=False)
     signal = np.asarray(signal)
     events = np.atleast_1d(np.asarray(events, dtype=float))
     if timestamps.ndim != 1 or timestamps.size < 2:
@@ -461,9 +467,13 @@ def event_triggered_wavelet(
         raise ValueError(
             "frequency bounds and step must be finite, positive and increasing"
         )
+    rate_tolerance = 0.0
     if fs is None:
-        fs = float(1 / np.median(np.diff(timestamps)))
-    times = _event_time_lags([-max_lag, max_lag], fs)
+        inferred_rate, regular, rate_tolerance = _event_sampling_info(
+            timestamps, None, timestamp_precision
+        )
+        fs = inferred_rate if regular else float(1 / np.median(np.diff(timestamps)))
+    times = _event_time_lags([-max_lag, max_lag], fs, rate_tolerance)
     freqs = np.arange(freq_min, freq_max, freq_step)
     signal_ = whiten_lfp(signal, order=whiten_order) if whiten else signal
     mwt = np.zeros((len(freqs), len(times)))

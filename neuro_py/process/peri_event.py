@@ -801,8 +801,39 @@ def event_triggered_average_irregular_sample(
     return avg, std
 
 
+def _event_sampling_info(
+    timestamps: NDArray[np.float64],
+    sampling_rate: float | None,
+    timestamp_precision: float,
+) -> tuple[float, bool, float]:
+    """Detect a regular grid within the precision of the source timestamps."""
+    inferred = sampling_rate is None
+    if inferred:
+        # A long baseline avoids subtractive rounding in adjacent timestamps
+        # at a large clock origin, which can otherwise add an output lag bin.
+        sampling_rate = float((timestamps.size - 1) / (timestamps[-1] - timestamps[0]))
+    if not np.isfinite(sampling_rate) or sampling_rate <= 0:
+        return sampling_rate, False, 0.0
+    # Adjacent differences include quantization from both source timestamps.
+    # Preserve float32 precision information before conversion to float64.
+    # Callers validate increasing timestamps, so the largest magnitude is at an
+    # endpoint; avoid an extra full-recording scan on the regular fast path.
+    rounding = 2 * timestamp_precision * max(abs(timestamps[0]), abs(timestamps[-1]))
+    # Poor timestamp precision must not make a missing sample look regular.
+    tolerance = min(max(1e-12, rounding), 0.25 / sampling_rate)
+    regular = np.allclose(
+        np.diff(timestamps), 1 / sampling_rate, rtol=1e-6, atol=tolerance
+    )
+    rate_tolerance = (
+        sampling_rate * rounding / (timestamps[-1] - timestamps[0])
+        if inferred and regular
+        else 0.0
+    )
+    return sampling_rate, bool(regular), float(rate_tolerance)
+
+
 def _event_time_lags(
-    window: Sequence[float], sampling_rate: float
+    window: Sequence[float], sampling_rate: float, sampling_rate_tolerance: float = 0.0
 ) -> NDArray[np.float64]:
     """Construct a half-open output grid without floating-point extra bins."""
     bounds = np.asarray(window, dtype=float)
@@ -816,9 +847,13 @@ def _event_time_lags(
         raise ValueError("sampling_rate must be finite and positive")
     span = (bounds[1] - bounds[0]) * sampling_rate
     nearest = np.rint(span)
-    # Timestamp differences can amplify rounding when the rate is inferred.
-    # Snap arithmetic noise below one billionth of a sample, not real partial bins.
-    tolerance = max(1e-9, 8 * np.finfo(float).eps * abs(span))
+    # Snap arithmetic noise, including the endpoint precision of an inferred
+    # rate. Explicit rates retain the small arithmetic-only tolerance.
+    tolerance = max(
+        1e-9,
+        8 * np.finfo(float).eps * abs(span),
+        (bounds[1] - bounds[0]) * sampling_rate_tolerance,
+    )
     if nearest >= 1 and abs(span - nearest) <= tolerance:
         span = nearest
     count = int(np.ceil(span))
@@ -947,7 +982,13 @@ def event_triggered_average(
     ...    timestamps, signal, events, window=[-0.5, 0.5], return_average=False
     ... )
     """
-    timestamps = np.asarray(timestamps, dtype=float)
+    timestamps = np.asarray(timestamps)
+    timestamp_precision = float(
+        np.finfo(timestamps.dtype).eps
+        if timestamps.dtype.kind == "f"
+        else np.finfo(float).eps
+    )
+    timestamps = timestamps.astype(float, copy=False)
     signal = np.asarray(signal)
     events = np.atleast_1d(np.asarray(events, dtype=float))
     if timestamps.ndim != 1 or timestamps.size < 2:
@@ -962,9 +1003,16 @@ def event_triggered_average(
         raise ValueError("signal must have one row per timestamp")
     if events.ndim != 1:
         raise ValueError("events must be one-dimensional")
+    inferred_rate, regular, rate_tolerance = _event_sampling_info(
+        timestamps, sampling_rate, timestamp_precision
+    )
     if sampling_rate is None:
-        sampling_rate = float(1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0])
-    time_lags = _event_time_lags(window, sampling_rate)
+        sampling_rate = (
+            inferred_rate
+            if regular
+            else float(1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0])
+        )
+    time_lags = _event_time_lags(window, sampling_rate, rate_tolerance)
     tolerance = 8 * np.finfo(float).eps * max(1.0, np.max(np.abs(timestamps)))
     valid_mask = (
         np.isfinite(events)
@@ -982,7 +1030,6 @@ def event_triggered_average(
             return pd.DataFrame(result, index=time_lags)
         return result, time_lags
 
-    regular = np.allclose(np.diff(timestamps), 1 / sampling_rate, rtol=1e-6, atol=1e-12)
     if regular and not irregular_sampling:
         result_matrix = _extract_regular_events(
             signal,
@@ -1075,7 +1122,7 @@ def event_triggered_average_fast(
       describe the requested grid. Use ``event_triggered_average`` with
       ``irregular_sampling=True`` when exact-time interpolation is needed.
       Output uses floating-point storage so invalid event windows remain NaN.
-      Float32/float64 input dtypes are retained; integer inputs use float64.
+      Float32/float64 and complex input dtypes are retained; integer inputs use float64.
     """
 
     signal = np.asarray(signal)
@@ -1096,7 +1143,7 @@ def event_triggered_average_fast(
         return_average=return_average,
         dtype=(
             signal.dtype
-            if np.issubdtype(signal.dtype, np.floating) and signal.dtype.itemsize >= 4
+            if np.issubdtype(signal.dtype, np.inexact) and signal.dtype.itemsize >= 4
             else np.dtype(float)
         ),
     )
