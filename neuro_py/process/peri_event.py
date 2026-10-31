@@ -816,7 +816,9 @@ def _event_sampling_info(
         return sampling_rate, False, 0.0
     # Adjacent differences include quantization from both source timestamps.
     # Preserve float32 precision information before conversion to float64.
-    rounding = 2 * timestamp_precision * np.max(np.abs(timestamps))
+    # Callers validate increasing timestamps, so the largest magnitude is at an
+    # endpoint; avoid an extra full-recording scan on the regular fast path.
+    rounding = 2 * timestamp_precision * max(abs(timestamps[0]), abs(timestamps[-1]))
     # Poor timestamp precision must not make a missing sample look regular.
     tolerance = min(max(1e-12, rounding), 0.25 / sampling_rate)
     regular = np.allclose(
