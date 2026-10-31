@@ -54,6 +54,24 @@ def test_decimal_constant_correlation_is_undefined(constant_prediction):
     assert np.isnan(kernelReducedRankRegressor().rrr_scorer(prediction, target))
 
 
+@pytest.mark.parametrize("offset", [1e8, 1e12, 1e16])
+def test_scorer_preserves_centering_precision_with_large_offsets(offset):
+    rng = np.random.default_rng(0)
+    target = rng.integers(-50, 50, 100).astype(float)
+    prediction = target + rng.integers(-25, 25, 100)
+    target += offset
+    prediction += offset
+    # Center in original units as an independent reference; this range is safe
+    # from overflow. Arbitrary pre-centering division can erase small variations.
+    centered_target = target - target.mean()
+    centered_prediction = prediction - prediction.mean()
+    expected = np.dot(centered_target, centered_prediction) / (
+        np.linalg.norm(centered_target) * np.linalg.norm(centered_prediction)
+    )
+    result = kernelReducedRankRegressor().rrr_scorer(prediction, target)
+    assert result == pytest.approx(expected, abs=1e-15)
+
+
 @pytest.mark.parametrize(
     "prediction, target",
     [
