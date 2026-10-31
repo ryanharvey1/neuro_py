@@ -983,7 +983,7 @@ def event_triggered_average(
     ... )
     """
     timestamps = np.asarray(timestamps)
-    timestamp_precision = (
+    timestamp_precision = float(
         np.finfo(timestamps.dtype).eps
         if timestamps.dtype.kind == "f"
         else np.finfo(float).eps

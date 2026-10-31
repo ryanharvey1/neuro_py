@@ -440,7 +440,7 @@ def event_triggered_wavelet(
     from neuro_py.process.peri_event import _event_sampling_info, _event_time_lags
 
     timestamps = np.asarray(timestamps)
-    timestamp_precision = (
+    timestamp_precision = float(
         np.finfo(timestamps.dtype).eps
         if timestamps.dtype.kind == "f"
         else np.finfo(float).eps
