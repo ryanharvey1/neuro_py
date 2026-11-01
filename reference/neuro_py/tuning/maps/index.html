@@ -7261,7 +7261,10 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">1544</span>
 <span class="normal">1545</span>
 <span class="normal">1546</span>
-<span class="normal">1547</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpatialMap</span><span class="p">(</span><span class="n">NDimensionalBinner</span><span class="p">):</span>
+<span class="normal">1547</span>
+<span class="normal">1548</span>
+<span class="normal">1549</span>
+<span class="normal">1550</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpatialMap</span><span class="p">(</span><span class="n">NDimensionalBinner</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    SpatialMap: make a spatial map tuning curve</span>
 <span class="sd">        maps timestamps or continuous signals onto positions</span>
@@ -7668,11 +7671,12 @@ In the future, these should be stored for all sub fields.</p>
         <span class="k">for</span> <span class="n">uu</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st_run</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
             <span class="n">ratemap</span><span class="p">[</span><span class="n">uu</span><span class="p">][</span><span class="n">occupancy</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_duration</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="c1"># add to nelpy tuning curve class</span>
+        <span class="c1"># Nelpy reconstructs equally spaced bins from these endpoints. Use the</span>
+        <span class="c1"># histogram extent, which may extend beyond a non-divisible x_max.</span>
         <span class="n">tc</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">TuningCurve1D</span><span class="p">(</span>
             <span class="n">ratemap</span><span class="o">=</span><span class="n">ratemap</span><span class="p">,</span>
-            <span class="n">extmin</span><span class="o">=</span><span class="n">x_min</span><span class="p">,</span>
-            <span class="n">extmax</span><span class="o">=</span><span class="n">x_max</span><span class="p">,</span>
+            <span class="n">extmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">extmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
         <span class="p">)</span>
 
         <span class="n">tc</span><span class="o">.</span><span class="n">_occupancy</span> <span class="o">=</span> <span class="n">occupancy</span>
@@ -7840,7 +7844,7 @@ In the future, these should be stored for all sub fields.</p>
 
         <span class="c1"># Original implementation</span>
         <span class="c1"># number of bins in each dimension</span>
-        <span class="n">ext_nx</span><span class="p">,</span> <span class="n">ext_ny</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">)</span>
+        <span class="n">ext_nx</span><span class="p">,</span> <span class="n">ext_ny</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
         <span class="c1"># compute occupancy</span>
         <span class="n">occupancy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_occupancy_2d</span><span class="p">(</span><span class="n">pos_run</span><span class="p">)</span>
@@ -7856,12 +7860,14 @@ In the future, these should be stored for all sub fields.</p>
         <span class="c1"># background firing rate of xx Hz</span>
         <span class="n">ratemap</span><span class="p">[</span><span class="n">ratemap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">minbgrate</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minbgrate</span>
 
+        <span class="c1"># Coordinate labels and physical smoothing widths must use the same</span>
+        <span class="c1"># extent as the histograms, including bins extending past requested bounds.</span>
         <span class="n">tc</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">TuningCurve2D</span><span class="p">(</span>
             <span class="n">ratemap</span><span class="o">=</span><span class="n">ratemap</span><span class="p">,</span>
-            <span class="n">ext_xmin</span><span class="o">=</span><span class="n">ext_xmin</span><span class="p">,</span>
-            <span class="n">ext_ymin</span><span class="o">=</span><span class="n">ext_ymin</span><span class="p">,</span>
-            <span class="n">ext_xmax</span><span class="o">=</span><span class="n">ext_xmax</span><span class="p">,</span>
-            <span class="n">ext_ymax</span><span class="o">=</span><span class="n">ext_ymax</span><span class="p">,</span>
+            <span class="n">ext_xmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">ext_ymin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">ext_xmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">ext_ymax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="n">ext_ny</span><span class="o">=</span><span class="n">ext_ny</span><span class="p">,</span>
             <span class="n">ext_nx</span><span class="o">=</span><span class="n">ext_nx</span><span class="p">,</span>
         <span class="p">)</span>
@@ -8584,8 +8590,7 @@ In the future, these should be stored for all sub fields.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">735</span>
-<span class="normal">736</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">736</span>
 <span class="normal">737</span>
 <span class="normal">738</span>
 <span class="normal">739</span>
@@ -8600,7 +8605,8 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">748</span>
 <span class="normal">749</span>
 <span class="normal">750</span>
-<span class="normal">751</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_occupancy_1d</span><span class="p">(</span>
+<span class="normal">751</span>
+<span class="normal">752</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_occupancy_1d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">pos_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Computes the occupancy for 1D position data.</span>
@@ -8693,10 +8699,7 @@ In the future, these should be stored for all sub fields.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">925</span>
-<span class="normal">926</span>
-<span class="normal">927</span>
-<span class="normal">928</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">928</span>
 <span class="normal">929</span>
 <span class="normal">930</span>
 <span class="normal">931</span>
@@ -8711,7 +8714,10 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">940</span>
 <span class="normal">941</span>
 <span class="normal">942</span>
-<span class="normal">943</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_occupancy_2d</span><span class="p">(</span>
+<span class="normal">943</span>
+<span class="normal">944</span>
+<span class="normal">945</span>
+<span class="normal">946</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_occupancy_2d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">pos_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Computes the occupancy for 2D position data.</span>
@@ -8838,8 +8844,7 @@ In the future, these should be stored for all sub fields.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">753</span>
-<span class="normal">754</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">754</span>
 <span class="normal">755</span>
 <span class="normal">756</span>
 <span class="normal">757</span>
@@ -8910,7 +8915,8 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">822</span>
 <span class="normal">823</span>
 <span class="normal">824</span>
-<span class="normal">825</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_ratemap_1d</span><span class="p">(</span>
+<span class="normal">825</span>
+<span class="normal">826</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_ratemap_1d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">st_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">SpikeTrainArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">],</span>
     <span class="n">pos_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">],</span>
@@ -9091,10 +9097,7 @@ In the future, these should be stored for all sub fields.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 945</span>
-<span class="normal"> 946</span>
-<span class="normal"> 947</span>
-<span class="normal"> 948</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 948</span>
 <span class="normal"> 949</span>
 <span class="normal"> 950</span>
 <span class="normal"> 951</span>
@@ -9161,7 +9164,10 @@ In the future, these should be stored for all sub fields.</p>
 <span class="normal">1012</span>
 <span class="normal">1013</span>
 <span class="normal">1014</span>
-<span class="normal">1015</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_ratemap_2d</span><span class="p">(</span>
+<span class="normal">1015</span>
+<span class="normal">1016</span>
+<span class="normal">1017</span>
+<span class="normal">1018</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_ratemap_2d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">st_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">SpikeTrainArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">],</span>
     <span class="n">pos_run</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">],</span>
@@ -9257,10 +9263,7 @@ each detected field.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1202</span>
-<span class="normal">1203</span>
-<span class="normal">1204</span>
-<span class="normal">1205</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1205</span>
 <span class="normal">1206</span>
 <span class="normal">1207</span>
 <span class="normal">1208</span>
@@ -9352,7 +9355,10 @@ each detected field.</p>
 <span class="normal">1294</span>
 <span class="normal">1295</span>
 <span class="normal">1296</span>
-<span class="normal">1297</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1297</span>
+<span class="normal">1298</span>
+<span class="normal">1299</span>
+<span class="normal">1300</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Find place fields in the spatial maps.</span>
 
 <span class="sd">    This method detects place fields from the spatial maps and calculates</span>
@@ -9637,7 +9643,8 @@ Default is False to maintain backward compatibility.</p>
 <span class="normal">730</span>
 <span class="normal">731</span>
 <span class="normal">732</span>
-<span class="normal">733</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_1d</span><span class="p">(</span>
+<span class="normal">733</span>
+<span class="normal">734</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_1d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_base_class</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -9718,11 +9725,12 @@ Default is False to maintain backward compatibility.</p>
     <span class="k">for</span> <span class="n">uu</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st_run</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="n">ratemap</span><span class="p">[</span><span class="n">uu</span><span class="p">][</span><span class="n">occupancy</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_duration</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="c1"># add to nelpy tuning curve class</span>
+    <span class="c1"># Nelpy reconstructs equally spaced bins from these endpoints. Use the</span>
+    <span class="c1"># histogram extent, which may extend beyond a non-divisible x_max.</span>
     <span class="n">tc</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">TuningCurve1D</span><span class="p">(</span>
         <span class="n">ratemap</span><span class="o">=</span><span class="n">ratemap</span><span class="p">,</span>
-        <span class="n">extmin</span><span class="o">=</span><span class="n">x_min</span><span class="p">,</span>
-        <span class="n">extmax</span><span class="o">=</span><span class="n">x_max</span><span class="p">,</span>
+        <span class="n">extmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">extmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
     <span class="p">)</span>
 
     <span class="n">tc</span><span class="o">.</span><span class="n">_occupancy</span> <span class="o">=</span> <span class="n">occupancy</span>
@@ -9827,8 +9835,7 @@ Default is False to maintain backward compatibility.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">827</span>
-<span class="normal">828</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">828</span>
 <span class="normal">829</span>
 <span class="normal">830</span>
 <span class="normal">831</span>
@@ -9923,7 +9930,10 @@ Default is False to maintain backward compatibility.</p>
 <span class="normal">920</span>
 <span class="normal">921</span>
 <span class="normal">922</span>
-<span class="normal">923</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_2d</span><span class="p">(</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_2d</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_base_class</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -9986,7 +9996,7 @@ Default is False to maintain backward compatibility.</p>
 
     <span class="c1"># Original implementation</span>
     <span class="c1"># number of bins in each dimension</span>
-    <span class="n">ext_nx</span><span class="p">,</span> <span class="n">ext_ny</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">)</span>
+    <span class="n">ext_nx</span><span class="p">,</span> <span class="n">ext_ny</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
     <span class="c1"># compute occupancy</span>
     <span class="n">occupancy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_occupancy_2d</span><span class="p">(</span><span class="n">pos_run</span><span class="p">)</span>
@@ -10002,12 +10012,14 @@ Default is False to maintain backward compatibility.</p>
     <span class="c1"># background firing rate of xx Hz</span>
     <span class="n">ratemap</span><span class="p">[</span><span class="n">ratemap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">minbgrate</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minbgrate</span>
 
+    <span class="c1"># Coordinate labels and physical smoothing widths must use the same</span>
+    <span class="c1"># extent as the histograms, including bins extending past requested bounds.</span>
     <span class="n">tc</span> <span class="o">=</span> <span class="n">nel</span><span class="o">.</span><span class="n">TuningCurve2D</span><span class="p">(</span>
         <span class="n">ratemap</span><span class="o">=</span><span class="n">ratemap</span><span class="p">,</span>
-        <span class="n">ext_xmin</span><span class="o">=</span><span class="n">ext_xmin</span><span class="p">,</span>
-        <span class="n">ext_ymin</span><span class="o">=</span><span class="n">ext_ymin</span><span class="p">,</span>
-        <span class="n">ext_xmax</span><span class="o">=</span><span class="n">ext_xmax</span><span class="p">,</span>
-        <span class="n">ext_ymax</span><span class="o">=</span><span class="n">ext_ymax</span><span class="p">,</span>
+        <span class="n">ext_xmin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">ext_ymin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">ext_xmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">ext_ymax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
         <span class="n">ext_ny</span><span class="o">=</span><span class="n">ext_ny</span><span class="p">,</span>
         <span class="n">ext_nx</span><span class="o">=</span><span class="n">ext_nx</span><span class="p">,</span>
     <span class="p">)</span>
@@ -10096,10 +10108,7 @@ Default is False to maintain backward compatibility.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1017</span>
-<span class="normal">1018</span>
-<span class="normal">1019</span>
-<span class="normal">1020</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1020</span>
 <span class="normal">1021</span>
 <span class="normal">1022</span>
 <span class="normal">1023</span>
@@ -10154,7 +10163,10 @@ Default is False to maintain backward compatibility.</p>
 <span class="normal">1072</span>
 <span class="normal">1073</span>
 <span class="normal">1074</span>
-<span class="normal">1075</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_nd</span><span class="p">(</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span>
+<span class="normal">1078</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_nd</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">nel</span><span class="o">.</span><span class="n">AnalogSignalArray</span><span class="p">,</span> <span class="n">nel</span><span class="o">.</span><span class="n">PositionArray</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Maps N-dimensional data for the spatial tuning curve using the base class.</span>
@@ -10322,10 +10334,7 @@ where <code>basepath</code> is the base path of the data.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1299</span>
-<span class="normal">1300</span>
-<span class="normal">1301</span>
-<span class="normal">1302</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1302</span>
 <span class="normal">1303</span>
 <span class="normal">1304</span>
 <span class="normal">1305</span>
@@ -10418,7 +10427,10 @@ where <code>basepath</code> is the base path of the data.</p>
 <span class="normal">1392</span>
 <span class="normal">1393</span>
 <span class="normal">1394</span>
-<span class="normal">1395</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_mat_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">UID</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">1395</span>
+<span class="normal">1396</span>
+<span class="normal">1397</span>
+<span class="normal">1398</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_mat_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">UID</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Save firing rate map data to a .mat file in MATLAB format.</span>
 
 <span class="sd">    The saved file will contain the following variables:</span>
@@ -10571,10 +10583,7 @@ positive integer shuffle count are required.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>neuro_py/tuning/maps.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1077</span>
-<span class="normal">1078</span>
-<span class="normal">1079</span>
-<span class="normal">1080</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1080</span>
 <span class="normal">1081</span>
 <span class="normal">1082</span>
 <span class="normal">1083</span>
@@ -10694,7 +10703,10 @@ positive integer shuffle count are required.</p>
 <span class="normal">1197</span>
 <span class="normal">1198</span>
 <span class="normal">1199</span>
-<span class="normal">1200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_spatial_information</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="normal">1200</span>
+<span class="normal">1201</span>
+<span class="normal">1202</span>
+<span class="normal">1203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shuffle_spatial_information</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Shuffle spatial information and compute p-values for observed vs. null.</span>
 
 <span class="sd">    This method creates shuffled coordinates of the position data and computes</span>
