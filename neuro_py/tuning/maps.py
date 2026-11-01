@@ -715,11 +715,12 @@ class SpatialMap(NDimensionalBinner):
         for uu in range(st_run.data.shape[0]):
             ratemap[uu][occupancy < self.min_duration] = 0
 
-        # add to nelpy tuning curve class
+        # Nelpy reconstructs equally spaced bins from these endpoints. Use the
+        # histogram extent, which may extend beyond a non-divisible x_max.
         tc = nel.TuningCurve1D(
             ratemap=ratemap,
-            extmin=x_min,
-            extmax=x_max,
+            extmin=self.x_edges[0],
+            extmax=self.x_edges[-1],
         )
 
         tc._occupancy = occupancy
@@ -887,7 +888,7 @@ class SpatialMap(NDimensionalBinner):
 
         # Original implementation
         # number of bins in each dimension
-        ext_nx, ext_ny = len(self.x_edges), len(self.y_edges)
+        ext_nx, ext_ny = len(self.x_edges) - 1, len(self.y_edges) - 1
 
         # compute occupancy
         occupancy = self.compute_occupancy_2d(pos_run)
@@ -903,12 +904,14 @@ class SpatialMap(NDimensionalBinner):
         # background firing rate of xx Hz
         ratemap[ratemap < self.minbgrate] = self.minbgrate
 
+        # Coordinate labels and physical smoothing widths must use the same
+        # extent as the histograms, including bins extending past requested bounds.
         tc = nel.TuningCurve2D(
             ratemap=ratemap,
-            ext_xmin=ext_xmin,
-            ext_ymin=ext_ymin,
-            ext_xmax=ext_xmax,
-            ext_ymax=ext_ymax,
+            ext_xmin=self.x_edges[0],
+            ext_ymin=self.y_edges[0],
+            ext_xmax=self.x_edges[-1],
+            ext_ymax=self.y_edges[-1],
             ext_ny=ext_ny,
             ext_nx=ext_nx,
         )
