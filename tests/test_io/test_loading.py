@@ -259,6 +259,56 @@ def test_load_animal_behavior_skips_ragged_metadata(monkeypatch):
     assert "notes" not in df.columns
 
 
+@pytest.mark.parametrize("malformed", [False, True])
+@pytest.mark.parametrize("spatial_series", [False, True])
+def test_load_animal_behavior_distinguishes_position_metadata(
+    tmp_path, malformed, spatial_series
+):
+    """Metadata can be skipped while malformed coordinates remain errors."""
+    basename = tmp_path.name
+    position = {
+        "x": np.array([1.0, 2.0]),
+        "y": np.array([3.0, 4.0]),
+        "linearized": np.ones((2, 2)) if malformed else np.array([1.0, np.nan]),
+        "polar_rho": np.array([5.0, 6.0]),
+        "BodyPart": np.array(
+            [["x y", "RightLED"], ["x1 y1", "LeftLED"]], dtype=object
+        ),
+        "other_metadata": np.array([1.0, 2.0, 3.0]),
+        "x2_point": np.array([5.0, 6.0]),
+    }
+    behavior = {"timestamps": np.array([0.0, 1.0])}
+    if spatial_series:
+        behavior["SpatialSeries"] = {"position": position}
+    else:
+        behavior["position"] = position
+    create_temp_mat_file(
+        str(tmp_path),
+        {
+            f"{basename}.animal.behavior.mat": {"behavior": behavior},
+            f"{basename}.session.mat": {
+                "session": {
+                    "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 1.0}]
+                }
+            },
+        },
+    )
+
+    if malformed:
+        with pytest.raises(ValueError, match=r"position\.linearized"):
+            load_animal_behavior(str(tmp_path))
+        return
+
+    df = load_animal_behavior(str(tmp_path))
+
+    assert "BodyPart" not in df.columns
+    assert "other_metadata" not in df.columns
+    assert "x2_point" not in df.columns
+    np.testing.assert_array_equal(df["time"], [0.0, 1.0])
+    np.testing.assert_array_equal(df["linearized"], [1.0, np.nan])
+    np.testing.assert_array_equal(df["polar_rho"], [5.0, 6.0])
+
+
 def test_load_animal_behavior_filters_scalar_arrays():
     """Test that 0-D (scalar) arrays are retained as metadata without errors."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -864,8 +914,9 @@ def test_load_animal_behavior_stress_single_sample():
 
         df = load_animal_behavior(basepath)
 
-        # Should load behavior data, may be empty or have 1 row depending on implementation
-        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+        np.testing.assert_array_equal(df["time"], [0.0])
+        np.testing.assert_array_equal(df["x"], [0.0])
 
 
 def test_load_animal_behavior_stress_duplicate_trials():

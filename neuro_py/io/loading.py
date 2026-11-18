@@ -2094,6 +2094,8 @@ def load_animal_behavior(
     """
     load_animal_behavior loads basename.animal.behavior.mat files created by general_behavior_file.m
     The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration,trials,epochs]
+    Position columns are limited to CellExplorer coordinates. Other position
+    fields remain available through `load_mat`.
 
     Parameters
     ----------
@@ -2155,20 +2157,27 @@ def load_animal_behavior(
 
     # add timestamps first which provide the correct shape of df
     # here, I'm naming them time, but this should be deprecated
-    _assign_column("time", data["behavior"]["timestamps"])
+    _assign_column("time", np.atleast_1d(data["behavior"]["timestamps"]))
 
-    # add all other position coordinates to df (will add everything it can within position)
-    if "position" in data["behavior"] and isinstance(
-        data["behavior"]["position"], dict
-    ):
-        for key in data["behavior"]["position"].keys():
-            values = data["behavior"]["position"][key]
-            # Skip empty arrays and non-array values (e.g., nested dicts)
-            if isinstance(values, dict):
+    def _add_position(position: dict[str, Any], field_path: str) -> None:
+        # CellExplorer's schema defines Cartesian and linearized coordinates.
+        # Its behavior tutorial uses polar_rho and polar_theta for polar data.
+        coordinates = {"x", "y", "z", "linearized", "polar_rho", "polar_theta"}
+        for key, values in position.items():
+            if key not in coordinates:
                 continue
-            if isinstance(values, (list, np.ndarray)) and len(values) == 0:
-                continue
-            _assign_column(key, values)
+            message = f"{field_path}.{key} must have one numeric value per timestamp."
+            try:
+                array = np.asarray(values)
+            except ValueError as exc:
+                raise ValueError(message) from exc
+            if array.ndim > 1 or array.size != len(df) or array.dtype.kind not in "iuf":
+                raise ValueError(message)
+            _assign_column(key, array.reshape(-1))
+
+    position = data["behavior"].get("position")
+    if isinstance(position, dict):
+        _add_position(position, "behavior.position")
 
     # handle SpatialSeries containers (position/pupil/orientation, etc.)
     if "SpatialSeries" in data["behavior"] and isinstance(
@@ -2178,6 +2187,9 @@ def load_animal_behavior(
         for series_name, series in spatial_series.items():
             if not isinstance(series, dict):
                 continue
+            if series_name == "position":
+                _add_position(series, "behavior.SpatialSeries.position")
+                continue
             for key, values in series.items():
                 if key in {"units", "resolution", "referenceFrame", "coordinateSystem"}:
                     continue
@@ -2185,10 +2197,7 @@ def load_animal_behavior(
                     continue
                 if not _is_aligned_series(values):
                     continue
-                if series_name == "position":
-                    _assign_column(key, values)
-                else:
-                    _assign_column(f"{series_name}_{key}", values)
+                _assign_column(f"{series_name}_{key}", values)
 
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
