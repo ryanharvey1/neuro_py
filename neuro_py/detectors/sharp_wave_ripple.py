@@ -890,22 +890,23 @@ def save_ripple_events(
 
     intervals = _coerce_interval_array(detection_epochs)
 
+    # CellExplorer expects one row per event in each per-event field.
     if events.empty:
         timestamps = np.empty((0, 2), dtype=float)
-        peaks = np.empty((0,), dtype=float)
-        amplitude = np.empty((0,), dtype=float)
-        duration = np.empty((0,), dtype=float)
-        center = np.empty((0,), dtype=float)
-        frequency = np.empty((0,), dtype=float)
-        peak_normed_power = np.empty((0,), dtype=float)
+        peaks = np.empty((0, 1), dtype=float)
+        amplitude = np.empty((0, 1), dtype=float)
+        duration = np.empty((0, 1), dtype=float)
+        center = np.empty((0, 1), dtype=float)
+        frequency = np.empty((0, 1), dtype=float)
+        peak_normed_power = np.empty((0, 1), dtype=float)
     else:
         timestamps = events[["start", "stop"]].to_numpy(dtype=float)
-        peaks = events["peaks"].to_numpy(dtype=float)
-        amplitude = events["amplitude"].to_numpy(dtype=float)
-        duration = events["duration"].to_numpy(dtype=float)
-        center = events["center"].to_numpy(dtype=float)
-        frequency = events["frequency"].to_numpy(dtype=float)
-        peak_normed_power = events["peakNormedPower"].to_numpy(dtype=float)
+        peaks = events[["peaks"]].to_numpy(dtype=float)
+        amplitude = events[["amplitude"]].to_numpy(dtype=float)
+        duration = events[["duration"]].to_numpy(dtype=float)
+        center = events[["center"]].to_numpy(dtype=float)
+        frequency = events[["frequency"]].to_numpy(dtype=float)
+        peak_normed_power = events[["peakNormedPower"]].to_numpy(dtype=float)
 
     detectorinfo: dict[str, object] = {
         "detectorname": detection_name,
