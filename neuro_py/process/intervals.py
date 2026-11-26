@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import nelpy as nel
 import numba
@@ -7,6 +7,12 @@ from nelpy import core
 from nelpy.core import EpochArray
 from numba import jit
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 def randomize_epochs(
@@ -193,7 +199,9 @@ def overlap_intersect(
 
 
 @jit(nopython=True)
-def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List[float]:
+def _find_intersecting_intervals(
+    set1: NDArray[Any], set2: NDArray[Any], stop_on_first: bool = False
+) -> List[float]:
     """
     Find the amount of time two sets of intervals are intersecting each other for each interval in set1.
 
@@ -203,6 +211,8 @@ def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List
         An array of intervals represented as pairs of start and end times.
     set2 : ndarray
         An array of intervals represented as pairs of start and end times.
+    stop_on_first : bool, optional
+        Stop after the first positive overlap when only existence is needed.
 
     Returns
     -------
@@ -211,16 +221,18 @@ def _find_intersecting_intervals(set1: NDArray[Any], set2: NDArray[Any]) -> List
         corresponding interval in set1 intersects with any interval in set2.
     """
     intersecting_intervals = []
-    for i, (start1, end1) in enumerate(set1):
-        # Check if any of the intervals in set2 intersect with the current interval in set1
+    for start1, end1 in set1:
+        intersection = 0.0
+        # set2 is a sorted, disjoint union. Count positive-duration overlap
+        # across every component; a touching endpoint must not stop the search.
         for start2, end2 in set2:
-            if start2 <= end1 and end2 >= start1:
-                # Calculate the amount of intersection between the two intervals
-                intersection = min(end1, end2) - max(start1, start2)
-                intersecting_intervals.append(intersection)
+            if start2 >= end1:
                 break
-        else:
-            intersecting_intervals.append(0)  # No intersection found
+            if end2 > start1:
+                intersection += min(end1, end2) - max(start1, start2)
+                if stop_on_first and intersection > 0:
+                    break
+        intersecting_intervals.append(intersection)
 
     return intersecting_intervals
 
@@ -238,8 +250,9 @@ def find_intersecting_intervals(
     set2 : nelpy EpochArray
         The second set of intervals to check for intersections.
     return_indices : bool, optional
-        If True, return the indices of the intervals in set2 that intersect with each interval in set1.
-        If False, return the amount of time each interval in set1 intersects with any interval in set2.
+        If True, return a boolean mask for intervals in set1 with positive-duration
+        overlap with set2. If False, return their total overlap duration with the
+        union of set2. Touching endpoints alone do not count as overlap.
 
     Returns
     -------
@@ -254,12 +267,24 @@ def find_intersecting_intervals(
     >>> find_intersecting_intervals(set1, set2)
     [True, True, False]
     >>> find_intersecting_intervals(set1, set2, return_indices=False)
-    [1, 2, 0]
+    [1, 1, 0]
     """
-    if not isinstance(set1, core.IntervalArray) & isinstance(set2, core.IntervalArray):
+    if not (
+        isinstance(set1, core.IntervalArray) and isinstance(set2, core.IntervalArray)
+    ):
         raise ValueError("only EpochArrays are supported")
 
-    intersection = np.array(_find_intersecting_intervals(set1.data, set2.data))
+    if set1.isempty:
+        intersection = np.empty(0, dtype=float)
+    elif set2.isempty:
+        intersection = np.zeros(set1.n_intervals, dtype=float)
+    else:
+        # Merge the reference intervals so shared coverage is never counted twice.
+        intersection = np.array(
+            _find_intersecting_intervals(
+                set1.data, set2.merge().data, stop_on_first=return_indices
+            )
+        )
     if return_indices:
         return intersection > 0
     return intersection
@@ -462,7 +487,7 @@ def in_intervals_interval(
     array([nan,  0,  0,  0,  1,  1,  1, nan])
     """
     in_interval = np.full(timestamps.shape, np.nan)
-    for i in numba.prange(intervals.shape[0]):  # ty: ignore[not-iterable]  # numba loop
+    for i in prange(intervals.shape[0]):  # numba loop
         start, end = intervals[i]
         mask = (timestamps >= start) & (timestamps <= end)
         in_interval[mask] = i
@@ -471,7 +496,9 @@ def in_intervals_interval(
 
 
 def truncate_epoch(
-    epoch: nel.EpochArray, time: Union[int, float] = 3600
+    epoch: nel.EpochArray,
+    time: Union[int, float] = 3600,
+    from_end: bool = False,
 ) -> nel.EpochArray:
     """
     Truncates an EpochArray to achieve a specified cumulative time duration.
@@ -486,6 +513,9 @@ def truncate_epoch(
         The input EpochArray containing intervals to be truncated.
     time : Union[int, float], optional
         The desired cumulative time in seconds (default is 3600).
+    from_end : bool, optional
+        If True, retain intervals working backward from the end of the epoch.
+        If False (default), retain intervals working forward from the start.
 
     Returns
     -------
@@ -493,43 +523,57 @@ def truncate_epoch(
         A new EpochArray containing intervals that cumulatively match
         the specified time.
 
-    Algorithm
-    ---------
-    1. Calculate the cumulative lengths of intervals in the 'epoch'.
-    2. If the cumulative time of the 'epoch' is already less than or equal to 'time',
-        return the original 'epoch'.
-    3. Find the last interval that fits within the specified 'time' and create a new EpochArray
-        'truncated_intervals' with intervals up to that point.
-    4. To achieve the desired cumulative time, calculate the remaining time needed to reach 'time'.
-    5. Add portions of the next interval to 'truncated_intervals' until the desired 'time' is reached
-        or all intervals are used.
+    Notes
+    -----
+    Gaps between intervals do not count toward ``time``. When the requested
+    duration ends within an interval, only the needed portion of that interval
+    is retained.
 
     Examples
     --------
     >>> epoch_data = [(0, 2), (3, 6), (8, 10)]
     >>> epoch = nel.EpochArray(epoch_data)
     >>> truncated_epoch = truncate_epoch(epoch, time=7)
+    >>> truncated_from_end = truncate_epoch(epoch, time=4, from_end=True)
     """
 
     if epoch.isempty:
         return epoch
 
-    # calcuate cumulative lengths
-    cumulative_lengths = epoch.lengths.cumsum()
+    if time <= 0:
+        empty_epoch = nel.EpochArray(empty=True)
+        empty_epoch._domain = epoch.domain
+        return empty_epoch
+
+    cumulative_lengths = (
+        epoch.lengths[::-1].cumsum() if from_end else epoch.lengths.cumsum()
+    )
 
     # No truncation needed
     if cumulative_lengths[-1] <= time:
         return epoch
 
+    if from_end:
+        reverse_index = int(np.searchsorted(cumulative_lengths, time))
+        interval_index = len(epoch) - reverse_index - 1
+        retained_duration = epoch.lengths[interval_index + 1 :].sum()
+        partial_start = epoch.data[interval_index, 1] - (time - retained_duration)
+        intervals = np.vstack(
+            (
+                [partial_start, epoch.data[interval_index, 1]],
+                epoch.data[interval_index + 1 :],
+            )
+        )
+        return nel.EpochArray(intervals, domain=epoch.domain)
+
     # Find the last interval that fits within the time and make new epoch
     idx = cumulative_lengths <= time
-    truncated_intervals = nel.EpochArray(epoch.data[idx])
+    truncated_intervals = nel.EpochArray(epoch.data[idx], domain=epoch.domain)
 
-    # It's unlikely that the last interval will fit perfectly, so add the remainder from the next interval
-    #   until the epoch is the desired length
+    # It's unlikely that the last interval will fit perfectly, so add the
+    # remainder from the next interval until the epoch is the desired length.
     interval_i = 0
     while (time - truncated_intervals.duration) > 1e-10 or interval_i > len(epoch):
-        # Add the last interval
         next_interval = int(np.where(cumulative_lengths >= time)[0][interval_i])
 
         remainder = (
@@ -544,6 +588,7 @@ def truncate_epoch(
         truncated_intervals = truncated_intervals | remainder
         interval_i += 1
 
+    truncated_intervals._domain = epoch.domain
     return truncated_intervals
 
 

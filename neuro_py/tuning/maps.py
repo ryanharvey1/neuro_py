@@ -715,11 +715,12 @@ class SpatialMap(NDimensionalBinner):
         for uu in range(st_run.data.shape[0]):
             ratemap[uu][occupancy < self.min_duration] = 0
 
-        # add to nelpy tuning curve class
+        # Nelpy reconstructs equally spaced bins from these endpoints. Use the
+        # histogram extent, which may extend beyond a non-divisible x_max.
         tc = nel.TuningCurve1D(
             ratemap=ratemap,
-            extmin=x_min,
-            extmax=x_max,
+            extmin=self.x_edges[0],
+            extmax=self.x_edges[-1],
         )
 
         tc._occupancy = occupancy
@@ -887,7 +888,7 @@ class SpatialMap(NDimensionalBinner):
 
         # Original implementation
         # number of bins in each dimension
-        ext_nx, ext_ny = len(self.x_edges), len(self.y_edges)
+        ext_nx, ext_ny = len(self.x_edges) - 1, len(self.y_edges) - 1
 
         # compute occupancy
         occupancy = self.compute_occupancy_2d(pos_run)
@@ -903,12 +904,14 @@ class SpatialMap(NDimensionalBinner):
         # background firing rate of xx Hz
         ratemap[ratemap < self.minbgrate] = self.minbgrate
 
+        # Coordinate labels and physical smoothing widths must use the same
+        # extent as the histograms, including bins extending past requested bounds.
         tc = nel.TuningCurve2D(
             ratemap=ratemap,
-            ext_xmin=ext_xmin,
-            ext_ymin=ext_ymin,
-            ext_xmax=ext_xmax,
-            ext_ymax=ext_ymax,
+            ext_xmin=self.x_edges[0],
+            ext_ymin=self.y_edges[0],
+            ext_xmax=self.x_edges[-1],
+            ext_ymax=self.y_edges[-1],
             ext_ny=ext_ny,
             ext_nx=ext_nx,
         )
@@ -1085,7 +1088,21 @@ class SpatialMap(NDimensionalBinner):
         -------
         np.ndarray
             P-values for the spatial information.
+
+        Notes
+        -----
+        Uses at most ``n_shuff`` running position samples as shuffles. For short
+        recordings, p-values use the actual number generated. The requested
+        ``n_shuff`` value is preserved. At least one running sample and a
+        positive integer shuffle count are required.
         """
+
+        if (
+            isinstance(self.n_shuff, (bool, np.bool_))
+            or not isinstance(self.n_shuff, (int, np.integer))
+            or self.n_shuff <= 0
+        ):
+            raise ValueError("n_shuff must be a positive integer")
 
         def create_shuffled_coordinates(
             X: NDArray[Any], n_shuff: int = 500
@@ -1155,21 +1172,25 @@ class SpatialMap(NDimensionalBinner):
         # the null distribution reflects the actual samples used for mapping
         # (avoid pulling non-running or gap samples into shuffles).
         pos_run = self.pos[self.run_epochs]
+        if pos_run.isempty:
+            raise ValueError(
+                "Spatial information shuffling requires running position samples"
+            )
         pos_data_shuff = create_shuffled_coordinates(pos_run.data, n_shuff=self.n_shuff)
 
         # construct tuning curves for each position shuffle
         if self.parallel_shuff:
-            num_cores = multiprocessing.cpu_count()
+            num_cores = min(multiprocessing.cpu_count(), len(pos_data_shuff))
             shuffle_spatial_info = Parallel(n_jobs=num_cores)(
                 delayed(get_spatial_infos)(
-                    pos_data_shuff[i], pos_run.abscissa_vals, self.dim
+                    shuffled_pos, pos_run.abscissa_vals, self.dim
                 )
-                for i in range(self.n_shuff)
+                for shuffled_pos in pos_data_shuff
             )
         else:
             shuffle_spatial_info = [
-                get_spatial_infos(pos_data_shuff[i], pos_run.abscissa_vals, self.dim)
-                for i in range(self.n_shuff)
+                get_spatial_infos(shuffled_pos, pos_run.abscissa_vals, self.dim)
+                for shuffled_pos in pos_data_shuff
             ]
 
         # calculate p values for the obs vs null

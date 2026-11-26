@@ -487,12 +487,21 @@ def mean(
         (across all dimensions).
     axial_correction : int, optional
         Axial correction (2,3,4,...). Default is 1.
+        Confidence intervals are computed on the multiplied angles and
+        mapped back to the original angular scale. Bin spacing ``d`` is
+        specified on the original scale and transformed accordingly.
 
     Returns
     -------
     float or Tuple[float, CI]
         Circular mean if ci is None, or circular mean as well as lower and
         upper confidence interval limits.
+
+    Notes
+    -----
+    For axial data, the interval describes the representative returned as
+    the mean; equivalent directions are separated by ``2*pi/axial_correction``.
+    The mean and interval endpoints retain the usual wrapping to [0, 2*pi).
 
     Examples
     --------
@@ -508,9 +517,14 @@ def mean(
     if ci is None:
         return mu
     else:
-        if axial_correction > 1:  # TODO: implement CI for axial correction
-            warnings.warn("Axial correction ignored for confidence intervals.")
+        if axial_correction > 1:
+            # Estimate concentration on the same circle used for the axial mean.
+            alpha = alpha * axial_correction
+            if d is not None:
+                d = d * axial_correction
         t = mean_ci_limits(alpha, ci=ci, w=w, d=d, axis=axis)
+        if axial_correction > 1:
+            t = t / axial_correction
         return mu, CI(mu - t, mu + t)
 
 

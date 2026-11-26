@@ -174,7 +174,8 @@ def test_explained_variance():
             window=200,
         )
         assert isinstance(ev, ExplainedVariance)
-        assert (np.array(epochs.duration) / 200) - 1 == len(ev.ev)
+        # Retain every complete 200-second window, including the final one.
+        assert np.array(epochs.duration) / 200 == len(ev.ev)
         idx = (ev.matching_time >= epochs[2].start) & (
             ev.matching_time <= epochs[2].stop
         )

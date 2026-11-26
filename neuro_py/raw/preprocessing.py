@@ -26,14 +26,17 @@ def remove_artifacts(
     n_channels : int
         Number of channels in the file.
     zero_intervals : numpy.ndarray or sequence of tuple[int, int]
-        Intervals (start, end) in sample indices to remove artifacts from.
+        Half-open intervals [start, stop) in sample indices to remove artifacts
+        from. Overlapping and adjacent intervals are merged before editing.
     precision : str, optional
         Data precision, by default "int16".
     mode : str, optional
         Mode of interpolation. Options are:
 
         - **"zeros"**: Zero out the interval.
-        - **"linear"**: Interpolate linearly between the start and end of the interval (default).
+        - **"linear"**: Interpolate between clean samples immediately outside
+          each interval (default). At a recording edge, use the nearest clean
+          sample. A recording with no clean samples cannot be interpolated.
         - **"gaussian"**: *(Not implemented, TBD)* Interpolate using a Gaussian function with the same variance as in the recordings, on a per-channel basis.
 
     channels_to_remove : List[int], optional
@@ -42,6 +45,13 @@ def remove_artifacts(
     Returns
     -------
     None
+
+    Raises
+    ------
+    ValueError
+        If intervals, channels, mode, or file alignment are invalid, or linear
+        interpolation has no clean anchor. Validation precedes sample edits.
+        Out-of-bounds intervals are warned about and skipped.
 
     Examples
     --------
@@ -58,120 +68,94 @@ def remove_artifacts(
         warnings.warn("File does not exist.")
         return
 
-    # Open the file in memory-mapped mode for read/write
-    bytes_size = np.dtype(precision).itemsize
-    with open(filepath, "rb") as f:
-        startoffile = f.seek(0, 0)
-        endoffile = f.seek(0, 2)
-        n_samples = int((endoffile - startoffile) / n_channels / bytes_size)
+    # Validate the entire request before opening the recording for writes.
+    if mode == "gaussian":
+        raise NotImplementedError("Gaussian mode not implemented.")
+    if mode not in ("zeros", "linear"):
+        raise ValueError("mode must be 'zeros', 'linear', or 'gaussian'")
+    if not isinstance(n_channels, (int, np.integer)) or n_channels <= 0:
+        raise ValueError("n_channels must be a positive integer")
+    dtype = np.dtype(precision)
+    frame_size = n_channels * dtype.itemsize
+    file_size = os.path.getsize(filepath)
+    if file_size % frame_size:
+        raise ValueError("File size is not a whole number of samples")
+    n_samples = file_size // frame_size
 
-    # Map the file to memory in read-write mode
-    data = np.memmap(
-        filepath, dtype=precision, mode="r+", shape=(n_samples, n_channels)
-    )
-    try:
-        zero_intervals_array = np.asarray(zero_intervals)
-        # If shape is (2,), this is a single interval; promote it to 2D.
-        if zero_intervals_array.shape == (2,):
-            zero_intervals_array = np.expand_dims(zero_intervals_array, axis=0)
+    requested = np.asarray(zero_intervals)
+    if requested.shape == (2,):
+        requested = requested.reshape(1, 2)
+    elif requested.shape == (0,):
+        requested = requested.reshape(0, 2)
+    if requested.ndim != 2 or requested.shape[1] != 2:
+        raise ValueError("zero_intervals must have shape (n_intervals, 2)")
+    if not np.issubdtype(requested.dtype, np.number) or np.iscomplexobj(requested):
+        raise ValueError("Interval endpoints must be finite integer sample indices")
+    if not np.all(np.isfinite(requested)) or np.any(requested != np.floor(requested)):
+        raise ValueError("Interval endpoints must be finite integer sample indices")
+    if np.any(requested[:, 0] >= requested[:, 1]):
+        raise ValueError("Each interval must have start < stop")
 
-        # If no specific channels are provided, process all channels
-        if channels_to_remove is None:
-            channels_to_remove = list(range(n_channels))
+    if channels_to_remove is None:
+        channels = np.arange(n_channels)
+    else:
+        channels = np.asarray(channels_to_remove)
+        if channels.ndim != 1:
+            raise ValueError("channels_to_remove must be one-dimensional")
+        if channels.size and (
+            not np.issubdtype(channels.dtype, np.integer)
+            or np.any(channels < 0)
+            or np.any(channels >= n_channels)
+        ):
+            raise ValueError("Channel indices must be integers in [0, n_channels)")
+        channels = np.unique(channels.astype(np.intp))
 
-        # Zero out the specified intervals
-        if mode == "zeros":
-            zero_value = np.zeros((1, n_channels), dtype=precision)
-            for start, end in zero_intervals_array:
-                if 0 <= start < n_samples and 0 < end <= n_samples:
-                    data[start:end, channels_to_remove] = zero_value[
-                        0, channels_to_remove
-                    ]
+    # Preserve warning-and-skip behavior for intervals outside the recording.
+    valid = (requested[:, 0] >= 0) & (requested[:, 1] <= n_samples)
+    for start, stop in requested[~valid]:
+        warnings.warn(f"Interval ({start}, {stop}) is out of bounds and was skipped.")
+    bounded = requested[valid].astype(np.intp)
+    bounded = bounded[np.argsort(bounded[:, 0], kind="stable")]
+    merged: list[tuple[int, int]] = []
+    for start, stop in bounded:
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], int(stop)))
+        else:
+            merged.append((int(start), int(stop)))
+
+    if mode == "linear" and channels.size and merged == [(0, n_samples)]:
+        raise ValueError("Cannot interpolate a recording without any clean samples")
+
+    if n_samples and channels.size and merged:
+        data = np.memmap(
+            filepath, dtype=dtype, mode="r+", shape=(n_samples, n_channels)
+        )
+        try:
+            for start, stop in merged:
+                if mode == "zeros":
+                    data[start:stop, channels] = 0
                 else:
-                    warnings.warn(
-                        f"Interval ({start}, {end}) is out of bounds and was skipped."
-                    )
-        elif mode == "linear":
-            for start, end in zero_intervals_array:
-                if 0 <= start < n_samples and 0 < end <= n_samples:
-                    for ch in channels_to_remove:
-                        # Compute float interpolation and round before casting
-                        interpolated = np.linspace(
-                            data[start, ch],
-                            data[end, ch],
-                            end - start,
-                        ).astype(data.dtype)  # Ensure consistent dtype
-                        data[start:end, ch] = interpolated
-                else:
-                    warnings.warn(
-                        f"Interval ({start}, {end}) is out of bounds and was skipped."
-                    )
-        elif mode == "gaussian":
-            # not implemented error message
-            raise NotImplementedError("Gaussian mode not implemented.")
+                    for ch in channels:
+                        # The entire marked region is bad, including its first sample.
+                        # Merging above ensures these anchors are outside every region.
+                        if start == 0:
+                            data[start:stop, ch] = data[stop, ch]
+                        elif stop == n_samples:
+                            data[start:stop, ch] = data[start - 1, ch]
+                        else:
+                            interpolated = np.linspace(
+                                data[start - 1, ch], data[stop, ch], stop - start + 2
+                            )[1:-1].astype(dtype)
+                            data[start:stop, ch] = interpolated
+        finally:
+            data.flush()
+            del data
+            gc.collect()
 
-            # max_samples = 10_000
-            # rng = np.random.default_rng()
-
-            # # Compute valid regions and sample
-            # valid_mask = np.ones(n_samples, dtype=bool)
-            # for start, end in zero_intervals:
-            #     valid_mask[start:end] = False
-
-            # valid_indices = np.flatnonzero(valid_mask)
-            # sampled_indices = rng.choice(
-            #     valid_indices, size=min(max_samples, len(valid_indices)), replace=False
-            # )
-            # sampled_data = data[sampled_indices, :]
-
-            # # Compute mean and std for each channel
-            # means = np.mean(sampled_data, axis=0)
-            # stds = np.std(sampled_data, axis=0)
-
-            # from scipy.signal import butter, filtfilt
-
-            # def bandpass_filter(signal, lowcut, highcut, fs, order=4):
-            #     nyquist = 0.5 * fs
-            #     low = lowcut / nyquist
-            #     high = highcut / nyquist
-            #     b, a = butter(order, [low, high], btype="band")
-            #     return filtfilt(b, a, signal, axis=0)
-
-            # # Parameters for bandpass filter
-            # lowcut = 0.5
-            # highcut = 100
-
-            # for start, end in zero_intervals:
-            #     if 0 <= start < n_samples and 0 < end <= n_samples:
-            #         interval_length = end - start
-            #         raw_noise = rng.normal(
-            #             loc=means, scale=stds, size=(interval_length, n_channels)
-            #         ).astype(precision)
-
-            #         # Apply bandpass filter with handling for potential issues
-            #         try:
-            #             filtered_noise = bandpass_filter(raw_noise, lowcut, highcut, fs)
-            #             filtered_noise = np.nan_to_num(filtered_noise, nan=0.0)
-            #         except ValueError:
-            #             warnings.warn(f"Filtering failed for interval ({start}, {end}), skipping.")
-            #             continue
-
-            #         # Prevent overwriting with unexpected data types
-            #         data[start:end, :] = filtered_noise.astype(data.dtype)
-            #     else:
-            #         warnings.warn(f"Interval ({start}, {end}) is out of bounds and was skipped.")
-
-    finally:
-        # Explicitly flush and release the memory-mapped object
-        data.flush()
-        del data
-        gc.collect()
-
-    # Save a log file with intervals zeroed out
     log_file = os.path.splitext(filepath)[0] + "_zeroed_intervals.log"
     try:
         with open(log_file, "w") as f:
-            f.write(f"Zeroed intervals: {np.asarray(zero_intervals).tolist()}\n")
+            f.write(f"Zeroed intervals: {merged if channels.size else []}\n")
     except Exception as e:
         warnings.warn(f"Failed to create log file: {e}")
 

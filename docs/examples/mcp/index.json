@@ -1,0 +1,6 @@
+{
+  "index_db": ".neuro-py-mcp/index.sqlite",
+  "roots": ["/data/experiment_one", "/data/experiment_two"],
+  "catalogs": ["/data/my_sessions.csv"],
+  "path_maps": []
+}

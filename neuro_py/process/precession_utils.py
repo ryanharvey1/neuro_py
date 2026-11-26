@@ -16,7 +16,7 @@ import neuro_py.stats.circ_stats as pcs
 
 def corrcc(
     alpha1: NDArray[Any], alpha2: NDArray[Any], axis: Optional[int] = None
-) -> Tuple[float, float]:
+) -> Tuple[Union[float, NDArray[Any]], Union[float, NDArray[Any]]]:
     """
     Circular correlation coefficient for two circular random variables.
 
@@ -32,9 +32,9 @@ def corrcc(
 
     Returns
     -------
-    rho : float
+    rho : float or np.ndarray
         Circular-circular correlation coefficient.
-    pval : float
+    pval : float or np.ndarray
         p-value for testing the significance of the correlation coefficient.
 
     Examples
@@ -50,6 +50,8 @@ def corrcc(
     method that adjusts for circular data. The significance of the correlation
     coefficient is tested using the fact that the test statistic is approximately
     normally distributed.
+    Each slice along ``axis`` uses its own moments and sample count. With
+    ``axis=None``, every element is treated as an observation.
 
     References
     ----------
@@ -60,7 +62,11 @@ def corrcc(
     """
     assert alpha1.shape == alpha2.shape, "Input dimensions do not match."
 
-    n = len(alpha1)
+    if axis is not None:
+        if not -alpha1.ndim <= axis < alpha1.ndim:
+            raise ValueError("axis is out of bounds for the input arrays")
+        axis %= alpha1.ndim
+    n = alpha1.size if axis is None else alpha1.shape[axis]
 
     # center data on circular mean
     alpha1_centered, alpha2_centered = pcs.center(alpha1, alpha2, axis=axis)
@@ -76,9 +82,11 @@ def corrcc(
     # Modification:
     # significance of this correlation coefficient can be tested using the fact that Z is approx. normal
 
-    l20 = np.mean(np.sin(alpha1_centered) ** 2)
-    l02 = np.mean(np.sin(alpha2_centered) ** 2)
-    l22 = np.mean((np.sin(alpha1_centered) ** 2) * (np.sin(alpha2_centered) ** 2))
+    l20 = np.mean(np.sin(alpha1_centered) ** 2, axis=axis)
+    l02 = np.mean(np.sin(alpha2_centered) ** 2, axis=axis)
+    l22 = np.mean(
+        (np.sin(alpha1_centered) ** 2) * (np.sin(alpha2_centered) ** 2), axis=axis
+    )
     z = np.sqrt((n * l20 * l02) / l22) * rho
     pval = 2 * (1 - sp.stats.norm.cdf(np.abs(z)))  # two-sided test
 
@@ -87,7 +95,7 @@ def corrcc(
 
 def corrcc_uniform(
     alpha1: NDArray[Any], alpha2: NDArray[Any], axis: Optional[int] = None
-) -> Tuple[float, float]:
+) -> Tuple[Union[float, NDArray[Any]], Union[float, NDArray[Any]]]:
     """
     Circular correlation coefficient for two circular random variables.
     Use this function if at least one of the variables may follow a uniform distribution.
@@ -104,9 +112,9 @@ def corrcc_uniform(
 
     Returns
     -------
-    rho : float
+    rho : float or np.ndarray
         Circular-circular correlation coefficient.
-    pval : float
+    pval : float or np.ndarray
         p-value for testing the significance of the correlation coefficient.
 
     Notes
@@ -114,6 +122,8 @@ def corrcc_uniform(
     This method accounts for cases where one or both of the circular variables
     may follow a uniform distribution. The significance of the correlation coefficient
     is tested using a normal approximation of the Z statistic.
+    Resultant lengths, moments, and sample counts are computed separately
+    for each slice along ``axis``; ``axis=None`` uses all elements.
 
     References
     ----------
@@ -133,7 +143,11 @@ def corrcc_uniform(
 
     assert alpha1.shape == alpha2.shape, "Input dimensions do not match."
 
-    n = len(alpha1)
+    if axis is not None:
+        if not -alpha1.ndim <= axis < alpha1.ndim:
+            raise ValueError("axis is out of bounds for the input arrays")
+        axis %= alpha1.ndim
+    n = alpha1.size if axis is None else alpha1.shape[axis]
 
     # center data on circular mean
     alpha1_centered, alpha2_centered = pcs.center(alpha1, alpha2, axis=axis)
@@ -141,9 +155,9 @@ def corrcc_uniform(
     # One of the sample means is not well defined due to uniform distribution of data
     # so take the difference of the resultant vector length for the sum and difference
     # of the alphas
-    num = pcs.resultant_vector_length(alpha1 - alpha2) - pcs.resultant_vector_length(
-        alpha1 + alpha2
-    )
+    num = pcs.resultant_vector_length(
+        alpha1 - alpha2, axis=axis
+    ) - pcs.resultant_vector_length(alpha1 + alpha2, axis=axis)
     den = 2 * np.sqrt(
         np.sum(np.sin(alpha1_centered) ** 2, axis=axis)
         * np.sum(np.sin(alpha2_centered) ** 2, axis=axis)
@@ -152,9 +166,11 @@ def corrcc_uniform(
     # significance of this correlation coefficient can be tested using the fact that Z
     # is approx. normal
 
-    l20 = np.mean(np.sin(alpha1_centered) ** 2)
-    l02 = np.mean(np.sin(alpha2_centered) ** 2)
-    l22 = np.mean((np.sin(alpha1_centered) ** 2) * (np.sin(alpha2_centered) ** 2))
+    l20 = np.mean(np.sin(alpha1_centered) ** 2, axis=axis)
+    l02 = np.mean(np.sin(alpha2_centered) ** 2, axis=axis)
+    l22 = np.mean(
+        (np.sin(alpha1_centered) ** 2) * (np.sin(alpha2_centered) ** 2), axis=axis
+    )
     z = np.sqrt((n * l20 * l02) / l22) * rho
     pval = 2 * (1 - sp.stats.norm.cdf(np.abs(z)))  # two-sided test
 
@@ -258,7 +274,8 @@ def spatial_phase_precession(
     # if offs > np.pi:
     #     offs = offs - 2 * np.pi
 
-    return rho, pval, sl, offs
+    # These calls use axis=None, so correlation and significance are scalar.
+    return float(rho), float(pval), sl, offs
 
 
 @numba.jit(nopython=True)

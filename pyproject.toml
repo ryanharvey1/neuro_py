@@ -43,6 +43,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Local read-only MCP access to registered CellExplorer datasets.
+mcp = ["mcp>=1.30,<2"]
 # For deep-learning decoders and training pipelines
 dl = [
     "lightning>=2.4.0",
@@ -52,8 +54,7 @@ dl = [
 docs = [
     "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "nbconvert>=7.0.0",
-    "marimo>=0.23.0"
+    "nbconvert>=7.0.0"
 ]
 # For local development and CI tooling
 dev = [
@@ -63,13 +64,17 @@ dev = [
 ]
 # An "all" group that combines all optional groups
 all = [
+    "mcp>=1.30,<2",
     "lightning>=2.4.0",
     "tensorboard>=2.18.0",
     "zensical>=0.0.23",
     "mkdocstrings[python]>=0.26.1",
-    "nbconvert>=7.0.0",
-    "marimo>=0.23.0"
+    "nbconvert>=7.0.0"
 ]
+
+[project.scripts]
+neuro-py-mcp = "neuro_py.mcp.server:main"
+neuro-py-mcp-index = "neuro_py.mcp.index:main"
 
 [project.urls]
 "Homepage" = "https://github.com/ryanharvey1/neuro_py/"
@@ -78,7 +83,7 @@ all = [
 "*" = ["*"]
 
 [tool.setuptools.packages.find]
-include = ['neuro_py']
+include = ['neuro_py', 'neuro_py.*']
 exclude = ['docs']
 
 [tool.ruff.lint]

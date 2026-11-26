@@ -209,8 +209,59 @@ class kernelReducedRankRegressor(BaseEstimator):
         return Yhat
 
     def rrr_scorer(self, Yhat: NDArray[Any], Ytest: NDArray[Any]) -> float:
-        diag_corr = (np.diag(np.corrcoef(Ytest, Yhat))).mean()
-        return diag_corr
+        """Return mean Pearson correlation of corresponding predicted targets.
+
+        Parameters
+        ----------
+        Yhat : np.ndarray
+            Predictions with shape (n_samples, n_targets), or (n_samples,).
+        Ytest : np.ndarray
+            Observed targets with the same shape as predictions.
+
+        Returns
+        -------
+        float
+            Mean correlation across targets. Returns NaN if any target has
+            constant or nonfinite observed or predicted values.
+
+        Raises
+        ------
+        ValueError
+            If shapes differ, dimensionality is not 1 or 2, or fewer than two
+            samples or no targets are supplied.
+        """
+        predictions = np.asarray(Yhat, dtype=float)
+        targets = np.asarray(Ytest, dtype=float)
+        if predictions.shape != targets.shape or targets.ndim not in (1, 2):
+            raise ValueError(
+                "Predictions and targets must have matching 1D or 2D shapes"
+            )
+        if targets.ndim == 1:
+            targets = targets[:, None]
+            predictions = predictions[:, None]
+        if targets.shape[0] < 2 or targets.shape[1] == 0:
+            raise ValueError("At least two samples and one target are required")
+
+        if (
+            not np.all(np.isfinite(targets))
+            or not np.all(np.isfinite(predictions))
+            or np.any(np.all(targets == targets[0], axis=0))
+            or np.any(np.all(predictions == predictions[0], axis=0))
+        ):
+            return float("nan")
+        # Power-of-two scaling is exact in binary arithmetic, preserving small
+        # variations on large offsets while preventing mean/subtraction overflow.
+        # Normalize vectors separately instead of multiplying squared norms.
+        _, target_exponents = np.frexp(np.max(np.abs(targets), axis=0))
+        _, prediction_exponents = np.frexp(np.max(np.abs(predictions), axis=0))
+        targets = np.ldexp(targets, -target_exponents)
+        predictions = np.ldexp(predictions, -prediction_exponents)
+        targets -= targets.mean(axis=0)
+        predictions -= predictions.mean(axis=0)
+        targets /= np.sqrt(np.sum(targets**2, axis=0))
+        predictions /= np.sqrt(np.sum(predictions**2, axis=0))
+        correlations = np.sum(targets * predictions, axis=0)
+        return float(np.clip(correlations, -1, 1).mean())
 
     ## Optional
     def get_params(  # ty: ignore[missing-override-decorator]
@@ -233,16 +284,30 @@ class kernelReducedRankRegressor(BaseEstimator):
         X : np.ndarray
             The test data features.
         y_true : np.ndarray
-            The true target values.
+            The true target values, with shape (n_samples, n_targets).
+            A one-dimensional array is also accepted for a single target.
 
         Returns
         -------
         float
-            The mean squared error of the predictions.
+            Squared error averaged once across all samples and targets.
+
+        Raises
+        ------
+        ValueError
+            If target and prediction shapes differ or contain no observations.
         """
-        Yhat = self.predict(X).real
-        MSE = (np.power((y_true - Yhat), 2) / np.prod(y_true.shape)).mean()
-        return MSE
+        predictions = np.asarray(self.predict(X).real, dtype=float)
+        targets = np.asarray(y_true, dtype=float)
+        if predictions.ndim == 1:
+            predictions = predictions[:, None]
+        if targets.ndim == 1:
+            targets = targets[:, None]
+        if targets.ndim != 2 or targets.shape != predictions.shape or targets.size == 0:
+            raise ValueError(
+                "Targets and predictions must have the same nonempty shape"
+            )
+        return float(np.mean((targets - predictions) ** 2))
 
     def score(self, X: NDArray[Any], Y: NDArray[Any]) -> float:
         """Score the model."""

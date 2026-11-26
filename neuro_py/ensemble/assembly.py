@@ -1172,6 +1172,7 @@ def computeAssemblyActivity(
     patterns: NDArray[Any],
     zactmat: NDArray[Any],
     zerodiag: bool = True,
+    cross_structural: Optional[NDArray[Any]] = None,
 ) -> Optional[NDArray[Any]]:
     """
     Compute assembly activity.
@@ -1184,15 +1185,75 @@ def computeAssemblyActivity(
         Z-scored activity matrix (neurons, time bins).
     zerodiag : bool, optional
         If True, diagonal of projection matrix is set to zero, by default True.
+        When ``cross_structural`` is provided, all same-group terms, including
+        the diagonal, are excluded regardless of this setting.
+    cross_structural : np.ndarray, optional
+        One-dimensional categorical vector with one group label per neuron.
+        If provided, retain only products between neurons in different groups.
+        By default None, preserving the standard assembly projection.
 
     Returns
     -------
     Optional[np.ndarray]
         Assembly activity matrix (assemblies, time bins).
+
+    Notes
+    -----
+    Cross-structural activity uses the same quadratic projection and scale as
+    standard activity, with entire same-group blocks set to zero. For two groups
+    A and B it is ``2 * (w_A @ X_A) * (w_B @ X_B)``. Both ordered cross-group
+    pairs contribute; no additional group normalization or projection z-scoring
+    is applied. This differs from :func:`computeCrossAreaActivity`, which
+    z-scores the two group projections before multiplying them.
     """
     # check if patterns is empty (no assembly detected) and return None if so
     if len(patterns) == 0:
         return None
+
+    same_group = None
+    if cross_structural is not None:
+        if (
+            patterns.ndim != 2
+            or zactmat.ndim != 2
+            or patterns.shape[1] != zactmat.shape[0]
+        ):
+            raise ValueError("patterns and zactmat must agree on the neuron dimension")
+        groups = np.asarray(cross_structural)
+        if groups.ndim != 1:
+            raise ValueError("cross_structural must be a one-dimensional array")
+        if len(groups) != zactmat.shape[0]:
+            raise ValueError(
+                f"cross_structural length ({len(groups)}) must match "
+                f"number of neurons ({zactmat.shape[0]})"
+            )
+        same_group = groups[:, None] == groups[None, :]
+
+        # For ordinary finite float64 inputs, sum products of group projections
+        # instead of multiplying by an N-by-N masked weight outer product.
+        # Keep the original path for missing values, unusual categorical labels,
+        # other dtypes, and magnitudes where intermediate overflow can differ.
+        limit = np.sqrt(np.sqrt(np.finfo(float).max / (4 * max(1, len(groups) ** 2))))
+        simple_labels = groups.dtype.kind in "biufUS" and (
+            groups.dtype.kind != "f" or not np.isnan(groups).any()
+        )
+        if (
+            simple_labels
+            and patterns.dtype == np.float64
+            and zactmat.dtype == np.float64
+            and np.max(patterns, initial=0) <= limit
+            and np.min(patterns, initial=0) >= -limit
+            and np.max(zactmat, initial=0) <= limit
+            and np.min(zactmat, initial=0) >= -limit
+        ):
+            projected = [
+                patterns[:, groups == group] @ zactmat[groups == group]
+                for group in np.unique(groups)
+            ]
+            activity = np.zeros((len(patterns), zactmat.shape[1]))
+            for i, first in enumerate(projected):
+                for second in projected[i + 1 :]:
+                    activity += 2 * first * second
+            return activity
 
     # number of assemblies and time bins
     nassemblies = len(patterns)
@@ -1212,6 +1273,11 @@ def computeAssemblyActivity(
         # set the diagonal to zero to not count coactivation of i and j when i=j
         if zerodiag:
             np.fill_diagonal(projMat, 0)
+
+        # Fitting a cross-group pattern does not constrain its outer product.
+        # Remove entire within-group blocks again when projecting activity.
+        if same_group is not None:
+            projMat[same_group] = 0
 
         # project assembly pattern onto z-scored activity matrix
         assemblyAct[assemblyi, :] = np.nansum(zactmat @ projMat * zactmat, axis=1)

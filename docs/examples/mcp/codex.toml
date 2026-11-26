@@ -1,0 +1,7 @@
+# Merge this table into your MCP client's configuration; edit all paths first.
+# Use the Python environment where this package and neuro_py are installed.
+[mcp_servers.cellexplorer]
+command = 'C:\path\to\environment\python.exe'
+args = ['-m', 'neuro_py.mcp.server', '--catalog', 'C:\path\to\sessions.csv']
+startup_timeout_sec = 30
+tool_timeout_sec = 120

@@ -825,8 +825,25 @@ def test_load_ripples_events_reads_file_saved_by_detect_sharp_wave_ripples() -> 
             overwrite=True,
         )
 
-        loaded = load_ripples_events(basepath)
+        event_path = os.path.join(
+            basepath, f"{os.path.basename(basepath)}.ripples.events.mat"
+        )
+        saved = sio.loadmat(event_path)["ripples"][0, 0]
+        assert len(detected) == len(centers)
+        np.testing.assert_array_equal(
+            saved["timestamps"], detected[["start", "stop"]].to_numpy()
+        )
+        for field in (
+            "peaks",
+            "amplitude",
+            "center",
+            "duration",
+            "frequency",
+            "peakNormedPower",
+        ):
+            np.testing.assert_array_equal(saved[field], detected[[field]].to_numpy())
 
+        loaded = load_ripples_events(basepath)
         assert len(loaded) == len(detected)
         np.testing.assert_allclose(
             loaded["peaks"].to_numpy(dtype=float),
@@ -845,9 +862,7 @@ def test_save_ripple_events_writes_empty_event_file() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         basepath = os.path.join(temp_dir, "session_empty_ripples")
         os.makedirs(basepath, exist_ok=True)
-        basename = os.path.basename(basepath)
-
-        save_ripple_events(
+        event_path = save_ripple_events(
             events=pd.DataFrame(
                 columns=[
                     "start",
@@ -865,4 +880,14 @@ def test_save_ripple_events_writes_empty_event_file() -> None:
             detection_epochs=np.array([[0.0, 1.0]]),
         )
 
-        assert os.path.exists(os.path.join(basepath, f"{basename}.ripples.events.mat"))
+        saved = sio.loadmat(event_path)["ripples"][0, 0]
+        assert saved["timestamps"].shape == (0, 2)
+        for field in (
+            "peaks",
+            "amplitude",
+            "center",
+            "duration",
+            "frequency",
+            "peakNormedPower",
+        ):
+            assert saved[field].shape == (0, 1)

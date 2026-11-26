@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
 
 import bottleneck as bn
 import numpy as np
@@ -12,13 +12,19 @@ from nelpy.core import (
     SpikeTrainArray,
 )
 from nelpy.core._eventarray import BinnedEventArray, EventArray
-from numba import jit, prange
+from numba import jit
 from numpy.typing import NDArray
 from scipy import stats
 from scipy.linalg import toeplitz
 from scipy.ndimage import gaussian_filter1d
 
 from neuro_py.process.intervals import in_intervals, split_epoch_by_width
+
+if TYPE_CHECKING:
+    # prange has range semantics; its annotations differ across Numba versions.
+    from builtins import range as prange
+else:
+    from numba import prange
 
 
 @jit(nopython=True)
@@ -463,7 +469,7 @@ def peth_matrix(
 
     H = np.zeros((len(times), len(time_ref)))
 
-    for event_i in prange(len(time_ref)):  # ty: ignore[not-iterable]  # numba loop
+    for event_i in prange(len(time_ref)):  # numba loop
         H[:, event_i] = crossCorr(
             np.array([time_ref[event_i]]), data, bin_width, n_bins
         )
@@ -795,6 +801,119 @@ def event_triggered_average_irregular_sample(
     return avg, std
 
 
+def _event_sampling_info(
+    timestamps: NDArray[np.float64],
+    sampling_rate: float | None,
+    timestamp_precision: float,
+) -> tuple[float, bool, float]:
+    """Detect a regular grid within the precision of the source timestamps."""
+    inferred = sampling_rate is None
+    if inferred:
+        # A long baseline avoids subtractive rounding in adjacent timestamps
+        # at a large clock origin, which can otherwise add an output lag bin.
+        sampling_rate = float((timestamps.size - 1) / (timestamps[-1] - timestamps[0]))
+    if not np.isfinite(sampling_rate) or sampling_rate <= 0:
+        return sampling_rate, False, 0.0
+    # Adjacent differences include quantization from both source timestamps.
+    # Preserve float32 precision information before conversion to float64.
+    # Callers validate increasing timestamps, so the largest magnitude is at an
+    # endpoint; avoid an extra full-recording scan on the regular fast path.
+    rounding = 2 * timestamp_precision * max(abs(timestamps[0]), abs(timestamps[-1]))
+    # Poor timestamp precision must not make a missing sample look regular.
+    tolerance = min(max(1e-12, rounding), 0.25 / sampling_rate)
+    regular = np.allclose(
+        np.diff(timestamps), 1 / sampling_rate, rtol=1e-6, atol=tolerance
+    )
+    rate_tolerance = (
+        sampling_rate * rounding / (timestamps[-1] - timestamps[0])
+        if inferred and regular
+        else 0.0
+    )
+    return sampling_rate, bool(regular), float(rate_tolerance)
+
+
+def _event_time_lags(
+    window: Sequence[float], sampling_rate: float, sampling_rate_tolerance: float = 0.0
+) -> NDArray[np.float64]:
+    """Construct a half-open output grid without floating-point extra bins."""
+    bounds = np.asarray(window, dtype=float)
+    if (
+        bounds.shape != (2,)
+        or not np.all(np.isfinite(bounds))
+        or bounds[0] >= bounds[1]
+    ):
+        raise ValueError("window must contain finite [start, stop] with start < stop")
+    if not np.isfinite(sampling_rate) or sampling_rate <= 0:
+        raise ValueError("sampling_rate must be finite and positive")
+    span = (bounds[1] - bounds[0]) * sampling_rate
+    nearest = np.rint(span)
+    # Snap arithmetic noise, including the endpoint precision of an inferred
+    # rate. Explicit rates retain the small arithmetic-only tolerance.
+    tolerance = max(
+        1e-9,
+        8 * np.finfo(float).eps * abs(span),
+        (bounds[1] - bounds[0]) * sampling_rate_tolerance,
+    )
+    if nearest >= 1 and abs(span - nearest) <= tolerance:
+        span = nearest
+    count = int(np.ceil(span))
+    return bounds[0] + np.arange(count, dtype=float) / sampling_rate
+
+
+_EVENT_MAX_CHUNK_VALUES = 500_000
+
+
+def _extract_regular_events(
+    signal: NDArray[Any],
+    event_samples: NDArray[Any],
+    lag_samples: NDArray[Any],
+    return_average: bool = False,
+    dtype: np.dtype[Any] = np.dtype(float),
+) -> NDArray[Any]:
+    """Extract bounded event batches, streaming sums/counts for average-only calls."""
+    n_lags, n_channels = len(lag_samples), signal.shape[1]
+    accumulator_dtype = np.result_type(dtype, float)
+    accumulator_shape = (n_lags, n_channels) if return_average else (0, 0)
+    total = np.zeros(accumulator_shape, dtype=accumulator_dtype)
+    counts = np.zeros(accumulator_shape, dtype=np.int64)
+    if return_average:
+        result = np.full((n_lags, n_channels), np.nan, dtype=dtype)
+    else:
+        # Store each event contiguously while preserving the public axis order.
+        result = np.full(
+            (len(event_samples), n_lags, n_channels), np.nan, dtype=dtype
+        ).transpose(1, 2, 0)
+    if n_channels == 0 or len(event_samples) == 0:
+        return result
+    targets = event_samples + lag_samples[0]
+    # Preserve the original nearest-event-sample convention, including ties.
+    # Window alignment depends on its requested start, not half its length.
+    starts = np.rint(event_samples) + np.rint(lag_samples[0])
+    tolerance = 8 * np.finfo(float).eps * np.maximum(1.0, np.abs(targets))
+    valid = np.flatnonzero(
+        np.isfinite(starts)
+        & (targets >= -tolerance)
+        & (targets + n_lags - 1 <= signal.shape[0] - 1 + tolerance)
+        & (starts >= 0)
+        & (starts + n_lags - 1 <= signal.shape[0] - 1)
+    )
+    base = starts[valid].astype(np.intp)
+    offsets = np.arange(n_lags)
+    batch_size = max(1, _EVENT_MAX_CHUNK_VALUES // max(1, n_lags * n_channels))
+    for first in range(0, len(valid), batch_size):
+        last = first + batch_size
+        indices = base[first:last, None] + offsets[None, :]
+        values = np.asarray(signal[indices], dtype=dtype)
+        if return_average:
+            total += np.nansum(values, axis=0, dtype=accumulator_dtype)
+            counts += np.sum(~np.isnan(values), axis=0)
+        else:
+            result[:, :, valid[first:last]] = values.transpose(1, 2, 0)
+    if return_average:
+        np.divide(total, counts, out=result, where=counts > 0)
+    return result
+
+
 def event_triggered_average(
     timestamps: NDArray[Any],
     signal: NDArray[Any],
@@ -822,7 +941,8 @@ def event_triggered_average(
         based on the timestamps.
     window : List[float], optional
         A list containing two elements: the start and stop times relative to an event
-        for the time interval of signal averaging. Default is [-0.5, 0.5].
+        for the half-open interval [start, stop). Default is [-0.5, 0.5].
+        Output lags are ``start + arange(n_bins) / sampling_rate``.
     return_average : bool, optional
         Whether to return the average of the event-triggered average. Defaults to True.
         If False, returns the full event-triggered average matrix (n_samples x n_signals x n_events).
@@ -846,7 +966,11 @@ def event_triggered_average(
     - The function filters out events that do not fit within the valid range of the signal
     considering the specified window size.
     - If the `sampling_rate` is not provided, it is calculated based on the timestamps.
-    - The function handles both regular and irregular sampling of the signal.
+    - Regular recordings use nearest-sample extraction: event times and the
+      window start offset are rounded to sample indices. Output lags describe
+      the requested grid. Set ``irregular_sampling=True`` to interpolate at the
+      exact requested times, including on a regular recording. Irregular
+      recordings are always interpolated. Missing windows retain NaNs.
 
     Examples
     --------
@@ -858,113 +982,90 @@ def event_triggered_average(
     ...    timestamps, signal, events, window=[-0.5, 0.5], return_average=False
     ... )
     """
-    # Basic input validation
-    if len(window) != 2 or window[0] > window[1]:
-        raise ValueError("'window' must be [start, stop] with start < stop")
-
-    if len(signal.shape) == 1:
-        signal = signal.reshape(-1, 1)
-
-    if sampling_rate is None:
-        sampling_rate = 1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0]
-
-    if isinstance(events, list):
-        events = np.array(events)
-
-    window_starttime, window_stoptime = window
-    window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
-    time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
-
-    # Filter events that fit within the signal range
-    min_timestamp, max_timestamp = timestamps[0], timestamps[-1]
-    valid_mask = (events + window_starttime >= min_timestamp) & (
-        events + window_stoptime <= max_timestamp
+    timestamps = np.asarray(timestamps)
+    timestamp_precision = float(
+        np.finfo(timestamps.dtype).eps
+        if timestamps.dtype.kind == "f"
+        else np.finfo(float).eps
     )
-
+    timestamps = timestamps.astype(float, copy=False)
+    signal = np.asarray(signal)
+    events = np.atleast_1d(np.asarray(events, dtype=float))
+    if timestamps.ndim != 1 or timestamps.size < 2:
+        raise ValueError(
+            "timestamps must be a one-dimensional array with at least two samples"
+        )
+    if not np.all(np.isfinite(timestamps)) or np.any(np.diff(timestamps) <= 0):
+        raise ValueError("timestamps must be finite and strictly increasing")
+    if signal.ndim == 1:
+        signal = signal[:, None]
+    if signal.ndim != 2 or signal.shape[0] != timestamps.size:
+        raise ValueError("signal must have one row per timestamp")
+    if events.ndim != 1:
+        raise ValueError("events must be one-dimensional")
+    inferred_rate, regular, rate_tolerance = _event_sampling_info(
+        timestamps, sampling_rate, timestamp_precision
+    )
+    if sampling_rate is None:
+        sampling_rate = (
+            inferred_rate
+            if regular
+            else float(1 / stats.mode(np.diff(timestamps), keepdims=True)[0][0])
+        )
+    time_lags = _event_time_lags(window, sampling_rate, rate_tolerance)
+    tolerance = 8 * np.finfo(float).eps * max(1.0, np.max(np.abs(timestamps)))
+    valid_mask = (
+        np.isfinite(events)
+        & (events + time_lags[0] >= timestamps[0] - tolerance)
+        & (events + time_lags[-1] <= timestamps[-1] + tolerance)
+    )
     if not np.any(valid_mask):
         warnings.warn("No events found within the valid signal range")
-        empty_shape = (window_bins, signal.shape[1])
-        if return_average:
-            result = np.zeros(empty_shape)
-            return (
-                pd.DataFrame(result, index=time_lags) if return_pandas else result
+        if not return_average:
+            return np.full(
+                (len(time_lags), signal.shape[1], len(events)), np.nan
             ), time_lags
-        else:
-            return np.full(empty_shape + (len(events),), np.nan), time_lags
-
-    # Initialize result matrix: (window_bins, n_signals, n_events) - keep all events
-    result_matrix = np.full((window_bins, signal.shape[1], len(events)), np.nan)
-
-    # For regular sampling, use fast indexing approach similar to event_triggered_average_fast
-    dt = np.median(np.diff(timestamps))
-    data_is_regular = np.allclose(np.diff(timestamps), dt, rtol=1e-3)
-    use_interpolation = irregular_sampling or not data_is_regular
-
-    if not use_interpolation:
-        # Fast path: regular sampling - use direct indexing like event_triggered_average_fast
-        # Match the exact indexing logic from event_triggered_average_fast
-        start_time = timestamps[0]  # Cache start time for efficiency
-        for i, event in enumerate(events):
-            if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
-                continue
-
-            # Convert event time to sample indices, accounting for timestamp start time
-            event_sample = np.round((event - start_time) * sampling_rate)
-            ts_idx = np.arange(
-                event_sample - window_bins / 2,
-                event_sample + window_bins / 2,
-            ).astype(int)
-
-            # Check bounds
-            if np.min(ts_idx) >= 0 and np.max(ts_idx) < len(signal):
-                result_matrix[:, :, i] = signal[ts_idx, :]
-            # If bounds check fails, keep as NaN (already initialized)
-    else:
-        # Slow path: irregular sampling - use interpolation but vectorized
-        target_times_template = np.linspace(
-            window_starttime, window_stoptime, window_bins
-        )
-
-        for i, event in enumerate(events):
-            if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
-                continue
-
-            target_times = target_times_template + event
-
-            # Find the range of timestamps that covers our target times
-            start_search = np.searchsorted(
-                timestamps, target_times[0] - dt, side="left"
-            )
-            stop_search = np.searchsorted(
-                timestamps, target_times[-1] + dt, side="right"
-            )
-
-            if start_search >= stop_search:
-                # Keep as NaN (already initialized)
-                continue
-
-            # Extract relevant data for this event
-            event_timestamps = timestamps[start_search:stop_search]
-            event_signal = signal[start_search:stop_search, :]
-
-            # Vectorized interpolation for all channels at once
-            if len(event_timestamps) > 1:
-                for j in range(signal.shape[1]):
-                    result_matrix[:, j, i] = np.interp(
-                        target_times, event_timestamps, event_signal[:, j]
-                    )
-            # If interpolation fails, keep as NaN (already initialized)
-
-    # Return results
-    if return_average:
-        result_avg = bn.nanmean(result_matrix, axis=2)
+        result = np.zeros((len(time_lags), signal.shape[1]))
         if return_pandas:
-            return pd.DataFrame(
-                result_avg, index=time_lags, columns=np.arange(signal.shape[1])
-            )
-        return result_avg, time_lags
+            return pd.DataFrame(result, index=time_lags)
+        return result, time_lags
+
+    if regular and not irregular_sampling:
+        result_matrix = _extract_regular_events(
+            signal,
+            (events - timestamps[0]) * sampling_rate,
+            time_lags * sampling_rate,
+            return_average=return_average,
+        )
     else:
+        result_matrix = np.full((len(time_lags), signal.shape[1], len(events)), np.nan)
+        for event_i in np.flatnonzero(valid_mask):
+            targets = np.clip(
+                events[event_i] + time_lags, timestamps[0], timestamps[-1]
+            )
+            start = max(
+                0, int(np.searchsorted(timestamps, targets[0], side="right")) - 1
+            )
+            stop = min(
+                len(timestamps),
+                int(np.searchsorted(timestamps, targets[-1], side="left")) + 1,
+            )
+            for channel in range(signal.shape[1]):
+                result_matrix[:, channel, event_i] = np.interp(
+                    targets, timestamps[start:stop], signal[start:stop, channel]
+                )
+    if not return_average:
         return result_matrix, time_lags
+    result_avg = (
+        result_matrix
+        if regular and not irregular_sampling
+        else bn.nanmean(result_matrix, axis=2)
+    )
+    if return_pandas:
+        return pd.DataFrame(
+            result_avg, index=time_lags, columns=np.arange(signal.shape[1])
+        )
+    return result_avg, time_lags
 
 
 def event_triggered_average_fast(
@@ -991,7 +1092,8 @@ def event_triggered_average_fast(
 
     window : Union[list, Tuple[float, float]], optional
         A list or tuple specifying the time window (in seconds) to average the signal
-        around each event. Defaults to [-0.5, 0.5].
+        around each event as a half-open interval [start, stop).
+        Defaults to [-0.5, 0.5]. Lags have spacing ``1 / sampling_rate``.
 
     return_average : bool, optional
         Whether to return the average of the event-triggered average. Defaults to True.
@@ -1015,44 +1117,44 @@ def event_triggered_average_fast(
     - The function filters out events that do not fit within the valid range of the signal
     considering the specified window size.
     - Assumes the signal starts at time 0.
+    - Event times and the window start offset are rounded to sample indices,
+      preserving nearest-sample extraction on regular recordings. Output lags
+      describe the requested grid. Use ``event_triggered_average`` with
+      ``irregular_sampling=True`` when exact-time interpolation is needed.
+      Output uses floating-point storage so invalid event windows remain NaN.
+      Float32/float64 and complex input dtypes are retained; integer inputs use float64.
     """
 
-    window_starttime, window_stoptime = window
-    window_bins = int(np.ceil(((window_stoptime - window_starttime) * sampling_rate)))
-    time_lags = np.linspace(window_starttime, window_stoptime, window_bins)
-
-    # Create valid mask instead of filtering events
-    valid_mask = (events * sampling_rate > len(time_lags) / 2 + 1) & (
-        events * sampling_rate < signal.shape[1] - len(time_lags) / 2 + 1
-    )
-
-    # Initialize result matrix with all events, filled with NaN
-    avg_signal = np.full(
-        [signal.shape[0], len(time_lags), len(events)], np.nan, dtype=signal.dtype
-    )
-
-    # Process only valid events
-    for i, event in enumerate(events):
-        if not valid_mask[i]:  # Skip invalid events (already filled with NaN)
-            continue
-
-        ts_idx = np.arange(
-            np.round(event * sampling_rate) - len(time_lags) / 2,
-            np.round(event * sampling_rate) + len(time_lags) / 2,
-        ).astype(int)
-        avg_signal[:, :, i] = signal[:, ts_idx]
-
-    if return_pandas and return_average:
-        return pd.DataFrame(
-            index=time_lags,
-            columns=np.arange(signal.shape[0]),
-            data=bn.nanmean(avg_signal, axis=2).T,
+    signal = np.asarray(signal)
+    events = np.atleast_1d(np.asarray(events, dtype=float))
+    if signal.ndim != 2 or signal.shape[1] == 0:
+        raise ValueError(
+            "signal must have shape (channels, timepoints) with nonempty timepoints"
         )
-
-    if return_average:
-        return bn.nanmean(avg_signal, axis=2), time_lags
-    else:
-        return avg_signal, time_lags
+    if events.ndim != 1:
+        raise ValueError("events must be one-dimensional")
+    time_lags = _event_time_lags(window, sampling_rate)
+    # Floating storage is essential: invalid events must remain missing even
+    # when the source recording uses an integer dtype.
+    samples = _extract_regular_events(
+        signal.T,
+        events * sampling_rate,
+        time_lags * sampling_rate,
+        return_average=return_average,
+        dtype=(
+            signal.dtype
+            if np.issubdtype(signal.dtype, np.inexact) and signal.dtype.itemsize >= 4
+            else np.dtype(float)
+        ),
+    )
+    if not return_average:
+        return samples.transpose(1, 0, 2), time_lags
+    result = samples.T
+    if return_pandas:
+        return pd.DataFrame(
+            result.T, index=time_lags, columns=np.arange(signal.shape[0])
+        )
+    return result, time_lags
 
 
 def peth(

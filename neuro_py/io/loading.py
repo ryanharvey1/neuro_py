@@ -2094,6 +2094,8 @@ def load_animal_behavior(
     """
     load_animal_behavior loads basename.animal.behavior.mat files created by general_behavior_file.m
     The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration,trials,epochs]
+    Position columns are limited to populated CellExplorer coordinates. Other
+    position fields remain available through `load_mat`.
 
     Parameters
     ----------
@@ -2155,20 +2157,30 @@ def load_animal_behavior(
 
     # add timestamps first which provide the correct shape of df
     # here, I'm naming them time, but this should be deprecated
-    _assign_column("time", data["behavior"]["timestamps"])
+    _assign_column("time", np.atleast_1d(data["behavior"]["timestamps"]))
 
-    # add all other position coordinates to df (will add everything it can within position)
-    if "position" in data["behavior"] and isinstance(
-        data["behavior"]["position"], dict
-    ):
-        for key in data["behavior"]["position"].keys():
-            values = data["behavior"]["position"][key]
-            # Skip empty arrays and non-array values (e.g., nested dicts)
-            if isinstance(values, dict):
+    def _add_position(position: dict[str, Any], field_path: str) -> None:
+        # CellExplorer's schema defines Cartesian and linearized coordinates.
+        # Its behavior tutorial uses polar_rho and polar_theta for polar data.
+        coordinates = {"x", "y", "z", "linearized", "polar_rho", "polar_theta"}
+        for key, values in position.items():
+            if key not in coordinates:
                 continue
-            if isinstance(values, (list, np.ndarray)) and len(values) == 0:
+            message = f"{field_path}.{key} must have one numeric value per timestamp."
+            try:
+                array = np.asarray(values)
+            except ValueError as exc:
+                raise ValueError(message) from exc
+            # CellExplorer can store untracked axes as empty MATLAB arrays.
+            if array.size == 0:
                 continue
-            _assign_column(key, values)
+            if array.ndim > 1 or array.size != len(df) or array.dtype.kind not in "iuf":
+                raise ValueError(message)
+            _assign_column(key, array.reshape(-1))
+
+    position = data["behavior"].get("position")
+    if isinstance(position, dict):
+        _add_position(position, "behavior.position")
 
     # handle SpatialSeries containers (position/pupil/orientation, etc.)
     if "SpatialSeries" in data["behavior"] and isinstance(
@@ -2178,6 +2190,9 @@ def load_animal_behavior(
         for series_name, series in spatial_series.items():
             if not isinstance(series, dict):
                 continue
+            if series_name == "position":
+                _add_position(series, "behavior.SpatialSeries.position")
+                continue
             for key, values in series.items():
                 if key in {"units", "resolution", "referenceFrame", "coordinateSystem"}:
                     continue
@@ -2185,10 +2200,7 @@ def load_animal_behavior(
                     continue
                 if not _is_aligned_series(values):
                     continue
-                if series_name == "position":
-                    _assign_column(key, values)
-                else:
-                    _assign_column(f"{series_name}_{key}", values)
+                _assign_column(f"{series_name}_{key}", values)
 
     # add other fields from behavior to df (acceleration,speed,states)
     for key in data["behavior"].keys():
@@ -2646,7 +2658,10 @@ def load_spikes(
     remove_bad_unit : bool, optional
         If True, do not load bad cells (tagged in CE), by default True.
     brain_state : List[str], optional
-        List of brain states to restrict spikes to, by default [].
+        Brain states whose union is used to restrict spikes, by default [].
+        Missing states contribute no intervals and emit a warning. Existing
+        behavior for an unavailable state file is preserved: return unfiltered
+        spikes after the state loader warns.
     other_metric : Union[str, None], optional
         Metric to restrict spikes to, by default None.
     other_metric_value : Union[str, None], optional
@@ -2741,12 +2756,49 @@ def load_spikes(
         st = st[restrict_idx]
 
     if remove_unstable and len(st) > 0:
-        concatenated_spikes = np.concatenate([np.asarray(spikes) for spikes in st])
-        starts = np.arange(
-            concatenated_spikes.min(),
-            concatenated_spikes.max() - stable_interval_width,
-            stable_interval_width,
-        )
+        try:
+            epochs = load_epoch(basepath)
+        except (KeyError, TypeError):
+            # Some legacy session files do not define epochs.
+            epochs = pd.DataFrame()
+        if {"startTime", "stopTime"}.issubset(epochs.columns):
+            epoch_bounds = epochs[["startTime", "stopTime"]].apply(
+                pd.to_numeric, errors="coerce"
+            )
+            epoch_bounds = epoch_bounds.dropna()
+            epoch_bounds = epoch_bounds[
+                (epoch_bounds["stopTime"] > epoch_bounds["startTime"])
+                & np.isfinite(epoch_bounds).all(axis=1)
+            ]
+        else:
+            epoch_bounds = pd.DataFrame(
+                {
+                    "startTime": pd.Series(dtype=float),
+                    "stopTime": pd.Series(dtype=float),
+                }
+            )
+
+        if len(epoch_bounds) > 0:
+            # Build bins within, rather than between, session epochs so recording
+            # gaps excluded by the user cannot count as inactive time.
+            starts = np.concatenate(
+                [
+                    np.arange(
+                        start, stop - stable_interval_width, stable_interval_width
+                    )
+                    for start, stop in epoch_bounds[
+                        ["startTime", "stopTime"]
+                    ].to_numpy()
+                ]
+            )
+        else:
+            # Preserve the previous behavior for sessions without epoch metadata.
+            concatenated_spikes = np.concatenate([np.asarray(spikes) for spikes in st])
+            starts = np.arange(
+                concatenated_spikes.min(),
+                concatenated_spikes.max() - stable_interval_width,
+                stable_interval_width,
+            )
         stops = starts + stable_interval_width
 
         bst = npy.process.count_in_interval(st, starts, stops, "counts")
@@ -2776,13 +2828,21 @@ def load_spikes(
         # get brain states
         brain_states = ["WAKEstate", "NREMstate", "REMstate", "THETA", "nonTHETA"]
         if any(state not in brain_states for state in brain_state):
-            assert print("not correct brain state. Pick one", brain_states)
-        else:
-            state_dict = load_SleepState_states(basepath)
-            if state_dict is None:
-                return st, cell_metrics
-            state_epoch = nel.EpochArray(state_dict[brain_state[0]])
-            st = st[state_epoch]
+            raise ValueError(
+                f"brain_state must contain only states from {brain_states}"
+            )
+        state_dict = load_SleepState_states(basepath)
+        if state_dict is None:
+            return st, cell_metrics
+        state_epoch = nel.EpochArray()
+        for state in dict.fromkeys(brain_state):
+            if state not in state_dict:
+                warnings.warn(f"Brain state {state!r} is missing; treating it as empty")
+                continue
+            state_epoch = state_epoch | nel.EpochArray(state_dict[state])
+        # Restrict once to the merged union so overlaps cannot duplicate spikes,
+        # and the caller's existing support and unit selection remain in force.
+        st = st[state_epoch.merge()]
 
     return st, cell_metrics
 

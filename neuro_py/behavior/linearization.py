@@ -2,7 +2,7 @@ import os
 import pickle
 import sys
 from collections.abc import MutableMapping, Sequence
-from typing import Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +17,13 @@ from scipy.stats import multivariate_normal
 
 # Add Numba for JIT compilation
 try:
-    from numba import jit, njit, prange
+    from numba import jit, njit
+
+    if TYPE_CHECKING:
+        # prange has range semantics; its annotations differ across Numba versions.
+        from builtins import range as prange
+    else:
+        from numba import prange
 
     NUMBA_AVAILABLE = True
 except ImportError:
@@ -68,7 +74,7 @@ def _emission_probabilities_numba(observations, emission_centers, emission_covar
     # Log normalization constant
     log_norm_const = np.log(1.0 / (2 * np.pi * np.sqrt(det)))
 
-    for t in prange(n_observations):  # ty: ignore[not-iterable]  # Numba range
+    for t in prange(n_observations):  # Numba range
         obs = observations[t]
         for i in range(n_states):
             center = emission_centers[i]
@@ -164,7 +170,7 @@ def _build_sparse_transition_matrix_numba(
         (n_states, n_states), -np.inf
     )  # Initialize with log(0) = -inf
 
-    for i in prange(n_states):  # ty: ignore[not-iterable]  # Numba range
+    for i in prange(n_states):  # Numba range
         seg1 = state_to_segment[i]
         pos1 = state_to_position[i]
 
@@ -263,7 +269,7 @@ def _project_positions_parallel(positions, node_positions, edges, n_positions):
     track_segment_ids = np.full(n_positions, -1, dtype=np.int32)
     projected_positions = np.full((n_positions, 2), np.nan)
 
-    for i in prange(n_positions):  # ty: ignore[not-iterable]  # Numba range
+    for i in prange(n_positions):  # Numba range
         pos = positions[i]
 
         # Find closest edge

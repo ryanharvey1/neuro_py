@@ -6,6 +6,8 @@ extra_css:
   - stylesheets/extra.css
 extra_javascript:
   - javascripts/extra.js
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 theme:
   name: material
   palette:
@@ -60,6 +62,8 @@ markdown_extensions:
   - pymdownx.highlight:
       use_pygments: true
   - pymdownx.inlinehilite
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.tabbed:
       alternate_style: true
   - def_list
@@ -82,6 +86,8 @@ plugins:
               - "!^tests$"
 nav:
 - Home: index.md
+- Dataset MCP server: mcp.md
+- Metadata indexing: mcp-index.md
 - API Reference:
   - Overview: reference/index.md
   - behavior:
@@ -179,4 +185,5 @@ nav:
   - Reactivation: tutorials/reactivation.md
   - Sharp-Wave Ripple: tutorials/sharp_wave_ripple_detection.md
   - Spatial Map: tutorials/spatial_map.md
-  - Weighted Correlation: tutorials/weighted_corr_2d.md
+  - Weighted 2D Regression: tutorials/weighted_regression_2d.md
+  - WavPack Compression: tutorials/wavpack_compression.md

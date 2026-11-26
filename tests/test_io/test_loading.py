@@ -259,6 +259,58 @@ def test_load_animal_behavior_skips_ragged_metadata(monkeypatch):
     assert "notes" not in df.columns
 
 
+@pytest.mark.parametrize("malformed", [False, True])
+@pytest.mark.parametrize("spatial_series", [False, True])
+def test_load_animal_behavior_distinguishes_position_metadata(
+    tmp_path, malformed, spatial_series
+):
+    """Skip metadata and empty coordinates, and reject malformed coordinates."""
+    basename = tmp_path.name
+    position = {
+        "x": np.array([1.0, 2.0]),
+        "y": np.array([3.0, 4.0]),
+        "z": np.empty(0),
+        "linearized": np.ones((2, 2)) if malformed else np.array([1.0, np.nan]),
+        "polar_rho": np.array([5.0, 6.0]),
+        "BodyPart": np.array(
+            [["x y", "RightLED"], ["x1 y1", "LeftLED"]], dtype=object
+        ),
+        "other_metadata": np.array([1.0, 2.0, 3.0]),
+        "x2_point": np.array([5.0, 6.0]),
+    }
+    behavior = {"timestamps": np.array([0.0, 1.0])}
+    if spatial_series:
+        behavior["SpatialSeries"] = {"position": position}
+    else:
+        behavior["position"] = position
+    create_temp_mat_file(
+        str(tmp_path),
+        {
+            f"{basename}.animal.behavior.mat": {"behavior": behavior},
+            f"{basename}.session.mat": {
+                "session": {
+                    "epochs": [{"name": "task", "startTime": 0.0, "stopTime": 1.0}]
+                }
+            },
+        },
+    )
+
+    if malformed:
+        with pytest.raises(ValueError, match=r"position\.linearized"):
+            load_animal_behavior(str(tmp_path))
+        return
+
+    df = load_animal_behavior(str(tmp_path))
+
+    assert "BodyPart" not in df.columns
+    assert "other_metadata" not in df.columns
+    assert "x2_point" not in df.columns
+    assert "z" not in df.columns
+    np.testing.assert_array_equal(df["time"], [0.0, 1.0])
+    np.testing.assert_array_equal(df["linearized"], [1.0, np.nan])
+    np.testing.assert_array_equal(df["polar_rho"], [5.0, 6.0])
+
+
 def test_load_animal_behavior_filters_scalar_arrays():
     """Test that 0-D (scalar) arrays are retained as metadata without errors."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -864,8 +916,9 @@ def test_load_animal_behavior_stress_single_sample():
 
         df = load_animal_behavior(basepath)
 
-        # Should load behavior data, may be empty or have 1 row depending on implementation
-        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 1
+        np.testing.assert_array_equal(df["time"], [0.0])
+        np.testing.assert_array_equal(df["x"], [0.0])
 
 
 def test_load_animal_behavior_stress_duplicate_trials():
@@ -2008,6 +2061,87 @@ def test_load_spikes_with_support():
         assert st.support is not None
 
 
+@pytest.fixture
+def spike_state_data(monkeypatch):
+    metrics = pd.DataFrame({"UID": [11, 22, 33], "bad_unit": [False, True, False]})
+    spikes = [
+        np.array([0.2, 2.2, 4.2]),
+        np.array([0.3, 2.3]),
+        np.array([0.4, 2.4, 4.4, 5.4]),
+    ]
+    states = {
+        "WAKEstate": np.array([[0.0, 1.0]]),
+        "NREMstate": np.array([[2.0, 3.0]]),
+        "REMstate": np.empty((0, 2)),
+        "THETA": np.array([[0.1, 0.8], [2.1, 2.8]]),
+    }
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_extracellular_metadata", lambda _: {"sr": 20000}
+    )
+    monkeypatch.setattr(
+        "neuro_py.io.loading.load_cell_metrics", lambda _: (metrics, {"spikes": spikes})
+    )
+    monkeypatch.setattr("neuro_py.io.loading.load_SleepState_states", lambda _: states)
+    return states
+
+
+@pytest.mark.parametrize(
+    "selection, expected",
+    [
+        (["WAKEstate", "NREMstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["NREMstate", "WAKEstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["WAKEstate", "THETA", "WAKEstate"], [[0.2, 2.2], [0.4, 2.4]]),
+        (["WAKEstate", "REMstate"], [[0.2], [0.4]]),
+        ("NREMstate", [[2.2], [2.4]]),
+    ],
+)
+def test_load_spikes_restricts_to_state_union(spike_state_data, selection, expected):
+    st, metrics = load_spikes("session", brain_state=selection)
+    assert isinstance(st, nel.SpikeTrainArray)
+    assert metrics.UID.tolist() == [11, 33]
+    assert st.n_units == len(metrics)
+    for actual, wanted in zip(st.data, expected):
+        np.testing.assert_allclose(actual, wanted)
+    np.testing.assert_array_equal(spike_state_data["NREMstate"], np.array([[2.0, 3.0]]))
+
+
+def test_load_spikes_state_union_respects_existing_support(spike_state_data):
+    st, metrics = load_spikes(
+        "session",
+        brain_state=["WAKEstate", "NREMstate"],
+        support=nel.EpochArray([[2.0, 2.5]]),
+    )
+    assert metrics.UID.tolist() == [11, 33]
+    np.testing.assert_allclose(st.data[0], [2.2])
+    np.testing.assert_allclose(st.data[1], [2.4])
+    np.testing.assert_allclose(st.support.data, [[2.0, 2.5]])
+
+
+def test_load_spikes_missing_state_contributes_no_unrestricted_spikes(spike_state_data):
+    with pytest.warns(UserWarning, match="nonTHETA.*missing"):
+        st, _ = load_spikes("session", brain_state=["WAKEstate", "nonTHETA"])
+    np.testing.assert_allclose(st.data[0], [0.2])
+
+
+def test_load_spikes_empty_state_selection_returns_empty_spikes(spike_state_data):
+    st, metrics = load_spikes("session", brain_state=["REMstate"])
+    assert st.isempty
+    assert metrics.UID.tolist() == [11, 33]
+
+
+def test_load_spikes_unavailable_states_preserve_existing_fallback(
+    spike_state_data, monkeypatch
+):
+    monkeypatch.setattr("neuro_py.io.loading.load_SleepState_states", lambda _: None)
+    st, _ = load_spikes("session", brain_state=["WAKEstate", "NREMstate"])
+    np.testing.assert_allclose(st.data[0], [0.2, 2.2, 4.2])
+
+
+def test_load_spikes_invalid_state_is_rejected(spike_state_data):
+    with pytest.raises(ValueError, match="brain_state"):
+        load_spikes("session", brain_state=["WAKEstate", "unknown"])
+
+
 def test_load_spikes_filter_by_stable():
     """Test loading filtering by stable cells."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -2073,6 +2207,72 @@ def test_load_spikes_filter_by_stable():
         assert metrics is not None
         assert st.n_active == 1
         assert len(metrics) == 1
+
+
+def test_load_spikes_stability_uses_session_epochs():
+    """Ignore recording gaps outside the session epochs when filtering units."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        basepath = os.path.join(temp_dir, "session_epochs")
+        basename = os.path.basename(basepath)
+
+        create_temp_mat_file(
+            basepath,
+            {
+                f"{basename}.session.mat": {
+                    "session": {
+                        "extracellular": {"sr": 20000},
+                        "epochs": [
+                            {"name": "pre", "startTime": 0.0, "stopTime": 12.0},
+                            {"name": "post", "startTime": 100.0, "stopTime": 112.0},
+                        ],
+                    }
+                },
+                f"{basename}.cell_metrics.cellinfo.mat": {
+                    "cell_metrics": {
+                        "UID": np.array([1, 2], dtype="object"),
+                        "putativeCellType": np.array(["Pyramidal", "Pyramidal"]),
+                        "brainRegion": np.array(["CA1", "CA1"]),
+                        "tags": {"Bad": np.array([])},
+                        "spikes": {
+                            "times": np.array(
+                                [
+                                    np.array(
+                                        [[1.0], [4.0], [7.0], [101.0], [104.0], [107.0]]
+                                    ),
+                                    np.array([[1.0]]),
+                                ],
+                                dtype="object",
+                            )
+                        },
+                        "waveforms": {"filt": np.array([[[1, 2]], [[3, 4]]])},
+                        "acg": {
+                            "wide": np.array([[1, 2], [3, 4]]),
+                            "narrow": np.array([[1, 2], [3, 4]]),
+                            "log10": np.array([[1, 2], [3, 4]]),
+                        },
+                        "general": {
+                            "basename": basename,
+                            "cellCount": 2,
+                            "animal": {
+                                "sex": "male",
+                                "species": "rat",
+                                "strain": "long-evans",
+                                "geneticLine": "WT",
+                            },
+                        },
+                    }
+                },
+            },
+        )
+
+        st, metrics = load_spikes(
+            basepath, remove_unstable=True, stable_interval_width=3
+        )
+
+        assert st is not None
+        assert metrics is not None
+        assert st.n_active == 1
+        assert metrics["UID"].tolist() == [1]
 
 
 def test_load_spikes_other_metric_length_mismatch():

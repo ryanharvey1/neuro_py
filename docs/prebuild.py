@@ -28,7 +28,6 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 SRC_DIR = ROOT / "neuro_py"
 TUTORIALS_DIR = ROOT / "tutorials"
-MARIMO_TUTORIALS_DIR = TUTORIALS_DIR / "marimo"
 
 
 def generate_reference() -> list:
@@ -139,7 +138,6 @@ def copy_and_convert_tutorials() -> None:
         "example_files",
         "__pycache__",
         "lightning_logs",
-        "marimo",
     }
     banned_exts = {".pbf", ".parquet", ".json", ".geojson", ".pt"}
 
@@ -177,49 +175,6 @@ def copy_and_convert_tutorials() -> None:
 
     total = sum(1 for _ in dest.rglob("*.md"))
     print(f"  {total} tutorial pages ready")
-
-
-def export_marimo_tutorials() -> None:
-    """Export browser-runnable Marimo tutorial apps into the docs tree."""
-    if not MARIMO_TUTORIALS_DIR.exists():
-        print("  No tutorials/marimo/ directory found, skipping")
-        return
-
-    apps = [
-        (
-            MARIMO_TUTORIALS_DIR / "sharp_wave_ripple_detection.py",
-            DOCS_DIR / "tutorials" / "marimo" / "sharp_wave_ripple_detection",
-        )
-    ]
-
-    exported = 0
-    for app_path, output_dir in apps:
-        if not app_path.exists():
-            continue
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
-        output_dir.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "marimo",
-                "export",
-                "html-wasm",
-                str(app_path),
-                "-o",
-                str(output_dir),
-                "--mode",
-                "run",
-            ],
-            check=True,
-        )
-        exported += 1
-        print(
-            "  Exported "
-            f"{app_path.relative_to(ROOT)} -> {output_dir.relative_to(DOCS_DIR)}"
-        )
-    print(f"  {exported} Marimo tutorial app(s) exported")
 
 
 def _load_homepage_meta() -> dict:
@@ -292,6 +247,7 @@ _MODULE_TITLES: dict[str, str] = {
 # Display-name overrides for tutorial titles.
 _TUTORIAL_TITLES: dict[str, str] = {
     "peth_tutorial": "PETH",
+    "wavpack_compression": "WavPack Compression",
 }
 
 
@@ -708,8 +664,6 @@ def main() -> None:
     ref_nav = generate_reference()
     print("Converting tutorials...")
     copy_and_convert_tutorials()
-    print("Exporting Marimo tutorial apps...")
-    export_marimo_tutorials()
     print("Generating index page...")
     generate_index()
     print("Updating mkdocs.yml nav...")

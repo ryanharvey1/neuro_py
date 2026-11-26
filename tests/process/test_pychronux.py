@@ -330,27 +330,24 @@ def test_mtspectrumpt():
     assert spec.index[np.argmax(spec.values)].astype(int) == 8
 
 
-def test_mtspectrumpt_scales_raw_precomputed_tapers():
-    """Precomputed SciPy DPSS tapers use the Chronux point-process scale."""
+def test_point_spectra_use_chronux_normalization():
+    """Point-process power and auto-CSD agree on a shared taper grid."""
     Fs = 100
     fpass = [1, 20]
     NW = 3
     n_tapers = 5
-    taper_times = np.arange(0, 10, 1 / Fs)
+    time_support = [0.0, 10.0]
+    taper_times = np.arange(-1 / Fs, time_support[1] + 1 / Fs, 1 / Fs)
     nfft = 1024
     spike_times = np.array([0.1, 0.3, 1.2, 3.4, 4.5, 7.8, 9.6])
     data = np.empty(1, dtype=object)
     data[0] = spike_times
 
     raw_tapers, _ = dpss(len(taper_times), NW, n_tapers, return_ratios=True)
-    spectrum = px.mtspectrumpt(
-        data,
-        Fs,
-        fpass,
+    options = dict(
         NW=NW,
         n_tapers=n_tapers,
-        tapers=raw_tapers.T,
-        tapers_ts=taper_times,
+        time_support=time_support,
         nfft=nfft,
     )
 
@@ -365,8 +362,13 @@ def test_mtspectrumpt_scales_raw_precomputed_tapers():
     )
     expected_power = np.real(np.mean(np.conj(transforms) * transforms, axis=1))
 
-    assert np.allclose(spectrum.index, frequencies)
-    assert np.allclose(spectrum.iloc[:, 0].to_numpy(), expected_power)
+    for tapers in (None, raw_tapers, raw_tapers.T):
+        spectrum = px.mtspectrumpt(data, Fs, fpass, tapers=tapers, **options)
+        csd = px.mtcsdpt(spike_times, spike_times, Fs, fpass, tapers=tapers, **options)
+        np.testing.assert_array_equal(spectrum.index, frequencies)
+        np.testing.assert_array_equal(csd.index, frequencies)
+        np.testing.assert_allclose(spectrum.iloc[:, 0], expected_power)
+        np.testing.assert_allclose(csd["CSD"], expected_power)
 
 
 def test_mtfftc():
@@ -579,8 +581,14 @@ def test_mtcoherencept():
     times_2 = simulate_bursting_cell(burst_frequency, duration, burst_rate, Fs)
 
     coherence_df = px.mtcoherencept(times_1, times_2, Fs, fpass, NW, n_tapers)
-    # peak is at 8 Hz
-    peak_freq = coherence_df.index[np.argmax(coherence_df["Coherence"])]
+    # Coherence measures consistency, not spectral power: shared rate structure
+    # can have higher coherence near DC than at the burst frequency. Verify
+    # strong coherence at 8 Hz and locate the oscillatory peak in the PSD.
+    burst_bin = np.argmin(np.abs(coherence_df.index.to_numpy() - burst_frequency))
+    assert coherence_df["Coherence"].iloc[burst_bin] > 0.9
+    spectrum = px.mtspectrumpt(np.array([times_1]), Fs, fpass, NW, n_tapers)
+    oscillatory = spectrum.loc[spectrum.index > 0]
+    peak_freq = oscillatory.index[np.argmax(oscillatory.iloc[:, 0])]
     assert np.isclose(peak_freq, 8, atol=0.2), (
         f"Peak frequency {peak_freq} does not match expected value of 8 Hz."
     )

@@ -1,5 +1,6 @@
 import nelpy as nel
 import numpy as np
+import pytest
 
 from neuro_py.process.intervals import (
     find_intersecting_intervals,
@@ -15,6 +16,70 @@ from neuro_py.process.intervals import (
 
 class TestFindIntersectingIntervals:
     """Tests for find_intersecting_intervals function."""
+
+    def test_boolean_overlap_matches_independent_union_for_many_components(self):
+        rng = np.random.default_rng(74)
+        queries = np.sort(rng.uniform(-5, 205, size=(200, 2)), axis=1)
+        reference = np.column_stack((np.arange(100) * 2, np.arange(100) * 2 + 1))
+        first, second = nel.EpochArray(queries), nel.EpochArray(reference)
+        expected = np.array(
+            [
+                any(min(stop, b) > max(start, a) for a, b in reference)
+                for start, stop in first.data
+            ]
+        )
+        np.testing.assert_array_equal(
+            find_intersecting_intervals(first, second), expected
+        )
+        durations = find_intersecting_intervals(first, second, return_indices=False)
+        np.testing.assert_array_equal(durations > 0, expected)
+
+    def test_touching_component_does_not_hide_later_overlap(self):
+        first = nel.EpochArray([[1, 4]])
+        second = nel.EpochArray([[0, 1], [2, 3]])
+        assert find_intersecting_intervals(first, second).tolist() == [True]
+        np.testing.assert_allclose(
+            find_intersecting_intervals(first, second, return_indices=False), [1]
+        )
+
+    @pytest.mark.parametrize(
+        "reference, expected",
+        [
+            ([[1, 2], [4, 6]], 3),
+            ([[1, 6], [3, 8]], 7),
+            ([[1, 4], [4, 8]], 7),
+            ([[1, 8], [2, 3], [1, 8]], 7),
+            ([[-2, 0], [10, 12]], 0),
+        ],
+    )
+    def test_overlap_measures_union_without_double_counting(self, reference, expected):
+        first = nel.EpochArray([[0, 10]])
+        second = nel.EpochArray(reference)
+        original = second.data.copy()
+        np.testing.assert_allclose(
+            find_intersecting_intervals(first, second, return_indices=False), [expected]
+        )
+        np.testing.assert_array_equal(second.data, original)
+
+    @pytest.mark.parametrize("empty_first", [False, True])
+    @pytest.mark.parametrize("return_indices", [False, True])
+    def test_empty_sets_preserve_output_length_and_dtype(
+        self, empty_first, return_indices
+    ):
+        first = nel.EpochArray() if empty_first else nel.EpochArray([[0, 1], [2, 3]])
+        result = find_intersecting_intervals(first, nel.EpochArray(), return_indices)
+        assert result.shape == ((0,) if empty_first else (2,))
+        assert result.dtype == (bool if return_indices else float)
+        assert not np.any(result)
+
+    @pytest.mark.parametrize("invalid_first", [False, True])
+    def test_both_inputs_must_be_interval_arrays(self, invalid_first):
+        valid = nel.EpochArray([[0, 1]])
+        with pytest.raises(ValueError, match="only EpochArrays"):
+            find_intersecting_intervals(
+                np.array([[0, 1]]) if invalid_first else valid,
+                valid if invalid_first else np.array([[0, 1]]),
+            )
 
     def test_basic_intersection(self):
         """Test basic intersection detection."""

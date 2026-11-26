@@ -18,195 +18,230 @@ from neuro_py.ensemble.pairwise_bias_correlation import (
 from neuro_py.process.peri_event import crossCorr
 
 
-@njit(parallel=True, fastmath=False, cache=True)
-def __weighted_corr_2d_jit(
+@njit(cache=True, nogil=True)
+def __weighted_regression_2d_jit(
     weights: NDArray[Any],
     x_coords: NDArray[Any],
     y_coords: NDArray[Any],
     time_coords: NDArray[Any],
 ) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
-    # Handle NaN weights
-    weights = np.nan_to_num(weights, nan=0.0)
+    # One posterior pass, O(nx + ny + nt) scratch space. Marginal moments
+    # avoid a full-size NaN-cleaned copy and repeated posterior traversals.
+    # Serial nogil execution avoids thread-launch overhead for short events
+    # and allows callers to parallelize across events/shuffles instead.
+    nx, ny, nt = weights.shape
+    wx = np.zeros(nx, dtype=np.float64)
+    wy = np.zeros(ny, dtype=np.float64)
+    wt = np.zeros(nt, dtype=np.float64)
+    xt = np.zeros(nt, dtype=np.float64)
+    yt = np.zeros(nt, dtype=np.float64)
+    x_traj = np.full(nt, np.nan, dtype=weights.dtype)
+    y_traj = np.full(nt, np.nan, dtype=weights.dtype)
+    if nx == 0 or ny == 0 or nt == 0:
+        return np.nan, x_traj, y_traj, np.nan, np.nan, np.nan, np.nan
 
-    # Use the same dtype as weights for internal arrays
-    dtype = weights.dtype
-    x_dim, y_dim, t_dim = weights.shape
-
-    # Early exit if no valid weights
-    total_weight = np.sum(weights)
-    if total_weight == 0.0:
-        nan_val = np.array(np.nan, dtype=dtype)
-        return (
-            np.nan,
-            np.full(t_dim, nan_val[()], dtype=dtype),
-            np.full(t_dim, nan_val[()], dtype=dtype),
-            nan_val[()],
-            nan_val[()],
-            nan_val[()],
-            nan_val[()],
-        )
-
-    # Compute weighted means more efficiently
-    mean_x = 0.0
-    mean_y = 0.0
-    mean_t = 0.0
-
-    for i in prange(x_dim):  # ty: ignore[not-iterable]  # Numba parallel range
-        for j in range(y_dim):
-            for k in range(t_dim):
-                w = weights[i, j, k]
-                mean_x += w * x_coords[i]
-                mean_y += w * y_coords[j]
-                mean_t += w * time_coords[k]
-
-    mean_x /= total_weight
-    mean_y /= total_weight
-    mean_t /= total_weight
-
-    # Compute covariances efficiently
-    cov_xt = 0.0
-    cov_yt = 0.0
-    cov_tt = 0.0
-    cov_xx = 0.0
-    cov_yy = 0.0
-
-    for i in prange(x_dim):  # ty: ignore[not-iterable]  # Numba parallel range
-        for j in range(y_dim):
-            for k in range(t_dim):
-                w = weights[i, j, k]
-                dx = x_coords[i] - mean_x
-                dy = y_coords[j] - mean_y
-                dt = time_coords[k] - mean_t
-
-                cov_xt += w * dx * dt
-                cov_yt += w * dy * dt
-                cov_tt += w * dt * dt
-                cov_xx += w * dx * dx
-                cov_yy += w * dy * dy
-
-    cov_xt /= total_weight
-    cov_yt /= total_weight
-    cov_tt /= total_weight
-    cov_xx /= total_weight
-    cov_yy /= total_weight
-
-    # Compute denominators
-    denom_x = np.sqrt(cov_xx * cov_tt)
-    denom_y = np.sqrt(cov_yy * cov_tt)
-
-    if cov_tt == 0.0:
-        nan_val = np.array(np.nan, dtype=dtype)
-        return (
-            np.nan,
-            np.full(t_dim, nan_val[()], dtype=dtype),
-            np.full(t_dim, nan_val[()], dtype=dtype),
-            nan_val[()],
-            nan_val[()],
-            nan_val[()],
-            nan_val[()],
-        )
-
-    # Compute correlations and slopes
-    slope_x = cov_xt / cov_tt
-    slope_y = cov_yt / cov_tt
-
-    # Compute trajectories vectorized
-    x_traj = np.empty(t_dim, dtype=dtype)
-    y_traj = np.empty(t_dim, dtype=dtype)
-
-    for k in prange(t_dim):  # ty: ignore[not-iterable]  # Numba parallel range
-        x_traj[k] = mean_x + slope_x * (time_coords[k] - mean_t)
-        y_traj[k] = mean_y + slope_y * (time_coords[k] - mean_t)
-
-    # Compute spatiotemporal correlation over valid axes only
-    # Use a small epsilon rather than exact zero to catch near-degenerate axes
-    eps = 1e-10
-    x_valid = denom_x > eps
-    y_valid = denom_y > eps
-
-    corr_x = cov_xt / denom_x if x_valid else np.nan
-    corr_y = cov_yt / denom_y if y_valid else np.nan
-
-    if x_valid and y_valid:
-        sum_corr = corr_x + corr_y
-        spatiotemporal_corr = np.sqrt((corr_x**2 + corr_y**2) / 2.0) * np.sign(sum_corr)
-    elif x_valid:
-        spatiotemporal_corr = corr_x
-    elif y_valid:
-        spatiotemporal_corr = corr_y
+    # Subtract origins in float64, including for float32 posteriors with
+    # absolute timestamps. Never downcast supplied coordinates to float32.
+    x = x_coords.astype(np.float64) - np.float64(x_coords[0])
+    y = y_coords.astype(np.float64) - np.float64(y_coords[0])
+    t = time_coords.astype(np.float64) - np.float64(time_coords[0])
+    # Decoders often return transposed/Fortran views. Traverse their short
+    # stride innermost without copying to a contiguous posterior.
+    if abs(weights.strides[2]) <= min(abs(weights.strides[0]), abs(weights.strides[1])):
+        for i in range(nx):
+            for j in range(ny):
+                mass = 0.0
+                for k in range(nt):
+                    w = np.float64(weights[i, j, k])
+                    if np.isnan(w):
+                        continue
+                    if w < 0.0 or not np.isfinite(w):
+                        raise ValueError(
+                            "weights must be nonnegative and finite or NaN"
+                        )
+                    mass += w
+                    wt[k] += w
+                    xt[k] += w * x[i]
+                    yt[k] += w * y[j]
+                wx[i] += mass
+                wy[j] += mass
+    elif abs(weights.strides[0]) <= abs(weights.strides[1]):
+        for k in range(nt):
+            for j in range(ny):
+                mass = 0.0
+                x_mass = 0.0
+                for i in range(nx):
+                    w = np.float64(weights[i, j, k])
+                    if np.isnan(w):
+                        continue
+                    if w < 0.0 or not np.isfinite(w):
+                        raise ValueError(
+                            "weights must be nonnegative and finite or NaN"
+                        )
+                    mass += w
+                    x_mass += w * x[i]
+                    wx[i] += w
+                wy[j] += mass
+                wt[k] += mass
+                xt[k] += x_mass
+                yt[k] += mass * y[j]
     else:
-        spatiotemporal_corr = np.nan
+        # Time-major decoder slices can have Y, rather than X, contiguous.
+        for k in range(nt):
+            for i in range(nx):
+                mass = 0.0
+                y_mass = 0.0
+                for j in range(ny):
+                    w = np.float64(weights[i, j, k])
+                    if np.isnan(w):
+                        continue
+                    if w < 0.0 or not np.isfinite(w):
+                        raise ValueError(
+                            "weights must be nonnegative and finite or NaN"
+                        )
+                    mass += w
+                    y_mass += w * y[j]
+                    wy[j] += w
+                wx[i] += mass
+                wt[k] += mass
+                xt[k] += mass * x[i]
+                yt[k] += y_mass
 
-    return (
-        spatiotemporal_corr,
-        x_traj,
-        y_traj,
-        np.array(slope_x, dtype=dtype)[()],
-        np.array(slope_y, dtype=dtype)[()],
-        np.array(mean_x, dtype=dtype)[()],
-        np.array(mean_y, dtype=dtype)[()],
-    )
+    total = np.sum(wt)
+    if total == 0.0:
+        return np.nan, x_traj, y_traj, np.nan, np.nan, np.nan, np.nan
+    if not np.isfinite(total):
+        raise ValueError("total weight must be finite")
+    mx = np.dot(wx, x) / total
+    my = np.dot(wy, y) / total
+    mt = np.dot(wt, t) / total
+    # Centered marginal variances avoid subtracting large raw second moments.
+    vxx = 0.0
+    vyy = 0.0
+    vtt = 0.0
+    cxt = 0.0
+    cyt = 0.0
+    for i in range(nx):
+        vxx += wx[i] * (x[i] - mx) ** 2
+    for j in range(ny):
+        vyy += wy[j] * (y[j] - my) ** 2
+    for k in range(nt):
+        dt = t[k] - mt
+        vtt += wt[k] * dt * dt
+        cxt += (xt[k] - mx * wt[k]) * dt
+        cyt += (yt[k] - my * wt[k]) * dt
+    if vtt == 0.0:
+        return np.nan, x_traj, y_traj, np.nan, np.nan, np.nan, np.nan
+
+    slope_x = cxt / vtt
+    slope_y = cyt / vtt
+    mean_x = mx + np.float64(x_coords[0])
+    mean_y = my + np.float64(y_coords[0])
+    for k in range(nt):
+        x_traj[k] = mean_x + slope_x * (t[k] - mt)
+        y_traj[k] = mean_y + slope_y * (t[k] - mt)
+
+    # Variance-weighted multivariate regression R². No direction
+    # sign: opposing slopes must not cancel; spatial axes share physical units.
+    spatial_var = vxx + vyy
+    score = np.nan
+    if spatial_var > 0.0:
+        r2 = (cxt / spatial_var) * slope_x + (cyt / spatial_var) * slope_y
+        score = min(1.0, max(0.0, r2))
+    return score, x_traj, y_traj, slope_x, slope_y, mean_x, mean_y
 
 
-weighted_corr_2d_jit = __weighted_corr_2d_jit
+weighted_regression_2d_jit = __weighted_regression_2d_jit
 
 
-def weighted_corr_2d(
+def weighted_regression_2d(
     weights: NDArray[Any],
     x_coords: Optional[NDArray[Any]] = None,
     y_coords: Optional[NDArray[Any]] = None,
     time_coords: Optional[NDArray[Any]] = None,
 ) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
-    """
-    Calculate the weighted correlation between the X and Y dimensions of the matrix.
+    """Score a linear 2D trajectory by posterior-weighted regression.
 
     Parameters
     ----------
-    weights : np.ndarray
-        A matrix of weights.
-    x_coords : Optional[np.ndarray], optional
-        X-values for each column and row, by default None.
-    y_coords : Optional[np.ndarray], optional
-        Y-values for each column and row, by default None.
-    time_coords : Optional[np.ndarray], optional
-        Time-values for each column and row, by default None.
+    weights : ndarray, shape (n_x, n_y, n_time)
+        Nonnegative posterior weights. NaNs contribute zero weight. Each time
+        slice should sum to one for equal weighting of decoded time bins;
+        otherwise its total mass determines its temporal weight. Float32 and
+        float64 arrays are used without a full-size copy.
+    x_coords, y_coords : ndarray, optional
+        One-dimensional spatial bin centers, defaulting to bin indices. Use
+        the same physical units on both axes for rotation invariance.
+    time_coords : ndarray, optional
+        One-dimensional time coordinates, defaulting to bin indices. Pass
+        actual elapsed times when bins are irregular or have been removed.
 
     Returns
     -------
-    Tuple[float, np.ndarray, np.ndarray, float, float, float, float]
-        The weighted correlation coefficient, x trajectory, y trajectory,
-        slope_x, slope_y, mean_x, mean_y.
+    r2 : float
+        Variance-weighted multivariate regression R-squared, in [0, 1]. Higher values indicate stronger linear movement.
+        NaN for zero total weight, zero temporal variance, or zero total
+        spatial variance.
+    x_traj, y_traj : ndarray
+        Fitted straight trajectory at each supplied time (not posterior COM).
+        Float32 inputs retain float32 trajectory arrays; otherwise float64.
+    slope_x, slope_y : float
+        Signed fitted velocities in spatial units per time unit.
+    mean_x, mean_y : float
+        Posterior-weighted spatial means, not regression intercepts.
+
+    Raises
+    ------
+    ValueError
+        If shapes are incompatible, coordinates are nonfinite, or weights
+        contain negative values or infinities.
+
+    Notes
+    -----
+    With posterior-weighted covariances C and variances V, the score is
+    ``(C_xt**2 + C_yt**2) / (V_tt * (V_xx + V_yy))``.
+    It equals ``1 - SSE / SST`` for the weighted vector regression
+    ``(X, Y) = mean_position + velocity * (T - mean_time)``. This penalizes
+    posterior uncertainty as well as departures from constant velocity.
+
+    Direction is available through the slopes. Use an upper-tail shuffle
+    test for R-squared. Curved or reversing sequences can have low R-squared;
+    this is not a general measure of trajectory continuity.
+
+    The cached, GIL-releasing Numba kernel scans the posterior once using
+    float64 accumulators and O(n_x + n_y + n_time) auxiliary memory. Warm up
+    each dtype/layout before timing; parallelize across events, not within
+    each short event. ``weighted_regression_2d_jit`` exposes the same kernel for
+    prevalidated float32/float64 arrays and matching finite coordinate arrays.
 
     Examples
     --------
-    >>> import numpy as np
-    >>> weights = np.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
-    >>> x_coords = np.array([0, 1])
-    >>> y_coords = np.array([0, 1])
-    >>> time_coords = np.array([0, 1, 2])
-    >>> weighted_corr_2d(weights, x_coords, y_coords, time_coords)
-
+    >>> weights = np.zeros((3, 3, 3))
+    >>> weights[np.arange(3), np.arange(2, -1, -1), np.arange(3)] = 1
+    >>> weighted_regression_2d(weights)[0]
+    1.0
     """
-    x_dim, y_dim, t_dim = weights.shape
-    dtype = weights.dtype
+    weights = np.asarray(weights)
+    if weights.ndim != 3:
+        raise ValueError("weights must have shape (n_x, n_y, n_time)")
+    if weights.dtype not in (np.dtype("float32"), np.dtype("float64")):
+        if weights.dtype.kind not in "biuf":
+            raise ValueError("weights must be real numeric values")
+        weights = weights.astype(np.float64)
 
-    x_coords = (
-        np.arange(x_dim, dtype=dtype)
-        if x_coords is None
-        else np.asarray(x_coords, dtype=dtype)
-    )
-    y_coords = (
-        np.arange(y_dim, dtype=dtype)
-        if y_coords is None
-        else np.asarray(y_coords, dtype=dtype)
-    )
-    time_coords = (
-        np.arange(t_dim, dtype=dtype)
-        if time_coords is None
-        else np.asarray(time_coords, dtype=dtype)
-    )
-
-    return __weighted_corr_2d_jit(weights, x_coords, y_coords, time_coords)
+    coords = []
+    for values, size in zip((x_coords, y_coords, time_coords), weights.shape):
+        coord = (
+            np.arange(size, dtype=np.float64)
+            if values is None
+            else np.asarray(values, dtype=np.float64)
+        )
+        if coord.ndim != 1 or coord.size != size:
+            raise ValueError("coordinate lengths must match the posterior axes")
+        if not np.all(np.isfinite(coord)):
+            raise ValueError("coordinates must be finite")
+        coords.append(coord)
+    return __weighted_regression_2d_jit(weights, coords[0], coords[1], coords[2])
 
 
 def _position_estimator_1d(

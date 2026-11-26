@@ -77,7 +77,9 @@ class AssemblyReact:
         normalization, explicit cross-group block covariance structure, and
         post-extraction filtering that retains only assemblies with membership
         across at least two groups. Should have the same length as the number
-        of neurons in the spike train.
+        of neurons in the spike train. For ICA/PCA, activity projection also
+        excludes all within-group neuron pairs. Cross-SVD uses its separate
+        z-scored group-projection product.
 
     Attributes
     ----------
@@ -400,6 +402,13 @@ class AssemblyReact:
         -------
         nel.AnalogSignalArray
             Assembly activity.
+
+        Notes
+        -----
+        ICA/PCA with ``cross_structural`` retain only cross-group terms in the
+        quadratic projection; unlabelled ICA/PCA use the standard off-diagonal
+        projection. Cross-SVD multiplies the z-scored group projections instead,
+        so its activity scale differs from the cross-group quadratic score.
         """
         # check for num of assemblies first
         st = self._require_st()
@@ -422,7 +431,9 @@ class AssemblyReact:
                 self.cross_structural,
             )
         else:
-            assembly_activity_data = assembly.computeAssemblyActivity(patterns, zactmat)
+            assembly_activity_data = assembly.computeAssemblyActivity(
+                patterns, zactmat, cross_structural=self.cross_structural
+            )
 
         assembly_act = nel.AnalogSignalArray(
             data=assembly_activity_data,
