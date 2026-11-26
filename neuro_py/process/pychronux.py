@@ -292,7 +292,7 @@ def _point_time_grid(
     return start + (np.arange(n_samples) - 1) / Fs
 
 
-def _point_fft_size(n_samples: int, nfft: int | None, pad: int = 0) -> int:
+def _fft_size(n_samples: int, nfft: int | None = None, pad: int = 0) -> int:
     if nfft is None:
         return max(n_samples, (1 << (n_samples - 1).bit_length()) + pad)
     if nfft < n_samples:
@@ -383,11 +383,11 @@ def mtspectrumpt(
         return pd.DataFrame()
 
     if isinstance(data, np.ndarray) and data.ndim == 1 and np.ndim(data[0]) == 0:
-        trains = [_spike_times(data)]
+        trains = [_spike_times(np.asarray(data, dtype=np.float64))]
     else:
         trains = [_spike_times(train) for train in data]
     t = _point_time_grid(trains, Fs, time_support, tapers_ts)
-    nfft = _point_fft_size(len(t), nfft)
+    nfft = _fft_size(len(t), nfft)
     f, findx = _spectrum_grid(Fs, nfft, fpass)
     if tapers is None:
         tapers = dpss(len(t), NW, n_tapers).T
@@ -479,9 +479,7 @@ def mtspectrumc(
     N = len(data)
     if N == 0:
         raise ValueError("data must contain at least one sample")
-    nfft = np.max(
-        [int(2 ** np.ceil(np.log2(N))), N]
-    )  # number of points in fft of prolates
+    nfft = _fft_size(N)
     # get the frequency grid
     f, findx = _spectrum_grid(Fs, nfft, fpass)
     # get the fft of the tapers
@@ -543,7 +541,7 @@ def point_spectra(
 
     times = _spike_times(times)
     t = _point_time_grid([times], Fs, time_support, None)
-    nfft = _point_fft_size(len(t), nfft, pad)
+    nfft = _fft_size(len(t), nfft, pad)
     NW, n_tapers = tapers0
     spectrum = mtspectrumpt(
         times[None, :],
@@ -573,7 +571,7 @@ def _point_pair(
     """Compute two tapered transforms with a common time and frequency grid."""
     first, second = _spike_times(data1), _spike_times(data2)
     t = _point_time_grid([first, second], Fs, time_support, tapers_ts)
-    nfft = _point_fft_size(len(t), nfft)
+    nfft = _fft_size(len(t), nfft)
     f, findx = _spectrum_grid(Fs, nfft, fpass)
     if tapers is None:
         tapers = dpss(len(t), NW, n_tapers).T
@@ -705,9 +703,254 @@ def mtcoherencept(
     f, J1, J2 = _point_pair(
         data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
     )
+    return pd.DataFrame({"Coherence": _coherence(J1, J2)}, index=f)
+
+
+def _coherence(J1: NDArray[Any], J2: NDArray[Any]) -> NDArray[np.float64]:
     cross = np.mean(J1.conj() * J2, axis=1)
     power_product = np.mean(np.abs(J1) ** 2, axis=1) * np.mean(np.abs(J2) ** 2, axis=1)
     with np.errstate(divide="ignore", invalid="ignore"):
         # Suppress roundoff above the Cauchy–Schwarz bound; zero power stays NaN.
-        coherence = np.clip(np.abs(cross) ** 2 / power_product, 0, 1)
-    return pd.DataFrame({"Coherence": coherence}, index=f)
+        return np.clip(np.abs(cross) ** 2 / power_product, 0, 1)
+
+
+def _check_continuous_pair(data1: NDArray[Any], data2: NDArray[Any]) -> None:
+    if data1.ndim != 1 or data1.shape != data2.shape or not data1.size:
+        raise ValueError("data1 and data2 must be nonempty 1D arrays of equal length")
+
+
+def mtcoherencec(
+    data1: NDArray[Any],
+    data2: NDArray[Any],
+    Fs: int,
+    fpass: list[float],
+    tapers: NDArray[Any] | tuple[float, int],
+) -> pd.Series:
+    """
+    Estimate magnitude-squared coherence between two continuous signals.
+
+    Parameters
+    ----------
+    data1, data2 : np.ndarray
+        Aligned, equally sized 1D signals.
+    Fs : int
+        Sampling frequency in Hz.
+    fpass : list of float
+        Inclusive frequency range in Hz, from zero to Nyquist.
+    tapers : np.ndarray or tuple of (float, int)
+        DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
+
+    Returns
+    -------
+    pd.Series
+        Magnitude-squared coherence indexed by frequency in Hz. Frequencies
+        with zero power in either signal have NaN coherence.
+
+    Notes
+    -----
+    This is the square of the magnitude returned by Chronux ``coherencyc``.
+    With one taper, coherence is one wherever both spectra have power.
+    """
+    _check_continuous_pair(data1, data2)
+    nfft = _fft_size(len(data1))
+    f, findx = _spectrum_grid(Fs, nfft, fpass)
+    bank = dpsschk(tapers, len(data1), Fs)
+    j1 = mtfftc(data1, bank, nfft, Fs)[findx]
+    j2 = mtfftc(data2, bank, nfft, Fs)[findx]
+    return pd.Series(_coherence(j1, j2), index=f, name="Coherence")
+
+
+def _window_samples(movingwin: tuple[float, float], Fs: int) -> tuple[int, int]:
+    """Convert window duration and step seconds to sample counts."""
+    if not np.isfinite(Fs) or Fs <= 0:
+        raise ValueError("Fs must be positive and finite")
+    duration, step = movingwin
+    if not np.all(np.isfinite(movingwin)) or duration <= 0 or step <= 0:
+        raise ValueError("movingwin must contain positive finite duration and step values")
+    length = int(np.floor(duration * Fs + 0.5))
+    stride = int(np.floor(step * Fs + 0.5))
+    if length < 2 or stride < 1:
+        raise ValueError("movingwin must span at least two samples and step by at least one")
+    return length, stride
+
+
+def _gram_frame(
+    values: NDArray[np.float64], f: NDArray[Any], centers: NDArray[Any]
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        values,
+        index=pd.Index(f, name="frequency_hz"),
+        columns=pd.Index(centers, name="time_s"),
+    )
+
+
+def _continuous_gram(
+    data: NDArray[Any],
+    Fs: int,
+    fpass: list[float],
+    tapers: NDArray[Any] | tuple[float, int],
+    movingwin: tuple[float, float],
+    other: NDArray[Any] | None = None,
+) -> pd.DataFrame:
+    if data.ndim != 1:
+        raise ValueError("data must be a 1D signal")
+    length, stride = _window_samples(movingwin, Fs)
+    nfft = _fft_size(length)
+    f, findx = _spectrum_grid(Fs, nfft, fpass)
+    starts = np.arange(0, len(data) - length + 1, stride)
+    centers = (starts + length / 2) / Fs
+    values = np.empty((len(f), len(starts)), dtype=float)
+    if starts.size:
+        bank = dpsschk(tapers, length, Fs)
+        for i, start in enumerate(starts):
+            window = slice(start, start + length)
+            j1 = mtfftc(data[window], bank, nfft, Fs)[findx]
+            if other is None:
+                values[:, i] = np.mean(np.abs(j1) ** 2, axis=1)
+            else:
+                j2 = mtfftc(other[window], bank, nfft, Fs)[findx]
+                values[:, i] = _coherence(j1, j2)
+    return _gram_frame(values, f, centers)
+
+
+def mtspecgramc(
+    data: NDArray[Any],
+    Fs: int,
+    fpass: list[float],
+    tapers: NDArray[Any] | tuple[float, int],
+    *,
+    movingwin: tuple[float, float],
+) -> pd.DataFrame:
+    """
+    Estimate a continuous-signal multitaper spectrogram.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D uniformly sampled signal.
+    Fs : int
+        Sampling frequency in Hz.
+    fpass : list of float
+        Inclusive frequency range in Hz, from zero to Nyquist.
+    tapers : np.ndarray or tuple of (float, int)
+        DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
+    movingwin : tuple of float
+        Window duration and step in seconds, rounded to whole samples.
+
+    Returns
+    -------
+    pd.DataFrame
+        Power density as in ``mtspectrumc``. Rows are frequencies in Hz and
+        columns are centers of complete windows in seconds, measured from
+        the start of the signal.
+    """
+    return _continuous_gram(data, Fs, fpass, tapers, movingwin)
+
+
+def mtcohgramc(
+    data1: NDArray[Any],
+    data2: NDArray[Any],
+    Fs: int,
+    fpass: list[float],
+    tapers: NDArray[Any] | tuple[float, int],
+    *,
+    movingwin: tuple[float, float],
+) -> pd.DataFrame:
+    """
+    Estimate a continuous-signal multitaper coherogram.
+
+    Parameters
+    ----------
+    data1, data2 : np.ndarray
+        Aligned, equally sized 1D signals.
+    Fs : int
+        Sampling frequency in Hz.
+    fpass : list of float
+        Inclusive frequency range in Hz, from zero to Nyquist.
+    tapers : np.ndarray or tuple of (float, int)
+        DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
+    movingwin : tuple of float
+        Window duration and step in seconds, rounded to whole samples.
+
+    Returns
+    -------
+    pd.DataFrame
+        Magnitude-squared coherence. Rows are frequencies in Hz and columns
+        are centers of complete windows in seconds from the start of the
+        signals. Frequencies with zero power in either signal are NaN.
+    """
+    _check_continuous_pair(data1, data2)
+    return _continuous_gram(data1, Fs, fpass, tapers, movingwin, other=data2)
+
+
+def mtspecgrampt(
+    data: NDArray[Any],
+    Fs: int,
+    fpass: list[float],
+    *,
+    movingwin: tuple[float, float],
+    NW: float = 2.5,
+    n_tapers: int = 4,
+    time_support: list[float] | None = None,
+) -> pd.DataFrame:
+    """
+    Estimate a multitaper spectrogram of one spike train.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        One 1D array of finite spike times in seconds.
+    Fs : int
+        Taper interpolation grid rate in Hz.
+    fpass : list of float
+        Inclusive frequency range in Hz, from zero to Nyquist.
+    movingwin : tuple of float
+        Window duration and step in seconds, rounded to whole grid samples.
+    NW : float, optional
+        DPSS time-bandwidth product. Default is 2.5.
+    n_tapers : int, optional
+        Number of DPSS tapers. Default is 4.
+    time_support : list of float, optional
+        Observation interval in seconds, defaulting to the first and last
+        spike. Required for an empty spike train.
+
+    Returns
+    -------
+    pd.DataFrame
+        Power density as in ``mtspectrumpt``. Rows are frequencies in Hz
+        and columns are centers of complete windows on the spike time axis.
+        Windows include their left endpoint and exclude their right endpoint.
+        Windows with no spikes have zero power.
+    """
+    times = np.sort(_spike_times(data))
+    length, stride = _window_samples(movingwin, Fs)
+    if time_support is None:
+        if not times.size:
+            raise ValueError("time_support is required for an empty spike train")
+        start, stop = times[0], times[-1]
+    else:
+        if len(time_support) != 2 or not np.all(np.isfinite(time_support)):
+            raise ValueError("time_support must contain two finite times")
+        start, stop = time_support
+        if start >= stop:
+            raise ValueError("time_support must have start < stop")
+
+    span = (stop - start) * Fs
+    n_samples = int(np.floor(span + 4 * np.spacing(span)))
+    offsets = np.arange(0, n_samples - length + 1, stride)
+    starts = start + offsets / Fs
+    stops = start + (offsets + length) / Fs
+    centers = start + (offsets + length / 2) / Fs
+    t = np.arange(-1, length + 2) / Fs
+    nfft = _fft_size(len(t))
+    f, findx = _spectrum_grid(Fs, nfft, fpass)
+    values = np.zeros((len(f), len(starts)), dtype=float)
+    if starts.size:
+        bank = dpss(len(t), NW, n_tapers).T * np.sqrt(Fs)
+        left = np.searchsorted(times, starts)
+        right = np.searchsorted(times, stops)
+        for i, (lo, hi) in enumerate(zip(left, right)):
+            if hi > lo:
+                j, _, _ = mtfftpt(times[lo:hi] - starts[i], bank, nfft, t, f, findx)
+                values[:, i] = np.mean(np.abs(j) ** 2, axis=1)
+    return _gram_frame(values, f, centers)
