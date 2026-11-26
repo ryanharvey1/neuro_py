@@ -1,3 +1,5 @@
+import sys
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -228,11 +230,11 @@ def test_show_scaled_auto_does_not_choose_marimo_when_only_installed(
 
 
 def test_show_scaled_auto_without_backend_raises(monkeypatch: pytest.MonkeyPatch):
-    """show_scaled should raise when auto backend cannot be resolved."""
+    """show_scaled should raise outside Jupyter when Marimo is absent."""
     fig, _ = plt.subplots()
 
     monkeypatch.setattr(figure_helpers, "_in_active_ipython_session", lambda: False)
-    monkeypatch.setattr(figure_helpers, "_in_active_marimo_session", lambda: False)
+    monkeypatch.setitem(sys.modules, "marimo", None)
 
     with pytest.raises(
         RuntimeError, match="could not detect a supported notebook backend"
