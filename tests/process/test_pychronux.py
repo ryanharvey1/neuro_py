@@ -399,6 +399,25 @@ def test_point_spectra_match_direct_fourier_sum_for_fractional_support():
     np.testing.assert_allclose(csd.CSD, expected, atol=1e-12)
 
 
+def test_mtfftpt_matches_direct_transform_for_dense_spike_train() -> None:
+    """The blocked transform preserves the complex estimate across block edges."""
+    fs, nfft = 128, 256
+    grid = np.arange(129) / fs
+    spikes = np.linspace(0.001, 0.999, 4501)
+    tapers = dpss(len(grid), 2.5, 4).T * np.sqrt(fs)
+    f, mask = px.getfgrid(fs, nfft, [0, fs / 2])
+    phases = np.exp(-2j * np.pi * f[:, None] * spikes)
+    weights = np.column_stack([np.interp(spikes, grid, taper) for taper in tapers.T])
+    rate = len(spikes) / len(grid)
+    expected = phases @ weights - rate * np.fft.fft(tapers, nfft, axis=0)[mask]
+
+    actual, mean_count, count = px.mtfftpt(spikes, tapers, nfft, grid, f, mask)
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-11, atol=1e-10)
+    assert count == len(spikes)
+    assert mean_count == rate
+
+
 def test_point_spectrum_grid_contracts():
     times = np.array([0.1, 0.3, 0.4])
     grid = np.arange(0, 0.75, 0.01)

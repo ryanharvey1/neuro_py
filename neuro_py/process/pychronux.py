@@ -2,7 +2,6 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 from numpy.typing import NDArray
 from scipy.signal.windows import dpss
 
@@ -148,7 +147,7 @@ def mtfftpt(
     t: NDArray[Any],
     f: NDArray[Any],
     findx: NDArray[Any],
-) -> Tuple[NDArray[Any], float, float]:
+) -> Tuple[NDArray[Any], float, int]:
     """
     Multitaper FFT for point process times.
 
@@ -174,7 +173,7 @@ def mtfftpt(
         FFT of the data.
     Msp : float
         Mean spikes per time-grid sample.
-    Nsp : float
+    Nsp : int
         Total number of spikes in data.
 
     Notes
@@ -185,46 +184,46 @@ def mtfftpt(
     """
     if nfft < len(t):
         raise ValueError("nfft must be at least the number of taper samples")
-    K = tapers.shape[1]
-    nfreq = len(f)
+    taper_fft = _point_taper_fft(tapers, nfft, findx)
+    return _point_fft(data, tapers, t, -2j * np.pi * f, taper_fft)
 
-    # get the FFT of the tapers
-    H = np.zeros((nfft, K), dtype=np.complex128)
-    for i in np.arange(K):
-        H[:, i] = np.fft.fft(tapers[:, i], nfft, axis=0)
 
-    H = H[findx, :]
-    w = 2 * np.pi * f
-    dtmp = data
-    indx = np.logical_and(dtmp >= np.min(t), dtmp <= np.max(t))
-    if len(indx):
-        dtmp = dtmp[indx]
-    Nsp = len(dtmp)
+def _point_taper_fft(
+    tapers: NDArray[Any], nfft: int, findx: NDArray[Any]
+) -> NDArray[np.complex128]:
+    return np.fft.fft(tapers, nfft, axis=0)[findx].astype(np.complex128, copy=False)
 
-    # get the mean spike rate
-    Msp = Nsp / len(t)
 
-    if Msp != 0:
-        # Interpolate spike times for each taper
-        data_proj = np.empty((len(dtmp), K))
-        for i in range(K):
-            data_proj[:, i] = np.interp(dtmp, t, tapers[:, i])
+def _point_fft(
+    data: NDArray[Any],
+    tapers: NDArray[Any],
+    t: NDArray[Any],
+    angular_phase: NDArray[Any],
+    taper_fft: NDArray[np.complex128],
+) -> tuple[NDArray[np.complex128], float, int]:
+    """Evaluate the spike-time Fourier sum using a reusable taper FFT."""
+    times = data[(data >= t[0]) & (data <= t[-1])]
+    count = len(times)
+    mean_count = count / len(t)
+    spectrum = np.zeros_like(taper_fft)
+    if not count or not angular_phase.size:
+        return spectrum, mean_count, count
 
-        def compute_J(k):
-            J_k = np.zeros(nfreq, dtype=np.complex128)
-            for i, freq in enumerate(w):
-                phase = -1j * freq * (dtmp - t[0])
-                J_k[i] = np.sum(np.exp(phase) * data_proj[:, k])
-            return J_k
-
-        J = np.array(Parallel(n_jobs=-1)(delayed(compute_J)(k) for k in range(K))).T
-
-        J -= H * Msp
-    else:
-        # No spikes: return zeros
-        J = np.zeros((nfreq, K), dtype=np.complex128)
-
-    return J, Msp, Nsp
+    # Each frequency/spike phase is shared across all tapers. Bound the large
+    # temporary to 2**18 complex values (4 MiB), even for dense spike trains.
+    spike_block = 4096
+    for lo in range(0, count, spike_block):
+        block = times[lo : lo + spike_block]
+        weights = np.column_stack([np.interp(block, t, taper) for taper in tapers.T])
+        elapsed = block - t[0]
+        frequency_block = (1 << 18) // len(block)
+        for i in range(0, len(angular_phase), frequency_block):
+            rows = slice(i, i + frequency_block)
+            phase = angular_phase[rows, None] * elapsed
+            np.exp(phase, out=phase)
+            spectrum[rows] += np.einsum("fs,sk->fk", phase, weights, optimize=False)
+    spectrum -= taper_fft * mean_count
+    return spectrum, mean_count, count
 
 
 def _point_tapers(tapers: NDArray[Any], n_samples: int) -> NDArray[Any]:
@@ -393,11 +392,13 @@ def mtspectrumpt(
         tapers = dpss(len(t), NW, n_tapers).T
     # Apply the same Chronux scaling to generated and supplied DPSS tapers.
     tapers = _point_tapers(tapers, len(t)) * np.sqrt(Fs)
+    taper_fft = _point_taper_fft(tapers, nfft, findx)
+    angular_phase = -2j * np.pi * f
 
     spec = np.empty((len(f), len(trains)))
     for i, train in enumerate(trains):
         observed = _restrict_spike_times(train, time_support)
-        J, _, _ = mtfftpt(observed, tapers, nfft, t, f, findx)
+        J, _, _ = _point_fft(observed, tapers, t, angular_phase, taper_fft)
         spec[:, i] = np.mean(np.abs(J) ** 2, axis=1)
 
     return pd.DataFrame(spec, index=f)
@@ -578,8 +579,10 @@ def _point_pair(
     tapers = _point_tapers(tapers, len(t)) * np.sqrt(Fs)
     first = _restrict_spike_times(first, time_support)
     second = _restrict_spike_times(second, time_support)
-    j1, _, _ = mtfftpt(first, tapers, nfft, t, f, findx)
-    j2, _, _ = mtfftpt(second, tapers, nfft, t, f, findx)
+    taper_fft = _point_taper_fft(tapers, nfft, findx)
+    angular_phase = -2j * np.pi * f
+    j1, _, _ = _point_fft(first, tapers, t, angular_phase, taper_fft)
+    j2, _, _ = _point_fft(second, tapers, t, angular_phase, taper_fft)
     return f, j1, j2
 
 
@@ -947,10 +950,13 @@ def mtspecgrampt(
     values = np.zeros((len(f), len(starts)), dtype=float)
     if starts.size:
         bank = dpss(len(t), NW, n_tapers).T * np.sqrt(Fs)
+        taper_fft = _point_taper_fft(bank, nfft, findx)
+        angular_phase = -2j * np.pi * f
         left = np.searchsorted(times, starts)
         right = np.searchsorted(times, stops)
         for i, (lo, hi) in enumerate(zip(left, right)):
             if hi > lo:
-                j, _, _ = mtfftpt(times[lo:hi] - starts[i], bank, nfft, t, f, findx)
+                relative_times = times[lo:hi] - starts[i]
+                j, _, _ = _point_fft(relative_times, bank, t, angular_phase, taper_fft)
                 values[:, i] = np.mean(np.abs(j) ** 2, axis=1)
     return _gram_frame(values, f, centers)

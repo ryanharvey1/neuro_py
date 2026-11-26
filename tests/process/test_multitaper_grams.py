@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from joblib import Parallel
 from scipy.signal.windows import dpss
 
 from neuro_py import process
@@ -51,10 +50,7 @@ def test_continuous_grams_match_standalone_estimates_per_complete_window() -> No
         px.mtcohgramc(first, second[:-1], *opts, movingwin=(1, 0.5))
 
 
-def test_spike_gram_preserves_empty_windows_and_boundary_assignment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(px, "Parallel", lambda n_jobs: Parallel(n_jobs=1))
+def test_spike_gram_preserves_empty_windows_and_boundary_assignment() -> None:
     fs = 100
     band = [0, 40]
     times = np.array([14.0, 10.2, 11.0, 11.24, 13.18, 13.4])

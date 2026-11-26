@@ -1,14 +1,8 @@
 import numpy as np
 import pytest
-from joblib import Parallel
 from scipy.signal.windows import dpss
 
 from neuro_py.process import pychronux as px
-
-
-@pytest.fixture(autouse=True)
-def serial_taper_tasks(monkeypatch):
-    monkeypatch.setattr(px, "Parallel", lambda n_jobs: Parallel(n_jobs=1))
 
 
 def reference_spectra(first, second, support, n_tapers):
