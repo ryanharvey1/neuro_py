@@ -12,7 +12,8 @@ def serial_taper_tasks(monkeypatch):
 
 
 def reference_spectra(first, second, support, n_tapers):
-    times = np.arange(support[0] - 0.01, support[1] + 0.01, 0.01)
+    steps = round((support[1] - support[0]) * 100)
+    times = support[0] + np.arange(-1, steps + 2) / 100
     tapers = dpss(len(times), 2.5, n_tapers).T
     frequencies, mask = px.getfgrid(100, 1000, [10, 10])
     scaled_tapers = tapers * np.sqrt(100)
