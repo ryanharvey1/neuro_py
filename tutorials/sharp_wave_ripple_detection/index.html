@@ -3845,17 +3845,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#interactive-browser-demo" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Interactive browser demo
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -4143,17 +4132,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#interactive-browser-demo" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Interactive browser demo
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -4391,7 +4369,7 @@
 <h2 id="1-simulated-sharp-wave-ripples">1) Simulated sharp wave ripples<a class="headerlink" href="#1-simulated-sharp-wave-ripples" title="Permanent link">&para;</a></h2>
 <p>Before looking at a real recording, it helps to use data where we know the answer. Here we simulate a short 1.5 second two-channel LFP segment with brown noise, visible 165 Hz ripple bursts, and paired slow sharp-wave deflections.</p>
 <p>In real hippocampal data, the sharp-wave feature is useful because it helps reject noise or non-SWR high-frequency events that can otherwise have ripple-band power.</p>
-<p>This section is also designed to be easy to tune locally. Edit the simulation amplitudes or detector thresholds below and rerun the cells to see how the joint detector responds. A future Marimo version could expose these same values as reactive sliders, but this static tutorial keeps the current Zensical build path simple.</p>
+<p>Edit the simulation amplitudes or detector thresholds below and rerun the cells to see how the joint detector responds.</p>
 <div class="highlight"><pre><span></span><code><span class="n">RIPPLE_FREQUENCY</span> <span class="o">=</span> <span class="mf">165.0</span>
 
 
@@ -4663,18 +4641,6 @@
 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Simulated joint sharp wave ripple detection"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.04</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
 </code></pre></div>
 <p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_7_0.png" /></p>
-<h3 id="interactive-browser-demo">Interactive browser demo<a class="headerlink" href="#interactive-browser-demo" title="Permanent link">&para;</a></h3>
-<p>The embedded Marimo app below runs entirely in your browser with WebAssembly. It intentionally uses simulated data and a small NumPy/SciPy detector rather than importing the full <code>neuro_py</code> package, which keeps the demo fast and avoids browser dependency limits. Try changing the amplitudes, noise level, and thresholds to see how the joint detector responds.</p>
-<p><iframe
-  src="../marimo/sharp_wave_ripple_detection/index.html"
-  width="100%"
-  height="700"
-  frameborder="0"
-  sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"
-  loading="lazy"
-  style="border: 1px solid var(--md-default-fg-color--lightest); border-radius: 0.5rem; width: 100%;"
-></iframe>
-</p>
 <h2 id="2-detect-joint-swrs-from-a-real-session">2) Detect joint SWRs from a real session<a class="headerlink" href="#2-detect-joint-swrs-from-a-real-session" title="Permanent link">&para;</a></h2>
 <p>With the simulated example in mind, we can run the same detector on real data. The detector can infer channels from CellExplorer <code>channelTags</code>:</p>
 <ul>
@@ -5390,7 +5356,7 @@ Sampling rate: 1250.0 Hz
 <span class="p">)</span>
 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Joint sharp wave ripple detection summary"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
 </code></pre></div>
-<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_18_0.png" /></p>
+<p><img alt="png" src="../sharp_wave_ripple_detection_files/sharp_wave_ripple_detection_17_0.png" /></p>
 <h2 id="6-save-the-final-joint-detections-to-a-cellexplorer-event-file">6) Save the final joint detections to a CellExplorer event file<a class="headerlink" href="#6-save-the-final-joint-detections-to-a-cellexplorer-event-file" title="Permanent link">&para;</a></h2>
 <p>After the thresholds look good, rerun the detector with <code>save_mat=True</code>. Using the default <code>event_name="ripples"</code> writes a standard CellExplorer event file named <code>basename.ripples.events.mat</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">detect_sharp_wave_ripples</span><span class="p">(</span>
