@@ -130,6 +130,7 @@ from .pychronux import (
     mtspecgrampt,
     mtspectrumc,
     mtspectrumpt,
+    point_lag_spectrum,
     point_spectra,
 )
 from .utils import (

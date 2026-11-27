@@ -4,6 +4,7 @@ from typing import Any, Iterator, List, NamedTuple, Optional, Sequence, Tuple, U
 import nelpy as nel
 import numpy as np
 import pandas as pd
+from numba import njit
 from numpy.typing import NDArray
 from scipy.signal.windows import dpss
 
@@ -403,6 +404,14 @@ def _merged_support(support: NDArray[np.float64]) -> NDArray[np.float64]:
     )
 
 
+def _complete_bins(bounds: NDArray[np.float64], Fs: int) -> NDArray[np.int64]:
+    # Subtracting absolute times can leave a nominally complete bin a few
+    # ulps short. Account for precision on the original time axis.
+    span = (bounds[:, 1] - bounds[:, 0]) * Fs
+    tolerance = 4 * np.spacing(np.max(np.abs(bounds), axis=1)) * Fs
+    return np.floor(span + tolerance).astype(np.int64)
+
+
 class _PointWindows(NamedTuple):
     starts: NDArray[np.float64]
     stops: NDArray[np.float64]
@@ -427,11 +436,7 @@ def _point_windows(
 ) -> _PointWindows:
     length, stride = _window_samples(movingwin, Fs)
     bounds = _merged_support(support)
-    span = (bounds[:, 1] - bounds[:, 0]) * Fs
-    # Subtracting absolute timestamps can leave a nominally complete window
-    # a few ulps short. Account for precision on the original time axis.
-    tolerance = 4 * np.spacing(np.max(np.abs(bounds), axis=1)) * Fs
-    counts = np.floor(span + tolerance).astype(np.int64)
+    counts = _complete_bins(bounds, Fs)
     offsets = [np.arange(0, n - length + 1, stride) for n in counts]
     origins = np.repeat(bounds[:, 0], [len(part) for part in offsets])
     limits = np.repeat(bounds[:, 1], [len(part) for part in offsets])
@@ -686,6 +691,175 @@ def mtspectrumpt(
         spec[:, i] = np.mean(np.abs(J) ** 2, axis=1)
 
     return pd.DataFrame(spec, index=f)
+
+
+@njit(cache=True)
+def _within_bout_pairs(
+    bouts: NDArray[np.intp], bins: NDArray[np.int64], max_offset: int
+) -> NDArray[np.int64]:
+    """Count distinct spike pairs on the local grid without forming pair arrays."""
+    counts = np.zeros(max_offset + 1, dtype=np.int64)
+    for i in range(len(bins)):
+        for j in range(i + 1, len(bins)):
+            if bouts[j] != bouts[i]:
+                break
+            offset = bins[j] - bins[i]
+            if offset > max_offset:
+                break
+            counts[offset] += 1
+    counts[0] *= 2  # two ordered pairs for distinct events in the same bin
+    return counts
+
+
+def _lag_pair_totals(
+    lengths: NDArray[np.int64],
+    lags: NDArray[np.int64],
+    first: NDArray[np.intp],
+    weights: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Sum weights[b] * max(lengths[b] - lag, 0) without a bout-by-lag matrix."""
+    weighted_lengths = np.r_[np.cumsum((lengths * weights)[::-1])[::-1], 0]
+    remaining_weights = np.r_[np.cumsum(weights[::-1])[::-1], 0]
+    return weighted_lengths[first] - lags * remaining_weights[first]
+
+
+def point_lag_spectrum(
+    data: NDArray[Any] | Sequence[NDArray[Any]] | nel.SpikeTrainArray,
+    Fs: int,
+    fpass: list[float],
+    *,
+    max_lag: float = 1.0,
+    time_support: _TimeSupport | None = None,
+    nfft: int | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Estimate rhythmic spiking by pooling pairs within observed bouts.
+
+    Parameters
+    ----------
+    data : np.ndarray, sequence of np.ndarray, or nelpy.SpikeTrainArray
+        Spike times in seconds, one array per unit. A native spike train
+        supplies its support if no explicit support is given.
+    Fs : int
+        Spike binning rate in Hz, not the original timestamp sampling rate.
+        Use substantially more than twice the upper frequency to limit
+        attenuation from binning.
+    fpass : list of float
+        Inclusive frequency range in Hz.
+    max_lag : float, optional
+        Largest lag in seconds, rounded to a bin (default 1 s). The full
+        width at half maximum of the Hann lag window's spectral kernel is
+        approximately ``1 / max_lag`` Hz. Both the number of available pairs
+        and the rhythmic persistence limit what can be resolved in practice.
+    time_support : array-like, optional
+        Half-open observation interval(s) in seconds. Required for raw
+        spike times. Overlapping or touching intervals are merged, and
+        only complete time bins within each interval are used.
+    nfft : int, optional
+        FFT length, at least twice the largest lag in bins plus one. The
+        default is the next power of two. Padding only refines the grid.
+
+    Returns
+    -------
+    spectrum : pd.DataFrame
+        Signed excess spectral density (spikes squared per second, two-sided
+        normalization) indexed by frequency in Hz, with one column per unit.
+        This is not a nonnegative power spectral density.
+    exposure : pd.DataFrame
+        Lag in seconds as the index. Columns report the number of bouts
+        that can contribute and eligible bin pairs expressed in seconds.
+        Check exposure at the lags that determine your resolution.
+
+    Notes
+    -----
+    For each lag, pool distinct spike pairs and divide by the number of
+    eligible same-bout bin pairs. Subtract the expected counts under
+    independent uniform spike times conditional on each bout's spike count.
+    For a bout with ``m`` bins and ``n`` spikes this expectation at bin offset
+    ``k`` is ``n * (n - 1) * max(m - k, 0) / m**2``; this also applies
+    at lag zero after excluding spike self-pairs. Transform the symmetric,
+    Hann-tapered excess correlation. Bouts can have unrelated phases, but
+    the estimator does not remove an event-locked firing rate envelope or
+    test phase locking to an LFP. No pair ever crosses a gap. A bout shorter
+    than a requested lag contributes only to shorter lags.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> bouts = np.array([[0., 2.], [30., 32.]])
+    >>> spikes = np.r_[np.arange(0.1, 2, 0.125), np.arange(30.1, 32, 0.125)]
+    >>> spectrum, exposure = px.point_lag_spectrum(spikes, 128, [4, 12], time_support=bouts)
+    >>> float(exposure.loc[1.0, "pair_exposure_s"])
+    2.0
+    """
+    if not np.isfinite(Fs) or Fs <= 0 or not np.isfinite(max_lag) or max_lag <= 0:
+        raise ValueError("Fs and max_lag must be positive and finite")
+    max_offset = int(np.floor(max_lag * Fs + 0.5))
+    if max_offset < 2:
+        raise ValueError("max_lag must span at least two bins")
+    if isinstance(data, nel.SpikeTrainArray):
+        if time_support is None:
+            time_support = data.support.data
+        data = data.data if data.data is not None else []
+    support = _support_array(time_support)
+    if support is None:
+        raise ValueError("time_support is required for raw spike times")
+    bounds = _merged_support(support)
+    lengths = _complete_bins(bounds, Fs)
+    keep = lengths > 0
+    bounds, lengths = bounds[keep], lengths[keep]
+    if not lengths.size or np.max(lengths) <= max_offset:
+        raise ValueError("No same-bout bin pairs at max_lag; use a shorter max_lag")
+
+    nfft = _fft_size(2 * max_offset + 1, nfft)
+    f, mask = _spectrum_grid(Fs, nfft, fpass)
+    starts = bounds[:, 0]
+    stops = np.minimum(bounds[:, 1], starts + lengths / Fs)
+    precision = 4 * np.spacing(np.max(np.abs(bounds), axis=1)) * Fs
+    lags = np.arange(max_offset + 1, dtype=np.int64)
+    order = np.argsort(lengths)
+    sorted_lengths = lengths[order]
+    first = np.searchsorted(sorted_lengths, lags, side="right")
+    eligible = _lag_pair_totals(sorted_lengths, lags, first, np.ones(len(lengths)))
+    lag_taper = 0.5 * (1 + np.cos(np.pi * lags / max_offset))
+    if (
+        isinstance(data, np.ndarray)
+        and data.ndim == 1
+        and (not data.size or np.ndim(data[0]) == 0)
+    ):
+        trains = [_spike_times(data)]
+    else:
+        trains = [_spike_times(train) for train in data]
+
+    spectra = np.empty((len(f), len(trains)))
+    for unit, times in enumerate(trains):
+        if np.any(times[1:] < times[:-1]):
+            times = np.sort(times)
+        bouts = np.searchsorted(starts, times, side="right") - 1
+        in_bout = (bouts >= 0) & (times < stops[bouts])
+        bouts, times = bouts[in_bout], times[in_bout]
+        local = (times - starts[bouts]) * Fs
+        bins = np.minimum(
+            np.floor(local + precision[bouts]).astype(np.int64), lengths[bouts] - 1
+        )
+        pairs = _within_bout_pairs(bouts, bins, max_offset)
+        spikes_per_bout = np.bincount(bouts, minlength=len(lengths))[order].astype(
+            float
+        )
+        baseline_weights = (
+            spikes_per_bout * (spikes_per_bout - 1) / sorted_lengths.astype(float) ** 2
+        )
+        expected = _lag_pair_totals(sorted_lengths, lags, first, baseline_weights)
+        tapered = lag_taper * (pairs - expected) / eligible
+        cosine_sum = np.fft.rfft(tapered, n=nfft).real
+        spectra[:, unit] = Fs * (2 * cosine_sum[mask[: len(cosine_sum)]] - tapered[0])
+
+    exposure = pd.DataFrame(
+        {"pair_exposure_s": eligible / Fs, "n_bouts": len(lengths) - first},
+        index=pd.Index(lags / Fs, name="lag_s"),
+    )
+    return pd.DataFrame(spectra, index=pd.Index(f, name="frequency_hz")), exposure
 
 
 def mtfftc(
