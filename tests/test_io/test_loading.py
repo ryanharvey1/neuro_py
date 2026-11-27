@@ -264,11 +264,12 @@ def test_load_animal_behavior_skips_ragged_metadata(monkeypatch):
 def test_load_animal_behavior_distinguishes_position_metadata(
     tmp_path, malformed, spatial_series
 ):
-    """Metadata can be skipped while malformed coordinates remain errors."""
+    """Skip metadata and empty coordinates, and reject malformed coordinates."""
     basename = tmp_path.name
     position = {
         "x": np.array([1.0, 2.0]),
         "y": np.array([3.0, 4.0]),
+        "z": np.empty(0),
         "linearized": np.ones((2, 2)) if malformed else np.array([1.0, np.nan]),
         "polar_rho": np.array([5.0, 6.0]),
         "BodyPart": np.array(
@@ -304,6 +305,7 @@ def test_load_animal_behavior_distinguishes_position_metadata(
     assert "BodyPart" not in df.columns
     assert "other_metadata" not in df.columns
     assert "x2_point" not in df.columns
+    assert "z" not in df.columns
     np.testing.assert_array_equal(df["time"], [0.0, 1.0])
     np.testing.assert_array_equal(df["linearized"], [1.0, np.nan])
     np.testing.assert_array_equal(df["polar_rho"], [5.0, 6.0])

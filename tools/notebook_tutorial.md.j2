@@ -1,0 +1,11 @@
+{% extends 'index.md.j2' %}
+
+{% block input -%}
+{% if 'collapse-plotting-code' in cell.metadata.get('tags', []) -%}
+{{ '\n\n' }}??? note "Show plotting code"
+
+{{ super() | trim | indent(4) }}{{ '\n\n' }}
+{%- else -%}
+{{ super() }}
+{%- endif -%}
+{% endblock input %}

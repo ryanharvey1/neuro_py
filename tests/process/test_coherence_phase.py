@@ -1,22 +1,18 @@
 import numpy as np
 import pytest
-from joblib import Parallel
 from scipy.signal.windows import dpss
 
 from neuro_py.process import pychronux as px
 
 
-@pytest.fixture(autouse=True)
-def serial_taper_tasks(monkeypatch):
-    monkeypatch.setattr(px, "Parallel", lambda n_jobs: Parallel(n_jobs=1))
-
-
 def reference_spectra(first, second, support, n_tapers):
-    times = np.arange(support[0] - 0.01, support[1] + 0.01, 0.01)
+    steps = round((support[1] - support[0]) * 100)
+    times = support[0] + np.arange(-1, steps + 2) / 100
     tapers = dpss(len(times), 2.5, n_tapers).T
     frequencies, mask = px.getfgrid(100, 1000, [10, 10])
-    j1, _, _ = px.mtfftpt(first, tapers, 1000, times, frequencies, mask)
-    j2, _, _ = px.mtfftpt(second, tapers, 1000, times, frequencies, mask)
+    scaled_tapers = tapers * np.sqrt(100)
+    j1, _, _ = px.mtfftpt(first, scaled_tapers, 1000, times, frequencies, mask)
+    j2, _, _ = px.mtfftpt(second, scaled_tapers, 1000, times, frequencies, mask)
     cross = (j1.conj() * j2).mean(axis=1)
     expected = abs(cross) ** 2 / (
         (abs(j1) ** 2).mean(axis=1) * (abs(j2) ** 2).mean(axis=1)

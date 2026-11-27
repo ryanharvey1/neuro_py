@@ -2094,8 +2094,8 @@ def load_animal_behavior(
     """
     load_animal_behavior loads basename.animal.behavior.mat files created by general_behavior_file.m
     The output is a pandas data frame with [time,x,y,z,linearized,speed,acceleration,trials,epochs]
-    Position columns are limited to CellExplorer coordinates. Other position
-    fields remain available through `load_mat`.
+    Position columns are limited to populated CellExplorer coordinates. Other
+    position fields remain available through `load_mat`.
 
     Parameters
     ----------
@@ -2171,6 +2171,9 @@ def load_animal_behavior(
                 array = np.asarray(values)
             except ValueError as exc:
                 raise ValueError(message) from exc
+            # CellExplorer can store untracked axes as empty MATLAB arrays.
+            if array.size == 0:
+                continue
             if array.ndim > 1 or array.size != len(df) or array.dtype.kind not in "iuf":
                 raise ValueError(message)
             _assign_column(key, array.reshape(-1))

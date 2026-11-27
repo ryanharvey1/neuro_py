@@ -1,3 +1,4 @@
+import doctest
 import re
 
 import numpy as np
@@ -11,6 +12,12 @@ from neuro_py.process import pychronux as px
 def test_pychronux():
     # Test the function
     assert px is not None
+
+
+def test_pychronux_docstring_examples() -> None:
+    results = doctest.testmod(px, globs={})
+    assert results.attempted > 0
+    assert results.failed == 0
 
 
 def test_getfgrid():
@@ -41,7 +48,7 @@ def test_dpsschk():
 
     # Generate expected DPSS tapers using scipy
     expected_tapers, _ = dpss(
-        N, NW=tapers[0], Kmax=tapers[1], sym=False, return_ratios=True
+        N, NW=tapers[0], Kmax=tapers[1], sym=True, return_ratios=True
     )
     expected_tapers = expected_tapers * np.sqrt(Fs)
     expected_tapers = expected_tapers.T
@@ -65,7 +72,7 @@ def test_get_tapers():
     NW = bandwidth * N / fs
     K = int(np.ceil(2 * NW)) - 1
     expected_tapers, expected_lambdas = dpss(
-        N, NW=NW, Kmax=K, sym=False, norm=2, return_ratios=True
+        N, NW=NW, Kmax=K, sym=True, norm=2, return_ratios=True
     )
     mask = expected_lambdas > min_lambda
     expected_tapers = expected_tapers[mask]
@@ -258,7 +265,7 @@ def test_mtspectrumpt():
     tapers, _ = dpss(len(tapers_ts), NW, n_tapers, return_ratios=True)
 
     spectrum_df_precomputed = px.mtspectrumpt(
-        data, Fs, fpass, NW, n_tapers, tapers=tapers.T
+        data, Fs, fpass, NW, n_tapers, tapers=tapers.T, tapers_ts=tapers_ts
     )
 
     # Assertions
@@ -328,6 +335,146 @@ def test_mtspectrumpt():
     )
     # peak is at 8 Hz
     assert spec.index[np.argmax(spec.values)].astype(int) == 8
+
+
+def test_point_spectra_use_chronux_normalization():
+    """Point-process power and auto-CSD agree on a shared taper grid."""
+    Fs = 100
+    fpass = [1, 20]
+    NW = 3
+    n_tapers = 5
+    time_support = [0.0, 10.0]
+    taper_times = np.arange(-1, 1002) / Fs
+    nfft = 1024
+    spike_times = np.array([0.1, 0.3, 1.2, 3.4, 4.5, 7.8, 9.6])
+    data = np.empty(1, dtype=object)
+    data[0] = spike_times
+
+    raw_tapers, _ = dpss(len(taper_times), NW, n_tapers, return_ratios=True)
+    options = dict(
+        NW=NW,
+        n_tapers=n_tapers,
+        time_support=time_support,
+        nfft=nfft,
+    )
+
+    frequencies, findx = px.getfgrid(Fs, nfft, fpass)
+    transforms, _, _ = px.mtfftpt(
+        spike_times,
+        raw_tapers.T * np.sqrt(Fs),
+        nfft,
+        taper_times,
+        frequencies,
+        findx,
+    )
+    expected_power = np.real(np.mean(np.conj(transforms) * transforms, axis=1))
+
+    for tapers in (None, raw_tapers, raw_tapers.T):
+        spectrum = px.mtspectrumpt(data, Fs, fpass, tapers=tapers, **options)
+        csd = px.mtcsdpt(spike_times, spike_times, Fs, fpass, tapers=tapers, **options)
+        np.testing.assert_array_equal(spectrum.index, frequencies)
+        np.testing.assert_array_equal(csd.index, frequencies)
+        np.testing.assert_allclose(spectrum.iloc[:, 0], expected_power)
+        np.testing.assert_allclose(csd["CSD"], expected_power)
+
+
+def test_point_spectra_match_direct_fourier_sum_for_fractional_support():
+    """Use a fixed-duration grid and exclude spikes in its interpolation padding."""
+    fs, nfft, nw, n_tapers = 100, 100, 2, 3
+    support = [2.0, 2.57]
+    grid = support[0] + np.arange(-1, 59) / fs
+    times = np.array([1.995, 2.043, 2.13, 2.371, 2.553, 2.571])
+    observed = times[(times >= support[0]) & (times <= support[1])]
+    freq = np.arange(1, 21) * fs / nfft
+    tapers = dpss(len(grid), nw, n_tapers).T * np.sqrt(fs)
+    weights = np.column_stack([np.interp(observed, grid, taper) for taper in tapers.T])
+    spike_phase = np.exp(-2j * np.pi * freq[:, None] * (observed - grid[0]))
+    grid_phase = np.exp(-2j * np.pi * freq[:, None] * (grid - grid[0]))
+    transform = (spike_phase @ weights) - (len(observed) / len(grid)) * (
+        grid_phase @ tapers
+    )
+    expected = np.mean(np.abs(transform) ** 2, axis=1)
+
+    power, actual_freq = px.point_spectra(
+        times, fs, [1, 20], [nw, n_tapers], nfft=nfft, time_support=support
+    )
+    np.testing.assert_array_equal(actual_freq, freq)
+    np.testing.assert_allclose(power, expected, atol=1e-12)
+    spectrum = px.mtspectrumpt(times, fs, [1, 20], nw, n_tapers, support, nfft=nfft)
+    csd = px.mtcsdpt(times, observed, fs, [1, 20], nw, n_tapers, support, nfft=nfft)
+    np.testing.assert_allclose(spectrum.iloc[:, 0], expected, atol=1e-12)
+    np.testing.assert_allclose(csd.CSD, expected, atol=1e-12)
+
+
+def test_mtfftpt_matches_direct_transform_for_dense_spike_train() -> None:
+    """The blocked transform preserves the complex estimate across block edges."""
+    fs, nfft = 128, 256
+    grid = np.arange(129) / fs
+    spikes = np.linspace(0.001, 0.999, 4501)
+    tapers = dpss(len(grid), 2.5, 4).T * np.sqrt(fs)
+    f, mask = px.getfgrid(fs, nfft, [0, fs / 2])
+    phases = np.exp(-2j * np.pi * f[:, None] * spikes)
+    weights = np.column_stack([np.interp(spikes, grid, taper) for taper in tapers.T])
+    rate = len(spikes) / len(grid)
+    expected = phases @ weights - rate * np.fft.fft(tapers, nfft, axis=0)[mask]
+
+    actual, mean_count, count = px.mtfftpt(spikes, tapers, nfft, grid, f, mask)
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-11, atol=1e-10)
+    assert count == len(spikes)
+    assert mean_count == rate
+
+
+def test_point_spectrum_grid_contracts():
+    times = np.array([0.1, 0.3, 0.4])
+    grid = np.arange(0, 0.75, 0.01)
+    spectrum = px.mtspectrumpt(times, 100, [10, 10], tapers_ts=grid, nfft=100)
+    power, frequency = px.point_spectra(times, 100, [10, 10], nfft=100)
+    assert spectrum.shape == (1, 1)
+    assert power.shape == frequency.shape == (1,)
+    with pytest.raises(ValueError, match="at least the number of taper samples"):
+        px.point_spectra(times, 100, [1, 20], nfft=20)
+    with pytest.raises(ValueError, match="spaced by 1 / Fs"):
+        px.mtspectrumpt(times, 100, [1, 20], tapers_ts=grid[::2])
+    with pytest.raises(ValueError, match="Nyquist"):
+        px.mtcoherencept(times, times, 100, [1, 51])
+
+
+def test_spectra_match_chronux_2_12_matlab_reference():
+    """Reference values generated by Chronux 2.12 v03 in MATLAB R2025a."""
+    fs = 100
+    band = [0, 40]
+    # Spike endpoints are on the grid, so the last padding sample is included.
+    spikes = np.array([0.1, 0.2, 0.35, 0.7])
+    point = px.mtspectrumpt(spikes, fs, band, NW=2.5, n_tapers=4).iloc[:, 0]
+    expected_point = {
+        0.0: 2.1310077192594292,
+        1.5625: 2.5308190805637523,
+        4.6875: 2.7661620553853634,
+        9.375: 7.242122949072245,
+        14.0625: 4.142121112842787,
+        18.75: 5.6934586936418015,
+    }
+    np.testing.assert_allclose(
+        point.loc[list(expected_point)], list(expected_point.values()), rtol=1e-10
+    )
+
+    time = np.arange(32) / fs
+    signal = np.sin(2 * np.pi * 8 * time) + 0.4 * np.cos(2 * np.pi * 22 * time + 0.2)
+    continuous = px.mtspectrumc(signal, fs, band, (2.5, 4))
+    expected_continuous = {
+        0.0: 0.00040610237807749486,
+        3.125: 0.01977895866680781,
+        9.375: 0.018998943309497144,
+        18.75: 0.0030799049687197087,
+        28.125: 0.002185163702777262,
+        37.5: 3.284390862970817e-06,
+    }
+    np.testing.assert_allclose(
+        continuous.loc[list(expected_continuous)],
+        list(expected_continuous.values()),
+        rtol=1e-10,
+    )
 
 
 def test_mtfftc():
