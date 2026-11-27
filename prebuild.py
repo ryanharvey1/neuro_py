@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 SRC_DIR = ROOT / "neuro_py"
 TUTORIALS_DIR = ROOT / "tutorials"
+TUTORIAL_TEMPLATE = ROOT / "tools" / "notebook_tutorial.md.j2"
 
 
 def generate_reference() -> list:
@@ -154,7 +155,7 @@ def copy_and_convert_tutorials() -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
 
         if src_path.suffix == ".ipynb":
-            # Convert notebook to Markdown via nbconvert
+            # The template folds tagged code inputs while leaving their outputs visible.
             subprocess.run(
                 [
                     sys.executable,
@@ -162,6 +163,8 @@ def copy_and_convert_tutorials() -> None:
                     "nbconvert",
                     "--to",
                     "markdown",
+                    "--template-file",
+                    str(TUTORIAL_TEMPLATE),
                     "--output-dir",
                     str(target.parent),
                     str(src_path),
