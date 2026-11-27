@@ -1,3 +1,4 @@
+import doctest
 import re
 
 import numpy as np
@@ -11,6 +12,12 @@ from neuro_py.process import pychronux as px
 def test_pychronux():
     # Test the function
     assert px is not None
+
+
+def test_pychronux_docstring_examples() -> None:
+    results = doctest.testmod(px, globs={})
+    assert results.attempted > 0
+    assert results.failed == 0
 
 
 def test_getfgrid():

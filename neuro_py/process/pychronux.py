@@ -32,6 +32,13 @@ def getfgrid(
     -----
     The frequency vector is computed based on the sampling frequency and the number of FFT points.
     Only frequencies within the range defined by `fpass` are returned.
+
+    Examples
+    --------
+    >>> from neuro_py.process import pychronux as px
+    >>> frequencies, mask = px.getfgrid(128, 128, [6, 10])
+    >>> frequencies.tolist()
+    [6.0, 7.0, 8.0, 9.0, 10.0]
     """
     if Fs <= 0 or nfft < 1:
         raise ValueError("Fs and nfft must be positive")
@@ -65,6 +72,13 @@ def dpsschk(
     -----
     The function computes symmetric DPSS (Discrete Prolate Spheroidal
     Sequences) tapers, as in Chronux, and scales them by ``sqrt(Fs)``.
+
+    Examples
+    --------
+    >>> from neuro_py.process import pychronux as px
+    >>> tapers = px.dpsschk((3, 5), N=128, Fs=128)
+    >>> tapers.shape  # samples by tapers
+    (128, 5)
     """
     return dpss(N, NW=tapers[0], Kmax=tapers[1], sym=True).T * np.sqrt(Fs)
 
@@ -106,6 +120,15 @@ def get_tapers(
     ValueError
         If not enough tapers are available or if none of the tapers satisfy the
         minimum energy concentration criteria.
+
+    Examples
+    --------
+    >>> from neuro_py.process import pychronux as px
+    >>> tapers, concentration = px.get_tapers(128, bandwidth=3, fs=128, n_tapers=3)
+    >>> tapers.shape  # tapers by samples
+    (3, 128)
+    >>> bool((concentration > 0.95).all())
+    True
     """
 
     NW = bandwidth * N / fs
@@ -181,6 +204,21 @@ def mtfftpt(
     The function computes the multitaper FFT of spike times using
     the specified tapers and returns the FFT result, mean spikes,
     and total spike count.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = nfft = 128
+    >>> t = np.arange(nfft) / fs
+    >>> spikes = np.array([0.09, 0.24, 0.48, 0.71])  # seconds
+    >>> tapers = px.dpsschk((2, 3), len(t), fs)
+    >>> frequencies, mask = px.getfgrid(fs, nfft, [1, 20])
+    >>> transform, mean_spikes, n_spikes = px.mtfftpt(
+    ...     spikes, tapers, nfft, t, frequencies, mask
+    ... )
+    >>> transform.shape, n_spikes  # (frequency bins, tapers), spike count
+    ((20, 3), 4)
     """
     if nfft < len(t):
         raise ValueError("nfft must be at least the number of taper samples")
@@ -364,17 +402,16 @@ def mtspectrumpt(
         Power density indexed by frequency in Hz, with one column per unit.
         Positive-frequency bins retain the two-sided normalization.
 
-
     Examples
-    -------
-    >>> spec = pychronux.mtspectrumpt(
-    >>>    st.data,
-    >>>    100,
-    >>>    [1, 20],
-    >>>    NW=3,
-    >>>    n_tapers=5,
-    >>>    time_support=[st.support.start, st.support.stop],
-    >>> )
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> spikes = np.arange(0.06, 4, 0.125)  # spike times in seconds
+    >>> power = px.mtspectrumpt(
+    ...     [spikes, spikes + 0.01], Fs=128, fpass=[1, 20], time_support=[0, 4]
+    ... )
+    >>> power.shape[1]  # one column per unit
+    2
     """
 
     # check data
@@ -425,6 +462,17 @@ def mtfftc(
     -------
     J : np.ndarray
         FFT in the form (nfft, K), where K is the number of tapers.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = 128
+    >>> signal = np.sin(2 * np.pi * 8 * np.arange(fs) / fs)
+    >>> tapers = px.dpsschk((2, 3), len(signal), fs)
+    >>> transform = px.mtfftc(signal, tapers, nfft=128, Fs=fs)
+    >>> transform.shape  # FFT bins by tapers
+    (128, 3)
     """
     # Ensure data is 1D
     if data.ndim != 1:
@@ -476,6 +524,17 @@ def mtspectrumc(
     -----
     This function utilizes the multitaper method for spectral estimation
     and returns the power spectrum as a pandas Series.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = 128
+    >>> t = np.arange(4 * fs) / fs
+    >>> signal = np.sin(2 * np.pi * 8 * t)
+    >>> power = px.mtspectrumc(signal, fs, [1, 20], tapers=(3, 5))
+    >>> abs(float(power.idxmax()) - 8) < 1  # peak frequency in Hz
+    True
     """
     N = len(data)
     if N == 0:
@@ -538,6 +597,17 @@ def point_spectra(
     Notes
     -----
     Alternative function to `mtspectrumpt` for computing the power spectrum
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> spikes = np.arange(0.06, 4, 0.125)  # seconds
+    >>> power, frequencies = px.point_spectra(
+    ...     spikes, Fs=128, freq_range=[1, 20], time_support=[0, 4]
+    ... )
+    >>> power.ndim, power.shape == frequencies.shape
+    (1, True)
     """
 
     times = _spike_times(times)
@@ -636,6 +706,18 @@ def mtcsdpt(
     -------
     pd.DataFrame
         Cross-spectral density (or its real component by default).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> first = np.arange(0.06, 4, 0.125)  # seconds
+    >>> second = first + 0.01  # second spike train lags by 10 ms
+    >>> cross = px.mtcsdpt(
+    ...     first, second, 128, [1, 20], time_support=[0, 4], return_complex=True
+    ... )
+    >>> np.iscomplexobj(cross["CSD"])
+    True
     """
     f, J1, J2 = _point_pair(
         data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
@@ -702,6 +784,16 @@ def mtcoherencept(
     or its transpose. Zero-power frequencies have undefined (NaN) coherence.
     With one taper, coherence is identically one wherever both powers are
     nonzero. Use multiple tapers for a meaningful estimate.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> first = np.arange(0.06, 4, 0.125)  # 8 Hz spike train, in seconds
+    >>> second = first + 0.01
+    >>> coherence = px.mtcoherencept(first, second, 128, [1, 20], time_support=[0, 4])
+    >>> float(coherence.loc[8.0, "Coherence"]) > 0.9
+    True
     """
     f, J1, J2 = _point_pair(
         data1, data2, Fs, fpass, NW, n_tapers, time_support, tapers, tapers_ts, nfft
@@ -753,6 +845,18 @@ def mtcoherencec(
     -----
     This is the square of the magnitude returned by Chronux ``coherencyc``.
     With one taper, coherence is one wherever both spectra have power.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = 128
+    >>> t = np.arange(4 * fs) / fs
+    >>> x = np.sin(2 * np.pi * 8 * t)
+    >>> y = np.cos(2 * np.pi * 8 * t) + 0.5 * np.sin(2 * np.pi * 15 * t)
+    >>> coherence = px.mtcoherencec(x, y, fs, [1, 20], tapers=(3, 5))
+    >>> float(coherence.loc[8.0]) > 0.9  # shared oscillation
+    True
     """
     _check_continuous_pair(data1, data2)
     nfft = _fft_size(len(data1))
@@ -846,6 +950,17 @@ def mtspecgramc(
         Power density as in ``mtspectrumc``. Rows are frequencies in Hz and
         columns are centers of complete windows in seconds, measured from
         the start of the signal.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = 128
+    >>> t = np.arange(4 * fs) / fs
+    >>> signal = np.sin(2 * np.pi * (6 * t + 0.5 * t**2))  # chirp from 6 to 10 Hz
+    >>> gram = px.mtspecgramc(signal, fs, [1, 20], (2, 3), movingwin=(2, 1))
+    >>> gram.columns.tolist()  # window centers in seconds
+    [1.0, 2.0, 3.0]
     """
     return _continuous_gram(data, Fs, fpass, tapers, movingwin)
 
@@ -881,6 +996,18 @@ def mtcohgramc(
         Magnitude-squared coherence. Rows are frequencies in Hz and columns
         are centers of complete windows in seconds from the start of the
         signals. Frequencies with zero power in either signal are NaN.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> fs = 128
+    >>> t = np.arange(4 * fs) / fs
+    >>> x = np.sin(2 * np.pi * 8 * t)
+    >>> y = np.cos(2 * np.pi * 8 * t) + 0.5 * np.sin(2 * np.pi * 15 * t)
+    >>> gram = px.mtcohgramc(x, y, fs, [1, 20], (2, 3), movingwin=(2, 1))
+    >>> bool((gram.loc[8.0] > 0.9).all())  # high coherence at 8 Hz in each window
+    True
     """
     _check_continuous_pair(data1, data2)
     return _continuous_gram(data1, Fs, fpass, tapers, movingwin, other=data2)
@@ -924,6 +1051,17 @@ def mtspecgrampt(
         and columns are centers of complete windows on the spike time axis.
         Windows include their left endpoint and exclude their right endpoint.
         Windows with no spikes have zero power.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from neuro_py.process import pychronux as px
+    >>> spikes = np.arange(0.06, 4, 0.125)  # seconds
+    >>> gram = px.mtspecgrampt(
+    ...     spikes, Fs=128, fpass=[1, 20], movingwin=(2, 1), time_support=[0, 4]
+    ... )
+    >>> gram.columns.tolist()  # window centers in seconds
+    [1.0, 2.0, 3.0]
     """
     times = np.sort(_spike_times(data))
     length, stride = _window_samples(movingwin, Fs)
