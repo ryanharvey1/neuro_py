@@ -663,7 +663,7 @@ def mtspectrumpt(
             or data.ndim != 1
         ):
             return pd.DataFrame()
-        trains = [_spike_times(data)]  # observed window(s) from one silent unit
+        trains = [_spike_times(np.asarray(data, dtype=np.float64))]  # one silent unit
     elif isinstance(data, np.ndarray) and data.ndim == 1 and np.ndim(data[0]) == 0:
         trains = [_spike_times(np.asarray(data, dtype=np.float64))]
     else:
@@ -828,7 +828,7 @@ def point_lag_spectrum(
         and data.ndim == 1
         and (not data.size or np.ndim(data[0]) == 0)
     ):
-        trains = [_spike_times(data)]
+        trains = [_spike_times(np.asarray(data, dtype=np.float64))]
     else:
         trains = [_spike_times(train) for train in data]
 
