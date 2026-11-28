@@ -9,18 +9,27 @@ from numpy.typing import NDArray
 from scipy.signal.windows import dpss
 
 
-_TimeSupport = Sequence[float] | Sequence[Sequence[float]] | NDArray[np.number[Any]]
+_TimeSupport = (
+    Sequence[float]
+    | Sequence[Sequence[float]]
+    | NDArray[np.number[Any]]
+    | nel.EpochArray
+)
+_PointInput = NDArray[Any] | nel.SpikeTrainArray
+_NativeSignal = nel.RegularlySampledAnalogSignalArray
+_ContinuousInput = NDArray[Any] | _NativeSignal
+_TaperSpec = NDArray[Any] | tuple[float, int]
 
 
 def getfgrid(
-    Fs: int, nfft: int, fpass: List[float]
+    Fs: float, nfft: int, fpass: List[float]
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     """
     Get frequency grid for evaluation.
 
     Parameters
     ----------
-    Fs : int
+    Fs : float
         Sampling frequency.
     nfft : int
         Number of points for FFT.
@@ -170,7 +179,7 @@ def get_tapers(
 
 
 def mtfftpt(
-    data: NDArray[Any],
+    data: _PointInput,
     tapers: NDArray[Any],
     nfft: int,
     t: NDArray[Any],
@@ -182,8 +191,9 @@ def mtfftpt(
 
     Parameters
     ----------
-    data : np.ndarray
-        1D array of spike times (in seconds).
+    data : np.ndarray or nelpy.SpikeTrainArray
+        1D array of spike times in seconds or a native single-unit train
+        with one support interval. The supplied ``t`` still defines the grid.
     tapers : np.ndarray
         DPSS tapers with shape (n_samples, n_tapers). Use tapers scaled by
         ``sqrt(Fs)`` for Chronux-normalized spectra.
@@ -226,6 +236,10 @@ def mtfftpt(
     >>> transform.shape, n_spikes  # (frequency bins, tapers), spike count
     ((20, 3), 4)
     """
+    if isinstance(data, nel.SpikeTrainArray):
+        if data.support.isempty or len(data.support.data) != 1:
+            raise ValueError("mtfftpt requires a single contiguous support interval")
+        data = _one_spike_train(data)
     if nfft < len(t):
         raise ValueError("nfft must be at least the number of taper samples")
     taper_fft = _point_taper_fft(tapers, nfft, findx)
@@ -347,7 +361,7 @@ def _fft_size(n_samples: int, nfft: int | None = None, pad: int = 0) -> int:
 
 
 def _spectrum_grid(
-    Fs: int, nfft: int, fpass: list[float]
+    Fs: float, nfft: int, fpass: list[float]
 ) -> tuple[NDArray[Any], NDArray[Any]]:
     if len(fpass) != 2 or not np.all(np.isfinite(fpass)):
         raise ValueError("fpass must be a pair of finite frequencies in Hz")
@@ -361,11 +375,15 @@ def _spectrum_grid(
 
 
 def _restrict_spike_times(
-    times: NDArray[np.float64], support: list[float] | None
+    times: NDArray[np.float64],
+    support: list[float] | None,
+    *,
+    include_stop: bool = True,
 ) -> NDArray[np.float64]:
     if support is None:
         return times
-    return times[(times >= support[0]) & (times <= support[1])]
+    before_stop = times <= support[1] if include_stop else times < support[1]
+    return times[(times >= support[0]) & before_stop]
 
 
 def _support_array(support: _TimeSupport | None) -> NDArray[np.float64] | None:
@@ -373,7 +391,9 @@ def _support_array(support: _TimeSupport | None) -> NDArray[np.float64] | None:
         return None
     message = "time_support must contain finite [start, stop] pairs with start < stop"
     try:
-        values = np.asarray(support)
+        values = np.asarray(
+            support.data if isinstance(support, nel.EpochArray) else support
+        )
         if np.iscomplexobj(values):
             raise ValueError(message)
         bounds = np.asarray(values, dtype=np.float64)
@@ -387,6 +407,55 @@ def _support_array(support: _TimeSupport | None) -> NDArray[np.float64] | None:
     ):
         raise ValueError(message)
     return bounds
+
+
+def _native_support(
+    requested: _TimeSupport | None, *observations: nel.EpochArray
+) -> NDArray[np.float64] | None:
+    """Restrict observed epochs without replacing or bridging their support."""
+    bounds = _support_array(requested)
+    if not observations:
+        return bounds
+    common = observations[0].merge()
+    for observed in observations[1:]:
+        common = common & observed.merge()
+    if bounds is not None:
+        common = common & nel.EpochArray(_merged_support(bounds))
+    if common.isempty:
+        raise ValueError("No shared observation time in the requested support")
+    shared = _support_array(common)
+    assert shared is not None
+    if bounds is not None and bounds.ndim == 1 and len(shared) == 1:
+        return shared[0]
+    return shared
+
+
+def _one_spike_train(data: _PointInput) -> NDArray[Any]:
+    if not isinstance(data, nel.SpikeTrainArray):
+        return data
+    trains = data.data
+    if trains is None or len(trains) != 1:
+        raise ValueError("Select exactly one spike train from the nelpy object")
+    return np.asarray(trains[0])
+
+
+def _point_inputs(
+    support: _TimeSupport | None, *data: _PointInput
+) -> tuple[list[NDArray[Any]], NDArray[np.float64] | None]:
+    trains = [_one_spike_train(value) for value in data]
+    observed = [
+        value.support for value in data if isinstance(value, nel.SpikeTrainArray)
+    ]
+    bounds = _native_support(support, *observed)
+    if observed and bounds is not None and bounds.ndim == 1:
+        # A flat span uses the legacy taper grid, but native support remains
+        # half-open, including when the other train is a NumPy array.
+        span = _single_span(bounds)
+        trains = [
+            _restrict_spike_times(_spike_times(train), span, include_stop=False)
+            for train in trains
+        ]
+    return trains, bounds
 
 
 def _single_span(support: NDArray[np.float64] | None) -> list[float] | None:
@@ -597,8 +666,8 @@ def mtspectrumpt(
     Parameters
     ----------
     data : np.ndarray, sequence of np.ndarray, or nelpy.SpikeTrainArray
-        Spike times in seconds, one array per unit. A spike train object also
-        supplies its observation support if no explicit support is passed.
+        Spike times in seconds, one array per unit. A native spike train
+        supplies its observation support, which explicit support can narrow.
     Fs : int
         Taper interpolation grid rate in Hz. Spike times remain in seconds.
     fpass : list of float
@@ -607,7 +676,7 @@ def mtspectrumpt(
         Time-bandwidth product (default is 2.5).
     n_tapers : int, optional
         Number of tapers (default is 4).
-    time_support : array-like, optional
+    time_support : array-like or nelpy.EpochArray, optional
         A single ``[start, stop]`` pair retains the full-span estimator. An
         ``(n_intervals, 2)`` array in seconds uses pooled, equal-length windows
         wholly inside the union of the half-open intervals, excluding gaps.
@@ -647,14 +716,14 @@ def mtspectrumpt(
     2
     """
 
+    include_stop = not isinstance(data, nel.SpikeTrainArray)
     if isinstance(data, nel.SpikeTrainArray):
         if data.data is None or not len(data.data):
             return pd.DataFrame()
-        if time_support is None:
-            time_support = np.asarray(data.support.data, dtype=np.float64)
+        support = _native_support(time_support, data.support)
         data = data.data
-
-    support = _support_array(time_support)
+    else:
+        support = _support_array(time_support)
     if len(data) == 0:
         if (
             support is None
@@ -686,7 +755,7 @@ def mtspectrumpt(
 
     spec = np.empty((len(f), len(trains)))
     for i, train in enumerate(trains):
-        observed = _restrict_spike_times(train, span)
+        observed = _restrict_spike_times(train, span, include_stop=include_stop)
         J, _, _ = _point_fft(observed, tapers, t, angular_phase, taper_fft)
         spec[:, i] = np.mean(np.abs(J) ** 2, axis=1)
 
@@ -739,7 +808,7 @@ def point_lag_spectrum(
     ----------
     data : np.ndarray, sequence of np.ndarray, or nelpy.SpikeTrainArray
         Spike times in seconds, one array per unit. A native spike train
-        supplies its support if no explicit support is given.
+        supplies its support, which explicit support can narrow.
     Fs : int
         Spike binning rate in Hz, not the original timestamp sampling rate.
         Use substantially more than twice the upper frequency to limit
@@ -751,7 +820,7 @@ def point_lag_spectrum(
         width at half maximum of the Hann lag window's spectral kernel is
         approximately ``1 / max_lag`` Hz. Both the number of available pairs
         and the rhythmic persistence limit what can be resolved in practice.
-    time_support : array-like, optional
+    time_support : array-like or nelpy.EpochArray, optional
         Half-open observation interval(s) in seconds. Required for raw
         spike times. Overlapping or touching intervals are merged, and
         only complete time bins within each interval are used.
@@ -799,10 +868,10 @@ def point_lag_spectrum(
     if max_offset < 2:
         raise ValueError("max_lag must span at least two bins")
     if isinstance(data, nel.SpikeTrainArray):
-        if time_support is None:
-            time_support = data.support.data
+        support = _native_support(time_support, data.support)
         data = data.data if data.data is not None else []
-    support = _support_array(time_support)
+    else:
+        support = _support_array(time_support)
     if support is None:
         raise ValueError("time_support is required for raw spike times")
     bounds = _merged_support(support)
@@ -862,22 +931,134 @@ def point_lag_spectrum(
     return pd.DataFrame(spectra, index=pd.Index(f, name="frequency_hz")), exposure
 
 
+def _continuous_rate(Fs: float | None, *data: _ContinuousInput) -> float:
+    rates: list[float] = []
+    for value in data:
+        if isinstance(value, _NativeSignal):
+            if value.isempty:
+                raise ValueError(
+                    "Select exactly one nonempty channel from the nelpy signal"
+                )
+            rates.append(float(value.fs))
+    if Fs is None:
+        if not rates:
+            raise ValueError("Fs is required for NumPy signals")
+        Fs = rates[0]
+    if not np.isfinite(Fs) or Fs <= 0:
+        raise ValueError("Fs must be positive and finite")
+    if any(not np.isclose(rate, Fs, rtol=1e-8, atol=0) for rate in rates):
+        raise ValueError("Fs must match the sampling rate of each nelpy signal")
+    return Fs
+
+
+def _continuous_band(fpass: list[float] | None) -> list[float]:
+    if fpass is None:
+        raise ValueError("fpass is required; supply [fmin, fmax] in Hz")
+    return fpass
+
+
+def _continuous_channel(data: _ContinuousInput) -> NDArray[Any]:
+    if isinstance(data, _NativeSignal):
+        if data.isempty or data.n_signals != 1:
+            raise ValueError(
+                "Select exactly one nonempty channel from the nelpy signal"
+            )
+        return np.asarray(data.data[0])
+    if data.ndim != 1:
+        raise ValueError("data must be a 1D signal")
+    return data
+
+
+class _ContinuousBlocks(NamedTuple):
+    data: NDArray[Any]
+    other: NDArray[Any] | None
+    bounds: NDArray[np.intp]
+    other_starts: NDArray[np.intp]
+    times: NDArray[np.float64]
+    windowed: bool
+
+
+def _check_sample_clock(
+    time: NDArray[np.float64], first: int, stop: int, dt: float, atol: float
+) -> None:
+    # Inspect fixed chunks so a long memory-mapped channel doesn't require
+    # an equally large temporary array just to validate the sampling grid.
+    for lo in range(first, stop - 1, 65536):
+        hi = min(lo + 65537, stop)
+        if not np.allclose(np.diff(time[lo:hi]), dt, rtol=0, atol=atol):
+            raise ValueError(
+                "nelpy samples must be uniformly spaced within each support interval"
+            )
+
+
+def _native_continuous_blocks(
+    data: _ContinuousInput,
+    Fs: float,
+    support: _TimeSupport | None,
+    other: _ContinuousInput | None = None,
+) -> _ContinuousBlocks:
+    native = [value for value in (data, other) if isinstance(value, _NativeSignal)]
+    reference = native[0]
+    first = _continuous_channel(data)
+    second = None if other is None else _continuous_channel(other)
+    time = np.asarray(reference.abscissa_vals, dtype=np.float64).reshape(-1)
+    # A mixed NumPy input is defined to be sampled on the native clock.
+    if len(native) == 1 and second is not None:
+        _check_continuous_pair(first, second)
+    dt = 1 / Fs
+    atol = 1e-5 * dt
+    shared = _native_support(support, *(value.support for value in native))
+    assert shared is not None
+    bounds = np.searchsorted(time, shared.reshape(-1, 2))
+    bounds = bounds[bounds[:, 1] > bounds[:, 0]]
+    if not len(bounds):
+        raise ValueError("No samples in the shared observation support")
+    for left, right in bounds:
+        _check_sample_clock(time, int(left), int(right), dt, atol)
+    origins = time[bounds[:, 0]]
+    other_starts = bounds[:, 0]
+    if len(native) == 2:
+        other_time = np.asarray(native[1].abscissa_vals, dtype=np.float64).reshape(-1)
+        other_starts = np.searchsorted(other_time, origins - atol)
+        sizes = bounds[:, 1] - bounds[:, 0]
+        for (left, right), other_left, size in zip(bounds, other_starts, sizes):
+            end = other_left + size
+            if end > len(other_time):
+                raise ValueError(
+                    "nelpy signals must have aligned sample times on shared support"
+                )
+            for lo in range(0, int(size), 65536):
+                hi = min(lo + 65536, int(size))
+                if not np.allclose(
+                    time[left + lo : left + hi],
+                    other_time[other_left + lo : other_left + hi],
+                    rtol=0,
+                    atol=atol,
+                ):
+                    raise ValueError(
+                        "nelpy signals must have aligned sample times on shared support"
+                    )
+    requested = _support_array(support)
+    windowed = len(bounds) > 1 or (requested is not None and requested.ndim == 2)
+    return _ContinuousBlocks(first, second, bounds, other_starts, origins, windowed)
+
+
 def mtfftc(
-    data: NDArray[Any], tapers: NDArray[Any], nfft: int, Fs: int
+    data: _ContinuousInput, tapers: NDArray[Any], nfft: int, Fs: float | None = None
 ) -> NDArray[Any]:
     """
     Multi-taper Fourier Transform - Continuous Data (Single Signal)
 
     Parameters
     ----------
-    data : np.ndarray
-        1D array of data (samples).
+    data : np.ndarray or nelpy.AnalogSignalArray
+        1D sample array or a single native channel with contiguous support.
     tapers : np.ndarray
         Precomputed DPSS tapers with shape (samples, tapers).
     nfft : int
         Length of padded data for FFT.
-    Fs : int
-        Sampling frequency.
+    Fs : float, optional
+        Sampling frequency in Hz. Inferred for native input; required for arrays.
 
     Returns
     -------
@@ -895,6 +1076,15 @@ def mtfftc(
     >>> transform.shape  # FFT bins by tapers
     (128, 3)
     """
+    if isinstance(data, _NativeSignal):
+        Fs = _continuous_rate(Fs, data)
+        blocks = _native_continuous_blocks(data, Fs, None)
+        if len(blocks.bounds) != 1:
+            raise ValueError("mtfftc requires a single contiguous support interval")
+        ((start, stop),) = blocks.bounds
+        data = blocks.data[start:stop]
+    if Fs is None:
+        raise ValueError("Fs is required for NumPy signals")
     # Ensure data is 1D
     if data.ndim != 1:
         raise ValueError("Input data must be a 1D array.")
@@ -915,10 +1105,10 @@ def mtfftc(
 
 
 def mtspectrumc(
-    data: NDArray[Any],
-    Fs: int,
-    fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    data: _ContinuousInput,
+    Fs: float | None = None,
+    fpass: list[float] | None = None,
+    tapers: _TaperSpec = (2.5, 4),
     *,
     time_support: _TimeSupport | None = None,
     window_duration: float = 4.0,
@@ -928,18 +1118,18 @@ def mtspectrumc(
 
     Parameters
     ----------
-    data : np.ndarray
-        1D array of continuous data (e.g., LFP).
-    Fs : int
-        Sampling frequency in Hz.
+    data : np.ndarray or nelpy.AnalogSignalArray
+        1D sample array or single native channel (e.g., an LFP).
+    Fs : float, optional
+        Sampling frequency in Hz. Inferred for native input; required for arrays.
     fpass : list
         Frequency range to evaluate as [min_freq, max_freq].
     tapers : np.ndarray or tuple of (float, int)
         DPSS time-bandwidth product NW and taper count K, as ``(NW, K)``.
-    time_support : array-like, optional
-        Half-open interval or array of intervals in seconds from the first
-        sample. An interval array pools power over complete windows without
-        crossing gaps. Default uses the whole signal.
+    time_support : array-like or nelpy.EpochArray, optional
+        Half-open bounds in seconds, relative to the first sample for arrays
+        and on the recording clock for native input. Explicit bounds can
+        narrow native support. Disjoint support pools only complete windows.
     window_duration : float, optional
         Complete, non-overlapping window duration for interval arrays (default 4 s).
 
@@ -966,6 +1156,19 @@ def mtspectrumc(
     >>> abs(float(power.idxmax()) - 8) < 1  # peak frequency in Hz
     True
     """
+    Fs = _continuous_rate(Fs, data)
+    fpass = _continuous_band(fpass)
+    if isinstance(data, _NativeSignal):
+        blocks = _native_continuous_blocks(data, Fs, time_support)
+        if blocks.windowed:
+            windows = _native_continuous_windows(
+                blocks, Fs, fpass, (window_duration, window_duration)
+            )
+            f, values = _pool_continuous_windows(blocks.data, None, Fs, tapers, windows)
+            return pd.Series(values, index=f)
+        ((start, stop),) = blocks.bounds
+        data = blocks.data[start:stop]
+        time_support = None
     support = _support_array(time_support)
     if support is not None and support.ndim == 2:
         f, values = _continuous_window_spectrum(
@@ -994,7 +1197,7 @@ def mtspectrumc(
 
 
 def point_spectra(
-    times: NDArray[Any],
+    times: _PointInput,
     Fs: int = 1250,
     freq_range: List[float] = [1, 20],
     tapers0: List[int] = [3, 5],
@@ -1009,8 +1212,8 @@ def point_spectra(
 
     Parameters
     ----------
-    times : np.ndarray
-        Array of spike times (in seconds).
+    times : np.ndarray or nelpy.SpikeTrainArray
+        Spike times in seconds, or a native single-unit train.
     Fs : int, optional
         Taper interpolation grid rate in Hz (default is 1250 Hz).
     freq_range : List[float], optional
@@ -1023,9 +1226,9 @@ def point_spectra(
         Ignored when ``nfft`` is specified.
     nfft : Optional[int], optional
         FFT length, at least the length of the taper grid. Default is None.
-    time_support : array-like, optional
-        Observation interval or array of intervals in seconds, as in
-        ``mtspectrumpt``. Defaults to the first and last spike.
+    time_support : array-like or nelpy.EpochArray, optional
+        Intervals in seconds as in ``mtspectrumpt``. Native input uses its
+        recorded support. Raw input defaults to the first and last spike.
     window_duration : float, optional
         Complete, non-overlapping window duration for interval arrays (default 4 s).
 
@@ -1053,23 +1256,23 @@ def point_spectra(
     (1, True)
     """
 
-    times = _spike_times(times)
-    support = _support_array(time_support)
+    (raw_times,), support = _point_inputs(time_support, times)
+    local_times = _spike_times(raw_times)
     t = None
     if support is not None and support.ndim == 2:
         length, _ = _window_samples((window_duration, window_duration), Fs)
         nfft = _fft_size(length + 3, nfft, pad)
     else:
-        t = _point_time_grid([times], Fs, _single_span(support), None)
+        t = _point_time_grid([local_times], Fs, _single_span(support), None)
         nfft = _fft_size(len(t), nfft, pad)
     NW, n_tapers = tapers0
     spectrum = mtspectrumpt(
-        times[None, :],
+        local_times[None, :],
         Fs,
         freq_range,
         NW,
         n_tapers,
-        time_support=time_support,
+        time_support=support,
         tapers_ts=t,
         nfft=nfft,
         window_duration=window_duration,
@@ -1107,8 +1310,8 @@ def _point_pair(
 
 
 def mtcsdpt(
-    data1: NDArray[Any],
-    data2: NDArray[Any],
+    data1: _PointInput,
+    data2: _PointInput,
     Fs: int,
     fpass: list[float],
     NW: Union[int, float] = 2.5,
@@ -1126,10 +1329,8 @@ def mtcsdpt(
 
     Parameters
     ----------
-    data1 : np.ndarray
-        Array of spike times for the first signal (in seconds).
-    data2 : np.ndarray
-        Array of spike times for the second signal (in seconds).
+    data1, data2 : np.ndarray or nelpy.SpikeTrainArray
+        One array of spike times in seconds or native single-unit train per input.
     Fs : int
         Taper interpolation grid rate in Hz.
     fpass : list
@@ -1138,10 +1339,11 @@ def mtcsdpt(
         Time-bandwidth product, by default 2.5.
     n_tapers : int, optional
         Number of tapers, by default 4.
-    time_support : array-like, optional
+    time_support : array-like or nelpy.EpochArray, optional
         Observation interval or array of intervals in seconds, as in
         ``mtspectrumpt``. Interval arrays pool complex cross-spectra across
-        complete windows. Defaults to ``tapers_ts`` or the joint spike span.
+        complete windows. Native inputs use the intersection of their supports,
+        optionally narrowed by these intervals.
     tapers : Union[np.ndarray, None], optional
         Precomputed, unscaled DPSS tapers in samples-by-tapers or
         tapers-by-samples order. Internally scaled by ``sqrt(Fs)``. Default is None.
@@ -1174,17 +1376,17 @@ def mtcsdpt(
     >>> np.iscomplexobj(cross["CSD"])
     True
     """
-    support = _support_array(time_support)
+    (first, second), support = _point_inputs(time_support, data1, data2)
     if support is not None and support.ndim == 2:
         windows = _point_segment_plan(
             support, Fs, fpass, window_duration, NW, n_tapers, tapers, tapers_ts, nfft
         )
         f = windows.frequencies
-        csd, _, _ = _point_window_pair(data1, data2, windows)
+        csd, _, _ = _point_window_pair(first, second, windows)
     else:
         f, J1, J2 = _point_pair(
-            data1,
-            data2,
+            first,
+            second,
             Fs,
             fpass,
             NW,
@@ -1203,8 +1405,8 @@ def mtcsdpt(
 
 
 def mtcoherencept(
-    data1: NDArray[Any],
-    data2: NDArray[Any],
+    data1: _PointInput,
+    data2: _PointInput,
     Fs: int,
     fpass: list[float],
     NW: Union[int, float] = 2.5,
@@ -1221,10 +1423,8 @@ def mtcoherencept(
 
     Parameters
     ----------
-    data1 : np.ndarray
-        Array of spike times for the first signal (in seconds).
-    data2 : np.ndarray
-        Array of spike times for the second signal (in seconds).
+    data1, data2 : np.ndarray or nelpy.SpikeTrainArray
+        One array of spike times in seconds or native single-unit train per input.
     Fs : int
         Taper interpolation grid rate in Hz.
     fpass : list
@@ -1233,9 +1433,10 @@ def mtcoherencept(
         Time-bandwidth product, by default 2.5.
     n_tapers : int, optional
         Number of tapers, by default 4.
-    time_support : array-like, optional
+    time_support : array-like or nelpy.EpochArray, optional
         Observation interval or array of intervals in seconds, as in
-        ``mtspectrumpt``. Defaults to ``tapers_ts`` or the joint spike span.
+        ``mtspectrumpt``. Native inputs use the intersection of their supports,
+        optionally narrowed by these intervals.
     tapers : Union[np.ndarray, None], optional
         Precomputed, unscaled DPSS tapers in samples-by-tapers or
         tapers-by-samples order. Default is None.
@@ -1271,17 +1472,17 @@ def mtcoherencept(
     >>> float(coherence.loc[8.0, "Coherence"]) > 0.9
     True
     """
-    support = _support_array(time_support)
+    (first, second), support = _point_inputs(time_support, data1, data2)
     if support is not None and support.ndim == 2:
         windows = _point_segment_plan(
             support, Fs, fpass, window_duration, NW, n_tapers, tapers, tapers_ts, nfft
         )
         f = windows.frequencies
-        values = _coherence_from_spectra(*_point_window_pair(data1, data2, windows))
+        values = _coherence_from_spectra(*_point_window_pair(first, second, windows))
     else:
         f, J1, J2 = _point_pair(
-            data1,
-            data2,
+            first,
+            second,
             Fs,
             fpass,
             NW,
@@ -1325,11 +1526,11 @@ def _check_continuous_pair(data1: NDArray[Any], data2: NDArray[Any]) -> None:
 
 
 def mtcoherencec(
-    data1: NDArray[Any],
-    data2: NDArray[Any],
-    Fs: int,
-    fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    data1: _ContinuousInput,
+    data2: _ContinuousInput,
+    Fs: float | None = None,
+    fpass: list[float] | None = None,
+    tapers: _TaperSpec = (2.5, 4),
     *,
     time_support: _TimeSupport | None = None,
     window_duration: float = 4.0,
@@ -1339,18 +1540,21 @@ def mtcoherencec(
 
     Parameters
     ----------
-    data1, data2 : np.ndarray
-        Aligned, equally sized 1D signals.
-    Fs : int
-        Sampling frequency in Hz.
+    data1, data2 : np.ndarray or nelpy.AnalogSignalArray
+        One channel per input. Native pairs are aligned on their common
+        sample times and support. A mixed NumPy input must be aligned to
+        the full native sample array.
+    Fs : float, optional
+        Sampling frequency in Hz. Inferred from native input and required
+        when both inputs are arrays. Different sample rates are not resampled.
     fpass : list of float
         Inclusive frequency range in Hz, from zero to Nyquist.
     tapers : np.ndarray or tuple of (float, int)
         DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
-    time_support : array-like, optional
-        Half-open interval or array of intervals in seconds from the first
-        sample. Default uses both whole signals. An interval array pools the
-        cross- and auto-spectra before computing coherence.
+    time_support : array-like or nelpy.EpochArray, optional
+        Half-open bounds in seconds from the first sample for arrays, or on
+        the recording clock for native input. Bounds can narrow native support.
+        Disjoint support pools the cross- and auto-spectra before normalization.
     window_duration : float, optional
         Complete, non-overlapping window duration for interval arrays (default 4 s).
 
@@ -1377,6 +1581,25 @@ def mtcoherencec(
     >>> float(coherence.loc[8.0]) > 0.9  # shared oscillation
     True
     """
+    Fs = _continuous_rate(Fs, data1, data2)
+    fpass = _continuous_band(fpass)
+    if isinstance(data1, _NativeSignal) or isinstance(data2, _NativeSignal):
+        blocks = _native_continuous_blocks(data1, Fs, time_support, data2)
+        assert blocks.other is not None
+        if blocks.windowed:
+            windows = _native_continuous_windows(
+                blocks, Fs, fpass, (window_duration, window_duration)
+            )
+            f, values = _pool_continuous_windows(
+                blocks.data, blocks.other, Fs, tapers, windows
+            )
+            return pd.Series(values, index=f, name="Coherence")
+        ((start, stop),) = blocks.bounds
+        other_start = blocks.other_starts[0]
+        data1 = blocks.data[start:stop]
+        data2 = blocks.other[other_start : other_start + stop - start]
+        time_support = None
+    data1, data2 = _continuous_channel(data1), _continuous_channel(data2)
     _check_continuous_pair(data1, data2)
     support = _support_array(time_support)
     if support is not None and support.ndim == 2:
@@ -1396,7 +1619,7 @@ def mtcoherencec(
     return pd.Series(_coherence(j1, j2), index=f, name="Coherence")
 
 
-def _window_samples(movingwin: tuple[float, float], Fs: int) -> tuple[int, int]:
+def _window_samples(movingwin: tuple[float, float], Fs: float) -> tuple[int, int]:
     """Convert window duration and step seconds to sample counts."""
     if not np.isfinite(Fs) or Fs <= 0:
         raise ValueError("Fs must be positive and finite")
@@ -1425,7 +1648,7 @@ def _gram_frame(
 
 
 def _continuous_support_samples(
-    support: NDArray[np.float64], n_samples: int, Fs: int
+    support: NDArray[np.float64], n_samples: int, Fs: float
 ) -> NDArray[np.intp]:
     if not np.isfinite(Fs) or Fs <= 0:
         raise ValueError("Fs must be positive and finite")
@@ -1445,11 +1668,13 @@ class _ContinuousWindows(NamedTuple):
     frequencies: NDArray[np.float64]
     mask: NDArray[np.bool_]
     observed_samples: int
+    other_starts: NDArray[np.intp]
+    centers: NDArray[np.float64]
 
 
 def _continuous_windows(
     data: NDArray[Any],
-    Fs: int,
+    Fs: float,
     fpass: list[float],
     movingwin: tuple[float, float],
     support: NDArray[np.float64] | None,
@@ -1471,35 +1696,66 @@ def _continuous_windows(
                 for start, stop in bounds
             ]
         )
-    return _ContinuousWindows(starts, length, nfft, f, mask, observed_samples)
+    centers = (starts + length / 2) / Fs
+    return _ContinuousWindows(
+        starts, length, nfft, f, mask, observed_samples, starts, centers
+    )
+
+
+def _native_continuous_windows(
+    blocks: _ContinuousBlocks,
+    Fs: float,
+    fpass: list[float],
+    movingwin: tuple[float, float],
+) -> _ContinuousWindows:
+    length, stride = _window_samples(movingwin, Fs)
+    nfft = _fft_size(length)
+    f, mask = _spectrum_grid(Fs, nfft, fpass)
+    observed = blocks.bounds[:, 1] - blocks.bounds[:, 0]
+    offsets = [
+        np.arange(0, size - length + 1, stride, dtype=np.intp) for size in observed
+    ]
+    counts = [len(local) for local in offsets]
+    local = np.concatenate(offsets)
+    starts = np.repeat(blocks.bounds[:, 0], counts) + local
+    other_starts = np.repeat(blocks.other_starts, counts) + local
+    centers = np.repeat(blocks.times, counts) + (local + length / 2) / Fs
+    return _ContinuousWindows(
+        starts, length, nfft, f, mask, int(observed.sum()), other_starts, centers
+    )
 
 
 def _continuous_window_ffts(
     data: NDArray[Any],
     other: NDArray[Any] | None,
-    Fs: int,
-    tapers: NDArray[Any] | tuple[float, int],
+    Fs: float,
+    tapers: _TaperSpec,
     windows: _ContinuousWindows,
 ) -> Iterator[tuple[NDArray[np.complex128], NDArray[np.complex128] | None]]:
     if not windows.starts.size:
         return
     bank = dpsschk(tapers, windows.length, Fs)
-    for start in windows.starts:
+    for start, other_start in zip(windows.starts, windows.other_starts):
         window = slice(start, start + windows.length)
         j1 = mtfftc(data[window], bank, windows.nfft, Fs)[windows.mask]
         j2 = (
             None
             if other is None
-            else mtfftc(other[window], bank, windows.nfft, Fs)[windows.mask]
+            else mtfftc(
+                other[other_start : other_start + windows.length],
+                bank,
+                windows.nfft,
+                Fs,
+            )[windows.mask]
         )
         yield j1, j2
 
 
 def _continuous_window_spectrum(
     data: NDArray[Any],
-    Fs: int,
+    Fs: float,
     fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    tapers: _TaperSpec,
     support: NDArray[np.float64],
     window_duration: float,
     other: NDArray[Any] | None = None,
@@ -1507,6 +1763,16 @@ def _continuous_window_spectrum(
     windows = _continuous_windows(
         data, Fs, fpass, (window_duration, window_duration), support
     )
+    return _pool_continuous_windows(data, other, Fs, tapers, windows)
+
+
+def _pool_continuous_windows(
+    data: NDArray[Any],
+    other: NDArray[Any] | None,
+    Fs: float,
+    tapers: _TaperSpec,
+    windows: _ContinuousWindows,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     _require_windows(len(windows.starts))
     _warn_low_coverage(
         len(windows.starts),
@@ -1531,31 +1797,40 @@ def _continuous_window_spectrum(
 
 
 def _continuous_gram(
-    data: NDArray[Any],
-    Fs: int,
+    data: _ContinuousInput,
+    Fs: float,
     fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    tapers: _TaperSpec,
     movingwin: tuple[float, float],
-    other: NDArray[Any] | None = None,
-    support: NDArray[np.float64] | None = None,
+    other: _ContinuousInput | None = None,
+    support: _TimeSupport | None = None,
 ) -> pd.DataFrame:
-    windows = _continuous_windows(data, Fs, fpass, movingwin, support)
-    centers = (windows.starts + windows.length / 2) / Fs
+    if isinstance(data, _NativeSignal) or isinstance(other, _NativeSignal):
+        blocks = _native_continuous_blocks(data, Fs, support, other)
+        windows = _native_continuous_windows(blocks, Fs, fpass, movingwin)
+        first, second = blocks.data, blocks.other
+    else:
+        first, second = _continuous_channel(data), other
+        if second is not None:
+            _check_continuous_pair(first, second)
+        windows = _continuous_windows(
+            first, Fs, fpass, movingwin, _support_array(support)
+        )
     values = np.empty((len(windows.frequencies), len(windows.starts)), dtype=float)
     for i, (j1, j2) in enumerate(
-        _continuous_window_ffts(data, other, Fs, tapers, windows)
+        _continuous_window_ffts(first, second, Fs, tapers, windows)
     ):
         values[:, i] = (
             np.mean(np.abs(j1) ** 2, axis=1) if j2 is None else _coherence(j1, j2)
         )
-    return _gram_frame(values, windows.frequencies, centers)
+    return _gram_frame(values, windows.frequencies, windows.centers)
 
 
 def mtspecgramc(
-    data: NDArray[Any],
-    Fs: int,
-    fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    data: _ContinuousInput,
+    Fs: float | None = None,
+    fpass: list[float] | None = None,
+    tapers: _TaperSpec = (2.5, 4),
     *,
     movingwin: tuple[float, float],
     time_support: _TimeSupport | None = None,
@@ -1565,26 +1840,27 @@ def mtspecgramc(
 
     Parameters
     ----------
-    data : np.ndarray
-        1D uniformly sampled signal.
-    Fs : int
-        Sampling frequency in Hz.
+    data : np.ndarray or nelpy.AnalogSignalArray
+        1D uniformly sampled signal or a single native channel.
+    Fs : float, optional
+        Sampling frequency in Hz. Inferred for native input; required for arrays.
     fpass : list of float
         Inclusive frequency range in Hz, from zero to Nyquist.
     tapers : np.ndarray or tuple of (float, int)
         DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
     movingwin : tuple of float
         Window duration and step in seconds, rounded to whole samples.
-    time_support : array-like, optional
-        Half-open interval or array of intervals in seconds from the first
-        sample. Only complete windows inside the intervals are returned.
+    time_support : array-like or nelpy.EpochArray, optional
+        Half-open bounds in seconds from the first sample for arrays, or on
+        the recording clock for native input. Only complete windows inside
+        the observed support and requested intervals are returned.
 
     Returns
     -------
     pd.DataFrame
         Power density as in ``mtspectrumc``. Rows are frequencies in Hz and
-        columns are centers of complete windows in seconds, measured from
-        the start of the signal.
+        columns are centers of complete windows in seconds. Native input
+        retains the recording clock; array input starts at zero.
 
     Examples
     --------
@@ -1598,16 +1874,21 @@ def mtspecgramc(
     [1.0, 2.0, 3.0]
     """
     return _continuous_gram(
-        data, Fs, fpass, tapers, movingwin, support=_support_array(time_support)
+        data,
+        _continuous_rate(Fs, data),
+        _continuous_band(fpass),
+        tapers,
+        movingwin,
+        support=time_support,
     )
 
 
 def mtcohgramc(
-    data1: NDArray[Any],
-    data2: NDArray[Any],
-    Fs: int,
-    fpass: list[float],
-    tapers: NDArray[Any] | tuple[float, int],
+    data1: _ContinuousInput,
+    data2: _ContinuousInput,
+    Fs: float | None = None,
+    fpass: list[float] | None = None,
+    tapers: _TaperSpec = (2.5, 4),
     *,
     movingwin: tuple[float, float],
     time_support: _TimeSupport | None = None,
@@ -1617,26 +1898,30 @@ def mtcohgramc(
 
     Parameters
     ----------
-    data1, data2 : np.ndarray
-        Aligned, equally sized 1D signals.
-    Fs : int
-        Sampling frequency in Hz.
+    data1, data2 : np.ndarray or nelpy.AnalogSignalArray
+        One channel per input. Native pairs are aligned on shared support.
+        A mixed NumPy input must follow the full native sample grid.
+    Fs : float, optional
+        Sampling frequency in Hz. Inferred from native input and required
+        when both inputs are arrays. Different rates are not resampled.
     fpass : list of float
         Inclusive frequency range in Hz, from zero to Nyquist.
     tapers : np.ndarray or tuple of (float, int)
         DPSS time-bandwidth product and number of tapers, ``(NW, K)``.
     movingwin : tuple of float
         Window duration and step in seconds, rounded to whole samples.
-    time_support : array-like, optional
-        Half-open interval or array of intervals in seconds from the first
-        sample. Only complete windows inside the intervals are returned.
+    time_support : array-like or nelpy.EpochArray, optional
+        Half-open bounds in seconds from the first sample for arrays, or on
+        the recording clock for native input. Only complete windows inside
+        the observed support and requested intervals are returned.
 
     Returns
     -------
     pd.DataFrame
         Magnitude-squared coherence. Rows are frequencies in Hz and columns
-        are centers of complete windows in seconds from the start of the
-        signals. Frequencies with zero power in either signal are NaN.
+        are centers of complete windows in seconds. Native input retains the
+        recording clock; array input starts at zero. Frequencies with zero
+        power in either signal are NaN.
 
     Examples
     --------
@@ -1650,20 +1935,19 @@ def mtcohgramc(
     >>> bool((gram.loc[8.0] > 0.9).all())  # high coherence at 8 Hz in each window
     True
     """
-    _check_continuous_pair(data1, data2)
     return _continuous_gram(
         data1,
-        Fs,
-        fpass,
+        _continuous_rate(Fs, data1, data2),
+        _continuous_band(fpass),
         tapers,
         movingwin,
         other=data2,
-        support=_support_array(time_support),
+        support=time_support,
     )
 
 
 def mtspecgrampt(
-    data: NDArray[Any],
+    data: _PointInput,
     Fs: int,
     fpass: list[float],
     *,
@@ -1677,8 +1961,8 @@ def mtspecgrampt(
 
     Parameters
     ----------
-    data : np.ndarray
-        One 1D array of finite spike times in seconds.
+    data : np.ndarray or nelpy.SpikeTrainArray
+        One array of spike times in seconds or a native single-unit train.
     Fs : int
         Taper interpolation grid rate in Hz.
     fpass : list of float
@@ -1689,10 +1973,10 @@ def mtspecgrampt(
         DPSS time-bandwidth product. Default is 2.5.
     n_tapers : int, optional
         Number of DPSS tapers. Default is 4.
-    time_support : array-like, optional
-        Observation interval or array of intervals in seconds. Windows never
-        cross gaps. Defaults to the first and last spike, and is required
-        for an empty spike train.
+    time_support : array-like or nelpy.EpochArray, optional
+        Observation intervals in seconds. Native input supplies its support,
+        which these intervals can narrow. With raw input this defaults to the
+        first and last spike. Windows never cross gaps.
 
     Returns
     -------
@@ -1713,8 +1997,8 @@ def mtspecgrampt(
     >>> gram.columns.tolist()  # window centers in seconds
     [1.0, 2.0, 3.0]
     """
-    times = _spike_times(data)
-    support = _support_array(time_support)
+    (raw_times,), support = _point_inputs(time_support, data)
+    times = _spike_times(raw_times)
     if support is None:
         if not times.size:
             raise ValueError("time_support is required for an empty spike train")
